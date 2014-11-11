@@ -15,6 +15,13 @@ ParOptVec::ParOptVec( MPI_Comm _comm, int n ){
 }
 
 /*
+  Zero the entries of the vector
+*/
+void ParOptVec::zeroEntries(){
+  memset(x, 0, size*sizeof(double));
+}
+
+/*
   Copy the values from the given vector
 */
 void ParOptVec::copyValues( ParOptVec * vec ){
@@ -195,10 +202,10 @@ ParOpt::ParOpt( MPI_Comm _comm, int _nvars, int _ncon ){
 */
 void ParOpt::computeKKTRes(){
   // Assemble the residual of the first KKT equation:
-  // g(x) - A^{T}*z - Aw^{T}*zw - zl + zu
+  // g(x) - Ac^{T}*z - Aw^{T}*zw - zl + zu
   rx->copyValues(gx);
   for ( int i = 0; i < ncon; i++ ){
-    rx->axpy(z[i], Acon[i]);
+    rx->axpy(z[i], Ac[i]);
   }
 
   // Insert code to handle the special residuals
@@ -324,18 +331,95 @@ void ParOpt::solveKKTSystem(){
 }
 
 /*
-  Compute the complementarity at the solution
+  Compute the complementarity at the current solution
 */
 double ParOpt::computeComp(){
+  // Retrieve the values of the design variables, lower/upper bounds
+  // and the corresponding lagrange multipliers
+  double *xvals, *lbvals, *ubvals, *zlvals, *zuvals;
+  x->getArray(&xvals);
+  lb->getArray(&lbvals);
+  ub->getArray(&ubvals);
+  zl->getArray(&zlvals);
+  zu->getArray(&zuvals);
   
-  // Get the total number of design variables
-  double nvars_total = 0.0;
+  // Sum up the complementarity from this processor
+  double comp = 0.0;
+  
+  for ( int i = 0; i < nvars; i++ ){
+    comp += (zlvals[i]*(xvals[i] - lbvals[i]) + 
+	     zuvals[i]*(ubvals[i] - xvals[i]));
+  }
 
-  MPI_Allreduce(nvars, );
+  double product = 0.0;
+  MPI_Reduce(&comp, &product, 1, MPI_DOUBLE, MPI_SUM, opt_root, comm);
+  
+  // Compute the complementarity only on the root processor
+  int rank = 0;
+  MPI_Comm_rank(comm, &rank);
+  
+  if (rank == opt_root){
+    for ( int i = 0; i < ncon; i++ ){
+      product += s[i]*z[i];
+    }
 
+    comp = product/(ncon + 2*nvars_total);
+  }
+
+  // Broadcast the result to all processors
+  MPI_Bcast(&comp, 1, MPI_DOUBLE, opt_root, comm);
+
+  return comp
 }
- 
 
+/*
+  Compute the complementarity at the given step
+*/
+double ParOpt::computeCompStep( double alpha ){
+  // Retrieve the values of the design variables, lower/upper bounds
+  // and the corresponding lagrange multipliers
+  double *xvals, *lbvals, *ubvals, *zlvals, *zuvals;
+  x->getArray(&xvals);
+  lb->getArray(&lbvals);
+  ub->getArray(&ubvals);
+  zl->getArray(&zlvals);
+  zu->getArray(&zuvals);
+
+  // Retrieve the values of the steps
+  double *pxvals, *pzlvals, *pzuvals;
+  px->getArray(&pxvals);
+  pzl->getArray(&pzlvals);
+  pzu->getArray(&pzuvals);
+  
+  // Sum up the complementarity from this processor
+  double comp = 0.0;
+  
+  for ( int i = 0; i < nvars; i++ ){
+    double xnew = xvals[i] + alpha*pxvals[i];
+    comp += ((zlvals[i] + alpha*pzlvals[i])*(xnew - lbvals[i]) + 
+	     (zuvals[i] + alpha*pzuvals[i])*(ubvals[i] - xnew));
+  }
+
+  double product = 0.0;
+  MPI_Reduce(&comp, &product, 1, MPI_DOUBLE, MPI_SUM, opt_root, comm);
+  
+  // Compute the complementarity only on the root processor
+  int rank = 0;
+  MPI_Comm_rank(comm, &rank);
+  
+  if (rank == opt_root){
+    for ( int i = 0; i < ncon; i++ ){
+      product += (s[i] + alpha*ps[i])*(z[i] + alpha*pz[i]);
+    }
+
+    comp = product/(ncon + 2*nvars_total);
+  }
+
+  // Broadcast the result to all processors
+  MPI_Bcast(&comp, 1, MPI_DOUBLE, opt_root, comm);
+
+  return comp
+}
 
 /*
   Compute the maximum step length along the given direction
@@ -439,216 +523,6 @@ void ParOpt::computeMaxStep( double tau,
   *_max_z = output[1];
 }
 
-void ParOpt::optimize(){
-
-
-  // Evaluate the objective, constraint and their gradients at the
-  // current values of the design variables
-  eval_objcon();
-  eval_gobjcon();
-
-  // If this is the starting point, find an initial estimate
-  // of the Lagrange multipliers for the inequality constraints
-  if (init_starting_point){
-    /*      
-            # Estimate the Lagrange multipliers by finding the
-            # minimum norm solution to the problem:
-            # A^{T}*z = g - zl + zu
-            rhs = np.dot(self.A, self.gobj - self.zl + self.zu)
-
-            # Solve the normal equations
-            C = np.dot(self.A, self.A.T)
-            z = np.linalg.solve(C, rhs)
-
-            # If the least squares multipliers lie on the interval [0,
-            # 1e3] use them, otherwise keep the pre-assigned values
-            for i in xrange(self.m):
-                if z[i] >= 0.0 and z[i] < 1e3:
-                    self.z[i] = z[i]
-    */
-
-  }
-
-  int converged = 0;
-  
-  for ( int k = 0; k < max_major_iters; k++ ){
-    // Print out the current solution progress
-    if (k % write_output_frequency){
-
-    }
-
-    // Compute the residual of the KKT system 
-    computeKKTRes();
-
-    // Compute the complementarity
-    double comp = ;
-    
-
-    // Compute the norm of the residuals
-    double res_norm = ;
-
-    // Check for convergence
-    if (res_norm < abs_res_tol && mu < 0.1*abs_res_tol){
-      converged = 1;
-      break;
-    }
-    
-    // Determine if the residual norm has been reduced
-    // sufficiently in order to switch to a new barrier
-    // problem
-    if (res_norm < 10.0*mu){
-      // Record the value of the old barrier function
-      double mu_old = mu;
-
-      // Compute the new barrier parameter: It is either:
-      // 1. A fixed fraction of the old value
-      // 2. A function mu**exp for some exp > 1.0
-      // Point 2 ensures superlinear convergence (eventually)
-      double mu_frac = monotone_barrier_fraction*mu;
-      double mu_pow = pow(mu, monotone_barrier_power);
-
-      mu = mu_frac;
-      if (mu_pow < mu_frac){
-	mu = mu_pow;
-      }
-
-      // Adjust the residual for the new barrier parameter
-      // -------------------
-      // res[1:3*self.n:3] -= (mu_old - self.mu)
-      // res[2:3*self.n:3] -= (mu_old - self.mu)
-      // res[3*self.n+self.m:] -= (mu_old - self.mu)
-      // -------------------
-      
-      // Adjust the residual norm - exclude the only 
-      // part that has changed
-      res_norm = max(opt_norm, con_norm);
-
-      // Reset the penalty parameter to zero
-      rho_penalty_search = 0.0;
-    }
-
-    // Set up the KKT system of equations
-    setUpKKTSystem();
-
-    // Solve the KKT system
-    solveKKTSystem();
-
-    // Compute the maximum permitted line search lengths
-    double tau = min_fraction_to_boundary;
-    double tau_max = 1.0 - self.mu;
-    if (tau_max >= tau){
-      tau = tau_max;
-    } 
-
-    double max_x = 1.0, max_z = 1.0;
-    computeMaxStep(tau, &max_x, &max_z);
-
-    // Bound the difference between the step lengths. This code
-    // cuts off the difference between the step lengths by a bound.
-    double max_bnd = 1e2;
-    if (max_x > max_z){
-      if (max_x > max_bnd*max_z){
-	max_x = max_bnd*max_z;
-      }
-      else if (max_x < max_z/max_bnd){
-	max_x = max_z/max_bnd;
-      }
-    }
-    else {
-      if (max_z > max_bnd*max_x){
-	max_z = max_bnd*max_x;
-      }
-      else if (max_z < max_x/max_bnd){
-	max_z = max_x/max_bnd;
-      }
-    }
-    
-    // As a last check, compute the complementarity at
-    // the full step length. If the complementarity increases,
-    // use equal step lengths.
-    if (comp_new > comp){
-      if (max_x > max_z){
-	max_x = max_z;
-      }
-      else {
-	max_z = max_x;
-      }
-    }
-
-    // Scale the steps by the maximum permissible step lengths
-    px->scale(max_x);
-    pzl->scale(max_z);
-    pzu->scale(max_z);
-
-    for ( int i = 0; i < ncon; i++ ){
-      ps[i] *= max_x;
-      pz[i] *= max_z;
-    }
-
-    // Store the negative of the nonlinear components of the KKT
-    // residual at the initial line search point. This will be used
-    // in the quasi-Newton update scheme.
-    yupdate->copyValues(g);
-    yupdate->axpy(-z[i], Acon[i]);
-    yupdate->scale(-1.0);
-
-    // Store the design variable locations
-    supdate->copyValues(x);
-    supdate->scale(-1.0);
-
-    // Keep track of the step length size
-    double alpha = 1.0;
-
-    if (use_line_search){
-      // Set the penalty parameter to the smallest 
-      double rho_hat = getMinPenaltyParam();
-      
-      // Set the penalty parameter to the smallest value
-      // if it is greater than the old value
-      if (rho_hat > rho_penalty_search){
-	rho_penalty_search = rho_hat;
-      }
-      else {
-	// Damp the value of the penalty parameter
-	rho_penalty_search *= 0.5;
-	if (rho_penalty_search < rho_hat){
-	  rho_penalty_search = rho_hat;
-	}
-      }
-
-      // Perform the line search
-      alpha = lineSearch();
-    }
-    else {
-      // Apply the full step
-      x->axpy(alpha, px);
-      zl->axpy(alpha, pzl);
-      zu->axpy(alpha, pzu);
-
-      for ( int i = 0; i < ncon; i++ ){
-	s[i] += alpha*ps[i];
-	z[i] += alpha*pz[i];
-      }
-
-      // Evaluate the objective, constraint and their gradients at the
-      // current values of the design variables
-      eval_objcon();
-      eval_gobjcon();
-    }
-    
-    // Set up the data for the quasi-Newton update
-    yupdate->axpy(g);
-    for ( int i = 0; i < ncon; i++ ){
-      yupdate->axpy(-z[i], Acon[i]);
-    }
-   
-    supdate->axpy(1.0, x);
-   
-    // Compute the Quasi-Newton update
-    qn->update(supdate, yupdate);
-  }
-}
-
 /*
   Evaluate the merit function at the current point, assuming that the
   objective and constraint values are up to date.
@@ -659,7 +533,7 @@ void ParOpt::optimize(){
   
   f(x + alpha*px) + 
   mu*(log(s) + log(x - xl) + log(xu - x)) +
-  rho*||c(x) - s||
+  rho*||c(x) - s||_{2}
 
   output: The value of the merit function
 */
@@ -699,51 +573,55 @@ double ParOpt::evalMeritFunc(){
   input[1] = neg_result;
   MPI_Reduce(input, result, 2, MPI_DOUBLE, MPI_SUM, opt_root, comm);
 
-  // Compute the infeasibility
-  double infeas;
-  for ( int i = 0; i < ncon; i++ ){
-    infeas += (c[i] - s[i])*(c[i] - s[i]);
-  }
-  infeas = sqrt(infeas);
+  // Extract the result of the summation over all processors
+  pos_result = result[0];
+  neg_result = result[1];
+  
+  // Compute the full merit function only on the root processor
+  int rank = 0;
+  MPI_Comm_rank(comm, &rank);
+  
+  double merit = 0.0;
+  if (rank == opt_root){
+    // Add the contribution from the slack variables
+    for ( int i = 0; i < ncon; i++ ){
+      if (s[i] > 1.0){
+	pos_result += log(s[i]);
+      }
+      else {
+	neg_result += log(s[i]);
+      }
+    }
+    
+    // Compute the infeasibility
+    double infeas = 0.0;
+    for ( int i = 0; i < ncon; i++ ){
+      infeas += (c[i] - s[i])*(c[i] - s[i]);
+    }
+    infeas = sqrt(infeas);
 
-  // Add the contribution from the constraints
-  merit = fobj - mu*(result[0] + result[1]) + rho_penalty_search*infeas;
-  for ( int i = 0; i < ncon; i++ ){
-    result -= mu*log(s[i]);
+    // Add the contribution from the constraints
+    merit = (fobj - mu*(pos_result + neg_result) +
+	     rho_penalty_search*infeas);
   }
 
-  MPI_Bcast(&result, 1, MPI_DOUBLE, opt_root, comm);
+  // Broadcast the result to all processors
+  MPI_Bcast(&merit, 1, MPI_DOUBLE, opt_root, comm);
 
   return result;
 }
 
 /*
   Find the minimum value of the penalty parameter which will guarantee
-  that we have a descent direction. Then, compute value of the merit
-  function and its derivative, with the new corresponding penalty
-  parameter.
+  that we have a descent direction. Then, using the new value of the
+  penalty parameter, compute the value of the merit function and its
+  derivative.
 
-  To evaluate the Here, we use a quadratic model of the objectivve
-  function which uses the quasi-Newton Hessian approximation.
-
-  Evaluate the penalty parameter required to make the given direction
-  a descent direction.
-
+  output:
+  merit:   the value of the merit function
+  pmerit: the value of the derivative of the merit function
 */
-void ParOpt::getMinPenaltyParam( double m0, double dm0 ){
-  // Compute the dot-product of the numerator
-  double num = g->dot(px);
-
-  if (res <infeas <= rel_opt_tol){
-    
-  }
-
-  // Compute the infeasibility
-  double infeas = 0.0;
-  for ( int i = 0; i < ncon; i++ ){
-    infeas += (c[i] - s[i])*(c[i] - s[i]);
-  }
-  
+void ParOpt::evalMeritInitDeriv( double * _merit, double * _pmerit ){
   // Retrieve the values of the design variables, the design
   // variable step, and the lower/upper bounds
   double *xvals, *pxvals, *lbvals, *ubvals;
@@ -794,71 +672,86 @@ void ParOpt::getMinPenaltyParam( double m0, double dm0 ){
 
   MPI_Reduce(input, result, 4, MPI_DOUBLE, MPI_SUM, opt_root, comm);
 
-  // Compute the infeasibility
-  double infeas;
-  for ( int i = 0; i < ncon; i++ ){
-    infeas += (c[i] - s[i])*(c[i] - s[i]);
-  }
-  infeas = sqrt(infeas);
+  // Extract the result of the summation over all processors
+  pos_result = result[0];
+  neg_result = result[1];
+  pos_presult = result[2];
+  neg_presult = result[3];
 
+  // Compute the projected derivative
   double proj = g->dot(px);
-  double num = 
 
+  // Perform the computations only on the root processor
+  int rank = 0;
+  MPI_Comm_rank(comm, &rank);
 
-  // Evaluate the contribution from the derivative of the lower/upper
-  // bounds
-  double pos_merit = 0.0, neg_merit = 0.0;
-  double pos_pmerit = 0.0, neg_pmerit = 0.0;
+  // The values of the merit function and its derivative
+  double merit = 0.0;
+  double pmerit = 0.0;
 
-  // Add the contribution from the lower/upper bounds
-  for ( int i = 0; i < nvars; i++ ){
-    merit -= mu*log(xvals[i] - lbvals[i]);
-    merit -= mu*log(ubvals[i] - xvals[i]);
+  if (rank == opt_root){
+    // Add the contribution from the slack variables
+    for ( int i = 0; i < ncon; i++ ){
+      if (s[i] > 1.0){
+	pos_result += log(s[i]);
+      }
+      else {
+	neg_result += log(s[i]);
+      }
+      
+      if (ps[i] > 0.0){
+	neg_presult += ps[i]/s[i];
+      }
+      else {
+	neg_presult += ps[i]/s[i];
+      }
+    }
+    
+    // Compute the infeasibility
+    double infeas = 0.0;
+    for ( int i = 0; i < ncon; i++ ){
+      infeas += (c[i] - s[i])*(c[i] - s[i]);
+    }
+    infeas = sqrt(infeas);
 
+    // Compute the numerator term
+    double numer = proj - mu*(pos_presult + neg_presult);
+    
+    // Compute the first guess for the new
+    double rho_hat = 0.0;
+    if (infeas > 0.0){
+      rho_hat = numer/((1 - penalty_descent_fraction)*max_x*infeas);
+    }
+
+    // Set the penalty parameter to the smallest value
+    // if it is greater than the old value
+    if (rho_hat > rho_penalty_search){
+      rho_penalty_search = rho_hat;
+    }
+    else {
+      // Damp the value of the penalty parameter
+      rho_penalty_search *= 0.5;
+      if (rho_penalty_search < rho_hat){
+	rho_penalty_search = rho_hat;
+      }
+    }
+    
+    // Now, evaluate the merit function and its derivative
+    // based on the new value of the penalty parameter
+    merit = fobj - mu*(pos_result + neg_result) + rho_penalty_search*infeas;
+    pmerit = numer - rho_penalty_search*infeas;
   }
 
-  double pmerit = 0.0;
-  double result = pos_pmerit + neg_pmerit;
-  MPI_Allreduce(&result, pmerit, 
+  input[0] = merit;
+  input[1] = pmerit;
+  input[2] = rho_penalty_search;
 
-  num += g->dot(px);
+  // Broadcast the penalty parameter to all procs
+  MPI_Bcast(input, 3, MPI_DOUBLE, opt_root, comm);
 
-
-
-  /*
-  // Compute the numerator
-  num = (np.dot(g, px) 
-	 - self.mu*(np.sum(ps/s) + 
-		    np.sum(px/(x - self.lb)) + 
-		    np.sum(-px/(self.ub - x))))
-
-    pf = self.penalty_descent_fraction
-
-    // # Compute rho_hat using just the first-order condition
-        rho_hat = d/((1.0 - pf)*a_x*infeas)
-
-        if self.use_curvature_penalty:
-            # Compute gamma = 0.5*px^{T}*H*px 
-            r = np.zeros(px.shape)
-            self.qn.mult(px, r)
-            gamma = 0.5*(np.dot(r, px) + 
-                         self.mu*(np.sum(ps**2/s**2) + 
-                                  np.sum(px**2/(x - self.lb)**2) +
-                                  np.sum(px**2/(self.ub - x)**2)))
-            
-            pf = self.penalty_descent_fraction
-
-            # If the curvature contribution is positive, add it
-            if gamma > 0.0:
-                rho_hat = (d + gamma)/((1.0 - pf)*a_x*infeas)
-
-                # If the penalty is too high, use the smaller value
-                # from the first-order model only
-                if rho_hat > 1e2:
-                    rho_hat = d/((1.0 - pf)*a_x*infeas)
-        
-        return rho_hat
-  */
+  *_merit = input[0];
+  *_pmerit = input[1];
+  rho_penalty_search = input[2];
 }
 
 /*
@@ -869,9 +762,15 @@ void ParOpt::getMinPenaltyParam( double m0, double dm0 ){
   problems when the function should approximate a convex function.)
 
   input:
+  alpha:  (in/out) the initial line search step length
+  m0:     the merit function 
+  dm0:    the projected derivative of the merit function along p
 
+  returns: 
+  fail:   did the line search find an acceptable point
 */
-int ParOpt::lineSearch( double * _alpha ){
+int ParOpt::lineSearch( double * _alpha, 
+			double m0, double dm0 ){
   // Perform a backtracking line search until the sufficient decrease
   // conditions are satisfied 
   double alpha = *_alpha;
@@ -880,8 +779,8 @@ int ParOpt::lineSearch( double * _alpha ){
 
   for ( int j = 0; j < max_line_iters; j++ ){
     x->axpy((alpha - alpha_old), px);
-    pzl->axpy((alpha - alpha_old), pzl);
-    pzu->axpy((alpha - alpha_old), pzu);
+    zl->axpy((alpha - alpha_old), pzl);
+    zu->axpy((alpha - alpha_old), pzu);
     
     for ( int i = 0; i < ncon; i++ ){
       s[i] += (alpha - alpha_old)*ps[i];
@@ -914,4 +813,196 @@ int ParOpt::lineSearch( double * _alpha ){
   *_alpha = alpha;
 
   return fail;
+}
+
+/*
+  Perform the optimization
+*/
+void ParOpt::optimize(){
+
+
+  // Evaluate the objective, constraint and their gradients at the
+  // current values of the design variables
+  eval_objcon();
+  eval_gobjcon();
+
+  // If this is the starting point, find an initial estimate
+  // of the Lagrange multipliers for the inequality constraints
+  if (init_starting_point){
+    /*      
+            # Estimate the Lagrange multipliers by finding the
+            # minimum norm solution to the problem:
+            # A^{T}*z = g - zl + zu
+            rhs = np.dot(self.A, self.gobj - self.zl + self.zu)
+
+            # Solve the normal equations
+            C = np.dot(self.A, self.A.T)
+            z = np.linalg.solve(C, rhs)
+
+            # If the least squares multipliers lie on the interval [0,
+            # 1e3] use them, otherwise keep the pre-assigned values
+            for i in xrange(self.m):
+                if z[i] >= 0.0 and z[i] < 1e3:
+                    self.z[i] = z[i]
+    */
+
+  }
+
+  int converged = 0;
+  
+  for ( int k = 0; k < max_major_iters; k++ ){
+    // Print out the current solution progress
+    if (k % write_output_frequency){
+
+    }
+
+    // Compute the complementarity
+    double comp = computeComp();
+    
+    // Compute the residual of the KKT system 
+    computeKKTRes();
+
+    // Compute the norm of the residuals
+    double res_norm = ;
+
+    // Check for convergence
+    if (res_norm < abs_res_tol && mu < 0.1*abs_res_tol){
+      converged = 1;
+      break;
+    }
+    
+    // Determine if the residual norm has been reduced
+    // sufficiently in order to switch to a new barrier
+    // problem
+    if (res_norm < 10.0*mu){
+      // Record the value of the old barrier function
+      double mu_old = mu;
+
+      // Compute the new barrier parameter: It is either:
+      // 1. A fixed fraction of the old value
+      // 2. A function mu**exp for some exp > 1.0
+      // Point 2 ensures superlinear convergence (eventually)
+      double mu_frac = monotone_barrier_fraction*mu;
+      double mu_pow = pow(mu, monotone_barrier_power);
+
+      mu = mu_frac;
+      if (mu_pow < mu_frac){
+	mu = mu_pow;
+      }
+
+      // Now, set the value of the
+
+      // Reset the penalty parameter to zero
+      rho_penalty_search = 0.0;
+    }
+
+    // Set up the KKT system of equations
+    setUpKKTSystem();
+
+    // Solve the KKT system
+    solveKKTSystem();
+
+    // Compute the maximum permitted line search lengths
+    double tau = min_fraction_to_boundary;
+    double tau_mu = 1.0 - self.mu;
+    if (tau_mu >= tau){
+      tau = tau_mu;
+    } 
+
+    double max_x = 1.0, max_z = 1.0;
+    computeMaxStep(tau, &max_x, &max_z);
+
+    // Bound the difference between the step lengths. This code
+    // cuts off the difference between the step lengths by a bound.
+    double max_bnd = 1e2;
+    if (max_x > max_z){
+      if (max_x > max_bnd*max_z){
+	max_x = max_bnd*max_z;
+      }
+      else if (max_x < max_z/max_bnd){
+	max_x = max_z/max_bnd;
+      }
+    }
+    else {
+      if (max_z > max_bnd*max_x){
+	max_z = max_bnd*max_x;
+      }
+      else if (max_z < max_x/max_bnd){
+	max_z = max_x/max_bnd;
+      }
+    }
+    
+    // As a last check, compute the complementarity at
+    // the full step length. If the complementarity increases,
+    // use equal step lengths.
+    if (comp_new > comp){
+      if (max_x > max_z){
+	max_x = max_z;
+      }
+      else {
+	max_z = max_x;
+      }
+    }
+
+    // Scale the steps by the maximum permissible step lengths
+    px->scale(max_x);
+    pzl->scale(max_z);
+    pzu->scale(max_z);
+
+    for ( int i = 0; i < ncon; i++ ){
+      ps[i] *= max_x;
+      pz[i] *= max_z;
+    }
+
+    // Store the negative of the nonlinear components of the KKT
+    // residual at the initial line search point. This will be used
+    // in the quasi-Newton update scheme.
+    y_qn->copyValues(g);
+    y_qn->axpy(-z[i], Ac[i]);
+    y_qn->scale(-1.0);
+
+    // Store the design variable locations
+    s_qn->copyValues(x);
+    s_qn->scale(-1.0);
+
+    // Keep track of the step length size
+    double alpha = 1.0;
+
+    if (use_line_search){
+      // Compute the initial value of the merit function and its
+      // derivative and a new value for the penalty parameter
+      double m0, dm0;
+      evalMeritInitDeriv(&m0, &dm0);
+      
+      // Perform the line search
+      alpha = lineSearch(&alpha, m0, dm0);
+    }
+    else {
+      // Apply the full step
+      x->axpy(alpha, px);
+      zl->axpy(alpha, pzl);
+      zu->axpy(alpha, pzu);
+
+      for ( int i = 0; i < ncon; i++ ){
+	s[i] += alpha*ps[i];
+	z[i] += alpha*pz[i];
+      }
+
+      // Evaluate the objective, constraint and their gradients at the
+      // current values of the design variables
+      eval_objcon();
+      eval_gobjcon();
+    }
+    
+    // Set up the data for the quasi-Newton update
+    y_qn->axpy(g);
+    for ( int i = 0; i < ncon; i++ ){
+      y_qn->axpy(-z[i], Ac[i]);
+    }
+   
+    s_qn->axpy(1.0, x);
+   
+    // Compute the Quasi-Newton update
+    qn->update(supdate, yupdate);
+  }
 }

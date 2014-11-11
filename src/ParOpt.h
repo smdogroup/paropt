@@ -68,3 +68,78 @@ class LBFGSUpdate {
   BFGSMatrix( );
 
 };
+
+class ParOpt {
+ public:
+  ParOpt();
+
+  void optimize();
+
+ private:
+  
+  // Compute the maximum step length to maintain positivity of 
+  // all components of the design variables 
+  void computeMaxStep( double tau, 
+		       double *_max_x, double *_max_z );
+
+  // Perform the line search
+  int lineSearch( double * _alpha, 
+		  double m0, double dm0 );
+
+  // Evaluate the merit function
+  double evalMeritFunc();
+
+  // Eval the merit function, its derivative and the new penalty parameter
+  void evalMeritInitDeriv( double * _merit, double * _pmerit );
+  
+  // Compute the complementarity
+  double computeComp(); // Complementarity at the current point
+  double computeCompStep( double alpha ); // Complementarity at (x + p)
+
+  // Communicator info
+  MPI_Comm opt_root;
+  int opt_root;
+
+  // The number of variables and constraints in the problem
+  int nvars; // The number of local (on-processor) variables
+  int nvars_total; // The total number of variables
+  int ncon; // The number of inequality constraints in the problem
+
+  // The variables in the optimization problem
+  ParOptVec *x, *zl, *zu;
+  double *z, *s;
+
+  // The steps in the variables
+  ParOptVec *px, *pzl, *pzu;
+  double *pz, *ps;
+
+  // The objective, gradient, constraints, and constraint gradients
+  double fobj, *c;
+  ParOptVec *g, **Ac;
+
+  // The residuals
+
+  // Storage for the Quasi-Newton updates
+  ParOptVec *y_qn, *s_qn;
+
+  // Parameters for optimization
+  int init_starting_point;
+  int write_output_frequency;
+
+  // The barrier parameter
+  double mu;
+
+  // Stopping criteria tolerance
+  double abs_resl_tol;
+
+  // Parameters for the line search
+  double rho_penalty_search;
+  double penalty_descent_fraction, armijo_constant;
+
+  // Parameters for controling the barrier update
+  double monotone_barrier_fraction, monotone_barrier_power;
+ 
+  // The minimum step to the boundary;
+  double min_fraction_to_boundary;
+};
+
