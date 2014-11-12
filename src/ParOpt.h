@@ -56,19 +56,54 @@
   B = b0*I - Z*M*Z^{T}
 */
 
+/*
+  This vector class implements basic linear algebra operations
+  required for design optimization.
+*/
 class ParOptVec {
  public:
-  ParOptVec( int numm );
+  ParOptVec( MPI_Comm _comm, int n );
+  ~ParOptVec();
 
-}
+  // Perform standard operations required for linear algebra
+  // -------------------------------------------------------
+  void set( double alpha );
+  void zeroEntries();
+  void copyValues( ParOptVec * vec );
+  double norm();
+  double maxabs();
+  double dot( ParOptVec * vec );
+  void mdot( ParOptVec ** vecs, int nvecs, double * output );
+  void scale( double alpha );
+  void axpy( double alpha, ParOptVec * x );
+  int getArray( double ** array );
 
+ private:
+  MPI_Comm comm;
+  int size;
+  double * x;
+};
 
+/*
+  This class implements a limited-memory BFGS updating scheme 
+  based on computed differences in the step and Lagrange graidents
+  during a line search. 
+*/
 class LBFGSUpdate {
  public:
-  BFGSMatrix( );
+  BFGSMatrix( MPI_Comm _comm, int _nvars, int _subspace_size );
+
+ private:
+  MPI_Comm comm;
+  int nvars, msub, msub_max;
+
 
 };
 
+/*
+  This class implements a parallel optimizer 
+
+*/
 class ParOpt {
  public:
   ParOpt();
@@ -76,7 +111,32 @@ class ParOpt {
   void optimize();
 
  private:
-  
+  // Compute the negative of the KKT residuals - return
+  // the maximum primal, dual residuals and the max infeasibility
+  void computeKKTRes( double * max_prime,
+		      double * max_dual, 
+		      double * max_infeas );
+
+  // Set up the diagonal KKT system
+  void setUpKKTDiagSystem();
+
+  // Solve the diagonal KKT system
+  void solveKKTDiagSystem( ParOptVec *bx, double *bc, double *bs,
+			   ParOptVec *bzl, ParOptVec *bzu,
+			   ParOptVec *yx, double *yz, double *ys,
+			   ParOptVec *yzl, ParOptVec *yzu );
+
+  // Solve the diagonal KKT system with a specific RHS structure
+  void solveKKTDiagSystem( ParOptVec *bx, 
+			   ParOptVec *yx, double *yz, double *ys,
+			   ParOptVec *yzl, ParOptVec *yzu );
+
+  // Set up the full KKT system
+  void setUpKKTSystem();
+
+  // Solve for the KKT step
+  void computeKKTStep();
+
   // Compute the maximum step length to maintain positivity of 
   // all components of the design variables 
   void computeMaxStep( double tau, 
@@ -114,11 +174,18 @@ class ParOpt {
   ParOptVec *px, *pzl, *pzu;
   double *pz, *ps;
 
+  // The residuals
+  ParOptVec *rx, *rzl, *rzu;
+  double *rc, *rs;
+
   // The objective, gradient, constraints, and constraint gradients
   double fobj, *c;
   ParOptVec *g, **Ac;
 
-  // The residuals
+  // Data required for solving the KKT system
+  ParOptVec *Cvec; // The diagonal entries
+  double *Dmat, *Ce;
+  int dpiv, cpiv;
 
   // Storage for the Quasi-Newton updates
   ParOptVec *y_qn, *s_qn;
