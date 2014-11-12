@@ -43,9 +43,9 @@
 
   The KKT system can be written as follows:
   
-  [  B   -Aw^{T} -A^{T}   0  -I         I        ][ px  ]
+  [  B   -Aw^{T} -Ac^{T}  0  -I         I        ][ px  ]
   [  Aw   0       0       0   0         0        ][ pzw ]
-  [  A    0       0      -I   0         0        ][ pz  ] = -r
+  [  Ac   0       0      -I   0         0        ][ pz  ] = -r
   [  0    0       S       Z   0         0        ][ ps  ]
   [  Zl   0       0       0   (X - Xl)  0        ][ pzl ]
   [ -Zu   0       0       0   0         (Xu - X) ][ pzu ]
@@ -94,7 +94,8 @@ class ParOpt {
   
   // Compute the complementarity
   double computeComp(); // Complementarity at the current point
-  double computeCompStep( double alpha ); // Complementarity at (x + p)
+  double computeCompStep( double alpha_x,
+			  double alpha_z ); // Complementarity at (x + p)
 
   // Communicator info
   MPI_Comm opt_root;

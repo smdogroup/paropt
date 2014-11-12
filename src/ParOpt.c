@@ -70,6 +70,19 @@ double ParOptVec::dot( ParOptVec * vec ){
 }
 
 /*
+  Compute multiple dot-products simultaneously. This reduces the
+  parallel communication overhead.
+*/
+void ParOptVec::mdot( ParOptVec * vecs, int nvecs, double * output ){
+  int one = 1;
+  for ( int i = 0; i < nvecs; i++ ){
+    output = BLASdot(&size, x, &one, vecs[i]->x, &one);
+  }
+
+  MPI_Allreduce(MPI_IN_PLACE, output, nvecs, MPI_DOUBLE, MPI_SUM, comm);
+}
+
+/*
   Compute the dot product of the
 */
 void ParOptVec::scale( double alpha ){
@@ -187,28 +200,26 @@ ParOpt::ParOpt( MPI_Comm _comm, int _nvars, int _ncon ){
 
 
 /*
-  Compute the residual of the KKT residuals at the current
-  optimization step. This utilizes the data stored internally in the
-  ParOpt optimizer. The only input required is the given the governing
-  equations.  
+  Compute the residual of the KKT system at the current optimization
+  step. This utilizes the data stored internally in the ParOpt
+  optimizer. The only input required is the given the governing
+  equations.
 
   This code computes the following terms:
 
-  rx  = g(x) - A^{T}*z - Aw^{T}*zw - zl + zu 
+  rx  = g(x) - Ac^{T}*z - zl + zu 
   rc  = c(x) - s
   rz  = S*z - mu*e 
   rzu = (x - xl)*zl - mu*e
   rzl = (ub - x)*zu - mu*e
 */
-void ParOpt::computeKKTRes(){
+void ParOpt::computeKKTStep(){
   // Assemble the residual of the first KKT equation:
-  // g(x) - Ac^{T}*z - Aw^{T}*zw - zl + zu
-  rx->copyValues(gx);
+  // g(x) - Ac^{T}*z - zl + zu
+  rx->copyValues(g);
   for ( int i = 0; i < ncon; i++ ){
-    rx->axpy(z[i], Ac[i]);
+    rx->axpy(-z[i], Ac[i]);
   }
-
-  // Insert code to handle the special residuals
 
   // Add the contribution from the lagrange multipliers
   rx->axpy(-1.0, zl);
@@ -218,116 +229,350 @@ void ParOpt::computeKKTRes(){
   for ( int i = 0; i < ncon; i++ ){
     rc[i] = cx[i] - s[i];
   }
+
+
+
+
 }
 
 /*
   This function computes the terms required to solve the KKT system
   using a bordering method.
 
+  The initialization process computes the following:
+  
+  C = b0 + zl/(x - lb) + zu/(ub - x)
+
+  where C is a diagonal matrix whose components are stored in Cvec. 
+
+  D = A*diag{c}*A^{T}
+
 
 */
-void ParOpt::setUpKKTSystem( ParOptVec * ctemp ){
-  
+void ParOpt::setUpKKTDiagSystem(){ 
+  // Retrieve the values of the design variables, lower/upper bounds
+  // and the corresponding lagrange multipliers
+  double *xvals, *lbvals, *ubvals, *zlvals, *zuvals;
+  x->getArray(&xvals);
+  lb->getArray(&lbvals);
+  ub->getArray(&ubvals);
+  zl->getArray(&zlvals);
+  zu->getArray(&zuvals);
+   
+  // Set the components of the diagonal matrix 
   double * cvals;
-  ctemp->getArray(&cvals);
+  Cvec->getArray(&cvals);
 
+  // Retrive the diagonal entry
+  double b0;
+  lbfgs->getDiagonal(&b0);
+
+  // Set the values of the c matrix
   for ( int i = 0; i < nvars; i++ ){
     cvals[i] = 1.0/(b0 + 
 		    zlvals[i]/(xvals[i] - lbvals[i]) + 
 		    zuvals[i]/(ubvals[i] - xvals[i]));
   }
 
-  memset(Dkkt, 0, ncon*ncon*sizeof(double));
+  // Set the value of the D matrix
+  memset(Dmat, 0, ncon*ncon*sizeof(double));
 
-  for ( int i = 0; i < ncon; i++ ){
-    for ( int j = i; j < ncon; j++ ){
-      double dval = 0.0;
-      cvals[];
+  // Compute the lower diagonal portion of the matrix. This
+  // code unrolls the loop to achieve better performance. Note
+  // that this only computes the on-processor components.
+  for ( int j = 0; j < ncon; j++ ){
+    for ( int i = j; i < ncon; i++ ){
+      // Get the vectors required
+      double *aivals, *ajvals;
+      Cvec->getArray(&cvals);
+      Ac[i]->getArray(&aivals);
+      Ac[j]->getArray(&ajvals);
 
+      int k = 0;
+      int remainder = nvars % 4;
+      for ( ; k < remainder; k++ ){
+	Dmat[i + ncon*j] += aivals[0]*ajvals[0]/cvals[0];
+	aivals++; ajvals++; cvals++;
+      }
 
-	    
+      for ( int k = nvars; k < nvars; k += 4 ){
+	Dmat[i + ncon*j] += (aivals[0]*ajvals[0]/cvals[0] +
+			     aivals[1]*ajvals[1]/cvals[1] +
+			     aivals[2]*ajvals[2]/cvals[2] +
+			     aivals[3]*ajvals[3]/cvals[3]);
+	aivals += 4; ajvals += 4; cvals += 4;
+      }
     }
   }
 
+  // Populate the remainder of the matrix because it is 
+  // symmetric
+  for ( int j = 0; j < ncon; j++ ){
+    for ( int i = j+1; i < ncon; i++ ){
+      Dmat[i + ncon*j] = Dmat[j + ncon*i];
+    }
+  }
 
-  /*
-        # Set number of design variables/constraints
-        self.n = x.shape[0]
-        self.m = s.shape[0]
+  // Reduce the result to the root processor
+  MPI_Reduce(MPI_IN_PLACE, Dmat, ncon*ncon, MPI_DOUBLE, MPI_SUM, 
+	     opt_root, comm);
 
-        # Keep pointers to the original data
-        self.x = x
-        self.lb = lb
-        self.ub = ub
-        self.s = s
-        self.z = z
-        self.zl = zl
-        self.zu = zu
-        self.A = A
-        
-        # Compute the diagonal matrix c 
-        self.c = b0 + zl/(x - lb) + zu/(ub - x)
+  // Add the diagonal component to the matrix
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+  if (rank == opt_root){
+    for ( int i = 0; i < ncon; i++ ){
+      Dmat[i*(ncon + 1)] = s[i]/z[i];
+    }
+  }
 
-        # Compute and factor the matrix D = Z^{-1}S + A*C^{-1}*A^{T} 
-        self.D = np.zeros((self.m, self.m))
+  // Broadcast the result to all processors. Note that this ensures
+  // that the factorization will be the same on all processors
+  MPI_Bcast(Dmat, ncon*ncon, MPI_DOUBLE, opt_root, comm);
 
-        for i in xrange(self.m):
-            self.D[i, i] = s[i]/z[i]
-
-        for i in xrange(self.m):
-            for j in xrange(self.m):
-                self.D[i, j] += np.dot(self.A[i, :], self.A[j, :]/self.c)
-
-        # Factor the matrix D
-        self.D_factor = scipy.linalg.lu_factor(self.D)
-
-        return
-  */
+  // Factor the matrix for future use
+  LAPACKdgetrf();
 }
 
-void ParOpt::solveKKTSystem(){
-  /*
-        '''
-        Solve the KKT system
-        '''
+/*
+  Solve the linear system 
+  
+  y <- K^{-1}*b
 
-        # Slice up the array for easier access
-        bx = b[0:3*self.n:3]
-        bl = b[1:3*self.n:3]
-        bu = b[2:3*self.n:3]  
-        bc = b[3*self.n:3*self.n+self.m]
-        bs = b[3*self.n+self.m:]
+  where K consists of the approximate KKT system where the approximate
+  Hessian is replaced with only the diagonal terms.  The system of
+  equations consists of the following terms:
+  
+  B0*yx - A^{T}*yz - yzl + yzu = bx
+  A*yx - ys = bc
 
-        # Get the right-hand-side of the first equation
-        d = (bx + bl/(self.x - self.lb) - bu/(self.ub - self.x))
-        
-        # Compute the right-hand-side for the Lagrange multipliers
-        rz = (bc + bs/self.z - np.dot(self.A, d/self.c))
+  With the additional equations:
 
-        # Compute the step in the Lagrange multipliers
-        pz = scipy.linalg.lu_solve(self.D_factor, rz)
+  ys = Z^{-1}*bs - Z^{-1}*S*yz
+  yzl = (X - Xl)^{-1}*(bzl - Zl*yx)
+  yzu = (Xu - X)^{-1}*(bzu + Zu*yx)
 
-        # Compute the step in the slack variables
-        ps = (bs - self.s*pz)/self.z
+  Substitution of these three equations yields the following system of
+  equations:
 
-        # Compute the step in the design variables
-        px = (d + np.dot(self.A.T, pz))/self.c
+  ((B0 + (X - Xl)^{-1}*Zl + (Xu - X)^{-1}*Zu))*yx + A^{T}*yz
+  = bx + (X - Xl)^{-1}*bzl - (Xu - X)^{-1}*bzu
 
-        # Compute the step in the bound Lagrange multipliers
-        pzl = (bl - self.zl*px)/(self.x - self.lb)
-        pzu = (bu + self.zu*px)/(self.ub - self.x)
+  and
+  
+  A*yx + Z^{-1}*S*yz = bc + Z^{-1}*bs.
 
-        # Now create the output array and assign the values
-        x = np.zeros(b.shape)
+  Setting the temporary vector: 
+  
+  d = bx + (X - Xl)^{-1}*bzl - (Xu - X)^{-1}*bzu,
 
-        x[0:3*self.n:3] = px
-        x[1:3*self.n:3] = pzl
-        x[2:3*self.n:3] = pzu
-        x[3*self.n:3*self.n+self.m] = pz
-        x[3*self.n+self.m:] = ps
+  we can solve for yz by solving the following system of equations:
 
-        return x
-  */
+  [Z^{-1}*S + A*((B0 + (X - Xl)^{-1}*Zl + (Xu - X)^{-1}*Zu))^{-1}*A^{T} ]*yz
+  = bc + Z^{-1}*bs - A*((B0 + (X - Xl)^{-1}*Zl + (Xu - X)^{-1}*Zu))^{-1}*d
+
+  This is:
+
+  Dmat*yz = bc + Z^{-1}*bs - A*C0^{-1}*d 
+*/
+void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc, double *bs,
+				 ParOptVec *bzl, ParOptVec *bzu,
+				 ParOptVec *yx, double *yz, double *ys,
+				 ParOptVec *yzl, ParOptVec *yzu ){
+  // Set values in the temporary array
+  double *dvals;
+  xtemp->getArray(&dvals);
+
+  // Get the right-hand-side of the first equation
+  for ( int i = 0; i < nvars; i++ ){
+    dvals[i] = (bxvals[i] +
+		bzlvals[i]/(xvals[i] - lbvals[i]) - 
+		bzuvals[i]/(ubvals[i] - xvals[i]));
+  }
+
+  // Now, compute yz = (bc + S*Z^{-1} - A*C0^{-1}*d)
+  memset(yz, 0, ncon*sizeof(double));
+  for ( int i = 0; i < ncon; i++ ){
+    double *cvals, *acvals;
+    xtemp->getArray(&dvals);
+    Cvec->getArray(&cvals);
+    Ac[i]->getArray(&acvals);
+
+    int k = 0;
+    int remainder = nvars % 4;
+    for ( ; k < remainder; k++ ){
+      yz[i] -= avals[0]*dvals[0]/cvals[0];
+      avals++; dvals++; cvals++; 
+    }
+
+    for ( int k = nvars; k < nvars; k += 4 ){
+      yz[i] -= (avals[0]*dvals[0]/cvals[0] + 
+		avals[1]*dvals[1]/cvals[1] +
+		avals[2]*dvals[2]/cvals[2] + 
+		avals[3]*dvals[3]/cvals[3]);
+    }
+  }
+
+  // Reduce the result to the root processor
+  MPI_Reduce(MPI_IN_PLACE, yz, ncon, MPI_DOUBLE, MPI_SUM, 
+	     opt_root, comm);
+
+  // Compute the full right-hand-
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+
+  if (rank == opt_root){
+    // Compute the full right-hand-side on the root processor
+    // and solve for the Lagrange multipliers
+    for ( int i = 0; i < ncon; i++ ){
+      yz[i] += bc[i] + bs[i]/z[i];
+    }
+
+    LAPACKdgetrs(Dmat, yz);
+  }
+
+  MPI_Bcast(yz, ncon, MPI_DOUBLE, MPI_SUM, opt_root, comm);
+
+  // Compute the step in the slack variables 
+  for ( int i = 0; i < ncon; i++ ){
+    ys[i] = (bs[i] - s[i]*yz[i])/z[i];
+  }
+
+  // Compute the step in the design variables
+  double *yxvals, *cvals;
+  yx->getArray(&yxvals);
+  Cvec->getArray(&cvals);
+
+  // Compute yx = C0^{-1}*(d + A^{T}*yz)
+  yx->copyValues(d);
+  for ( int i = 0; i < ncon; i++ ){
+    yx->axpy(yz[i], Ac[i]);
+  }
+
+  for ( int i = 0; i < nvars; i++ ){
+    yxvals[i] /= cvals[i];
+  }
+
+  // Retrieve the values of the design variables, lower/upper bounds
+  // and the corresponding lagrange multipliers
+  double *xvals, *lbvals, *ubvals, *zlvals, *zuvals;
+  x->getArray(&xvals);
+  lb->getArray(&lbvals);
+  ub->getArray(&ubvals);
+  zl->getArray(&zlvals);
+  zu->getArray(&zuvals);
+
+  // Retrieve the right-hand-sides and the solution vectors
+  double *bzlvals, *bzuvals, *yzlvals, *yzuvals;
+  bzl->getArray(&bzlvals);
+  bzu->getArray(&bzuvals);
+  yzl->getArray(&yzlvals);
+  yzu->getArray(&yzuvals);
+   
+  // Compute the steps in the bound Lagrange multipliers
+  for ( int i = 0; i < nvars; i++ ){
+    yzlvals[i] = (bzlvals[i] - zlvals[i]*yxvals[i])/(xvals[i] - lbvals[i]);
+    yzuvals[i] = (bzuvals[i] + zuvals[i]*yxvals[i])/(ubvals[i] - xvals[i]);
+  }
+}
+
+/*
+  This code computes terms required for the solution of the KKT system
+  of equations. The KKT sytem takes the form:
+
+  K + Z*M*Z^{T}
+
+  where the Z*M*Z^{T} contribution arises from the limited memory BFGS
+  approximation. The K matrix are the linear/diagonal terms from the
+  linearization of the KKT system.
+
+  This code computes the factorization of the Ce matrix which is given
+  by:
+
+  Ce = Z^{T}*K^{-1}*Z
+
+  Note that Z only has contributions in components corresponding to
+  the design variables.
+*/
+void ParOpt::setUpKKTSystem(){
+  // Get the size of the limited-memory BFGS subspace
+  const ParOptVec **Z;
+  int size = qn->getSubspace(&Z);
+
+  // Compute the Schur complement
+  memset(Ce, 0, size*size*sizeof(double));
+  
+  // Solve the KKT system 
+  for ( int j = 0; j < size; j++ ){
+    // Compute K^{-1}*Z[i]
+    solveKKTDiagSystem(Z[i], xtemp);
+
+    // Compute the dot products Z^{T}*K^{-1}*Z[i]
+    xtemp->mdot(Z, size, &Ce[j*size]);
+  }
+
+  // Now, add the contribution from the M matrix
+  double b0; 
+  const double *M;
+  qn->getLBFGSMat(&b0, &M);
+ 
+  for ( int i = 0; i < size*size; i++ ){
+    Ce[i] -= M[i];
+  }
+
+  LAPACKdgetrf(Ce);
+}
+
+/*
+  Sovle the KKT system for the next step. This relies on the diagonal
+  KKT system solver above and uses the information from the set up
+  computation above. The KKT system with the limited memory BFGS update
+  is written as follows:
+
+  K + Z*M*Z^{T}
+
+  where K is the KKT matrix with the diagonal entries. (With I*b0 +
+  Z0*M*Z0^{T} from the LBFGS Hessian.) This code computes:
+
+  y <- (K + Z*M*Z^{T})^{-1}*x,
+
+  which can be written in terms of the operations y <- K^{-1}*x and r
+  <- (M - Z^{T}*K^{-1}*Z)^{-1}*s = Ce^{-1}*s. The code computes the
+  following:
+
+  y <- K^{-1}*x + K^{-1}*Z*Ce^{-1}*Z^{T}*K^{-1}*x
+
+  The code computes the following:
+
+  1. y = K^{-1}*x
+  2. r = Z^{T}*y 
+  3. r <- Ce^{-1}*r
+  4. yv = Z*r
+  5. y += K^{-1}*yv
+*/
+void ParOpt::solveKKTSystem( ){
+  // Get the size of the limited-memory BFGS subspace
+  const ParOptVec **Z;
+  int size = qn->getSubspace(&Z);
+
+  y[:] = self.Be_factor(x);
+
+
+  // Take the dot prodcut
+  yx->mdot(Z, size, r);
+
+    // Compute r <- Ce^{-1}*r
+    r[:] = scipy.linalg.lu_solve(self.Ce_factor, r);
+    
+    for ( int i = 0; i < size; i++ ){
+      t = self.qn.get_vector(i);
+      yv[0:3*self.n:3] += t*r[i];
+    }
+
+            # Compute yv <- Be^{-1}*yv
+            y[:] -= self.Be_factor(yv)
+
+        return
 }
 
 /*
@@ -375,7 +620,7 @@ double ParOpt::computeComp(){
 /*
   Compute the complementarity at the given step
 */
-double ParOpt::computeCompStep( double alpha ){
+double ParOpt::computeCompStep( double alpha_x, double alpha_z ){
   // Retrieve the values of the design variables, lower/upper bounds
   // and the corresponding lagrange multipliers
   double *xvals, *lbvals, *ubvals, *zlvals, *zuvals;
@@ -395,9 +640,9 @@ double ParOpt::computeCompStep( double alpha ){
   double comp = 0.0;
   
   for ( int i = 0; i < nvars; i++ ){
-    double xnew = xvals[i] + alpha*pxvals[i];
-    comp += ((zlvals[i] + alpha*pzlvals[i])*(xnew - lbvals[i]) + 
-	     (zuvals[i] + alpha*pzuvals[i])*(ubvals[i] - xnew));
+    double xnew = xvals[i] + alpha_x*pxvals[i];
+    comp += ((zlvals[i] + alpha_z*pzlvals[i])*(xnew - lbvals[i]) + 
+	     (zuvals[i] + alpha_z*pzuvals[i])*(ubvals[i] - xnew));
   }
 
   double product = 0.0;
@@ -409,7 +654,7 @@ double ParOpt::computeCompStep( double alpha ){
   
   if (rank == opt_root){
     for ( int i = 0; i < ncon; i++ ){
-      product += (s[i] + alpha*ps[i])*(z[i] + alpha*pz[i]);
+      product += (s[i] + alpha_x*ps[i])*(z[i] + alpha_z*pz[i]);
     }
 
     comp = product/(ncon + 2*nvars_total);
@@ -759,7 +1004,7 @@ void ParOpt::evalMeritInitDeriv( double * _merit, double * _pmerit ){
   specified direction. Note that this is a very simple line search
   without a second-order correction which may be required to alleviate
   the Maratos effect. (This should work regardless for compliance
-  problems when the function should approximate a convex function.)
+  problems when the problem should be nearly convex.)
 
   input:
   alpha:  (in/out) the initial line search step length
@@ -829,6 +1074,15 @@ void ParOpt::optimize(){
   // If this is the starting point, find an initial estimate
   // of the Lagrange multipliers for the inequality constraints
   if (init_starting_point){
+    double * C = new double[ ncon*ncon ];
+    double * b = new double[ ncon ];
+    
+    for ( int i = 0; i < ncon; i++ ){
+      b[i] = Ac[i]->dot(g);
+    }
+
+    // Compute the residual 
+
     /*      
             # Estimate the Lagrange multipliers by finding the
             # minimum norm solution to the problem:
@@ -935,6 +1189,7 @@ void ParOpt::optimize(){
     // As a last check, compute the complementarity at
     // the full step length. If the complementarity increases,
     // use equal step lengths.
+    double comp_new = computeCompStep(max_x, max_z);
     if (comp_new > comp){
       if (max_x > max_z){
 	max_x = max_z;
