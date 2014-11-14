@@ -1,234 +1,16 @@
 #include "ParOpt.h"
+#include "ParOptBlasLapack.h"
 
-/*
-  Create a parallel vector for optimization
-
-  input:
-  comm: the communicator for this vector
-  n:    the number of vector components on this processor
-*/
-ParOptVec::ParOptVec( MPI_Comm _comm, int n ){
-  comm = _comm;
-  size = n;
-  x = new double[ n ];
-  memset(x, 0, size*sizeof(double));
-}
-
-/*
-  Free the internally stored data
-*/
-ParOptVec::~ParOptVec(){
-  delete [] x;
-}
-
-/*
-  Set the vector value
-*/
-void ParOptVec::set( double alpha ){
-  for ( int i = 0; i < size; i++ ){
-    x[i] = alpha;
-  }
-}
-
-/*
-  Zero the entries of the vector
-*/
-void ParOptVec::zeroEntries(){
-  memset(x, 0, size*sizeof(double));
-}
-
-/*
-  Copy the values from the given vector
-*/
-void ParOptVec::copyValues( ParOptVec * vec ){
-  int one = 1;
-  BLAScopy(&size, vec->x, &one, x, &one);
-}
-
-/*
-  Compute the l2 norm of the vector
-*/
-double ParOptVec::norm(){
-  int one = 1;
-  res = BLASnrm2(&size, x, &one);
-  res *= res;
-
-  MPI_Allreduce(&res, &sum, 1, MPI_DOUBLE, MPI_SUM, comm);
-
-  return sqrt(sum);
-}
-
-/*
-  Compute the l-infinity norm of the vector
-*/
-double ParOptVec::maxabs(){
-  int one = 1;
-  int max_index = BLASidamax(&size, x, &one);
-  double res = fabs(x[max_index]);
-
-  double infty_norm = 0.0;
-  MPI_Allreduce(&res, &infty_norm, 1, MPI_DOUBLE, MPI_MAX, comm);
-
-  return infty_norm;
-}
-
-/*
-  Compute the dot-product of two vectors and return the result.
-*/
-double ParOptVec::dot( ParOptVec * vec ){
-  int one = 1;
-  res = BLASdot(&size, x, &one, vec->x, &one);
-
-  double sum = 0.0;
-  MPI_Allreduce(&res, &sum, 1, TACS_MPI_TYPE, MPI_SUM, comm);
-
-  return sum;
-}
-
-/*
-  Compute multiple dot-products simultaneously. This reduces the
-  parallel communication overhead.
-*/
-void ParOptVec::mdot( ParOptVec ** vecs, int nvecs, double * output ){
-  int one = 1;
-  for ( int i = 0; i < nvecs; i++ ){
-    output[i] = BLASdot(&size, x, &one, vecs[i]->x, &one);
-  }
-
-  MPI_Allreduce(MPI_IN_PLACE, output, nvecs, MPI_DOUBLE, MPI_SUM, comm);
-}
-
-/*
-  Compute the dot product of the
-*/
-void ParOptVec::scale( double alpha ){
-  int one = 1;
-  BLASscal(&size, &alpha, x, &one);
-}
-
-/*
-  Compute: self <- self + alpha*x
-*/
-void ParOptVec::axpy( double alpha, ParOptVec * x ){
-  int one = 1;
-  BLASaxpy(&size, &alpha, vec->x, &one, x, &one);
-}
-
-/*
-  Retrieve the locally stored values from the array
-*/
-int BVec::getArray( double ** array ){
-  *array = x;
-  return size;
-}
 
 
 /*
-  The following class implements the limited-memory BFGS update.
+  The Parallel Optimizer 
+
+
+
 */
-LBFGSUpdate::LBFGSUpdate( MPI_Comm _comm, int _nvars,
-			  int subspace_size ){
-  comm = _comm;
-  nvars = _nvars;
-  msub_max = subspace_size;
-  msub = 0;
-
-  Z = new ParOptVec*[ 2*msub_max ];
-  S = new ParOptVec*[ msub_max ];
-  Y = new ParOptVec*[ msub_max ];
-
-  for ( int i = 0; i < msub_max; i++ ){
-    S[i] = new ParOptVec(comm, nvars);
-    Y[i] = new ParOptVec(comm, nvars);
-  }
-}
-
-LBFGS::~LBFGS(){
-  for ( int i = 0; i < msub_max; i++ ){
-    delete Y[i];
-    delete S[i];
-  }
-
-  delete [] S;
-  delete [] Y;
-  delete [] Z;
-}
-
-/*
-  Compute the BFGS update
-*/
-void LBFGSUpdate::update( ParOptVec * s, ParOptVec * y ){
-
-  // Set the diagonal entries of the matrix
-  double gamma = y->dot(y);
-  double alpha = y->dot(s);
- 
-  // Compute the multiplication
-  mult(s, r);
-  
-  // Compute dot(r, s)
-  double beta = r->dot(s);
-
-  if (alpha <= 0.2*beta){
-      
-
-  }
-
-  // Set up the new values
-  if (msub < msub_max){
-    svecs[msub]->copyValues(s);
-    yvecs[msub]->copyValues(r);
-
-    // Compute L_{ij} = s_{i}^{T}*y_{j} for the row/column
-    // corresponding to i = msub and j = msub
-    for ( int i = 0; i < msub; i++ ){
-      L[i + msub*msub_max] = svecs[i]->dot(yvecs[msub]);
-    }
-
-    for ( int j = 0; j <= msub; j++ ){
-      L[m + j*msub_max] = svecs[msub]->dot(yvecs[j]);
-    }
-    
-    // Update the size of the subspace
-    msub++;
-  }
-  else {
-    // Update the vector entires
-    svecs[0]->copyValues(s);
-    yvecs[0]->copyValues(y);
-    
-    ParOptVec * stemp = svecs[0];
-    ParOptVec * ytemp = yvecs[0];
-
-    for ( int ii = 0; i < msub-1; i++ ){
-      svecs[i] = svecs[i+1];
-      yvecs[i] = yvecs[i+1];
-    }
-  }
-
-  // Compute the factorization of M
-  /*
-            # Compute the M matrix
-            for i in xrange(m):
-                for j in xrange(m):
-                    self.M[i, j] = np.dot(self.S[:, i], 
-                                          self.B0*self.S[:, j])
-                
-            # Fill in the off-diagonal matrices
-            self.M[:m, m:] = L
-            self.M[m:, :m] = L.T
-s
-            # Set the elements in the diagonal matrix
-            for i in xrange(m):
-                self.M[m+i, m+i] = -np.dot(self.S[:, i], self.Y[:, i])
-
-            # Compute the LU-factorization of M
-            self.M_inv = scipy.linalg.lu_factor(self.M)
-  */
-}
-
-
 ParOpt::ParOpt( MPI_Comm _comm, int _nvars, int _ncon,
+		double *_x, double *_lb, double *_ub,
 		int _num_lbfgs, int ){
   // Record the communicator
   comm = _comm;
@@ -242,16 +24,34 @@ ParOpt::ParOpt( MPI_Comm _comm, int _nvars, int _ncon,
 
   // Calculate the total number of variable across all processors
   MPI_Allreduce(&nvars, &nvars_total, 1, MPI_INT, MPI_SUM, comm);
-  
-  // Set the default values for things
 
-
-  // Allocate storage space for everything
+  // Set the values of the variables
   x = new ParOptVec(comm, nvars);
+  lb = new ParOptVec(comm, nvars);
+  ub = new ParOptVec(comm, nvars);
+
+  // Set the values of the variables
+  double *xvals, *lbvals, *ubvals;
+  x->getArray(&xvals);
+  lb->getArray(&lbvals);
+  ub->getArray(&ubvals);
+  memcpy(xvals, _x, nvars*sizeof(double));
+  memcpy(lbvals, _lb, nvars*sizeof(double));
+  memcpy(ubvals, _ub, nvars*sizeof(double));
+
+  // Allocate storage space for the variables etc.
   zl = new ParOptVec(comm, nvars);
   zu = new ParOptVec(comm, nvars);
+  zl->set(1.0);
+  zu->set(1.0);
+
+  // Set the initial values of the Lagrange multipliers
   z = new double[ ncon ];
   s = new double[ ncon ];
+  for ( int i = 0; i < ncon; i++ ){
+    z[i] = 1.0;
+    s[i] = 1.0;
+  }
 
   // Allocate space for the steps
   px = new ParOptVec(comm, nvars);
@@ -275,6 +75,20 @@ ParOpt::ParOpt( MPI_Comm _comm, int _nvars, int _ncon,
   Dmat = new double[ ncon*ncon ];
   dpiv = new int[ ncon ];
 
+  // Set the value of the objective
+  fobj = 0.0;
+  
+  // Set the constraints to zero
+  c = new double[ ncon ];
+  memset(c, 0, ncon*sizeof(double));
+  
+  // Set the objective and constraint gradients 
+  g = new ParOptVec(comm, nvars);
+  Ac = new ParOptVec*[ ncon ];
+  for ( int i = 0; i < ncon; i++ ){
+    Ac[i] = new ParOptVec(comm, nvars);
+  }
+
   // Initialize the parameters with default values
   barrier_param = 0.1;
   abs_res_tol = 1e-5;
@@ -286,6 +100,9 @@ ParOpt::ParOpt( MPI_Comm _comm, int _nvars, int _ncon,
   min_fraction_to_boundary = 0.95;
 }
 
+/*
+  Free the data allocated during the creation of the object
+*/
 ParOpt::~ParOpt(){
   
 }
@@ -570,7 +387,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc, double *bs,
   Cvec->getArray(&cvals);
 
   // Compute yx = C0^{-1}*(d + A^{T}*yz)
-  yx->copyValues(d);
+  yx->copyValues(xtemp);
   for ( int i = 0; i < ncon; i++ ){
     yx->axpy(yz[i], Ac[i]);
   }
@@ -612,7 +429,8 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc, double *bs,
 
   In this case, we assume that the only non-zero input components
   correspond the the unknowns in the first KKT system. This is the
-  case when solving systems used 
+  case when solving systems used with the limited-memory BFGS
+  approximation.
 */
 void ParOpt::solveKKTDiagSystem( ParOptVec *bx, 
 				 ParOptVec *yx, double *yz, double *ys,
@@ -670,8 +488,8 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   yx->getArray(&yxvals);
   Cvec->getArray(&cvals);
 
-  // Compute yx = C0^{-1}*(d + A^{T}*yz)
-  yx->copyValues(d);
+  // Compute yx = C0^{-1}*(bx + A^{T}*yz)
+  yx->copyValues(bx);
   for ( int i = 0; i < ncon; i++ ){
     yx->axpy(yz[i], Ac[i]);
   }
@@ -704,10 +522,77 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
 }
 
 /*
+  Solve the linear system 
+  
+  y <- K^{-1}*b
+
+  where K consists of the approximate KKT system where the approximate
+  Hessian is replaced with only the diagonal terms. 
+
+  In this case, we assume that the only non-zero input components
+  correspond the the unknowns in the first KKT system. This is the
+  case when solving systems used w
+*/
+void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
+  // Compute ztemp = (S*Z^{-1} - A*C0^{-1}*bx)
+  memset(ztemp, 0, ncon*sizeof(double));
+
+  for ( int i = 0; i < ncon; i++ ){
+    double *cvals, *acvals, *bxvals;
+    bxvals->getArray(&dvals);
+    Cvec->getArray(&cvals);
+    Ac[i]->getArray(&acvals);
+
+    int k = 0;
+    int remainder = nvars % 4;
+    for ( ; k < remainder; k++ ){
+      yz[i] -= avals[0]*bxvals[0]/cvals[0];
+      avals++; bxvals++; cvals++; 
+    }
+
+    for ( int k = nvars; k < nvars; k += 4 ){
+      ztemp[i] -= (avals[0]*bxvals[0]/cvals[0] + 
+		   avals[1]*bxvals[1]/cvals[1] +
+		   avals[2]*bxvals[2]/cvals[2] + 
+		   avals[3]*bxvals[3]/cvals[3]);
+    }
+  }
+
+  // Reduce the result to the root processor
+  MPI_Reduce(MPI_IN_PLACE, ztemp, ncon, MPI_DOUBLE, MPI_SUM, 
+	     opt_root, comm);
+
+  // Compute the full right-hand-
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+
+  if (rank == opt_root){
+    LAPACKdgetrs(Dmat, ztemp);
+  }
+
+  MPI_Bcast(ztemp, ncon, MPI_DOUBLE, MPI_SUM, opt_root, comm);
+
+  // Compute the step in the design variables
+  double *yxvals, *cvals;
+  yx->getArray(&yxvals);
+  Cvec->getArray(&cvals);
+
+  // Compute yx = C0^{-1}*(d + A^{T}*yz)
+  yx->copyValues(bx);
+  for ( int i = 0; i < ncon; i++ ){
+    yx->axpy(ztemp[i], Ac[i]);
+  }
+
+  for ( int i = 0; i < nvars; i++ ){
+    yxvals[i] /= cvals[i];
+  }
+}
+
+/*
   This code computes terms required for the solution of the KKT system
   of equations. The KKT system takes the form:
 
-  K + Z*M*Z^{T}
+  K - Z*diag{d}*M^{-1}*diag{d}*Z^{T}
 
   where the Z*M*Z^{T} contribution arises from the limited memory BFGS
   approximation. The K matrix are the linear/diagonal terms from the
@@ -716,17 +601,18 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   This code computes the factorization of the Ce matrix which is given
   by:
 
-  Ce = Z^{T}*K^{-1}*Z
+  Ce = Z^{T}*K^{-1}*Z - diag{d}^{-1}*M*diag{d}^{-1}
 
   Note that Z only has contributions in components corresponding to
-  the design variables.
+  the design variables.  
 */
 void ParOpt::setUpKKTSystem(){
   // Get the size of the limited-memory BFGS subspace
   const ParOptVec **Z;
-  int size = qn->getSubspace(&Z);
+  double b0;
+  const double *d, *M;
+  int size = qn->getLBFGSMat(&b0, &d, &M, &Z);
 
-  // Compute the Schur complement
   memset(Ce, 0, size*size*sizeof(double));
   
   // Solve the KKT system 
@@ -738,13 +624,11 @@ void ParOpt::setUpKKTSystem(){
     xtemp->mdot(Z, size, &Ce[j*size]);
   }
 
-  // Now, add the contribution from the M matrix
-  double b0; 
-  const double *M;
-  qn->getLBFGSMat(&b0, &M);
- 
-  for ( int i = 0; i < size*size; i++ ){
-    Ce[i] -= M[i];
+  // Compute the Schur complement
+  for ( int j = 0; j < size; j++ ){
+    for ( int i = 0; i < size; i++ ){
+      Ce[i + j*size] -= M[i + j*size]/(d[i]*d[j]);
+    }
   }
 
   LAPACKdgetrf(Ce);
@@ -756,16 +640,20 @@ void ParOpt::setUpKKTSystem(){
   computation above. The KKT system with the limited memory BFGS update
   is written as follows:
 
-  K + Z*M*Z^{T}
+  K + Z*diag{d}*M^{-1}*diag{d}*Z^{T}
 
   where K is the KKT matrix with the diagonal entries. (With I*b0 +
-  Z0*M*Z0^{T} from the LBFGS Hessian.) This code computes:
+  Z*diag{d}*M^{-1}*diag{d}*Z0^{T} from the LBFGS Hessian.) This code
+  computes:
 
-  y <- (K + Z*M*Z^{T})^{-1}*x,
+  y <- [ K + Z*diag{d}*M^{-1}*diag{d}*Z^{T} ]^{-1}*x,
 
-  which can be written in terms of the operations y <- K^{-1}*x and r
-  <- (M - Z^{T}*K^{-1}*Z)^{-1}*s = Ce^{-1}*s. The code computes the
-  following:
+  which can be written in terms of the operations y <- K^{-1}*x and 
+  r <- Ce^{-1}*S. Where Ce is given by:
+
+  Ce = Z^{T}*K^{-1}*Z - diag{d}^{-1}*M*diag{d}^{-1}
+
+  The code computes the following:
 
   y <- K^{-1}*x - K^{-1}*Z*Ce^{-1}*Z^{T}*K^{-1}*x
 
@@ -779,7 +667,7 @@ void ParOpt::setUpKKTSystem(){
 */
 void ParOpt::computeKKTStep(){
   // Get the size of the limited-memory BFGS subspace
-  const ParOptVec **Z;
+  ParOptVec **Z;
   int size = qn->getSubspace(&Z);
 
   // At this point the residuals are no longer required.

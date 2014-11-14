@@ -1,3 +1,6 @@
+#ifndef PAR_OPT_OPTIMIZER_H
+#define PAR_OPT_OPTIMIZER_H
+
 /*
   A parallel optimizer implemented in C++ for large-scale constrained
   parallel optimization.
@@ -54,55 +57,6 @@
   takes the form:
   
   B = b0*I - Z*M*Z^{T}
-*/
-
-/*
-  This vector class implements basic linear algebra operations
-  required for design optimization.
-*/
-class ParOptVec {
- public:
-  ParOptVec( MPI_Comm _comm, int n );
-  ~ParOptVec();
-
-  // Perform standard operations required for linear algebra
-  // -------------------------------------------------------
-  void set( double alpha );
-  void zeroEntries();
-  void copyValues( ParOptVec * vec );
-  double norm();
-  double maxabs();
-  double dot( ParOptVec * vec );
-  void mdot( ParOptVec ** vecs, int nvecs, double * output );
-  void scale( double alpha );
-  void axpy( double alpha, ParOptVec * x );
-  int getArray( double ** array );
-
- private:
-  MPI_Comm comm;
-  int size;
-  double * x;
-};
-
-/*
-  This class implements a limited-memory BFGS updating scheme 
-  based on computed differences in the step and Lagrange graidents
-  during a line search. 
-*/
-class LBFGSUpdate {
- public:
-  BFGSMatrix( MPI_Comm _comm, int _nvars, int _subspace_size );
-
- private:
-  MPI_Comm comm;
-  int nvars, msub, msub_max;
-
-
-};
-
-/*
-  This class implements a parallel optimizer 
-
 */
 class ParOpt {
  public:
@@ -166,6 +120,10 @@ class ParOpt {
   int nvars_total; // The total number of variables
   int ncon; // The number of inequality constraints in the problem
 
+  // Temporary vectors for internal usage
+  ParOptVec *xtemp;
+  double *ztemp;
+
   // The variables in the optimization problem
   ParOptVec *x, *zl, *zu;
   double *z, *s;
@@ -211,3 +169,4 @@ class ParOpt {
   double min_fraction_to_boundary;
 };
 
+#endif
