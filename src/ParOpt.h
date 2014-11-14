@@ -62,8 +62,13 @@
 */
 class ParOpt {
  public:
-  ParOpt();
+  ParOpt( MPI_Comm _comm, int _nvars, int _ncon,
+	  double *_x, double *_lb, double *_ub,
+	  int _num_lbfgs );
+  ~ParOpt();
 
+  // Perform the optimization
+  // ------------------------
   void optimize();
 
  private:
@@ -87,6 +92,10 @@ class ParOpt {
 			   ParOptVec *yx, double *yz, double *ys,
 			   ParOptVec *yzl, ParOptVec *yzu );
 
+  // Solve the diagonal KKT system but only return the components
+  // corresponding to the design variables
+  void solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx );
+
   // Set up the full KKT system
   void setUpKKTSystem();
 
@@ -106,7 +115,8 @@ class ParOpt {
   double evalMeritFunc();
 
   // Eval the merit function, its derivative and the new penalty parameter
-  void evalMeritInitDeriv( double * _merit, double * _pmerit );
+  void evalMeritInitDeriv( double max_x,
+			   double * _merit, double * _pmerit );
   
   // Compute the complementarity
   double computeComp(); // Complementarity at the current point
@@ -114,7 +124,7 @@ class ParOpt {
 			  double alpha_z ); // Complementarity at (x + p)
 
   // Communicator info
-  MPI_Comm opt_root;
+  MPI_Comm comm;
   int opt_root;
 
   // The number of variables and constraints in the problem
@@ -129,6 +139,9 @@ class ParOpt {
   // The variables in the optimization problem
   ParOptVec *x, *zl, *zu;
   double *z, *s;
+
+  // The lower/upper bounds on the variables
+  ParOptVec *lb, *ub;
 
   // The steps in the variables
   ParOptVec *px, *pzl, *pzu;
@@ -145,22 +158,26 @@ class ParOpt {
   // Data required for solving the KKT system
   ParOptVec *Cvec; // The diagonal entries
   double *Dmat, *Ce;
-  int dpiv, cpiv;
+  int *dpiv, *cpiv;
 
   // Storage for the Quasi-Newton updates
+  LBFGS *qn;
   ParOptVec *y_qn, *s_qn;
 
   // Parameters for optimization
+  int max_major_iters;
   int init_starting_point;
   int write_output_frequency;
 
   // The barrier parameter
-  double mu;
+  double barrier_param;
 
   // Stopping criteria tolerance
-  double abs_resl_tol;
+  double abs_res_tol;
 
   // Parameters for the line search
+  int max_line_iters;
+  int use_line_search;
   double rho_penalty_search;
   double penalty_descent_fraction, armijo_constant;
 

@@ -1,7 +1,6 @@
+#include <math.h>
 #include "ParOpt.h"
 #include "ParOptBlasLapack.h"
-
-
 
 /*
   The Parallel Optimizer 
@@ -11,7 +10,7 @@
 */
 ParOpt::ParOpt( MPI_Comm _comm, int _nvars, int _ncon,
 		double *_x, double *_lb, double *_ub,
-		int _num_lbfgs, int ){
+		int max_lbfgs_subspace ){
   // Record the communicator
   comm = _comm;
   opt_root = 0;
@@ -24,6 +23,9 @@ ParOpt::ParOpt( MPI_Comm _comm, int _nvars, int _ncon,
 
   // Calculate the total number of variable across all processors
   MPI_Allreduce(&nvars, &nvars_total, 1, MPI_INT, MPI_SUM, comm);
+
+  // Allocate the quasi-Newton LBFGS approximation
+  qn = new LBFGS(comm, nvars, max_lbfgs_subspace);
 
   // Set the values of the variables
   x = new ParOptVec(comm, nvars);
@@ -71,6 +73,16 @@ ParOpt::ParOpt( MPI_Comm _comm, int _nvars, int _ncon,
   y_qn = new ParOptVec(comm, nvars);
   s_qn = new ParOptVec(comm, nvars);
 
+  // Allocate temporary storage for nvars-sized things
+  xtemp = new ParOptVec(comm, nvars);
+
+  // Allocate storage for bfgs/constraint sized things
+  int zsize = 2*max_lbfgs_subspace;
+  if (ncon > zsize){
+    ncon = zsize;
+  }
+  ztemp = new double[ zsize ];
+
   // Allocate space for the
   Dmat = new double[ ncon*ncon ];
   dpiv = new int[ ncon ];
@@ -90,8 +102,13 @@ ParOpt::ParOpt( MPI_Comm _comm, int _nvars, int _ncon,
   }
 
   // Initialize the parameters with default values
+  max_major_iters = 1000;
+  init_starting_point = 1;
+  write_output_frequency = 10;
   barrier_param = 0.1;
   abs_res_tol = 1e-5;
+  use_line_search = 1;
+  max_line_iters = 9;
   rho_penalty_search = 0.0;
   penalty_descent_fraction = 0.3;
   armijo_constant = 1e-3;
@@ -104,7 +121,7 @@ ParOpt::ParOpt( MPI_Comm _comm, int _nvars, int _ncon,
   Free the data allocated during the creation of the object
 */
 ParOpt::~ParOpt(){
-  
+  delete qn;
 }
 
 /*
@@ -202,9 +219,11 @@ void ParOpt::setUpKKTDiagSystem(){
   double * cvals;
   Cvec->getArray(&cvals);
 
-  // Retrive the diagonal entry
+  // Retrive the diagonal entry for the BFGS update
   double b0;
-  lbfgs->getDiagonal(&b0);
+  const double *d, *M;
+  ParOptVec **Z;
+  qn->getLBFGSMat(&b0, &d, &M, &Z);
 
   // Set the values of the c matrix
   for ( int i = 0; i < nvars; i++ ){
@@ -270,7 +289,8 @@ void ParOpt::setUpKKTDiagSystem(){
   MPI_Bcast(Dmat, ncon*ncon, MPI_DOUBLE, opt_root, comm);
 
   // Factor the matrix for future use
-  LAPACKdgetrf();
+  int info = 0;
+  LAPACKdgetrf(&ncon, &ncon, Dmat, &ncon, dpiv, &info);
 }
 
 /*
@@ -326,6 +346,18 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc, double *bs,
   double *dvals;
   xtemp->getArray(&dvals);
 
+  // Get the arrays for the variables and upper/lower bounds
+  double *xvals, *lbvals, *ubvals;
+  x->getArray(&xvals);
+  lb->getArray(&lbvals);
+  ub->getArray(&ubvals);
+
+  // Get the arrays for the right-hand-sides
+  double *bxvals, *bzlvals, *bzuvals;
+  bx->getArray(&bxvals);
+  bzl->getArray(&bzlvals);
+  bzu->getArray(&bzuvals);
+
   // Get the right-hand-side of the first equation
   for ( int i = 0; i < nvars; i++ ){
     dvals[i] = (bxvals[i] +
@@ -336,10 +368,10 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc, double *bs,
   // Now, compute yz = (bc + S*Z^{-1} - A*C0^{-1}*d)
   memset(yz, 0, ncon*sizeof(double));
   for ( int i = 0; i < ncon; i++ ){
-    double *cvals, *acvals;
+    double *cvals, *avals;
     xtemp->getArray(&dvals);
     Cvec->getArray(&cvals);
-    Ac[i]->getArray(&acvals);
+    Ac[i]->getArray(&avals);
 
     int k = 0;
     int remainder = nvars % 4;
@@ -371,10 +403,12 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc, double *bs,
       yz[i] += bc[i] + bs[i]/z[i];
     }
 
-    LAPACKdgetrs(Dmat, yz);
+    int one = 1, info = 0;
+    LAPACKdgetrs("N", &ncon, &one, 
+		 Dmat, &ncon, dpiv, yz, &ncon, &info);
   }
 
-  MPI_Bcast(yz, ncon, MPI_DOUBLE, MPI_SUM, opt_root, comm);
+  MPI_Bcast(yz, ncon, MPI_DOUBLE, opt_root, comm);
 
   // Compute the step in the slack variables 
   for ( int i = 0; i < ncon; i++ ){
@@ -396,19 +430,13 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc, double *bs,
     yxvals[i] /= cvals[i];
   }
 
-  // Retrieve the values of the design variables, lower/upper bounds
-  // and the corresponding lagrange multipliers
-  double *xvals, *lbvals, *ubvals, *zlvals, *zuvals;
-  x->getArray(&xvals);
-  lb->getArray(&lbvals);
-  ub->getArray(&ubvals);
+  // Retrieve the lagrange multipliers
+  double *zlvals, *zuvals;
   zl->getArray(&zlvals);
   zu->getArray(&zuvals);
 
-  // Retrieve the right-hand-sides and the solution vectors
-  double *bzlvals, *bzuvals, *yzlvals, *yzuvals;
-  bzl->getArray(&bzlvals);
-  bzu->getArray(&bzuvals);
+  // Retrieve the lagrange multiplier vectors
+  double *yzlvals, *yzuvals;
   yzl->getArray(&yzlvals);
   yzu->getArray(&yzuvals);
    
@@ -437,11 +465,12 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
 				 ParOptVec *yzl, ParOptVec *yzu ){
   // Now, compute yz = (S*Z^{-1} - A*C0^{-1}*bx)
   memset(yz, 0, ncon*sizeof(double));
+
   for ( int i = 0; i < ncon; i++ ){
-    double *cvals, *acvals, *bxvals;
-    bxvals->getArray(&dvals);
+    double *cvals, *avals, *bxvals;
+    bx->getArray(&bxvals);
     Cvec->getArray(&cvals);
-    Ac[i]->getArray(&acvals);
+    Ac[i]->getArray(&avals);
 
     int k = 0;
     int remainder = nvars % 4;
@@ -467,20 +496,16 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   MPI_Comm_rank(comm, &rank);
 
   if (rank == opt_root){
-    // Compute the full right-hand-side on the root processor
-    // and solve for the Lagrange multipliers
-    for ( int i = 0; i < ncon; i++ ){
-      yz[i] += bc[i] + bs[i]/z[i];
-    }
-
-    LAPACKdgetrs(Dmat, yz);
+    int one = 1, info = 0;
+    LAPACKdgetrs("N", &ncon, &one, 
+		 Dmat, &ncon, dpiv, yz, &ncon, &info);
   }
 
-  MPI_Bcast(yz, ncon, MPI_DOUBLE, MPI_SUM, opt_root, comm);
+  MPI_Bcast(yz, ncon, MPI_DOUBLE, opt_root, comm);
 
   // Compute the step in the slack variables 
   for ( int i = 0; i < ncon; i++ ){
-    ys[i] = (bs[i] - s[i]*yz[i])/z[i];
+    ys[i] = -(s[i]*yz[i])/z[i];
   }
 
   // Compute the step in the design variables
@@ -508,16 +533,14 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   zu->getArray(&zuvals);
 
   // Retrieve the right-hand-sides and the solution vectors
-  double *bzlvals, *bzuvals, *yzlvals, *yzuvals;
-  bzl->getArray(&bzlvals);
-  bzu->getArray(&bzuvals);
+  double *yzlvals, *yzuvals;
   yzl->getArray(&yzlvals);
   yzu->getArray(&yzuvals);
    
   // Compute the steps in the bound Lagrange multipliers
   for ( int i = 0; i < nvars; i++ ){
-    yzlvals[i] = (bzlvals[i] - zlvals[i]*yxvals[i])/(xvals[i] - lbvals[i]);
-    yzuvals[i] = (bzuvals[i] + zuvals[i]*yxvals[i])/(ubvals[i] - xvals[i]);
+    yzlvals[i] = -(zlvals[i]*yxvals[i])/(xvals[i] - lbvals[i]);
+    yzuvals[i] =  (zuvals[i]*yxvals[i])/(ubvals[i] - xvals[i]);
   }
 }
 
@@ -538,15 +561,15 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
   memset(ztemp, 0, ncon*sizeof(double));
 
   for ( int i = 0; i < ncon; i++ ){
-    double *cvals, *acvals, *bxvals;
-    bxvals->getArray(&dvals);
+    double *cvals, *avals, *bxvals;
+    bx->getArray(&bxvals);
     Cvec->getArray(&cvals);
-    Ac[i]->getArray(&acvals);
+    Ac[i]->getArray(&avals);
 
     int k = 0;
     int remainder = nvars % 4;
     for ( ; k < remainder; k++ ){
-      yz[i] -= avals[0]*bxvals[0]/cvals[0];
+      ztemp[i] -= avals[0]*bxvals[0]/cvals[0];
       avals++; bxvals++; cvals++; 
     }
 
@@ -567,10 +590,12 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
   MPI_Comm_rank(comm, &rank);
 
   if (rank == opt_root){
-    LAPACKdgetrs(Dmat, ztemp);
+    int one = 1, info = 0;
+    LAPACKdgetrs("N", &ncon, &one, 
+		 Dmat, &ncon, dpiv, ztemp, &ncon, &info);
   }
 
-  MPI_Bcast(ztemp, ncon, MPI_DOUBLE, MPI_SUM, opt_root, comm);
+  MPI_Bcast(ztemp, ncon, MPI_DOUBLE, opt_root, comm);
 
   // Compute the step in the design variables
   double *yxvals, *cvals;
@@ -608,20 +633,20 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
 */
 void ParOpt::setUpKKTSystem(){
   // Get the size of the limited-memory BFGS subspace
-  const ParOptVec **Z;
   double b0;
   const double *d, *M;
+  ParOptVec **Z;
   int size = qn->getLBFGSMat(&b0, &d, &M, &Z);
 
   memset(Ce, 0, size*size*sizeof(double));
   
   // Solve the KKT system 
-  for ( int j = 0; j < size; j++ ){
+  for ( int i = 0; i < size; i++ ){
     // Compute K^{-1}*Z[i]
     solveKKTDiagSystem(Z[i], xtemp);
 
     // Compute the dot products Z^{T}*K^{-1}*Z[i]
-    xtemp->mdot(Z, size, &Ce[j*size]);
+    xtemp->mdot(Z, size, &Ce[i*size]);
   }
 
   // Compute the Schur complement
@@ -631,7 +656,8 @@ void ParOpt::setUpKKTSystem(){
     }
   }
 
-  LAPACKdgetrf(Ce);
+  int info = 0;
+  LAPACKdgetrf(&size, &size, Ce, &size, cpiv, &info);
 }
 
 /*
@@ -660,30 +686,34 @@ void ParOpt::setUpKKTSystem(){
   The code computes the following:
 
   1. p = K^{-1}*x
-  2. dz = Z^{T}*p
-  3. dz <- Ce^{-1}*dz
-  4. rx = Z^{T}*dz
+  2. ztemp = Z^{T}*p
+  3. ztemp <- Ce^{-1}*ztemp
+  4. rx = Z^{T}*ztemp
   5. p -= K^{-1}*rx
 */
 void ParOpt::computeKKTStep(){
   // Get the size of the limited-memory BFGS subspace
+  double b0;
+  const double *d, *M;
   ParOptVec **Z;
-  int size = qn->getSubspace(&Z);
+  int size = qn->getLBFGSMat(&b0, &d, &M, &Z);
 
   // At this point the residuals are no longer required.
   solveKKTDiagSystem(rx, rc, rs, rzl, rzu,
 		     px, pz, ps, pzl, pzu);
 
   // dz = Z^{T}*px
-  px->mdot(Z, size, dz);
+  px->mdot(Z, size, ztemp);
   
   // Compute dz <- Ce^{-1}*dz
-  LAPACKdgetrs(Ce, dz);
+  int one = 1, info = 0;
+  LAPACKdgetrs("N", &size, &one, 
+	       Ce, &size, cpiv, ztemp, &ncon, &info);
 
   // Compute rx = Z^{T}*dz
   xtemp->zeroEntries();
-  for ( int i = 0; i < size; k++ ){
-    xtemp->axpy(dz[i], Z[i]);
+  for ( int i = 0; i < size; i++ ){
+    xtemp->axpy(ztemp[i], Z[i]);
   }
 
   // Solve the digaonal system again, this time simplifying
@@ -742,7 +772,7 @@ double ParOpt::computeComp(){
   // Broadcast the result to all processors
   MPI_Bcast(&comp, 1, MPI_DOUBLE, opt_root, comm);
 
-  return comp
+  return comp;
 }
 
 /*
@@ -791,7 +821,7 @@ double ParOpt::computeCompStep( double alpha_x, double alpha_z ){
   // Broadcast the result to all processors
   MPI_Bcast(&comp, 1, MPI_DOUBLE, opt_root, comm);
 
-  return comp
+  return comp;
 }
 
 /*
@@ -885,7 +915,7 @@ void ParOpt::computeMaxStep( double tau,
   }
 
   // Compute the minimum step sizes from across all processors
-  double input[2];
+  double input[2], output[2];
   input[0] = max_x;
   input[1] = max_z;
 
@@ -924,7 +954,7 @@ double ParOpt::evalMeritFunc(){
   double pos_result = 0.0, neg_result = 0.0;
   
   for ( int i = 0; i < nvars; i++ ){
-    if (xvals[i] - lb_vals[i] > 1.0){ 
+    if (xvals[i] - lbvals[i] > 1.0){ 
       pos_result += log(xvals[i] - lbvals[i]);
     }
     else {
@@ -981,7 +1011,7 @@ double ParOpt::evalMeritFunc(){
   // Broadcast the result to all processors
   MPI_Bcast(&merit, 1, MPI_DOUBLE, opt_root, comm);
 
-  return result;
+  return merit;
 }
 
 /*
@@ -994,7 +1024,8 @@ double ParOpt::evalMeritFunc(){
   merit:   the value of the merit function
   pmerit: the value of the derivative of the merit function
 */
-void ParOpt::evalMeritInitDeriv( double * _merit, double * _pmerit ){
+void ParOpt::evalMeritInitDeriv( double max_x, 
+				 double * _merit, double * _pmerit ){
   // Retrieve the values of the design variables, the design
   // variable step, and the lower/upper bounds
   double *xvals, *pxvals, *lbvals, *ubvals;
@@ -1011,7 +1042,7 @@ void ParOpt::evalMeritInitDeriv( double * _merit, double * _pmerit ){
   double pos_presult = 0.0, neg_presult = 0.0;
   
   for ( int i = 0; i < nvars; i++ ){
-    if (xvals[i] - lb_vals[i] > 1.0){ 
+    if (xvals[i] - lbvals[i] > 1.0){ 
       pos_result += log(xvals[i] - lbvals[i]);
     }
     else {
@@ -1314,11 +1345,14 @@ void ParOpt::optimize(){
       rho_penalty_search = 0.0;
     }
 
-    // Set up the KKT system of equations
+    // Set up the KKT diagonal system
+    setUpKKTDiagSystem();
+
+    // Set up the full KKT system
     setUpKKTSystem();
 
-    // Solve the KKT system
-    solveKKTSystem();
+    // Solve for the KKT step
+    computeKKTStep();
 
     // Compute the maximum permitted line search lengths
     double tau = min_fraction_to_boundary;
@@ -1377,7 +1411,9 @@ void ParOpt::optimize(){
     // residual at the initial line search point. This will be used
     // in the quasi-Newton update scheme.
     y_qn->copyValues(g);
-    y_qn->axpy(-z[i], Ac[i]);
+    for ( int i = 0; i < ncon; i++ ){
+      y_qn->axpy(-z[i], Ac[i]);
+    }
     y_qn->scale(-1.0);
 
     // Store the design variable locations
@@ -1391,7 +1427,7 @@ void ParOpt::optimize(){
       // Compute the initial value of the merit function and its
       // derivative and a new value for the penalty parameter
       double m0, dm0;
-      evalMeritInitDeriv(&m0, &dm0);
+      evalMeritInitDeriv(max_x, &m0, &dm0);
       
       // Perform the line search
       alpha = lineSearch(&alpha, m0, dm0);
@@ -1414,7 +1450,7 @@ void ParOpt::optimize(){
     }
     
     // Set up the data for the quasi-Newton update
-    y_qn->axpy(g);
+    y_qn->axpy(1.0, g);
     for ( int i = 0; i < ncon; i++ ){
       y_qn->axpy(-z[i], Ac[i]);
     }
@@ -1422,6 +1458,6 @@ void ParOpt::optimize(){
     s_qn->axpy(1.0, x);
    
     // Compute the Quasi-Newton update
-    qn->update(supdate, yupdate);
+    qn->update(s_qn, y_qn);
   }
 }
