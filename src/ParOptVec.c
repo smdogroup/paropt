@@ -1,5 +1,6 @@
+#include <math.h>
 #include "ParOptVec.h"
-
+#include "ParOptBlasLapack.h"
 
 /*
   Create a parallel vector for optimization
@@ -50,9 +51,10 @@ void ParOptVec::copyValues( ParOptVec * vec ){
 */
 double ParOptVec::norm(){
   int one = 1;
-  res = BLASdnrm2(&size, x, &one);
+  double res = BLASdnrm2(&size, x, &one);
   res *= res;
 
+  double sum = 0.0;
   MPI_Allreduce(&res, &sum, 1, MPI_DOUBLE, MPI_SUM, comm);
 
   return sqrt(sum);
@@ -80,10 +82,10 @@ double ParOptVec::maxabs(){
 */
 double ParOptVec::dot( ParOptVec * vec ){
   int one = 1;
-  res = BLASddot(&size, x, &one, vec->x, &one);
+  double res = BLASddot(&size, x, &one, vec->x, &one);
 
   double sum = 0.0;
-  MPI_Allreduce(&res, &sum, 1, TACS_MPI_TYPE, MPI_SUM, comm);
+  MPI_Allreduce(&res, &sum, 1, MPI_DOUBLE, MPI_SUM, comm);
 
   return sum;
 }
@@ -112,7 +114,7 @@ void ParOptVec::scale( double alpha ){
 /*
   Compute: self <- self + alpha*x
 */
-void ParOptVec::axpy( double alpha, ParOptVec * x ){
+void ParOptVec::axpy( double alpha, ParOptVec * vec ){
   int one = 1;
   BLASdaxpy(&size, &alpha, vec->x, &one, x, &one);
 }
@@ -120,7 +122,7 @@ void ParOptVec::axpy( double alpha, ParOptVec * x ){
 /*
   Retrieve the locally stored values from the array
 */
-int BVec::getArray( double ** array ){
+int ParOptVec::getArray( double ** array ){
   *array = x;
   return size;
 }
@@ -343,7 +345,8 @@ void LBFGS::update( ParOptVec * s, ParOptVec * y ){
   memcpy(M_factor, M, 4*msub*msub*sizeof(double));
   
   // Factor the M matrix for later useage
-  LAPACKdegetrf(M_factor, mfpiv);
+  int n = 2*msub, info = 0;
+  LAPACKdgetrf(&n, &n, M_factor, &n, mfpiv, &info);
 }
 
 /*
@@ -368,7 +371,10 @@ void LBFGS::mult( ParOptVec * x, ParOptVec * y ){
   }
 
   // Solve rz = M^{-1}*rz
-  LAPACKdgetrs(M_factor, rz, mfpiv);
+  int n = 2*msub, one = 1, info = 0;
+  LAPACKdgetrs("N", &n, &one, 
+	       M_factor, &n, mfpiv, 
+	       rz, &n, &info);
 
   // Compute rz *= d0
   for ( int i = 0; i < 2*msub; i++ ){
@@ -388,11 +394,11 @@ void LBFGS::mult( ParOptVec * x, ParOptVec * y ){
 int LBFGS::getLBFGSMat( double * _b0,
 			const double ** _d,
 			const double ** _M,
-			ParOptVec *** Z ){
+			ParOptVec *** _Z ){
   *_b0 = b0;
   *_d = d0;
   *_M = M;
-  *Z = Z;
+  *_Z = Z;
 
   return 2*msub;
 }

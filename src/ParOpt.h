@@ -1,6 +1,8 @@
 #ifndef PAR_OPT_OPTIMIZER_H
 #define PAR_OPT_OPTIMIZER_H
 
+#include "ParOptVec.h"
+
 /*
   A parallel optimizer implemented in C++ for large-scale constrained
   parallel optimization.

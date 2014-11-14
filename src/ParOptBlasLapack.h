@@ -10,20 +10,17 @@
 #define LAPACKdgetrs dgetrs_
 
 extern "C" {
-  extern TacsScalar BLASddot( int *n, TacsScalar *x, int *incx, 
-			      TacsScalar *y, int *incy );
-  extern double BLASdnrm2( int *n, TacsScalar *x, int *incx );
-  extern void BLASdaxpy( int *n, TacsScalar *a, TacsScalar *x, int *incx, 
-			 TacsScalar *y, int *incy );
-  extern void BLASscal( int *n, TacsScalar *a, TacsScalar *x, int *incx );
-  // Compute an LU factorization of a matrix
-  extern void LAPACKgetrf( int *m, int *n, 
-			   TacsScalar *a, int *lda, int *ipiv, int * info );
-
-  // This routine solves a system of equations with a factored matrix
-  extern void LAPACKgetrs( const char *c, int *n, int *nrhs, 
-			   TacsScalar *a, int *lda, int *ipiv, 
-			   TacsScalar *b, int *ldb, int *info );
+  extern double BLASddot( int *n, double *x, int *incx, 
+			      double *y, int *incy );
+  extern double BLASdnrm2( int *n, double *x, int *incx );
+  extern void BLASdaxpy( int *n, double *a, double *x, int *incx, 
+			 double *y, int *incy );
+  extern void BLASdscal( int *n, double *a, double *x, int *incx );
+  extern void LAPACKdgetrf( int *m, int *n, 
+			    double *a, int *lda, int *ipiv, int * info );
+  extern void LAPACKdgetrs( const char *c, int *n, int *nrhs, 
+			    double *a, int *lda, int *ipiv, 
+			    double *b, int *ldb, int *info );
 }
 
 #endif

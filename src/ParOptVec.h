@@ -6,6 +6,8 @@
   classes used by the parallel optimizer.
 */
 
+#include "mpi.h"
+
 /*
   This vector class implements basic linear algebra operations
   required for design optimization.
@@ -99,7 +101,5 @@ class LBFGS {
   double *B, *L, *D; 
   double *d0; // The diagonal matrix
 };
-
-
 
 #endif
