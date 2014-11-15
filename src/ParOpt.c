@@ -44,22 +44,22 @@ ParOpt::ParOpt( ParOptProblem * _prob,
   int check_flag = 0;
   for ( int i = 0; i < nvars; i++ ){
     // Fixed variables are not allowed
-    if (lb[i] >= ub[i]){
+    if (lbvals[i] >= ubvals[i]){
       check_flag = (check_flag | 1);
 
       // Make up bounds
-      lb[i] = 0.5*(lb[i] + ub[i]) - 0.5*rel_bound;
-      ub[i] = lb[i] + rel_bound;
+      lbvals[i] = 0.5*(lbvals[i] + ubvals[i]) - 0.5*rel_bound;
+      ubvals[i] = lbvals[i] + rel_bound;
     }
 
     // Check if x is too close the boundary
-    if (x[i] < lb[i] + rel_bound*(ub[i] - lb[i])){
+    if (xvals[i] < lbvals[i] + rel_bound*(ubvals[i] - lbvals[i])){
       check_flag = (check_flag | 2);
-      x[i] = lb[i] + rel_bound*(ub[i] - lb[i]);
+      xvals[i] = lbvals[i] + rel_bound*(ubvals[i] - lbvals[i]);
     }
-    if (x[i] > ub[i] - rel_bound*(ub[i] - lb[i])){
+    if (xvals[i] > ubvals[i] - rel_bound*(ubvals[i] - lbvals[i])){
       check_flag = (check_flag | 4);
-      x[i] = ub[i] - rel_bound*(ub[i] - lb[i]);
+      xvals[i] = ubvals[i] - rel_bound*(ubvals[i] - lbvals[i]);
     }
   }
 
@@ -118,9 +118,16 @@ ParOpt::ParOpt( ParOptProblem * _prob,
   }
   ztemp = new double[ zsize ];
 
-  // Allocate space for the
+  // Allocate space for the Dmatrix
   Dmat = new double[ ncon*ncon ];
   dpiv = new int[ ncon ];
+
+  // Allocate space for the Ce matrix
+  Ce = new double[ 4*max_lbfgs_subspace*max_lbfgs_subspace ];
+  cpiv = new int[ 2*max_lbfgs_subspace ];
+
+  // Allocate space for the diagonal matrix components
+  Cvec = new ParOptVec(comm, nvars);
 
   // Set the value of the objective
   fobj = 0.0;
@@ -137,7 +144,7 @@ ParOpt::ParOpt( ParOptProblem * _prob,
   }
 
   // Initialize the parameters with default values
-  max_major_iters = 1000;
+  max_major_iters = 5;
   init_starting_point = 1;
   write_output_frequency = 10;
   barrier_param = 0.1;
@@ -217,13 +224,13 @@ void ParOpt::computeKKTRes( double * max_prime,
   rzu->getArray(&rzuvals);
 
   for ( int i = 0; i < nvars; i++ ){
-    rzlvals[i] = (xvals[i] - lbvals[i])*zlvals[i] - barrier_param;
-    rzuvals[i] = (ubvals[i] - xvals[i])*zuvals[i] - barrier_param;
+    rzlvals[i] = -((xvals[i] - lbvals[i])*zlvals[i] - barrier_param);
+    rzuvals[i] = -((ubvals[i] - xvals[i])*zuvals[i] - barrier_param);
   }
 
   *max_prime = rx->maxabs();
   double dual_zl = rzl->maxabs();
-  double dual_zu = rzl->maxabs();
+  double dual_zu = rzu->maxabs();
 }
 
 /*
@@ -673,26 +680,28 @@ void ParOpt::setUpKKTSystem(){
   ParOptVec **Z;
   int size = qn->getLBFGSMat(&b0, &d, &M, &Z);
 
-  memset(Ce, 0, size*size*sizeof(double));
-  
-  // Solve the KKT system 
-  for ( int i = 0; i < size; i++ ){
-    // Compute K^{-1}*Z[i]
-    solveKKTDiagSystem(Z[i], xtemp);
-
-    // Compute the dot products Z^{T}*K^{-1}*Z[i]
-    xtemp->mdot(Z, size, &Ce[i*size]);
-  }
-
-  // Compute the Schur complement
-  for ( int j = 0; j < size; j++ ){
+  if (size > 0){
+    memset(Ce, 0, size*size*sizeof(double));
+    
+    // Solve the KKT system 
     for ( int i = 0; i < size; i++ ){
-      Ce[i + j*size] -= M[i + j*size]/(d[i]*d[j]);
+      // Compute K^{-1}*Z[i]
+      solveKKTDiagSystem(Z[i], xtemp);
+      
+      // Compute the dot products Z^{T}*K^{-1}*Z[i]
+      xtemp->mdot(Z, size, &Ce[i*size]);
     }
+    
+    // Compute the Schur complement
+    for ( int j = 0; j < size; j++ ){
+      for ( int i = 0; i < size; i++ ){
+	Ce[i + j*size] -= M[i + j*size]/(d[i]*d[j]);
+      }
+    }
+    
+    int info = 0;
+    LAPACKdgetrf(&size, &size, Ce, &size, cpiv, &info);
   }
-
-  int info = 0;
-  LAPACKdgetrf(&size, &size, Ce, &size, cpiv, &info);
 }
 
 /*
@@ -737,34 +746,36 @@ void ParOpt::computeKKTStep(){
   solveKKTDiagSystem(rx, rc, rs, rzl, rzu,
 		     px, pz, ps, pzl, pzu);
 
-  // dz = Z^{T}*px
-  px->mdot(Z, size, ztemp);
-  
-  // Compute dz <- Ce^{-1}*dz
-  int one = 1, info = 0;
-  LAPACKdgetrs("N", &size, &one, 
-	       Ce, &size, cpiv, ztemp, &ncon, &info);
-
-  // Compute rx = Z^{T}*dz
-  xtemp->zeroEntries();
-  for ( int i = 0; i < size; i++ ){
-    xtemp->axpy(ztemp[i], Z[i]);
-  }
-
-  // Solve the digaonal system again, this time simplifying
-  // the result due to the prescence of 
-  solveKKTDiagSystem(xtemp,
-		     rx, rc, rs, rzl, rzu);
-
-  // Add the final contributions 
-  px->axpy(-1.0, rx);
-  pzl->axpy(-1.0, rzl);
-  pzu->axpy(-1.0, rzu);
-  
-  // Add the terms from the 
-  for ( int i = 0; i < ncon; i++ ){
-    pz[i] -= rc[i];
-    ps[i] -= rs[i];
+  if (size > 0){
+    // dz = Z^{T}*px
+    px->mdot(Z, size, ztemp);
+    
+    // Compute dz <- Ce^{-1}*dz
+    int one = 1, info = 0;
+    LAPACKdgetrs("N", &size, &one, 
+		 Ce, &size, cpiv, ztemp, &size, &info);
+    
+    // Compute rx = Z^{T}*dz
+    xtemp->zeroEntries();
+    for ( int i = 0; i < size; i++ ){
+      xtemp->axpy(ztemp[i], Z[i]);
+    }
+    
+    // Solve the digaonal system again, this time simplifying
+    // the result due to the prescence of 
+    solveKKTDiagSystem(xtemp,
+		       rx, rc, rs, rzl, rzu);
+    
+    // Add the final contributions 
+    px->axpy(-1.0, rx);
+    pzl->axpy(-1.0, rzl);
+    pzu->axpy(-1.0, rzu);
+    
+    // Add the terms from the 
+    for ( int i = 0; i < ncon; i++ ){
+      pz[i] -= rc[i];
+      ps[i] -= rs[i];
+    }
   }
 }
 
@@ -1363,11 +1374,19 @@ int ParOpt::optimize(){
     if (max_infeas > res_norm){ res_norm = max_infeas; }
 
     // Check for convergence
-    if (res_norm < abs_res_tol && barrier_param < 0.1*abs_res_tol){
+    if (res_norm < abs_res_tol && 
+	barrier_param < 0.1*abs_res_tol){
       converged = 1;
       break;
     }
-    
+
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+    if (rank == opt_root){
+      printf("Iter[%4d]: |opt|: %8.2e |c-s|: %8.2e |dual|: %8.2e\n",
+	     k, max_prime, max_infeas, max_dual);
+    }
+
     // Determine if the residual norm has been reduced
     // sufficiently in order to switch to a new barrier
     // problem
@@ -1414,6 +1433,11 @@ int ParOpt::optimize(){
 
     // Solve for the KKT step
     computeKKTStep();
+
+    // Check the KKT step
+    if (k < 10){
+      checkKKTStep();
+    }
 
     // Compute the maximum permitted line search lengths
     double tau = min_fraction_to_boundary;
@@ -1528,5 +1552,150 @@ int ParOpt::optimize(){
    
     // Compute the Quasi-Newton update
     qn->update(s_qn, y_qn);
+  }
+}
+
+/*
+  Check that the gradients match along a projected direction.
+*/
+void ParOpt::checkGradients( double dh ){
+  // Evaluate the objective/constraint and gradients
+  prob->evalObjCon(x, &fobj, c);
+  prob->evalObjConGradient(x, g, Ac);
+
+  double *pxvals, *gvals;
+  px->getArray(&pxvals);
+  g->getArray(&gvals);
+  
+  for ( int i = 0; i < nvars; i++ ){
+    if (gvals[i] >= 0.0){
+      pxvals[i] = 1.0;
+    }
+    else {
+      pxvals[i] = -1.0;
+    }
+  }
+  
+  xtemp->copyValues(x);
+  xtemp->axpy(dh, px);
+
+  // Evaluate the objective/constraints
+  double fobj2;
+  prob->evalObjCon(xtemp, &fobj2, rc);
+
+  // Compute the projected derivative
+  double pobj = g->dot(px);
+  double pfd = (fobj2 - fobj)/dh;
+
+  // rs = Ac*px
+  px->mdot(Ac, ncon, rs);
+
+  // Print out the results on the root processor
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+
+  if (rank == opt_root){
+    printf("Objective gradient test\n");
+    printf("FD: %20.10e  Actual: %20.10e  Err: %15.4e\n",
+	   pfd, pobj, pobj - pfd);
+
+    printf("\nConstraint gradient test\n");
+    for ( int i = 0; i < ncon; i++ ){
+      double fd = (rc[i] - c[i])/dh;
+      printf("Con[%3d] FD: %20.10e  Actual: %20.10e  Err: %15.4e\n",
+	     i, fd, rs[i], fd - rs[i]);
+    }
+  }
+}
+
+/*
+  Check that the step is correct. This code computes the maximum
+  component of the following residual equations and prints out the
+  result to the screen:
+  
+  H*px - Ac^{T}*pz - pzl + pzu - (g - Ac^{T}*z - zl + zu) = 0
+  A*px - ps + (c - s) = 0
+  z*ps + s*pz + (z*s - mu) = 0
+  zl*px + (x - lb)*pzl + (zl*(x - lb) - mu) = 0
+  zu*px + (ub - x)*pzu + (zu*(ub - x) - mu) = 0
+*/
+void ParOpt::checkKKTStep(){
+  // Retrieve the values of the design variables, lower/upper bounds
+  // and the corresponding lagrange multipliers
+  double *xvals, *lbvals, *ubvals, *zlvals, *zuvals;
+  x->getArray(&xvals);
+  lb->getArray(&lbvals);
+  ub->getArray(&ubvals);
+  zl->getArray(&zlvals);
+  zu->getArray(&zuvals);
+
+  // Retrieve the values of the steps
+  double *pxvals, *pzlvals, *pzuvals;
+  px->getArray(&pxvals);
+  pzl->getArray(&pzlvals);
+  pzu->getArray(&pzuvals);
+
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+
+  double max_val = 0.0;
+
+  printf("Residual step check:\n");
+
+  // Find the maximum value of the residual equations
+  // for the constraints
+  max_val = 0.0;
+  px->mdot(Ac, ncon, rc);
+  for ( int i = 0; i < ncon; i++ ){
+    double val = rc[i] - ps[i] + (c[i] - s[i]);
+    if (fabs(val) > max_val){
+      max_val = fabs(val);
+    }
+  }
+  if (rank == opt_root){
+    printf("max |A*px - ps + (c - s)|: %10.4e\n", max_val);
+  }
+
+  // Find the maximum value of the residual equations for
+  // the dual slack variables
+  max_val = 0.0;
+  for ( int i = 0; i < ncon; i++ ){
+    double val = z[i]*ps[i] + s[i]*pz[i] + (z[i]*s[i] - barrier_param);
+    if (fabs(val) > max_val){
+      max_val = fabs(val);
+    }
+  }
+  if (rank == opt_root){
+    printf("max |z*ps + s*pz + (z*s - mu)|: %10.4e\n", max_val);
+  }
+
+  // Find the maximum of the residual equations for the
+  // lower-bound dual variables
+  max_val = 0.0;
+  for ( int i = 0; i < nvars; i++ ){
+    double val = (zlvals[i]*pxvals[i] + (xvals[i] - lbvals[i])*pzlvals[i] +
+		  (zlvals[i]*(xvals[i] - lbvals[i]) - barrier_param));
+    if (fabs(val) > max_val){
+      max_val = fabs(val);
+    }
+  }
+  MPI_Reduce(MPI_IN_PLACE, &max_val, 1, MPI_DOUBLE, MPI_MAX, opt_root, comm);
+  if (rank == opt_root){
+    printf("max |Zl*px + (X - LB)*pzl + (Zl*(x - lb) - mu)|: %10.4e\n", max_val);
+  }
+
+  // Find the maximum value of the residual equations for the
+  // upper-bound dual variables
+  max_val = 0.0;
+  for ( int i = 0; i < nvars; i++ ){
+    double val = (-zuvals[i]*pxvals[i] + (ubvals[i] - xvals[i])*pzuvals[i] +
+		  (zuvals[i]*(ubvals[i] - xvals[i]) - barrier_param));
+    if (fabs(val) > max_val){
+      max_val = fabs(val);
+    }
+  }
+  MPI_Reduce(MPI_IN_PLACE, &max_val, 1, MPI_DOUBLE, MPI_MAX, opt_root, comm);
+  if (rank == opt_root){
+    printf("max |-Zu*px + (UB - X)*pzu + (Zu*(ub - x) - mu)|: %10.4e\n", max_val);
   }
 }

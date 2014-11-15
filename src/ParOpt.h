@@ -73,6 +73,10 @@ class ParOpt {
   // ------------------------
   int optimize();
 
+  // Check the constraint gradients
+  // ------------------------------
+  void checkGradients( double dh );
+
  private:
   // Compute the negative of the KKT residuals - return
   // the maximum primal, dual residuals and the max infeasibility
@@ -104,6 +108,9 @@ class ParOpt {
   // Solve for the KKT step
   void computeKKTStep();
 
+  // Check that the KKT step is computed correctly
+  void checkKKTStep();
+
   // Compute the maximum step length to maintain positivity of 
   // all components of the design variables 
   void computeMaxStep( double tau, 
@@ -125,6 +132,9 @@ class ParOpt {
   double computeComp(); // Complementarity at the current point
   double computeCompStep( double alpha_x,
 			  double alpha_z ); // Complementarity at (x + p)
+
+  // Check the step
+  void checkStep();
 
   // The parallel optimizer problem
   ParOptProblem * prob;

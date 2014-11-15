@@ -12,7 +12,7 @@
 ParOptVec::ParOptVec( MPI_Comm _comm, int n ){
   comm = _comm;
   size = n;
-  x = new double[ n ];
+  x = new double[ size ];
   memset(x, 0, size*sizeof(double));
 }
 
@@ -165,11 +165,14 @@ LBFGS::LBFGS( MPI_Comm _comm, int _nvars,
   M = new double[ 4*msub_max*msub_max ];
 
   // The diagonal scaling matrix
-  d0 = new double[ msub_max ];
+  d0 = new double[ 2*msub_max ];
 
   // The factored M-matrix
   M_factor = new double[ 4*msub_max*msub_max ];
   mfpiv = new int[ 2*msub_max ];
+  
+  // Temporary vector required for multiplications
+  rz = new double[ 2*msub_max ];
 
   // The components of the M matrix that must be
   // updated each iteration
@@ -197,6 +200,7 @@ LBFGS::~LBFGS(){
   delete [] M;
   delete [] M_factor;
   delete [] mfpiv;
+  delete [] rz;
 
   delete [] D;
   delete [] L;
@@ -362,28 +366,30 @@ void LBFGS::mult( ParOptVec * x, ParOptVec * y ){
   y->copyValues(x);
   y->scale(b0);
 
-  // Compute rz = Z^{T}*x
-  x->mdot(Z, 2*msub, rz);
+  if (msub > 0){
+    // Compute rz = Z^{T}*x
+    x->mdot(Z, 2*msub, rz);
+    
+    // Set rz *= d0
+    for ( int i = 0; i < 2*msub; i++ ){
+      rz[i] *= d0[i];
+    }
+    
+    // Solve rz = M^{-1}*rz
+    int n = 2*msub, one = 1, info = 0;
+    LAPACKdgetrs("N", &n, &one, 
+		 M_factor, &n, mfpiv, 
+		 rz, &n, &info);
+    
+    // Compute rz *= d0
+    for ( int i = 0; i < 2*msub; i++ ){
+      rz[i] *= d0[i];
+    }
 
-  // Set rz *= d0
-  for ( int i = 0; i < 2*msub; i++ ){
-    rz[i] *= d0[i];
-  }
-
-  // Solve rz = M^{-1}*rz
-  int n = 2*msub, one = 1, info = 0;
-  LAPACKdgetrs("N", &n, &one, 
-	       M_factor, &n, mfpiv, 
-	       rz, &n, &info);
-
-  // Compute rz *= d0
-  for ( int i = 0; i < 2*msub; i++ ){
-    rz[i] *= d0[i];
-  }
-
-  // Now compute: y <- Z*rz
-  for ( int i = 0; i < 2*msub; i++ ){
-    y->axpy(-rz[i], Z[i]);
+    // Now compute: y <- Z*rz
+    for ( int i = 0; i < 2*msub; i++ ){
+      y->axpy(-rz[i], Z[i]);
+    }
   }
 }
 

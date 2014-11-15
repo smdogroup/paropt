@@ -62,7 +62,7 @@ class Rosenbrock : public ParOptProblem {
     gvec->zeroEntries();
     
     for ( int i = 0; i < nvars-1; i++ ){
-      g[i] += (-2.0*(1.0 - x[i])*(1.0 - x[i]) + 
+      g[i] += (-2.0*(1.0 - x[i]) + 
 	       200*(x[i+1] - x[i]*x[i])*(-2.0*x[i]));
       g[i+1] += 200*(x[i+1] - x[i]*x[i]);
     }
@@ -85,6 +85,8 @@ int main( int argc, char* argv[] ){
   // Allocate the optimizer
   int max_lbfgs = 20;
   ParOpt * opt = new ParOpt(rosen, max_lbfgs);
+
+  opt->checkGradients(1e-6);
   opt->optimize();
 
   delete rosen;
