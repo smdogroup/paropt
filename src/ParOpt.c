@@ -291,15 +291,15 @@ void ParOpt::setUpKKTDiagSystem(){
       int k = 0;
       int remainder = nvars % 4;
       for ( ; k < remainder; k++ ){
-	Dmat[i + ncon*j] += aivals[0]*ajvals[0]/cvals[0];
+	Dmat[i + ncon*j] += aivals[0]*ajvals[0]*cvals[0];
 	aivals++; ajvals++; cvals++;
       }
 
-      for ( int k = nvars; k < nvars; k += 4 ){
-	Dmat[i + ncon*j] += (aivals[0]*ajvals[0]/cvals[0] +
-			     aivals[1]*ajvals[1]/cvals[1] +
-			     aivals[2]*ajvals[2]/cvals[2] +
-			     aivals[3]*ajvals[3]/cvals[3]);
+      for ( int k = remainder; k < nvars; k += 4 ){
+	Dmat[i + ncon*j] += (aivals[0]*ajvals[0]*cvals[0] +
+			     aivals[1]*ajvals[1]*cvals[1] +
+			     aivals[2]*ajvals[2]*cvals[2] +
+			     aivals[3]*ajvals[3]*cvals[3]);
 	aivals += 4; ajvals += 4; cvals += 4;
       }
     }
@@ -309,7 +309,7 @@ void ParOpt::setUpKKTDiagSystem(){
   // symmetric
   for ( int j = 0; j < ncon; j++ ){
     for ( int i = j+1; i < ncon; i++ ){
-      Dmat[i + ncon*j] = Dmat[j + ncon*i];
+      Dmat[j + ncon*i] = Dmat[i + ncon*j];
     }
   }
 
@@ -322,7 +322,7 @@ void ParOpt::setUpKKTDiagSystem(){
   MPI_Comm_rank(comm, &rank);
   if (rank == opt_root){
     for ( int i = 0; i < ncon; i++ ){
-      Dmat[i*(ncon + 1)] = s[i]/z[i];
+      Dmat[i*(ncon + 1)] += s[i]/z[i];
     }
   }
 
@@ -356,7 +356,7 @@ void ParOpt::setUpKKTDiagSystem(){
   Substitution of these three equations yields the following system of
   equations:
 
-  ((B0 + (X - Xl)^{-1}*Zl + (Xu - X)^{-1}*Zu))*yx + A^{T}*yz
+  ((B0 + (X - Xl)^{-1}*Zl + (Xu - X)^{-1}*Zu))*yx - A^{T}*yz
   = bx + (X - Xl)^{-1}*bzl - (Xu - X)^{-1}*bzu
 
   and
@@ -418,15 +418,16 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc, double *bs,
     int k = 0;
     int remainder = nvars % 4;
     for ( ; k < remainder; k++ ){
-      yz[i] -= avals[0]*dvals[0]/cvals[0];
+      yz[i] += avals[0]*dvals[0]*cvals[0];
       avals++; dvals++; cvals++; 
     }
 
-    for ( int k = nvars; k < nvars; k += 4 ){
-      yz[i] -= (avals[0]*dvals[0]/cvals[0] + 
-		avals[1]*dvals[1]/cvals[1] +
-		avals[2]*dvals[2]/cvals[2] + 
-		avals[3]*dvals[3]/cvals[3]);
+    for ( int k = remainder; k < nvars; k += 4 ){
+      yz[i] += (avals[0]*dvals[0]*cvals[0] + 
+		avals[1]*dvals[1]*cvals[1] +
+		avals[2]*dvals[2]*cvals[2] + 
+		avals[3]*dvals[3]*cvals[3]);
+      avals += 4; dvals += 4; cvals += 4;
     }
   }
 
@@ -442,7 +443,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc, double *bs,
     // Compute the full right-hand-side on the root processor
     // and solve for the Lagrange multipliers
     for ( int i = 0; i < ncon; i++ ){
-      yz[i] += bc[i] + bs[i]/z[i];
+      yz[i] = bc[i] + bs[i]/z[i] - yz[i];
     }
 
     int one = 1, info = 0;
@@ -469,7 +470,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc, double *bs,
   }
 
   for ( int i = 0; i < nvars; i++ ){
-    yxvals[i] /= cvals[i];
+    yxvals[i] *= cvals[i];
   }
 
   // Retrieve the lagrange multipliers
@@ -517,15 +518,16 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
     int k = 0;
     int remainder = nvars % 4;
     for ( ; k < remainder; k++ ){
-      yz[i] -= avals[0]*bxvals[0]/cvals[0];
+      yz[i] -= avals[0]*bxvals[0]*cvals[0];
       avals++; bxvals++; cvals++; 
     }
 
-    for ( int k = nvars; k < nvars; k += 4 ){
-      yz[i] -= (avals[0]*bxvals[0]/cvals[0] + 
-		avals[1]*bxvals[1]/cvals[1] +
-		avals[2]*bxvals[2]/cvals[2] + 
-		avals[3]*bxvals[3]/cvals[3]);
+    for ( int k = remainder; k < nvars; k += 4 ){
+      yz[i] -= (avals[0]*bxvals[0]*cvals[0] + 
+		avals[1]*bxvals[1]*cvals[1] +
+		avals[2]*bxvals[2]*cvals[2] + 
+		avals[3]*bxvals[3]*cvals[3]);
+      avals += 4; bxvals += 4; cvals += 4;
     }
   }
 
@@ -562,7 +564,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   }
 
   for ( int i = 0; i < nvars; i++ ){
-    yxvals[i] /= cvals[i];
+    yxvals[i] *= cvals[i];
   }
 
   // Retrieve the values of the design variables, lower/upper bounds
@@ -611,15 +613,16 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
     int k = 0;
     int remainder = nvars % 4;
     for ( ; k < remainder; k++ ){
-      ztemp[i] -= avals[0]*bxvals[0]/cvals[0];
+      ztemp[i] -= avals[0]*bxvals[0]*cvals[0];
       avals++; bxvals++; cvals++; 
     }
 
     for ( int k = nvars; k < nvars; k += 4 ){
-      ztemp[i] -= (avals[0]*bxvals[0]/cvals[0] + 
-		   avals[1]*bxvals[1]/cvals[1] +
-		   avals[2]*bxvals[2]/cvals[2] + 
-		   avals[3]*bxvals[3]/cvals[3]);
+      ztemp[i] -= (avals[0]*bxvals[0]*cvals[0] + 
+		   avals[1]*bxvals[1]*cvals[1] +
+		   avals[2]*bxvals[2]*cvals[2] + 
+		   avals[3]*bxvals[3]*cvals[3]);
+      avals += 4; bxvals += 4; cvals += 4;
     }
   }
 
@@ -651,7 +654,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
   }
 
   for ( int i = 0; i < nvars; i++ ){
-    yxvals[i] /= cvals[i];
+    yxvals[i] *= cvals[i];
   }
 }
 
@@ -1613,7 +1616,7 @@ void ParOpt::checkGradients( double dh ){
   component of the following residual equations and prints out the
   result to the screen:
   
-  H*px - Ac^{T}*pz - pzl + pzu - (g - Ac^{T}*z - zl + zu) = 0
+  H*px - Ac^{T}*pz - pzl + pzu + (g - Ac^{T}*z - zl + zu) = 0
   A*px - ps + (c - s) = 0
   z*ps + s*pz + (z*s - mu) = 0
   zl*px + (x - lb)*pzl + (zl*(x - lb) - mu) = 0
@@ -1638,10 +1641,25 @@ void ParOpt::checkKKTStep(){
   int rank;
   MPI_Comm_rank(comm, &rank);
 
-  double max_val = 0.0;
-
   printf("Residual step check:\n");
 
+  // Check the first residual equation
+  qn->mult(px, rx);
+  for ( int i = 0; i < ncon; i++ ){
+    rx->axpy(-pz[i], Ac[i]);
+  }
+  rx->axpy(-1.0, pzl);
+  rx->axpy(1.0, pzu);
+  rx->axpy(1.0, g);
+  for ( int i = 0; i < ncon; i++ ){
+    rx->axpy(-z[i], Ac[i]);
+  }
+  rx->axpy(-1.0, zl);
+  rx->axpy(1.0, zu);
+  double max_val = rx->maxabs();
+  printf("max |H*px - Ac^{T}*pz - pzl + pzu + (g - Ac^{T}*z - zl + zu|: %10.4e\n",
+	 max_val);
+  
   // Find the maximum value of the residual equations
   // for the constraints
   max_val = 0.0;
