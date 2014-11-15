@@ -5,21 +5,20 @@
 /*
   The Parallel Optimizer 
 
-
-
+  input:
+  prob:      the optimization problem
+  max_lbfgs: the number of steps to store in the the l-BFGS
 */
-ParOpt::ParOpt( MPI_Comm _comm, int _nvars, int _ncon,
-		double *_x, double *_lb, double *_ub,
+ParOpt::ParOpt( ParOptProblem * _prob,
 		int max_lbfgs_subspace ){
+  prob = _prob;
+
   // Record the communicator
-  comm = _comm;
+  comm = prob->getMPIComm();
   opt_root = 0;
 
-  // The number of local variables
-  nvars = _nvars;
-
-  // The number of dense global constraints
-  ncon = _ncon;
+  // Get the number of variables/constraints
+  prob->getProblemSizes(&nvars, &ncon);
 
   // Calculate the total number of variable across all processors
   MPI_Allreduce(&nvars, &nvars_total, 1, MPI_INT, MPI_SUM, comm);
@@ -27,20 +26,56 @@ ParOpt::ParOpt( MPI_Comm _comm, int _nvars, int _ncon,
   // Allocate the quasi-Newton LBFGS approximation
   qn = new LBFGS(comm, nvars, max_lbfgs_subspace);
 
-  // Set the values of the variables
+  // Set the values of the variables/bounds
   x = new ParOptVec(comm, nvars);
   lb = new ParOptVec(comm, nvars);
   ub = new ParOptVec(comm, nvars);
+  prob->getVarsAndBounds(x, lb, ub);
 
-  // Set the values of the variables
+  // Check the design variables and bounds, move things that 
+  // don't make sense and print some warnings
   double *xvals, *lbvals, *ubvals;
   x->getArray(&xvals);
   lb->getArray(&lbvals);
   ub->getArray(&ubvals);
-  memcpy(xvals, _x, nvars*sizeof(double));
-  memcpy(lbvals, _lb, nvars*sizeof(double));
-  memcpy(ubvals, _ub, nvars*sizeof(double));
 
+  // Check the variable values to see if they are reasonable
+  double rel_bound = 1e-3;
+  int check_flag = 0;
+  for ( int i = 0; i < nvars; i++ ){
+    // Fixed variables are not allowed
+    if (lb[i] >= ub[i]){
+      check_flag = (check_flag | 1);
+
+      // Make up bounds
+      lb[i] = 0.5*(lb[i] + ub[i]) - 0.5*rel_bound;
+      ub[i] = lb[i] + rel_bound;
+    }
+
+    // Check if x is too close the boundary
+    if (x[i] < lb[i] + rel_bound*(ub[i] - lb[i])){
+      check_flag = (check_flag | 2);
+      x[i] = lb[i] + rel_bound*(ub[i] - lb[i]);
+    }
+    if (x[i] > ub[i] - rel_bound*(ub[i] - lb[i])){
+      check_flag = (check_flag | 4);
+      x[i] = ub[i] - rel_bound*(ub[i] - lb[i]);
+    }
+  }
+
+  // Print the results of the warnings
+  if (check_flag & 1){
+    fprintf(stderr, "Warning: Variable bounds are inconsistent\n");
+  }
+  if (check_flag & 2){
+    fprintf(stderr, 
+	    "Warning: Modification of variables; too close to lower bound\n");
+  }
+  if (check_flag & 4){
+    fprintf(stderr, 
+	    "Warning: Modification of variables; too close to upper bound\n");
+  }
+  
   // Allocate storage space for the variables etc.
   zl = new ParOptVec(comm, nvars);
   zu = new ParOptVec(comm, nvars);
@@ -940,10 +975,10 @@ void ParOpt::computeMaxStep( double tau,
 
   output: The value of the merit function
 */
-double ParOpt::evalMeritFunc(){
+double ParOpt::evalMeritFunc( ParOptVec * xk, double *sk ){
   // Get the value of the lower/upper bounds and variables
   double *xvals, *lbvals, *ubvals;
-  x->getArray(&xvals);
+  xk->getArray(&xvals);
   lb->getArray(&lbvals);
   ub->getArray(&ubvals);
   
@@ -989,17 +1024,17 @@ double ParOpt::evalMeritFunc(){
     // Add the contribution from the slack variables
     for ( int i = 0; i < ncon; i++ ){
       if (s[i] > 1.0){
-	pos_result += log(s[i]);
+	pos_result += log(sk[i]);
       }
       else {
-	neg_result += log(s[i]);
+	neg_result += log(sk[i]);
       }
     }
     
     // Compute the infeasibility
     double infeas = 0.0;
     for ( int i = 0; i < ncon; i++ ){
-      infeas += (c[i] - s[i])*(c[i] - s[i]);
+      infeas += (c[i] - sk[i])*(c[i] - sk[i]);
     }
     infeas = sqrt(infeas);
 
@@ -1182,25 +1217,40 @@ int ParOpt::lineSearch( double * _alpha,
   int fail = 1;
 
   for ( int j = 0; j < max_line_iters; j++ ){
-    x->axpy((alpha - alpha_old), px);
-    zl->axpy((alpha - alpha_old), pzl);
-    zu->axpy((alpha - alpha_old), pzu);
-    
+    // Set rx = x + alpha*px
+    rx->copyValues(x);
+    rx->axpy(alpha, px);
+
+    // Set rs = s + alpha*ps
     for ( int i = 0; i < ncon; i++ ){
-      s[i] += (alpha - alpha_old)*ps[i];
-      z[i] += (alpha - alpha_old)*pz[i];
+      rs[i] = s[i] + alpha*ps[i];
     }
 
-    // Evaluate the objective and constraints
-    eval_objcon();
+    // Evaluate the objective and constraints at the new point
+    int fail_obj = prob->evalObjCon(rx, &fobj, c);
+
+    if (fail_obj){
+      fprintf(stderr, 
+	      "Line search iteration failed, trying new point\n");
+
+      // Multiply alpha by 1/10 like SNOPT
+      alpha *= 0.1;
+      continue;
+    }
 
     // Evaluate the merit function
-    double merit = evalMeritFunc();
+    double merit = evalMeritFunc(rx, rs);
     
     // Check the sufficient decrease condition
     if (merit < m0 + armijo_constant*alpha*dm0){
       // Evaluate the derivative
-      eval_gobjcon();
+      int fail_gobj = prob->evalObjConGradient(x, g, Ac);
+      if (fail_gobj){
+	fprintf(stderr, 
+		"Gradient evaluation failed at final line search\n");
+	fail = 1;
+	break;
+      }
 
       // We have successfully found a point satisfying the line 
       // search criteria
@@ -1213,6 +1263,16 @@ int ParOpt::lineSearch( double * _alpha,
     alpha = 0.5*alpha;
   }
 
+  // Set the new values of the variables
+  x->axpy(alpha, px);
+  zl->axpy(alpha, pzl);
+  zu->axpy(alpha, pzu);
+    
+  for ( int i = 0; i < ncon; i++ ){
+    s[i] += alpha*ps[i];
+    z[i] += alpha*pz[i];
+  }
+
   // Set the final value of alpha used in the line search iteration
   *_alpha = alpha;
 
@@ -1222,20 +1282,24 @@ int ParOpt::lineSearch( double * _alpha,
 /*
   Perform the optimization
 */
-void ParOpt::optimize(){
-
-
+int ParOpt::optimize(){
   // Evaluate the objective, constraint and their gradients at the
   // current values of the design variables
-  eval_objcon();
-  eval_gobjcon();
+  int fail_obj = prob->evalObjCon(x, &fobj, c);
+  if (fail_obj){
+    fprintf(stderr, 
+	    "Initial function and constraint evaluation failed\n");
+    return fail_obj;
+  }
+  int fail_gobj = prob->evalObjConGradient(x, g, Ac);
+  if (fail_gobj){
+    fprintf(stderr, "Initial gradient evaluation failed\n");
+    return fail_obj;
+  }
 
   // If this is the starting point, find an initial estimate
   // of the Lagrange multipliers for the inequality constraints
   if (init_starting_point){
-    double * C = new double[ ncon*ncon ];
-    int * cpiv = new int[ ncon ];
-
     // Form the right-hand-side of the least squares eigenvalue
     // problem
     xtemp->copyValues(g);
@@ -1249,44 +1313,41 @@ void ParOpt::optimize(){
     // This is not the most efficient code for this step,
     // but it will work
     for ( int i = 0; i < ncon; i++ ){
-      Ac[i]->mdot(Ac, ncon, &C[i*ncon]);
+      Ac[i]->mdot(Ac, ncon, &Dmat[i*ncon]);
     }
 
     // Compute the factorization
     int info;
-    LAPACKdgetrf(&ncon, &ncon, C, &ncon, cpiv, &info);
+    LAPACKdgetrf(&ncon, &ncon, Dmat, &ncon, dpiv, &info);
     
     // Solve the linear system
     if (!info){
       int one = 1;
-      LAPACKdgetrs("N", &ncon, &one, &ncon, C, &ncon, cpiv,
+      LAPACKdgetrs("N", &ncon, &one, Dmat, &ncon, dpiv,
 		   z, &ncon, &info);
     }
     else {
-      // The system cannot be solved, just assign
+      // The system cannot be solved, just assign positive
+      // initial multipliers
       for ( int i = 0; i < ncon; i++ ){
 	z[i] = 1.0;
       }
     }
 
     // Keep the Lagrange multipliers if they are within 
-    // a reasonable range
+    // a reasonable range and positive.
     for ( int i = 0; i < ncon; i++ ){
       if (z[i] < 0.01 || z[i] > 100.0){
 	z[i] = 1.0;
       }
     } 
- 
-    delete [] C;
-    delete [] cpiv;
   }
 
-  int converged = 0;
-  
+  int converged = 0;  
   for ( int k = 0; k < max_major_iters; k++ ){
     // Print out the current solution progress
     if (k % write_output_frequency){
-      write_output();
+      prob->writeOutput(x);
     }
 
     // Compute the complementarity
@@ -1445,8 +1506,16 @@ void ParOpt::optimize(){
 
       // Evaluate the objective, constraint and their gradients at the
       // current values of the design variables
-      eval_objcon();
-      eval_gobjcon();
+      int fail_obj = prob->evalObjCon(x, &fobj, c);
+      if (fail_obj){
+	fprintf(stderr, "Function and constraint evaluation failed\n");
+	return fail_obj;
+      }
+      int fail_gobj = prob->evalObjConGradient(x, g, Ac);
+      if (fail_gobj){
+	fprintf(stderr, "Gradient evaluation failed\n");
+	return fail_obj;
+      }
     }
     
     // Set up the data for the quasi-Newton update

@@ -2,15 +2,17 @@
 #define PAR_OPT_OPTIMIZER_H
 
 #include "ParOptVec.h"
+#include "ParOptProblem.h"
 
 /*
   A parallel optimizer implemented in C++ for large-scale constrained
-  parallel optimization.
+  optimization.
 
   This code uses an interior-point method to perform gradient-based
   design optimization. The KKT system is solved using a bordered
   solution technique that may suffer from numerical precision issues
-  under extreme values.
+  under some circumstances, but is well-suited for large-scale
+  applications.
 
   The optimization problem is formulated as follows:
 
@@ -31,19 +33,19 @@
 
   where g = grad f(x) and A(x) = grad c(x). The Lagrange multipliers
   are z, zw, zl, and zu, respectively.  Note that here we assume that
-  c(x) is small, x is very large, and Aw is also very large, but has a
-  very specialized structure.
+  c(x) has only a few entries, x is very large, and Aw is also very
+  large, but has a special structure.
 
-  At each step of the optimization, we compute a solution to the linear
-  system above, using: 
+  At each step of the optimization, we compute a solution to the
+  linear system above, using:
 
-  K*p = - r
+  Km*p = - r
 
   where K is the linearization of the above system of equations, p is
   a search direction, and r are the residuals. Instead of using an
-  exact linearization, we use an approximation based on compact L-BFGS
-  representation. To compute the update, we use the
-  Sherman-Morrison-Woodbury formula. This is possible due to the
+  exact linearization, we use an approximation based on a compact
+  limited-memory BFGS representation. To compute the update, we use
+  the Sherman-Morrison-Woodbury formula. This is possible due to the
   compact L-BFGS representation.
 
   The KKT system can be written as follows:
@@ -60,16 +62,16 @@
   
   B = b0*I - Z*M*Z^{T}
 */
+
 class ParOpt {
  public:
-  ParOpt( MPI_Comm _comm, int _nvars, int _ncon,
-	  double *_x, double *_lb, double *_ub,
-	  int _num_lbfgs );
+  ParOpt( ParOptProblem *_prob, 
+	  int _max_lbfgs_subspace );
   ~ParOpt();
 
   // Perform the optimization
   // ------------------------
-  void optimize();
+  int optimize();
 
  private:
   // Compute the negative of the KKT residuals - return
@@ -112,9 +114,10 @@ class ParOpt {
 		  double m0, double dm0 );
 
   // Evaluate the merit function
-  double evalMeritFunc();
+  double evalMeritFunc( ParOptVec *xk, double *sk );
 
-  // Eval the merit function, its derivative and the new penalty parameter
+  // Evaluate the merit function, its derivative and the new penalty
+  // parameter
   void evalMeritInitDeriv( double max_x,
 			   double * _merit, double * _pmerit );
   
@@ -122,6 +125,9 @@ class ParOpt {
   double computeComp(); // Complementarity at the current point
   double computeCompStep( double alpha_x,
 			  double alpha_z ); // Complementarity at (x + p)
+
+  // The parallel optimizer problem
+  ParOptProblem * prob;
 
   // Communicator info
   MPI_Comm comm;
