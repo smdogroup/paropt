@@ -21,7 +21,7 @@ class Rosenbrock : public ParOptProblem {
 
     // Set the design variable bounds
     for ( int i = 0; i < nvars; i++ ){
-      x[i] = -3.0 + i*0.01;
+      x[i] = -2.2 + i*0.01;
       lb[i] = -2.0;
       ub[i] = 2.0;
     }
@@ -43,18 +43,17 @@ class Rosenbrock : public ParOptProblem {
     double con[2];
     con[0] = con[1] = 0.0;
     for ( int i = 0; i < nvars; i++ ){
-      con[0] += x[i];
+      con[0] -= x[i]*x[i];
     }
 
     for ( int i = 0; i < nvars; i += 2 ){
       con[1] += x[i];
     }
 
-    MPI_Allreduce(&obj, fobj, 1, MPI_DOUBLE,
-		  MPI_SUM, comm);
-    MPI_Allreduce(con, cons, 2, MPI_DOUBLE,
-		  MPI_SUM, comm);
-    *fobj = obj;
+    MPI_Allreduce(&obj, fobj, 1, MPI_DOUBLE, MPI_SUM, comm);
+    MPI_Allreduce(con, cons, 2, MPI_DOUBLE, MPI_SUM, comm);
+
+    cons[0] += 1.0;
 
     return 0;
   }
@@ -76,7 +75,7 @@ class Rosenbrock : public ParOptProblem {
 
     Ac[0]->getArray(&c);
     for ( int i = 0; i < nvars; i++ ){
-      c[i] = 1.0;
+      c[i] = -2.0*x[i];
     }
 
     Ac[1]->getArray(&c);
@@ -96,10 +95,11 @@ int main( int argc, char* argv[] ){
   Rosenbrock * rosen = new Rosenbrock(MPI_COMM_WORLD, nvars-1);
   
   // Allocate the optimizer
-  int max_lbfgs = 15;
+  int max_lbfgs = 10;
   ParOpt * opt = new ParOpt(rosen, max_lbfgs);
 
   opt->checkGradients(1e-6);
+  opt->setOutputFile("paropt_data.out");
   opt->optimize();
 
   delete rosen;

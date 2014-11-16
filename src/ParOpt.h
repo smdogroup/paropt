@@ -1,6 +1,7 @@
 #ifndef PAR_OPT_OPTIMIZER_H
 #define PAR_OPT_OPTIMIZER_H
 
+#include <stdio.h>
 #include "ParOptVec.h"
 #include "ParOptProblem.h"
 
@@ -73,9 +74,30 @@ class ParOpt {
   // ------------------------
   int optimize();
 
-  // Check the constraint gradients
-  // ------------------------------
+  // Check the objective and constraint gradients
+  // --------------------------------------------
   void checkGradients( double dh );
+
+  // Set optimizer parameters
+  // ------------------------
+  void setMaxMajorIterations( int iters );
+  void setAbsOptimalityTol( double tol );
+  void setInitBarrierParameter( double mu );
+  void setBarrierFraction( double frac );
+  void setBarrierPower( double power );
+
+  // Set parameters associated with the line search
+  // ----------------------------------------------
+  void setUseLineSearch( int truth );
+  void setMaxLineSearchIters( int iters );
+  void setArmijioParam( double c1 );
+  void setPenaltyDescentFraction( double frac );
+
+  // Set other parameters
+  // --------------------
+  void setOutputFrequency( int freq );
+  void setMajorIterStepCheck( int step );
+  void setOutputFile( const char * filename );
 
  private:
   // Compute the negative of the KKT residuals - return
@@ -180,6 +202,9 @@ class ParOpt {
   LBFGS *qn;
   ParOptVec *y_qn, *s_qn;
 
+  // Keep track of the number of objective and gradient evaluations
+  int neval, ngeval;
+
   // Parameters for optimization
   int max_major_iters;
   int init_starting_point;
@@ -195,7 +220,7 @@ class ParOpt {
   int max_line_iters;
   int use_line_search;
   double rho_penalty_search;
-  double penalty_descent_fraction, armijo_constant;
+  double penalty_descent_fraction, armijio_constant;
 
   // Parameters for controling the barrier update
   double monotone_barrier_fraction, monotone_barrier_power;
@@ -205,6 +230,9 @@ class ParOpt {
 
   // Check the step at this major iteration - for debugging
   int major_iter_step_check;
+
+  // The file pointer to use for printing things out
+  FILE *outfp;
 };
 
 #endif

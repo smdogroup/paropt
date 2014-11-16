@@ -3,7 +3,29 @@
 #include "ParOptBlasLapack.h"
 
 /*
-  The Parallel Optimizer 
+  The Parallel Optimizer constructor
+
+  This allocates and initializes the data that are required for
+  parallel optimization. This includes initialization of the
+  variables, allocation of the matrices and the BFGS approximate
+  Hessian. This code also sets the default parameters for
+  optimization. These parameters can be modified through member
+  functions. 
+
+  The parameters are as follows:
+
+  max_major_iters:        maximum major iterations
+  init_starting_point:    (boolean) guess the initial multipliers
+  write_output_freq:      the major iter frequency for output
+  barrier_param:          the initial barrier parameter
+  abs_res_tol:            the absolute residual stopping criterion 
+  use_line_search:        (boolean) use/don't use the line search
+  penalty_descent_frac:   parameter to ensure sufficient descent
+  armijio_constant:       line search sufficient decrease parameter
+  monotone_barrier_frac:  decrease the barrier by this fraction
+  monotone_barrier_power: decrease the barrier by mu**power
+  min_frac_to_boundary:   minimum fraction-to-boundary constant
+  major_iter_step_check:  check the step at this major iteration
 
   input:
   prob:      the optimization problem
@@ -146,18 +168,21 @@ ParOpt::ParOpt( ParOptProblem * _prob,
   // Initialize the parameters with default values
   max_major_iters = 2500;
   init_starting_point = 1;
-  write_output_frequency = 10;
   barrier_param = 0.1;
   abs_res_tol = 1e-5;
   use_line_search = 1;
-  max_line_iters = 5;
+  max_line_iters = 10;
   rho_penalty_search = 0.0;
   penalty_descent_fraction = 0.3;
-  armijo_constant = 1e-3;
+  armijio_constant = 1e-3;
   monotone_barrier_fraction = 0.25;
-  monotone_barrier_power = 1.25;
+  monotone_barrier_power = 1.1;
   min_fraction_to_boundary = 0.95;
+  write_output_frequency = 10;
   major_iter_step_check = -1;
+
+  // By default, set the file pointer to stdout
+  outfp = stdout;
 }
 
 /*
@@ -165,6 +190,139 @@ ParOpt::ParOpt( ParOptProblem * _prob,
 */
 ParOpt::~ParOpt(){
   delete qn;
+
+  // Delete the variables and bounds
+  delete x;
+  delete lb;
+  delete ub;
+  delete zl;
+  delete zu;
+  delete [] z;
+  delete [] s;
+
+  // Delete the steps
+  delete px;
+  delete pzl;
+  delete pzu;
+  delete [] pz;
+  delete [] ps;
+
+  // Delete the residuals
+  delete rx;
+  delete rzl;
+  delete rzu;
+  delete [] rc;
+  delete [] rs;
+
+  // Delete the quasi-Newton updates
+  delete y_qn;
+  delete s_qn;
+
+  // Delete the temp data
+  delete xtemp;
+  delete [] ztemp;
+
+  // Delete the various matrices
+  delete [] Dmat;
+  delete [] dpiv;
+  delete [] Ce;
+  delete [] cpiv;
+  delete Cvec;
+
+  // Delete the
+  delete [] c;
+  delete g;
+  for ( int i = 0; i < ncon; i++ ){
+    delete Ac[i];
+  }
+  delete [] Ac;
+
+  // Close the output file if it's not stdout
+  if (outfp && outfp != stdout){
+    fclose(outfp);
+  }
+}
+
+/*
+  Set optimizer parameters
+*/
+void ParOpt::setMaxMajorIterations( int iters ){
+  if (iters > 1){ max_major_iters = iters; }
+}
+
+void ParOpt::setAbsOptimalityTol( double tol ){
+  if (tol < 1e-2 && tol > 0.0){
+    abs_res_tol = tol;
+  }
+}
+
+void ParOpt::setInitBarrierParameter( double mu ){
+  if (mu > 0.0){ barrier_param = mu; }
+}
+
+void ParOpt::setBarrierFraction( double frac ){
+  if (frac > 0.0 && frac < 1.0){
+    monotone_barrier_fraction = frac;
+  }
+}
+
+void ParOpt::setBarrierPower( double power ){
+  if (power > 1.0 && power < 2.0){
+    monotone_barrier_power = power;
+  }
+}
+
+/*
+  Set parameters associated with the line search
+*/
+void ParOpt::setUseLineSearch( int truth ){
+  use_line_search = truth;
+}
+
+void ParOpt::setMaxLineSearchIters( int iters ){
+  if (iters > 0){ max_line_iters = iters; }
+}
+
+void ParOpt::setArmijioParam( double c1 ){
+  if (c1 >= 0){
+    armijio_constant = c1;
+  }
+}
+
+void ParOpt::setPenaltyDescentFraction( double frac ){
+  if (frac > 0.0){
+    penalty_descent_fraction = frac;
+  }
+}
+
+/*
+  Set other parameters
+*/
+void ParOpt::setOutputFrequency( int freq ){
+  if (freq >= 1){
+    write_output_frequency = freq;
+  }
+}
+
+void ParOpt::setMajorIterStepCheck( int step ){
+  major_iter_step_check = step;
+}
+
+/*
+  Set the file to use
+*/
+void ParOpt::setOutputFile( const char * filename ){
+  if (outfp && outfp != stdout){
+    fclose(outfp);
+  }
+  outfp = NULL;
+
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+
+  if (filename && rank == opt_root){
+    outfp = fopen(filename, "w");
+  }
 }
 
 /*
@@ -1198,7 +1356,7 @@ void ParOpt::evalMeritInitDeriv( double max_x,
     // Compute the first guess for the new
     double rho_hat = 0.0;
     if (infeas > 0.0){
-      rho_hat = numer/((1 - penalty_descent_fraction)*max_x*infeas);
+      rho_hat = numer/((1.0 - penalty_descent_fraction)*max_x*infeas);
     }
 
     // Set the penalty parameter to the smallest value
@@ -1258,16 +1416,6 @@ int ParOpt::lineSearch( double * _alpha,
   // Print the
   int rank;
   MPI_Comm_rank(comm, &rank);
-  if (opt_root == rank){
-    if (rho_penalty_search == 0.0){
-      printf("Line search:  rho: %9s  m(0): %9.2e     dm: %9.2e\n",
-	     " ", m0, dm0);
-    }
-    else {
-      printf("Line search:  rho: %9.2e  m(0): %9.2e     dm: %9.2e\n",
-	     rho_penalty_search, m0, dm0);
-    }
-  }
 
   for ( int j = 0; j < max_line_iters; j++ ){
     // Set rx = x + alpha*px
@@ -1281,10 +1429,11 @@ int ParOpt::lineSearch( double * _alpha,
 
     // Evaluate the objective and constraints at the new point
     int fail_obj = prob->evalObjCon(rx, &fobj, c);
+    neval++;
 
     if (fail_obj){
       fprintf(stderr, 
-	      "Line search iteration failed, trying new point\n");
+	      "Evaluation failed during line search, trying new point\n");
 
       // Multiply alpha by 1/10 like SNOPT
       alpha *= 0.1;
@@ -1294,15 +1443,11 @@ int ParOpt::lineSearch( double * _alpha,
     // Evaluate the merit function
     double merit = evalMeritFunc(rx, rs);
 
-    if (rank == opt_root){
-      printf("Armijo[%2d]:     a: %9.6f  m(a): %9.2e\n",
-	     j, alpha, merit);
-    }
-    
     // Check the sufficient decrease condition
-    if (merit < m0 + armijo_constant*alpha*dm0){
+    if (merit < m0 + armijio_constant*alpha*dm0){
       // Evaluate the derivative
       int fail_gobj = prob->evalObjConGradient(rx, g, Ac);
+      ngeval++;
       if (fail_gobj){
 	fprintf(stderr, 
 		"Gradient evaluation failed at final line search\n");
@@ -1322,11 +1467,8 @@ int ParOpt::lineSearch( double * _alpha,
     }
     else {
       int fail_gobj = prob->evalObjConGradient(x, g, Ac);
+      ngeval++;
     }
-  }
-
-  if (rank == opt_root && fail){
-    printf("Armijo line search failure\n");
   }
 
   // Set the new values of the variables
@@ -1349,15 +1491,46 @@ int ParOpt::lineSearch( double * _alpha,
   Perform the optimization
 */
 int ParOpt::optimize(){
+  // Zero out the number of function/gradient evaluations
+  neval = ngeval = 0;
+
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+  if (rank == opt_root){
+    fprintf(outfp, "ParOpt: Parameter summary\n");
+    fprintf(outfp, "%-30s %15d\n", "max_major_iters", max_major_iters);
+    fprintf(outfp, "%-30s %15d\n", "init_starting_point", 
+	    init_starting_point);
+    fprintf(outfp, "%-30s %15g\n", "barrier_param", barrier_param);
+    fprintf(outfp, "%-30s %15g\n", "abs_res_tol", abs_res_tol);
+    fprintf(outfp, "%-30s %15d\n", "use_line_search", use_line_search);
+    fprintf(outfp, "%-30s %15d\n", "max_line_iters", max_line_iters);
+    fprintf(outfp, "%-30s %15g\n", "penalty_descent_fraction", 
+	    penalty_descent_fraction);
+    fprintf(outfp, "%-30s %15g\n", "armijio_constant", armijio_constant);
+    fprintf(outfp, "%-30s %15g\n", "monotone_barrier_fraction", 
+	    monotone_barrier_fraction);
+    fprintf(outfp, "%-30s %15g\n", "monotone_barrier_power", 
+	    monotone_barrier_power);
+    fprintf(outfp, "%-30s %15g\n", "min_fraction_to_boundary", 
+	    min_fraction_to_boundary);
+    fprintf(outfp, "%-30s %15d\n", "major_iter_step_check", 
+	    major_iter_step_check);
+    fprintf(outfp, "%-30s %15d\n", "write_output_frequency", 
+	    write_output_frequency);
+  }
+
   // Evaluate the objective, constraint and their gradients at the
   // current values of the design variables
   int fail_obj = prob->evalObjCon(x, &fobj, c);
+  neval++;
   if (fail_obj){
     fprintf(stderr, 
 	    "Initial function and constraint evaluation failed\n");
     return fail_obj;
   }
   int fail_gobj = prob->evalObjConGradient(x, g, Ac);
+  ngeval++;
   if (fail_gobj){
     fprintf(stderr, "Initial gradient evaluation failed\n");
     return fail_obj;
@@ -1409,7 +1582,21 @@ int ParOpt::optimize(){
     } 
   }
 
+  // Keep track of whether the algorithm has converged
   int converged = 0;  
+
+  // Store the previous steps in the x/z directions for
+  // the purposes of printing them out on the screen
+  double alpha_xprev = 0.0;
+  double alpha_zprev = 0.0;
+
+  // Keep track of the projected merit function derivative
+  double dm0_prev = 0.0;
+
+  // Information about what happened on the previous iter
+  char info[64];
+  info[0] = '\0';
+
   for ( int k = 0; k < max_major_iters; k++ ){
     // Print out the current solution progress
     if (k % write_output_frequency){
@@ -1423,6 +1610,38 @@ int ParOpt::optimize(){
     double max_prime, max_dual, max_infeas;
     computeKKTRes(&max_prime, &max_dual, &max_infeas);
 
+    // Print all the information we can to the screen...
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+    if (rank == opt_root){
+      if (k % 10 == 0){
+	fprintf(outfp, "\n%4s %4s %4s %7s %7s %12s \
+%7s %7s %7s %7s %8s %7s info\n",
+	       "iter", "nobj", "ngrd", "alphx", "alphz", 
+	       "fobj", "|opt|", "|infes|", "|dual|", "mu", 
+	       "dmerit", "rho");
+      }
+
+      if (k == 0){
+	fprintf(outfp, "%4d %4d %4d %7s %7s %12.5e \
+%7.1e %7.1e %7.1e %7.1e %8s %7s %s\n",
+	       k, neval, ngeval, " ", " ",
+	       fobj, max_prime, max_infeas, max_dual, 
+	       barrier_param, " ", " ", info);
+      }
+      else {
+	fprintf(outfp, "%4d %4d %4d %7.1e %7.1e %12.5e \
+%7.1e %7.1e %7.1e %7.1e %8.1e %7.1e %s\n",
+	       k, neval, ngeval, alpha_xprev, alpha_zprev,
+	       fobj, max_prime, max_infeas, max_dual, 
+	       barrier_param, dm0_prev, rho_penalty_search, info);
+      }
+      
+      if (k % 10 == 0){
+	fflush(outfp);
+      }
+    }
+
     // Compute the norm of the residuals
     double res_norm = max_prime;
     if (max_dual > res_norm){ res_norm = max_dual; }
@@ -1433,13 +1652,6 @@ int ParOpt::optimize(){
 	barrier_param < 0.1*abs_res_tol){
       converged = 1;
       break;
-    }
-
-    int rank;
-    MPI_Comm_rank(comm, &rank);
-    if (rank == opt_root){
-      printf("Iter[%4d]: |opt|: %9.2e |c-s|: %9.2e |dual|: %9.2e mu: %9.2e\n",
-	     k, max_prime, max_infeas, max_dual, barrier_param);
     }
 
     // Determine if the residual norm has been reduced
@@ -1562,19 +1774,50 @@ int ParOpt::optimize(){
 
     // Keep track of the step length size
     double alpha = 1.0;
+    int line_fail = 0;
 
     if (use_line_search){
       // Compute the initial value of the merit function and its
       // derivative and a new value for the penalty parameter
       double m0, dm0;
       evalMeritInitDeriv(max_x, &m0, &dm0);
-
-      // Perform the line search
-      int fail = lineSearch(&alpha, m0, dm0);
       
-      if (fail){
-	qn->reset();
+      // The directional derivative is so small that we apply the
+      // full step, regardless
+      if (dm0 > -abs_res_tol*abs_res_tol){
+	// Apply the full step
+	alpha = 1.0;
+	x->axpy(alpha, px);
+	zl->axpy(alpha, pzl);
+	zu->axpy(alpha, pzu);
+	
+	for ( int i = 0; i < ncon; i++ ){
+	  s[i] += alpha*ps[i];
+	  z[i] += alpha*pz[i];
+	}
+
+	// Evaluate the objective, constraint and their gradients at the
+	// current values of the design variables
+	int fail_obj = prob->evalObjCon(x, &fobj, c);
+	neval++;
+	if (fail_obj){
+	  fprintf(stderr, "Function and constraint evaluation failed\n");
+	  return fail_obj;
+	}
+	int fail_gobj = prob->evalObjConGradient(x, g, Ac);
+	ngeval++;
+	if (fail_gobj){
+	  fprintf(stderr, "Gradient evaluation failed\n");
+	  return fail_obj;
+	}
       }
+      else {
+	// Perform the line search
+	line_fail = lineSearch(&alpha, m0, dm0);
+      }
+
+      // Store the previous merit function derivative
+      dm0_prev = dm0;
     }
     else {
       // Apply the full step
@@ -1590,16 +1833,22 @@ int ParOpt::optimize(){
       // Evaluate the objective, constraint and their gradients at the
       // current values of the design variables
       int fail_obj = prob->evalObjCon(x, &fobj, c);
+      neval++;
       if (fail_obj){
 	fprintf(stderr, "Function and constraint evaluation failed\n");
 	return fail_obj;
       }
       int fail_gobj = prob->evalObjConGradient(x, g, Ac);
+      ngeval++;
       if (fail_gobj){
 	fprintf(stderr, "Gradient evaluation failed\n");
 	return fail_obj;
       }
     }
+
+    // Store the steps in x/z for printing later
+    alpha_xprev = alpha*max_x;
+    alpha_zprev = alpha*max_z;
     
     // Set up the data for the quasi-Newton update
     y_qn->axpy(1.0, g);
@@ -1608,11 +1857,30 @@ int ParOpt::optimize(){
     }
    
     s_qn->axpy(1.0, x);
-   
+
     // Compute the Quasi-Newton update
-    int up_type = qn->update(s_qn, y_qn);
-    if (up_type == 1 && rank == opt_root){
-      printf("Using damped BFGS update\n");
+    int up_type = 0;
+    if (!line_fail){
+      up_type = qn->update(s_qn, y_qn);
+    }
+
+    // Create a string to print to the screen
+    if (rank == opt_root){
+      // The string of unforseen events
+      info[0] = '\0';
+      if (up_type == 1){ 
+	// Damped BFGS update
+	sprintf(info, "%s ", "dH");
+      }
+      if (line_fail){
+	// Line search failure
+	sprintf(info, "%s%s ", info, "LF");
+      }
+      if (dm0_prev > -abs_res_tol*abs_res_tol){
+	// Skip the line search b/c descent direction is not 
+	// sufficiently descent-y
+	sprintf(info, "%s%s ", info, "sk");
+      }
     }
   }
 }
