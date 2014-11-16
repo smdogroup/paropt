@@ -179,6 +179,17 @@ LBFGS::LBFGS( MPI_Comm _comm, int _nvars,
   D = new double[ msub_max ];
   L = new double[ msub_max*msub_max ];
   B = new double[ msub_max*msub_max ];  
+
+  // Zero the initial values of everything
+  memset(d0, 0, 2*msub_max*sizeof(double));
+  memset(rz, 0, 2*msub_max*sizeof(double));
+
+  memset(M, 0, 4*msub_max*msub_max*sizeof(double));
+  memset(M_factor, 0, 4*msub_max*msub_max*sizeof(double));
+
+  memset(D, 0, msub_max*sizeof(double));
+  memset(L, 0, msub_max*msub_max*sizeof(double));
+  memset(B, 0, msub_max*msub_max*sizeof(double));
 }
 
 /*
@@ -209,6 +220,25 @@ LBFGS::~LBFGS(){
 }
 
 /*
+  Reset the Hessian approximation
+*/
+void LBFGS::reset(){
+  msub = 0;
+  b0 = 1.0;
+
+  // Zero the initial values of everything
+  memset(d0, 0, 2*msub_max*sizeof(double));
+  memset(rz, 0, 2*msub_max*sizeof(double));
+
+  memset(M, 0, 4*msub_max*msub_max*sizeof(double));
+  memset(M_factor, 0, 4*msub_max*msub_max*sizeof(double));
+
+  memset(D, 0, msub_max*sizeof(double));
+  memset(L, 0, msub_max*msub_max*sizeof(double));
+  memset(B, 0, msub_max*msub_max*sizeof(double));
+}
+
+/*
   Compute the update to the limited-memory BFGS approximate Hessian.
   The BFGS formula takes the form:
 
@@ -220,8 +250,13 @@ LBFGS::~LBFGS(){
   input:
   s:  the step in the design variable values
   y:  the difference in the gradient
+
+  returns:
+  update type: 0 = normal, 1 = damped update
 */
-void LBFGS::update( ParOptVec * s, ParOptVec * y ){
+int LBFGS::update( ParOptVec * s, ParOptVec * y ){
+  int update_type = 0;
+
   // Set the diagonal entries of the matrix
   double gamma = y->dot(y);
   double alpha = y->dot(s);
@@ -242,6 +277,9 @@ void LBFGS::update( ParOptVec * s, ParOptVec * y ){
 
   // Compute the damped update if the curvature condition is violated
   if (alpha <= 0.2*beta){
+    // Damped update return
+    update_type = 1;
+
     // Compute r = theta*y + (1.0 - theta)*B*s
     double theta = 0.8*beta/(beta - alpha);
     r->scale(1.0 - theta);
@@ -351,6 +389,8 @@ void LBFGS::update( ParOptVec * s, ParOptVec * y ){
   // Factor the M matrix for later useage
   int n = 2*msub, info = 0;
   LAPACKdgetrf(&n, &n, M_factor, &n, mfpiv, &info);
+
+  return update_type;
 }
 
 /*

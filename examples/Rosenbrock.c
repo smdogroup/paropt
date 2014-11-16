@@ -9,7 +9,7 @@
 class Rosenbrock : public ParOptProblem {
  public:
   Rosenbrock( MPI_Comm comm, int n ): 
-  ParOptProblem(comm, n+1, 1){}
+  ParOptProblem(comm, n+1, 2){}
   
   void getVarsAndBounds( ParOptVec *xvec,
 			 ParOptVec *lbvec, 
@@ -21,7 +21,7 @@ class Rosenbrock : public ParOptProblem {
 
     // Set the design variable bounds
     for ( int i = 0; i < nvars; i++ ){
-      x[i] = -1.0;
+      x[i] = -3.0 + i*0.01;
       lb[i] = -2.0;
       ub[i] = 2.0;
     }
@@ -31,7 +31,7 @@ class Rosenbrock : public ParOptProblem {
   // --------------------------------------
   int evalObjCon( ParOptVec *xvec, 
 		  double *fobj, double *cons ){
-    double obj = 0.0, con = 0.0;
+    double obj = 0.0;
     double *x;
     xvec->getArray(&x);
 
@@ -40,12 +40,16 @@ class Rosenbrock : public ParOptProblem {
 	      100*(x[i+1] - x[i]*x[i])*(x[i+1] - x[i]*x[i]));
     }
 
+    cons[0] = cons[1] = 0.0;
     for ( int i = 0; i < nvars; i++ ){
-      con += x[i];
+      cons[0] += x[i];
+    }
+
+    for ( int i = 0; i < nvars; i += 2 ){
+      cons[1] += x[i];
     }
 
     *fobj = obj;
-    cons[0] = con;
 
     return 0;
   }
@@ -57,17 +61,21 @@ class Rosenbrock : public ParOptProblem {
     double *x, *g, *c;
     xvec->getArray(&x);
     gvec->getArray(&g);
-    Ac[0]->getArray(&c);
-
     gvec->zeroEntries();
-    
+
     for ( int i = 0; i < nvars-1; i++ ){
       g[i] += (-2.0*(1.0 - x[i]) + 
 	       200*(x[i+1] - x[i]*x[i])*(-2.0*x[i]));
       g[i+1] += 200*(x[i+1] - x[i]*x[i]);
     }
 
+    Ac[0]->getArray(&c);
     for ( int i = 0; i < nvars; i++ ){
+      c[i] = 1.0;
+    }
+
+    Ac[1]->getArray(&c);
+    for ( int i = 0; i < nvars; i += 2 ){
       c[i] = 1.0;
     }
 
@@ -83,7 +91,7 @@ int main( int argc, char* argv[] ){
   Rosenbrock * rosen = new Rosenbrock(MPI_COMM_WORLD, nvars-1);
   
   // Allocate the optimizer
-  int max_lbfgs = 20;
+  int max_lbfgs = 10;
   ParOpt * opt = new ParOpt(rosen, max_lbfgs);
 
   opt->checkGradients(1e-6);

@@ -144,7 +144,7 @@ ParOpt::ParOpt( ParOptProblem * _prob,
   }
 
   // Initialize the parameters with default values
-  max_major_iters = 5;
+  max_major_iters = 2500;
   init_starting_point = 1;
   write_output_frequency = 10;
   barrier_param = 0.1;
@@ -157,6 +157,7 @@ ParOpt::ParOpt( ParOptProblem * _prob,
   monotone_barrier_fraction = 0.25;
   monotone_barrier_power = 1.25;
   min_fraction_to_boundary = 0.95;
+  major_iter_step_check = -1;
 }
 
 /*
@@ -617,7 +618,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
       avals++; bxvals++; cvals++; 
     }
 
-    for ( int k = nvars; k < nvars; k += 4 ){
+    for ( int k = remainder; k < nvars; k += 4 ){
       ztemp[i] -= (avals[0]*bxvals[0]*cvals[0] + 
 		   avals[1]*bxvals[1]*cvals[1] +
 		   avals[2]*bxvals[2]*cvals[2] + 
@@ -647,7 +648,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
   yx->getArray(&yxvals);
   Cvec->getArray(&cvals);
 
-  // Compute yx = C0^{-1}*(d + A^{T}*yz)
+  // Compute yx = C0^{-1}*(bx + A^{T}*yz)
   yx->copyValues(bx);
   for ( int i = 0; i < ncon; i++ ){
     yx->axpy(ztemp[i], Ac[i]);
@@ -679,9 +680,9 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
 void ParOpt::setUpKKTSystem(){
   // Get the size of the limited-memory BFGS subspace
   double b0;
-  const double *d, *M;
+  const double *d0, *M;
   ParOptVec **Z;
-  int size = qn->getLBFGSMat(&b0, &d, &M, &Z);
+  int size = qn->getLBFGSMat(&b0, &d0, &M, &Z);
 
   if (size > 0){
     memset(Ce, 0, size*size*sizeof(double));
@@ -694,11 +695,11 @@ void ParOpt::setUpKKTSystem(){
       // Compute the dot products Z^{T}*K^{-1}*Z[i]
       xtemp->mdot(Z, size, &Ce[i*size]);
     }
-    
+
     // Compute the Schur complement
     for ( int j = 0; j < size; j++ ){
       for ( int i = 0; i < size; i++ ){
-	Ce[i + j*size] -= M[i + j*size]/(d[i]*d[j]);
+	Ce[i + j*size] -= M[i + j*size]/(d0[i]*d0[j]);
       }
     }
     
@@ -765,10 +766,10 @@ void ParOpt::computeKKTStep(){
     }
     
     // Solve the digaonal system again, this time simplifying
-    // the result due to the prescence of 
+    // the result due to the structure of the right-hand-side
     solveKKTDiagSystem(xtemp,
 		       rx, rc, rs, rzl, rzu);
-    
+
     // Add the final contributions 
     px->axpy(-1.0, rx);
     pzl->axpy(-1.0, rzl);
@@ -1133,7 +1134,7 @@ void ParOpt::evalMeritInitDeriv( double max_x,
 
   // Compute the projected derivative
   double proj = g->dot(px);
-
+  
   // Perform the computations only on the root processor
   int rank = 0;
   MPI_Comm_rank(comm, &rank);
@@ -1191,7 +1192,8 @@ void ParOpt::evalMeritInitDeriv( double max_x,
     
     // Now, evaluate the merit function and its derivative
     // based on the new value of the penalty parameter
-    merit = fobj - barrier_param*(pos_result + neg_result) + rho_penalty_search*infeas;
+    merit = (fobj - barrier_param*(pos_result + neg_result) + 
+	     rho_penalty_search*infeas);
     pmerit = numer - rho_penalty_search*infeas;
   }
 
@@ -1227,8 +1229,21 @@ int ParOpt::lineSearch( double * _alpha,
   // Perform a backtracking line search until the sufficient decrease
   // conditions are satisfied 
   double alpha = *_alpha;
-  double alpha_old = 0.0;
   int fail = 1;
+
+  // Print the
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+  if (opt_root == rank){
+    if (rho_penalty_search == 0.0){
+      printf("Line search:  rho: %9s  m(0): %9.2e     dm: %9.2e\n",
+	     " ", m0, dm0);
+    }
+    else {
+      printf("Line search:  rho: %9.2e  m(0): %9.2e     dm: %9.2e\n",
+	     rho_penalty_search, m0, dm0);
+    }
+  }
 
   for ( int j = 0; j < max_line_iters; j++ ){
     // Set rx = x + alpha*px
@@ -1254,11 +1269,16 @@ int ParOpt::lineSearch( double * _alpha,
 
     // Evaluate the merit function
     double merit = evalMeritFunc(rx, rs);
+
+    if (rank == opt_root){
+      printf("Armijo[%2d]:     a: %9.6f  m(a): %9.2e\n",
+	     j, alpha, merit);
+    }
     
     // Check the sufficient decrease condition
     if (merit < m0 + armijo_constant*alpha*dm0){
       // Evaluate the derivative
-      int fail_gobj = prob->evalObjConGradient(x, g, Ac);
+      int fail_gobj = prob->evalObjConGradient(rx, g, Ac);
       if (fail_gobj){
 	fprintf(stderr, 
 		"Gradient evaluation failed at final line search\n");
@@ -1273,8 +1293,16 @@ int ParOpt::lineSearch( double * _alpha,
     }
 
     // Update the new value of alpha
-    alpha_old = alpha;
-    alpha = 0.5*alpha;
+    if (j < max_line_iters-1){
+      alpha = 0.5*alpha;
+    }
+    else {
+      int fail_gobj = prob->evalObjConGradient(x, g, Ac);
+    }
+  }
+
+  if (rank == opt_root && fail){
+    printf("Armijo line search failure\n");
   }
 
   // Set the new values of the variables
@@ -1386,8 +1414,8 @@ int ParOpt::optimize(){
     int rank;
     MPI_Comm_rank(comm, &rank);
     if (rank == opt_root){
-      printf("Iter[%4d]: |opt|: %8.2e |c-s|: %8.2e |dual|: %8.2e\n",
-	     k, max_prime, max_infeas, max_dual);
+      printf("Iter[%4d]: |opt|: %9.2e |c-s|: %9.2e |dual|: %9.2e mu: %9.2e\n",
+	     k, max_prime, max_infeas, max_dual, barrier_param);
     }
 
     // Determine if the residual norm has been reduced
@@ -1438,7 +1466,7 @@ int ParOpt::optimize(){
     computeKKTStep();
 
     // Check the KKT step
-    if (k < 10){
+    if (k == major_iter_step_check){
       checkKKTStep();
     }
 
@@ -1516,9 +1544,9 @@ int ParOpt::optimize(){
       // derivative and a new value for the penalty parameter
       double m0, dm0;
       evalMeritInitDeriv(max_x, &m0, &dm0);
-      
+
       // Perform the line search
-      alpha = lineSearch(&alpha, m0, dm0);
+      int fail = lineSearch(&alpha, m0, dm0);
     }
     else {
       // Apply the full step
@@ -1554,7 +1582,10 @@ int ParOpt::optimize(){
     s_qn->axpy(1.0, x);
    
     // Compute the Quasi-Newton update
-    qn->update(s_qn, y_qn);
+    int up_type = qn->update(s_qn, y_qn);
+    if (up_type == 1 && rank == opt_root){
+      printf("Using damped BFGS update\n");
+    }
   }
 }
 
@@ -1657,7 +1688,7 @@ void ParOpt::checkKKTStep(){
   rx->axpy(-1.0, zl);
   rx->axpy(1.0, zu);
   double max_val = rx->maxabs();
-  printf("max |H*px - Ac^{T}*pz - pzl + pzu + (g - Ac^{T}*z - zl + zu|: %10.4e\n",
+  printf("max |H*px - Ac^{T}*pz - pzl + pzu + (g - Ac^{T}*z - zl + zu)|: %10.4e\n",
 	 max_val);
   
   // Find the maximum value of the residual equations

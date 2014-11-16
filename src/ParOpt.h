@@ -202,6 +202,9 @@ class ParOpt {
  
   // The minimum step to the boundary;
   double min_fraction_to_boundary;
+
+  // Check the step at this major iteration - for debugging
+  int major_iter_step_check;
 };
 
 #endif

@@ -60,10 +60,14 @@ class LBFGS {
  public:
   LBFGS( MPI_Comm _comm, int _nvars, int _subspace_size );
   ~LBFGS();
+
+  // Reset the internal data
+  // -----------------------
+  void reset();
   
   // Perform the BFGS update
   // -----------------------
-  void update( ParOptVec * s, ParOptVec * y );
+  int update( ParOptVec * s, ParOptVec * y );
   
   // Perform a matrix-vector multiplication
   // --------------------------------------
