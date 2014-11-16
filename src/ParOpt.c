@@ -5,12 +5,12 @@
 /*
   The Parallel Optimizer constructor
 
-  This allocates and initializes the data that are required for
+  This allocates and initializes the data that is required for
   parallel optimization. This includes initialization of the
   variables, allocation of the matrices and the BFGS approximate
   Hessian. This code also sets the default parameters for
   optimization. These parameters can be modified through member
-  functions. 
+  functions.
 
   The parameters are as follows:
 
@@ -166,7 +166,7 @@ ParOpt::ParOpt( ParOptProblem * _prob,
   }
 
   // Initialize the parameters with default values
-  max_major_iters = 2500;
+  max_major_iters = 1000;
   init_starting_point = 1;
   barrier_param = 0.1;
   abs_res_tol = 1e-5;
@@ -1488,7 +1488,24 @@ int ParOpt::lineSearch( double * _alpha,
 }
 
 /*
-  Perform the optimization
+  Perform the actual optimization. 
+
+  This is the main function that performs the actual optimization.
+  The optimization uses an interior-point method. The barrier
+  parameter (mu/barrier_param) is controlled using a monotone approach
+  where successive barrier problems are solved and the barrier
+  parameter is subsequently reduced.
+
+  The method uses a quasi-Newton method where the Hessian is
+  approximated using a limited-memory BFGS approximation. The special
+  structure of the Hessian approximation is used to compute the
+  updates. This computation relies on there being relatively few dense
+  global inequality constraints (e.g. < 100). 
+
+  The code also has the capability to handle very sparse linear
+  constraints with the special structure that the rows of the
+  constraints are nearly orthogonal. This capability is still under
+  development.
 */
 int ParOpt::optimize(){
   // Zero out the number of function/gradient evaluations
@@ -1616,28 +1633,28 @@ int ParOpt::optimize(){
     if (rank == opt_root){
       if (k % 10 == 0){
 	fprintf(outfp, "\n%4s %4s %4s %7s %7s %12s \
-%7s %7s %7s %7s %8s %7s info\n",
-	       "iter", "nobj", "ngrd", "alphx", "alphz", 
-	       "fobj", "|opt|", "|infes|", "|dual|", "mu", 
-	       "dmerit", "rho");
+%7s %7s %7s %7s %7s %8s %7s info\n",
+		"iter", "nobj", "ngrd", "alphx", "alphz", 
+		"fobj", "|opt|", "|infes|", "|dual|", "mu", 
+		"comp", "dmerit", "rho");
       }
 
       if (k == 0){
 	fprintf(outfp, "%4d %4d %4d %7s %7s %12.5e \
-%7.1e %7.1e %7.1e %7.1e %8s %7s %s\n",
-	       k, neval, ngeval, " ", " ",
-	       fobj, max_prime, max_infeas, max_dual, 
-	       barrier_param, " ", " ", info);
+%7.1e %7.1e %7.1e %7.1e %7.1e %8s %7s %s\n",
+		k, neval, ngeval, " ", " ",
+		fobj, max_prime, max_infeas, max_dual, 
+		barrier_param, comp, " ", " ", info);
       }
       else {
 	fprintf(outfp, "%4d %4d %4d %7.1e %7.1e %12.5e \
-%7.1e %7.1e %7.1e %7.1e %8.1e %7.1e %s\n",
+%7.1e %7.1e %7.1e %7.1e %7.1e %8.1e %7.1e %s\n",
 	       k, neval, ngeval, alpha_xprev, alpha_zprev,
 	       fobj, max_prime, max_infeas, max_dual, 
-	       barrier_param, dm0_prev, rho_penalty_search, info);
+		barrier_param, comp, dm0_prev, rho_penalty_search, info);
       }
       
-      if (k % 10 == 0){
+      if (k % write_output_frequency == 0){
 	fflush(outfp);
       }
     }
@@ -1987,8 +2004,8 @@ void ParOpt::checkKKTStep(){
   double max_val = rx->maxabs();
   
   if (rank == opt_root){
-    printf("max |H*px - Ac^{T}*pz - pzl + pzu + (g - Ac^{T}*z - zl + zu)|: %10.4e\n",
-	   max_val);
+    printf("max |H*px - Ac^{T}*pz - pzl + pzu + \
+(g - Ac^{T}*z - zl + zu)|: %10.4e\n", max_val);
   }
 
   // Find the maximum value of the residual equations
