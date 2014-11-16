@@ -40,15 +40,20 @@ class Rosenbrock : public ParOptProblem {
 	      100*(x[i+1] - x[i]*x[i])*(x[i+1] - x[i]*x[i]));
     }
 
-    cons[0] = cons[1] = 0.0;
+    double con[2];
+    con[0] = con[1] = 0.0;
     for ( int i = 0; i < nvars; i++ ){
-      cons[0] += x[i];
+      con[0] += x[i];
     }
 
     for ( int i = 0; i < nvars; i += 2 ){
-      cons[1] += x[i];
+      con[1] += x[i];
     }
 
+    MPI_Allreduce(&obj, fobj, 1, MPI_DOUBLE,
+		  MPI_SUM, comm);
+    MPI_Allreduce(con, cons, 2, MPI_DOUBLE,
+		  MPI_SUM, comm);
     *fobj = obj;
 
     return 0;
@@ -91,7 +96,7 @@ int main( int argc, char* argv[] ){
   Rosenbrock * rosen = new Rosenbrock(MPI_COMM_WORLD, nvars-1);
   
   // Allocate the optimizer
-  int max_lbfgs = 10;
+  int max_lbfgs = 15;
   ParOpt * opt = new ParOpt(rosen, max_lbfgs);
 
   opt->checkGradients(1e-6);

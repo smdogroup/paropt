@@ -150,7 +150,7 @@ ParOpt::ParOpt( ParOptProblem * _prob,
   barrier_param = 0.1;
   abs_res_tol = 1e-5;
   use_line_search = 1;
-  max_line_iters = 9;
+  max_line_iters = 5;
   rho_penalty_search = 0.0;
   penalty_descent_fraction = 0.3;
   armijo_constant = 1e-3;
@@ -314,13 +314,20 @@ void ParOpt::setUpKKTDiagSystem(){
     }
   }
 
-  // Reduce the result to the root processor
-  MPI_Reduce(MPI_IN_PLACE, Dmat, ncon*ncon, MPI_DOUBLE, MPI_SUM, 
-	     opt_root, comm);
-
-  // Add the diagonal component to the matrix
   int rank;
   MPI_Comm_rank(comm, &rank);
+
+  // Reduce the result to the root processor
+  if (rank == opt_root){
+    MPI_Reduce(MPI_IN_PLACE, Dmat, ncon*ncon, MPI_DOUBLE, MPI_SUM, 
+	       opt_root, comm);
+  }
+  else {
+    MPI_Reduce(Dmat, NULL, ncon*ncon, MPI_DOUBLE, MPI_SUM, 
+	       opt_root, comm);
+  }
+
+  // Add the diagonal component to the matrix
   if (rank == opt_root){
     for ( int i = 0; i < ncon; i++ ){
       Dmat[i*(ncon + 1)] += s[i]/z[i];
@@ -432,14 +439,19 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc, double *bs,
     }
   }
 
-  // Reduce the result to the root processor
-  MPI_Reduce(MPI_IN_PLACE, yz, ncon, MPI_DOUBLE, MPI_SUM, 
-	     opt_root, comm);
-
-  // Compute the full right-hand-
   int rank;
   MPI_Comm_rank(comm, &rank);
+  if (rank == opt_root){
+    // Reduce the result to the root processor
+    MPI_Reduce(MPI_IN_PLACE, yz, ncon, MPI_DOUBLE, MPI_SUM, 
+	       opt_root, comm);
+  }
+  else {
+    MPI_Reduce(yz, NULL, ncon, MPI_DOUBLE, MPI_SUM, 
+	       opt_root, comm);
+  }
 
+  // Compute the full right-hand-side
   if (rank == opt_root){
     // Compute the full right-hand-side on the root processor
     // and solve for the Lagrange multipliers
@@ -532,14 +544,20 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
     }
   }
 
-  // Reduce the result to the root processor
-  MPI_Reduce(MPI_IN_PLACE, yz, ncon, MPI_DOUBLE, MPI_SUM, 
-	     opt_root, comm);
-
-  // Compute the full right-hand-
   int rank;
   MPI_Comm_rank(comm, &rank);
 
+  // Reduce the result to the root processor
+  if (rank == opt_root){
+    MPI_Reduce(MPI_IN_PLACE, yz, ncon, MPI_DOUBLE, MPI_SUM, 
+	       opt_root, comm);
+  }
+  else {
+    MPI_Reduce(yz, NULL, ncon, MPI_DOUBLE, MPI_SUM, 
+	       opt_root, comm);
+  }
+
+  // Compute the full right-hand-side
   if (rank == opt_root){
     int one = 1, info = 0;
     LAPACKdgetrs("N", &ncon, &one, 
@@ -627,13 +645,19 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
     }
   }
 
-  // Reduce the result to the root processor
-  MPI_Reduce(MPI_IN_PLACE, ztemp, ncon, MPI_DOUBLE, MPI_SUM, 
-	     opt_root, comm);
-
-  // Compute the full right-hand-
+  // Compute the full right-hand-side
   int rank;
   MPI_Comm_rank(comm, &rank);
+
+  if (rank == opt_root){
+    // Reduce the result to the root processor
+    MPI_Reduce(MPI_IN_PLACE, ztemp, ncon, MPI_DOUBLE, MPI_SUM, 
+	       opt_root, comm);
+  }
+  else {
+    MPI_Reduce(ztemp, NULL, ncon, MPI_DOUBLE, MPI_SUM, 
+	       opt_root, comm);
+  }
 
   if (rank == opt_root){
     int one = 1, info = 0;
@@ -1547,6 +1571,10 @@ int ParOpt::optimize(){
 
       // Perform the line search
       int fail = lineSearch(&alpha, m0, dm0);
+      
+      if (fail){
+	qn->reset();
+      }
     }
     else {
       // Apply the full step
@@ -1630,13 +1658,13 @@ void ParOpt::checkGradients( double dh ){
 
   if (rank == opt_root){
     printf("Objective gradient test\n");
-    printf("FD: %20.10e  Actual: %20.10e  Err: %15.4e\n",
+    printf("FD: %15.8e  Actual: %15.8e  Err: %15.4e\n",
 	   pfd, pobj, pobj - pfd);
 
     printf("\nConstraint gradient test\n");
     for ( int i = 0; i < ncon; i++ ){
       double fd = (rc[i] - c[i])/dh;
-      printf("Con[%3d] FD: %20.10e  Actual: %20.10e  Err: %15.4e\n",
+      printf("Con[%3d] FD: %15.8e  Actual: %15.8e  Err: %15.4e\n",
 	     i, fd, rs[i], fd - rs[i]);
     }
   }
@@ -1671,8 +1699,9 @@ void ParOpt::checkKKTStep(){
 
   int rank;
   MPI_Comm_rank(comm, &rank);
-
-  printf("Residual step check:\n");
+  if (rank == opt_root){
+    printf("Residual step check:\n");
+  }
 
   // Check the first residual equation
   qn->mult(px, rx);
@@ -1688,9 +1717,12 @@ void ParOpt::checkKKTStep(){
   rx->axpy(-1.0, zl);
   rx->axpy(1.0, zu);
   double max_val = rx->maxabs();
-  printf("max |H*px - Ac^{T}*pz - pzl + pzu + (g - Ac^{T}*z - zl + zu)|: %10.4e\n",
-	 max_val);
   
+  if (rank == opt_root){
+    printf("max |H*px - Ac^{T}*pz - pzl + pzu + (g - Ac^{T}*z - zl + zu)|: %10.4e\n",
+	   max_val);
+  }
+
   // Find the maximum value of the residual equations
   // for the constraints
   max_val = 0.0;
@@ -1728,9 +1760,10 @@ void ParOpt::checkKKTStep(){
       max_val = fabs(val);
     }
   }
-  MPI_Reduce(MPI_IN_PLACE, &max_val, 1, MPI_DOUBLE, MPI_MAX, opt_root, comm);
+  MPI_Allreduce(MPI_IN_PLACE, &max_val, 1, MPI_DOUBLE, MPI_MAX, comm);
   if (rank == opt_root){
-    printf("max |Zl*px + (X - LB)*pzl + (Zl*(x - lb) - mu)|: %10.4e\n", max_val);
+    printf("max |Zl*px + (X - LB)*pzl + (Zl*(x - lb) - mu)|: %10.4e\n", 
+	   max_val);
   }
 
   // Find the maximum value of the residual equations for the
@@ -1743,8 +1776,9 @@ void ParOpt::checkKKTStep(){
       max_val = fabs(val);
     }
   }
-  MPI_Reduce(MPI_IN_PLACE, &max_val, 1, MPI_DOUBLE, MPI_MAX, opt_root, comm);
+  MPI_Allreduce(MPI_IN_PLACE, &max_val, 1, MPI_DOUBLE, MPI_MAX, comm);
   if (rank == opt_root){
-    printf("max |-Zu*px + (UB - X)*pzu + (Zu*(ub - x) - mu)|: %10.4e\n", max_val);
+    printf("max |-Zu*px + (UB - X)*pzu + (Zu*(ub - x) - mu)|: %10.4e\n", 
+	   max_val);
   }
 }
