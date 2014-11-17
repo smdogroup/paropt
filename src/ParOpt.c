@@ -5,8 +5,8 @@
 /*
   The Parallel Optimizer constructor
 
-  This allocates and initializes the data that is required for
-  parallel optimization. This includes initialization of the
+  This function allocates and initializes the data that is required
+  for parallel optimization. This includes initialization of the
   variables, allocation of the matrices and the BFGS approximate
   Hessian. This code also sets the default parameters for
   optimization. These parameters can be modified through member
@@ -404,19 +404,6 @@ void ParOpt::computeKKTRes( double * max_prime,
     }
   }
 
-  // Compute the residuals from the second KKT system:
-  for ( int i = 0; i < ncon; i++ ){
-    rc[i] = -(c[i] - s[i]);
-    rs[i] = -(s[i]*z[i] - barrier_param);
-
-    if (fabs(rc[i]) > *max_infeas){
-      *max_infeas = fabs(rc[i]);
-    }
-    if (fabs(rs[i]) > *max_dual){
-      *max_dual = fabs(rs[i]);
-    }
-  }
-
   // Compute the residuals from the weighting constraints
   if (nwcon > 0){
     double *xvals, *rwvals; 
@@ -428,6 +415,26 @@ void ParOpt::computeKKTRes( double * max_prime,
       for ( int j = i*nw; j < (i+1)*nw; j++ ){
 	rwvals[i] -= xvals[j];
       }
+    }
+  }
+
+  // Compute the error in the first KKT condition
+  *max_prime = rx->maxabs();
+
+  // Compute the residuals from the second KKT system:
+  if (nwcon > 0){
+    *max_infeas = rw->maxabs();
+  }
+
+  for ( int i = 0; i < ncon; i++ ){
+    rc[i] = -(c[i] - s[i]);
+    rs[i] = -(s[i]*z[i] - barrier_param);
+
+    if (fabs(rc[i]) > *max_infeas){
+      *max_infeas = fabs(rc[i]);
+    }
+    if (fabs(rs[i]) > *max_dual){
+      *max_dual = fabs(rs[i]);
     }
   }
 
@@ -449,9 +456,15 @@ void ParOpt::computeKKTRes( double * max_prime,
     rzuvals[i] = -((ubvals[i] - xvals[i])*zuvals[i] - barrier_param);
   }
 
-  *max_prime = rx->maxabs();
+  // Compute the duality errors from the upper/lower bounds
   double dual_zl = rzl->maxabs();
   double dual_zu = rzu->maxabs();
+  if (dual_zl > *max_dual){
+    *max_dual = dual_zl;
+  }
+  if (dual_zu > *max_dual){
+    *max_dual = dual_zu;
+  }
 }
 
 /*
@@ -1548,16 +1561,28 @@ double ParOpt::evalMeritFunc( ParOptVec * xk, double *sk ){
     }
   }
 
+  // Compute the sum of the squares of the weighting infeasibility
+  double weight_infeas = 0.0;
+  for ( int i = 0; i < nwcon; i++ ){
+    double val = 1.0;
+    for ( int j = i*nw; j < (i+1)*nw; j++ ){
+      val -= xvals[j];
+    }
+    weight_infeas += val*val;
+  }
+
   // Sum up the result from all processors
-  double input[2];
-  double result[2];
+  double input[3];
+  double result[3];
   input[0] = pos_result;
   input[1] = neg_result;
-  MPI_Reduce(input, result, 2, MPI_DOUBLE, MPI_SUM, opt_root, comm);
+  input[2] = weight_infeas;
+  MPI_Reduce(input, result, 3, MPI_DOUBLE, MPI_SUM, opt_root, comm);
 
   // Extract the result of the summation over all processors
   pos_result = result[0];
   neg_result = result[1];
+  weight_infeas = result[2];
   
   // Compute the full merit function only on the root processor
   int rank = 0;
@@ -1580,7 +1605,7 @@ double ParOpt::evalMeritFunc( ParOptVec * xk, double *sk ){
     for ( int i = 0; i < ncon; i++ ){
       infeas += (c[i] - sk[i])*(c[i] - sk[i]);
     }
-    infeas = sqrt(infeas);
+    infeas = sqrt(infeas) + sqrt(weight_infeas);
 
     // Add the contribution from the constraints
     merit = (fobj - barrier_param*(pos_result + neg_result) +
@@ -1645,21 +1670,33 @@ void ParOpt::evalMeritInitDeriv( double max_x,
     }
   }
 
+  // Compute the sum of the squares of the weighting infeasibility
+  double weight_infeas = 0.0;
+  for ( int i = 0; i < nwcon; i++ ){
+    double val = 1.0;
+    for ( int j = i*nw; j < (i+1)*nw; j++ ){
+      val -= xvals[j];
+    }
+    weight_infeas += val*val;
+  }
+
   // Sum up the result from all processors
-  double input[4];
-  double result[4];
+  double input[5];
+  double result[5];
   input[0] = pos_result;
   input[1] = neg_result;
   input[2] = pos_presult;
   input[3] = neg_presult;
+  input[4] = weight_infeas;
 
-  MPI_Reduce(input, result, 4, MPI_DOUBLE, MPI_SUM, opt_root, comm);
+  MPI_Reduce(input, result, 5, MPI_DOUBLE, MPI_SUM, opt_root, comm);
 
   // Extract the result of the summation over all processors
   pos_result = result[0];
   neg_result = result[1];
   pos_presult = result[2];
   neg_presult = result[3];
+  weight_infeas = result[4];
 
   // Compute the projected derivative
   double proj = g->dot(px);
@@ -1695,7 +1732,7 @@ void ParOpt::evalMeritInitDeriv( double max_x,
     for ( int i = 0; i < ncon; i++ ){
       infeas += (c[i] - s[i])*(c[i] - s[i]);
     }
-    infeas = sqrt(infeas);
+    infeas = sqrt(infeas) + sqrt(weight_infeas);
 
     // Compute the numerator term
     double numer = proj - barrier_param*(pos_presult + neg_presult);
@@ -1723,7 +1760,7 @@ void ParOpt::evalMeritInitDeriv( double max_x,
     // based on the new value of the penalty parameter
     merit = (fobj - barrier_param*(pos_result + neg_result) + 
 	     rho_penalty_search*infeas);
-    pmerit = numer - rho_penalty_search*infeas;
+    pmerit = numer - rho_penalty_search*max_x*infeas;
   }
 
   input[0] = merit;
@@ -1759,10 +1796,6 @@ int ParOpt::lineSearch( double * _alpha,
   // conditions are satisfied 
   double alpha = *_alpha;
   int fail = 1;
-
-  // Print the
-  int rank;
-  MPI_Comm_rank(comm, &rank);
 
   for ( int j = 0; j < max_line_iters; j++ ){
     // Set rx = x + alpha*px
@@ -2131,6 +2164,7 @@ int ParOpt::optimize(){
 
     // Scale the steps by the maximum permissible step lengths
     px->scale(max_x);
+    pzw->scale(max_z);
     pzl->scale(max_z);
     pzu->scale(max_z);
 
