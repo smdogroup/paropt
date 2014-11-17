@@ -119,7 +119,8 @@ class ParOpt {
 
   // Solve the diagonal KKT system with a specific RHS structure
   void solveKKTDiagSystem( ParOptVec *bx, 
-			   ParOptVec *yx, double *yz, double *ys,
+			   ParOptVec *yx, double *yz, 
+			   ParOptVec *yw, double *ys,
 			   ParOptVec *yzl, ParOptVec *yzu );
 
   // Solve the diagonal KKT system but only return the components

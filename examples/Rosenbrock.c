@@ -96,9 +96,11 @@ int main( int argc, char* argv[] ){
   
   // Allocate the optimizer
   int max_lbfgs = 10;
-  ParOpt * opt = new ParOpt(rosen, nvars/4, 4, max_lbfgs);
+  int nwcon = 20;
+  int nw = 5;
+  ParOpt * opt = new ParOpt(rosen, nwcon, nw, max_lbfgs);
 
-  opt->setMajorIterStepCheck(0);
+  opt->setMajorIterStepCheck(10);
   opt->checkGradients(1e-6);
   opt->setOutputFile("paropt_data.out");
   opt->optimize();

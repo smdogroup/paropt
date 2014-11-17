@@ -735,7 +735,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc,
 		bzuvals[i]/(ubvals[i] - xvals[i]));
   }
 
-  // Compute the terms from the weighted
+  // Compute the terms from the weighting constraints
   if (nwcon > 0){
     double *wvals, *bwvals, *cwvals, *cvals;
     bw->getArray(&bwvals);
@@ -896,31 +896,58 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc,
   approximation.
 */
 void ParOpt::solveKKTDiagSystem( ParOptVec *bx, 
-				 ParOptVec *yx, double *yz, double *ys,
+				 ParOptVec *yx, double *yz,
+				 ParOptVec *yw, double *ys,
 				 ParOptVec *yzl, ParOptVec *yzu ){
-  // Now, compute yz = (S*Z^{-1} - A*C0^{-1}*bx)
+  // Compute the terms from the weighting constraints
+  if (nwcon > 0){
+    double *wvals, *cwvals, *cvals, *bxvals;
+    bx->getArray(&bxvals);
+    Cvec->getArray(&cvals);
+    Cwvec->getArray(&cwvals);
+    wtemp->getArray(&wvals);
+ 
+    // Compute wtemp = Cw^{-1}*(bw - Aw*C^{-1}*d)
+    for ( int i = 0; i < nwcon; i++ ){
+      wvals[i] = 0.0;
+      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+	wvals[i] -= cvals[j]*bxvals[j];
+      }
+      wvals[i] *= cwvals[i];
+    }
+  }
+
+  // Now, compute yz = - A*C0^{-1}*bx - Ew^{T}*wtemp
   memset(yz, 0, ncon*sizeof(double));
 
+  // Compute the contribution from the weighing constraints
+  if (nwcon > 0){
+    wtemp->mdot(Ew, ncon, yz);
+  }
+
+  // Compute the
   for ( int i = 0; i < ncon; i++ ){
     double *cvals, *avals, *bxvals;
     bx->getArray(&bxvals);
     Cvec->getArray(&cvals);
     Ac[i]->getArray(&avals);
 
-    int k = 0;
-    int remainder = nvars % 4;
+    double ydot = 0.0;
+    int k = 0, remainder = nvars % 4;
     for ( ; k < remainder; k++ ){
-      yz[i] -= avals[0]*bxvals[0]*cvals[0];
+      ydot += avals[0]*bxvals[0]*cvals[0];
       avals++; bxvals++; cvals++; 
     }
 
     for ( int k = remainder; k < nvars; k += 4 ){
-      yz[i] -= (avals[0]*bxvals[0]*cvals[0] + 
-		avals[1]*bxvals[1]*cvals[1] +
-		avals[2]*bxvals[2]*cvals[2] + 
-		avals[3]*bxvals[3]*cvals[3]);
+      ydot += (avals[0]*bxvals[0]*cvals[0] + 
+	       avals[1]*bxvals[1]*cvals[1] +
+	       avals[2]*bxvals[2]*cvals[2] + 
+	       avals[3]*bxvals[3]*cvals[3]);
       avals += 4; bxvals += 4; cvals += 4;
     }
+
+    yz[i] += ydot;
   }
 
   int rank;
@@ -938,6 +965,10 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
 
   // Compute the full right-hand-side
   if (rank == opt_root){
+    for ( int i = 0; i < ncon; i++ ){
+      yz[i] *= -1.0;
+    }
+
     int one = 1, info = 0;
     LAPACKdgetrs("N", &ncon, &one, 
 		 Dmat, &ncon, dpiv, yz, &ncon, &info);
@@ -950,6 +981,29 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
     ys[i] = -(s[i]*yz[i])/z[i];
   }
 
+  if (nwcon > 0){
+    // Compute yw = -Cw^{-1}*(Ew*yz + Aw*C^{-1}*bx)
+    // First set yw <- - Ew*yz
+    yw->zeroEntries();
+    for ( int i = 0; i < ncon; i++ ){
+      yw->axpy(-yz[i], Ew[i]);
+    }
+
+    // Compute yw <- Cw^{-1}*(yw - Aw*C^{-1}*bx);
+    double *cvals, *cwvals, *ywvals, *bxvals;
+    bx->getArray(&bxvals);
+    Cvec->getArray(&cvals);
+    Cwvec->getArray(&cwvals);
+    yw->getArray(&ywvals);
+
+    for ( int i = 0; i < nwcon; i++ ){
+      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+	ywvals[i] -= cvals[j]*bxvals[j];
+      }
+      ywvals[i] *= cwvals[i];
+    }
+  }
+
   // Compute the step in the design variables
   double *yxvals, *cvals;
   yx->getArray(&yxvals);
@@ -959,6 +1013,16 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   yx->copyValues(bx);
   for ( int i = 0; i < ncon; i++ ){
     yx->axpy(yz[i], Ac[i]);
+  }
+
+  if (nwcon > 0){
+    double *ywvals;
+    yw->getArray(&ywvals);
+    for ( int i = 0; i < nwcon; i++ ){
+      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+	yxvals[j] += ywvals[i];
+      }
+    }
   }
 
   for ( int i = 0; i < nvars; i++ ){
@@ -999,8 +1063,31 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   case when solving systems used w
 */
 void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
+  // Compute the terms from the weighting constraints
+  if (nwcon > 0){
+    double *wvals, *cwvals, *cvals, *bxvals;
+    bx->getArray(&bxvals);
+    Cvec->getArray(&cvals);
+    Cwvec->getArray(&cwvals);
+    wtemp->getArray(&wvals);
+ 
+    // Compute wtemp = Cw^{-1}*(bw - Aw*C^{-1}*d)
+    for ( int i = 0; i < nwcon; i++ ){
+      wvals[i] = 0.0;
+      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+	wvals[i] -= cvals[j]*bxvals[j];
+      }
+      wvals[i] *= cwvals[i];
+    }
+  }
+
   // Compute ztemp = (S*Z^{-1} - A*C0^{-1}*bx)
   memset(ztemp, 0, ncon*sizeof(double));
+
+  // Compute the contribution from the weighing constraints
+  if (nwcon > 0){
+    wtemp->mdot(Ew, ncon, ztemp);
+  }
 
   for ( int i = 0; i < ncon; i++ ){
     double *cvals, *avals, *bxvals;
@@ -1008,23 +1095,24 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
     Cvec->getArray(&cvals);
     Ac[i]->getArray(&avals);
 
-    int k = 0;
-    int remainder = nvars % 4;
+    double ydot = 0.0;
+    int k = 0, remainder = nvars % 4;
     for ( ; k < remainder; k++ ){
-      ztemp[i] -= avals[0]*bxvals[0]*cvals[0];
+      ydot += avals[0]*bxvals[0]*cvals[0];
       avals++; bxvals++; cvals++; 
     }
 
     for ( int k = remainder; k < nvars; k += 4 ){
-      ztemp[i] -= (avals[0]*bxvals[0]*cvals[0] + 
-		   avals[1]*bxvals[1]*cvals[1] +
-		   avals[2]*bxvals[2]*cvals[2] + 
-		   avals[3]*bxvals[3]*cvals[3]);
+      ydot += (avals[0]*bxvals[0]*cvals[0] + 
+	       avals[1]*bxvals[1]*cvals[1] +
+	       avals[2]*bxvals[2]*cvals[2] + 
+	       avals[3]*bxvals[3]*cvals[3]);
       avals += 4; bxvals += 4; cvals += 4;
     }
+
+    ztemp[i] += ydot;
   }
 
-  // Compute the full right-hand-side
   int rank;
   MPI_Comm_rank(comm, &rank);
 
@@ -1039,12 +1127,39 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
   }
 
   if (rank == opt_root){
+    for ( int i = 0; i < ncon; i++ ){
+      ztemp[i] *= -1.0;
+    }
+
     int one = 1, info = 0;
     LAPACKdgetrs("N", &ncon, &one, 
 		 Dmat, &ncon, dpiv, ztemp, &ncon, &info);
   }
 
   MPI_Bcast(ztemp, ncon, MPI_DOUBLE, opt_root, comm);
+
+  if (nwcon > 0){
+    // Compute yw = -Cw^{-1}*(Ew*yz + Aw*C^{-1}*bx)
+    // First set yw <- - Ew*yz
+    wtemp->zeroEntries();
+    for ( int i = 0; i < ncon; i++ ){
+      wtemp->axpy(-ztemp[i], Ew[i]);
+    }
+
+    // Compute yw <- Cw^{-1}*(yw - Aw*C^{-1}*bx);
+    double *cvals, *cwvals, *ywvals, *bxvals;
+    bx->getArray(&bxvals);
+    Cvec->getArray(&cvals);
+    Cwvec->getArray(&cwvals);
+    wtemp->getArray(&ywvals);
+
+    for ( int i = 0; i < nwcon; i++ ){
+      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+	ywvals[i] -= cvals[j]*bxvals[j];
+      }
+      ywvals[i] *= cwvals[i];
+    }
+  }
 
   // Compute the step in the design variables
   double *yxvals, *cvals;
@@ -1055,6 +1170,16 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
   yx->copyValues(bx);
   for ( int i = 0; i < ncon; i++ ){
     yx->axpy(ztemp[i], Ac[i]);
+  }
+
+  if (nwcon > 0){
+    double *ywvals;
+    wtemp->getArray(&ywvals);
+    for ( int i = 0; i < nwcon; i++ ){
+      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+	yxvals[j] += ywvals[i];
+      }
+    }
   }
 
   for ( int i = 0; i < nvars; i++ ){
@@ -1171,10 +1296,11 @@ void ParOpt::computeKKTStep(){
     // Solve the digaonal system again, this time simplifying
     // the result due to the structure of the right-hand-side
     solveKKTDiagSystem(xtemp,
-		       rx, rc, rs, rzl, rzu);
+		       rx, rc, rw, rs, rzl, rzu);
 
     // Add the final contributions 
     px->axpy(-1.0, rx);
+    pzw->axpy(-1.0, rw);
     pzl->axpy(-1.0, rzl);
     pzu->axpy(-1.0, rzu);
     
@@ -1666,18 +1792,7 @@ int ParOpt::lineSearch( double * _alpha,
 
     // Check the sufficient decrease condition
     if (merit < m0 + armijio_constant*alpha*dm0){
-      // Evaluate the derivative
-      int fail_gobj = prob->evalObjConGradient(rx, g, Ac);
-      ngeval++;
-      if (fail_gobj){
-	fprintf(stderr, 
-		"Gradient evaluation failed at final line search\n");
-	fail = 1;
-	break;
-      }
-
-      // We have successfully found a point satisfying the line 
-      // search criteria
+      // We have successfully found a point
       fail = 0;
       break;
     }
@@ -1694,15 +1809,40 @@ int ParOpt::lineSearch( double * _alpha,
 
   // Set the new values of the variables
   x->axpy(alpha, px);
+  zw->axpy(alpha, pzw);
   zl->axpy(alpha, pzl);
   zu->axpy(alpha, pzu);
-    
+  
   for ( int i = 0; i < ncon; i++ ){
     s[i] += alpha*ps[i];
     z[i] += alpha*pz[i];
   }
+  
+  // Compute the negative gradient of the Lagrangian using the
+  // old gradient information with the new multiplier estimates
+  y_qn->copyValues(g);
+  y_qn->scale(-1.0);
+  for ( int i = 0; i < ncon; i++ ){
+    y_qn->axpy(z[i], Ac[i]);
+  }
 
-  // Set the final value of alpha used in the line search iteration
+  // Evaluate the derivative
+  int fail_gobj = prob->evalObjConGradient(rx, g, Ac);
+  ngeval++;
+  if (fail_gobj){
+    fprintf(stderr, 
+	    "Gradient evaluation failed at final line search\n");
+  }
+
+  // Add the new gradient of the Lagrangian with the new
+  // multiplier estimates
+  y_qn->axpy(1.0, g);
+  for ( int i = 0; i < ncon; i++ ){
+    y_qn->axpy(-z[i], Ac[i]);
+  }
+  
+  // Set the final value of alpha used in the line search
+  // iteration
   *_alpha = alpha;
 
   return fail;
@@ -1999,16 +2139,11 @@ int ParOpt::optimize(){
       pz[i] *= max_z;
     }
 
-    // Store the negative of the nonlinear components of the KKT
-    // residual at the initial line search point. This will be used
-    // in the quasi-Newton update scheme.
-    y_qn->copyValues(g);
-    for ( int i = 0; i < ncon; i++ ){
-      y_qn->axpy(-z[i], Ac[i]);
-    }
-    y_qn->scale(-1.0);
-
-    // Store the design variable locations
+    // Store the design variable locations for the 
+    // Hessian update. The gradient difference update
+    // is done after the step has been selected, but
+    // before the new gradient is evaluated (so we 
+    // have the new multipliers)
     s_qn->copyValues(x);
     s_qn->scale(-1.0);
 
@@ -2028,12 +2163,21 @@ int ParOpt::optimize(){
 	// Apply the full step
 	alpha = 1.0;
 	x->axpy(alpha, px);
+	zw->axpy(alpha, pzw);
 	zl->axpy(alpha, pzl);
 	zu->axpy(alpha, pzu);
 	
 	for ( int i = 0; i < ncon; i++ ){
 	  s[i] += alpha*ps[i];
 	  z[i] += alpha*pz[i];
+	}
+	
+	// Compute the negative gradient of the Lagrangian using the
+	// old gradient information with the new multiplier estimates
+	y_qn->copyValues(g);
+	y_qn->scale(-1.0);
+	for ( int i = 0; i < ncon; i++ ){
+	  y_qn->axpy(z[i], Ac[i]);
 	}
 
 	// Evaluate the objective, constraint and their gradients at the
@@ -2050,6 +2194,13 @@ int ParOpt::optimize(){
 	  fprintf(stderr, "Gradient evaluation failed\n");
 	  return fail_obj;
 	}
+
+	// Add the new gradient of the Lagrangian with the new
+	// multiplier estimates
+	y_qn->axpy(1.0, g);
+	for ( int i = 0; i < ncon; i++ ){
+	  y_qn->axpy(-z[i], Ac[i]);
+	}
       }
       else {
 	// Perform the line search
@@ -2062,12 +2213,21 @@ int ParOpt::optimize(){
     else {
       // Apply the full step
       x->axpy(alpha, px);
+      zw->axpy(alpha, pzw);
       zl->axpy(alpha, pzl);
       zu->axpy(alpha, pzu);
 
       for ( int i = 0; i < ncon; i++ ){
 	s[i] += alpha*ps[i];
 	z[i] += alpha*pz[i];
+      }
+ 
+      // Compute the negative gradient of the Lagrangian using the
+      // old gradient information with the new multiplier estimates
+      y_qn->copyValues(g);
+      y_qn->scale(-1.0);
+      for ( int i = 0; i < ncon; i++ ){
+	y_qn->axpy(z[i], Ac[i]);
       }
 
       // Evaluate the objective, constraint and their gradients at the
@@ -2084,19 +2244,21 @@ int ParOpt::optimize(){
 	fprintf(stderr, "Gradient evaluation failed\n");
 	return fail_obj;
       }
+
+      // Add the new gradient of the Lagrangian with the new
+      // multiplier estimates
+      y_qn->axpy(1.0, g);
+      for ( int i = 0; i < ncon; i++ ){
+	y_qn->axpy(-z[i], Ac[i]);
+      }
     }
+
+    // Complete the updated step
+    s_qn->axpy(1.0, x);
 
     // Store the steps in x/z for printing later
     alpha_xprev = alpha*max_x;
     alpha_zprev = alpha*max_z;
-    
-    // Set up the data for the quasi-Newton update
-    y_qn->axpy(1.0, g);
-    for ( int i = 0; i < ncon; i++ ){
-      y_qn->axpy(-z[i], Ac[i]);
-    }
-   
-    s_qn->axpy(1.0, x);
 
     // Compute the Quasi-Newton update
     int up_type = 0;
