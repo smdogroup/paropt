@@ -1,6 +1,10 @@
 #ifndef PAR_OPT_OPTIMIZER_H
 #define PAR_OPT_OPTIMIZER_H
 
+/*
+  Copyright (c) 2014 Graeme Kennedy. All rights reserved
+*/
+
 #include <stdio.h>
 #include "ParOptVec.h"
 #include "ParOptProblem.h"
@@ -18,15 +22,15 @@
   The optimization problem is formulated as follows:
 
   min f(x)
-  s.t.  lb <= x < ub
   s.t.  c(x) >= 0 
   s.t.  Aw*x = b
+  s.t.  lb <= x < ub
   
   where Aw is a large, sparse constraint matrix. The perturbed KKT
   conditions for this problem are:
 
   g(x) - A(x)^{T}*z - Aw^{T}*zw - zl + zu = 0
-  Aw*x - b = 0
+  Aw*x - e = 0
   c(x) - s = 0
   S*z - mu*e = 0
   (X - Xl)*zl - mu*e = 0

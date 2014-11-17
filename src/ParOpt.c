@@ -3,6 +3,10 @@
 #include "ParOptBlasLapack.h"
 
 /*
+  Copyright (c) 2014 Graeme Kennedy. All rights reserved
+*/
+
+/*
   The Parallel Optimizer constructor
 
   This function allocates and initializes the data that is required
@@ -1904,7 +1908,8 @@ int ParOpt::lineSearch( double * _alpha,
 int ParOpt::optimize(){
   // Zero out the number of function/gradient evaluations
   neval = ngeval = 0;
-
+  
+  // Print out all the parameter values to the screen
   int rank;
   MPI_Comm_rank(comm, &rank);
   if (rank == opt_root){
@@ -1949,8 +1954,8 @@ int ParOpt::optimize(){
     return fail_obj;
   }
 
-  // If this is the starting point, find an initial estimate
-  // of the Lagrange multipliers for the inequality constraints
+  // Find an initial estimate of the Lagrange multipliers for the
+  // inequality constraints
   if (init_starting_point){
     // Form the right-hand-side of the least squares eigenvalue
     // problem
@@ -1962,13 +1967,12 @@ int ParOpt::optimize(){
       z[i] = Ac[i]->dot(xtemp);
     }
 
-    // This is not the most efficient code for this step,
-    // but it will work
+    // Compute Dmat = A*A^{T}
     for ( int i = 0; i < ncon; i++ ){
       Ac[i]->mdot(Ac, ncon, &Dmat[i*ncon]);
     }
 
-    // Compute the factorization
+    // Compute the factorization of Dmat
     int info;
     LAPACKdgetrf(&ncon, &ncon, Dmat, &ncon, dpiv, &info);
     
@@ -1987,7 +1991,7 @@ int ParOpt::optimize(){
     }
 
     // Keep the Lagrange multipliers if they are within 
-    // a reasonable range and positive.
+    // a reasonable range and they are positive.
     for ( int i = 0; i < ncon; i++ ){
       if (z[i] < 0.01 || z[i] > 100.0){
 	z[i] = 1.0;
@@ -2006,12 +2010,13 @@ int ParOpt::optimize(){
   // Keep track of the projected merit function derivative
   double dm0_prev = 0.0;
 
-  // Information about what happened on the previous iter
+  // Information about what happened on the previous major iteration
   char info[64];
   info[0] = '\0';
 
   for ( int k = 0; k < max_major_iters; k++ ){
-    // Print out the current solution progress
+    // Print out the current solution progress using the 
+    // hook in the problem definition
     if (k % write_output_frequency){
       prob->writeOutput(x);
     }
@@ -2280,7 +2285,7 @@ int ParOpt::optimize(){
       }
 
       // Add the new gradient of the Lagrangian with the new
-      // multiplier estimates
+      // multiplier estimates to complete the y-update step
       y_qn->axpy(1.0, g);
       for ( int i = 0; i < ncon; i++ ){
 	y_qn->axpy(-z[i], Ac[i]);
@@ -2316,6 +2321,11 @@ int ParOpt::optimize(){
 	// Skip the line search b/c descent direction is not 
 	// sufficiently descent-y
 	sprintf(info, "%s%s ", info, "sk");
+      }
+      if (comp_new > comp){
+	// The step lengths are equal due to an increase in the
+	// the complementarity at the new step
+	sprintf(info, "%s%s ", info, "ceq");
       }
     }
   }

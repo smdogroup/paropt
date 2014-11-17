@@ -2,6 +2,10 @@
 #define PAR_OPT_VEC_H
 
 /*
+  Copyright (c) 2014 Graeme Kennedy. All rights reserved
+*/
+
+/*
   The following classes define the vector and limited-memory BFGS
   classes used by the parallel optimizer.
 */

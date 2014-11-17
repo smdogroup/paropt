@@ -3,6 +3,10 @@
 #include "ParOptBlasLapack.h"
 
 /*
+  Copyright (c) 2014 Graeme Kennedy. All rights reserved
+*/
+
+/*
   Create a parallel vector for optimization
 
   input:

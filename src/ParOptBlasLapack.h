@@ -1,6 +1,10 @@
 #ifndef PAR_OPT_BLAS_LAPACK_H
 #define PAR_OPT_BLAS_LAPACK_H
 
+/*
+  Copyright (c) 2014 Graeme Kennedy. All rights reserved
+*/
+
 // The following are the definitions required for BLAS/LAPACK
 #define BLASddot     ddot_
 #define BLASdnrm2    dnrm2_
