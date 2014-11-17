@@ -53,7 +53,9 @@ class Rosenbrock : public ParOptProblem {
     MPI_Allreduce(&obj, fobj, 1, MPI_DOUBLE, MPI_SUM, comm);
     MPI_Allreduce(con, cons, 2, MPI_DOUBLE, MPI_SUM, comm);
 
-    cons[0] += nvars;
+    int size; 
+    MPI_Comm_size(comm, &size);
+    cons[0] += 20*size*nvars;
 
     return 0;
   }
@@ -100,10 +102,8 @@ int main( int argc, char* argv[] ){
   int nw = 4;
   ParOpt * opt = new ParOpt(rosen, nwcon, nw, max_lbfgs);
   
-  opt->setMaxMajorIterations(100);
-  //  opt->setMajorIterStepCheck(30);
   opt->checkGradients(1e-6);
-  // opt->setOutputFile("paropt_data.out");
+  // opt->setMajorIterStepCheck(15);
   opt->optimize();
 
   delete rosen;

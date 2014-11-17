@@ -426,9 +426,7 @@ void ParOpt::computeKKTRes( double * max_prime,
   *max_prime = rx->maxabs();
 
   // Compute the residuals from the second KKT system:
-  if (nwcon > 0){
-    *max_infeas = rw->maxabs();
-  }
+  *max_infeas = rw->maxabs();
 
   for ( int i = 0; i < ncon; i++ ){
     rc[i] = -(c[i] - s[i]);
@@ -775,7 +773,14 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc,
 
   // Compute the contribution from the weighing constraints
   if (nwcon > 0){
-    wtemp->mdot(Ew, ncon, yz);
+    double *wvals;
+    int size = wtemp->getArray(&wvals);
+    for ( int i = 0; i < ncon; i++ ){
+      int one = 1;
+      double *ewvals;
+      Ew[i]->getArray(&ewvals);
+      yz[i] = BLASddot(&size, wvals, &one, ewvals, &one);
+    }
   }
 
   for ( int i = 0; i < ncon; i++ ){
@@ -939,7 +944,14 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
 
   // Compute the contribution from the weighing constraints
   if (nwcon > 0){
-    wtemp->mdot(Ew, ncon, yz);
+    double *wvals;
+    int size = wtemp->getArray(&wvals);
+    for ( int i = 0; i < ncon; i++ ){
+      int one = 1;
+      double *ewvals;
+      Ew[i]->getArray(&ewvals);
+      yz[i] += BLASddot(&size, wvals, &one, ewvals, &one);
+    }
   }
 
   // Compute the
@@ -1026,7 +1038,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   yx->getArray(&yxvals);
   Cvec->getArray(&cvals);
 
-  // Compute yx = C0^{-1}*(bx + A^{T}*yz)
+  // Compute yx = C^{-1}*(bx + A^{T}*yz)
   yx->copyValues(bx);
   for ( int i = 0; i < ncon; i++ ){
     yx->axpy(yz[i], Ac[i]);
@@ -1103,7 +1115,14 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
 
   // Compute the contribution from the weighing constraints
   if (nwcon > 0){
-    wtemp->mdot(Ew, ncon, ztemp);
+    double *wvals;
+    int size = wtemp->getArray(&wvals);
+    for ( int i = 0; i < ncon; i++ ){
+      int one = 1;
+      double *ewvals;
+      Ew[i]->getArray(&ewvals);
+      ztemp[i] = BLASddot(&size, wvals, &one, ewvals, &one);
+    }
   }
 
   for ( int i = 0; i < ncon; i++ ){
@@ -1996,7 +2015,7 @@ int ParOpt::optimize(){
       if (z[i] < 0.01 || z[i] > 100.0){
 	z[i] = 1.0;
       }
-    } 
+    }
   }
 
   // Keep track of whether the algorithm has converged
