@@ -29,9 +29,11 @@
 
   input:
   prob:      the optimization problem
+  nwcon:     the number of weighting constraints
+  nw:        the number of variables in each constraint
   max_lbfgs: the number of steps to store in the the l-BFGS
 */
-ParOpt::ParOpt( ParOptProblem * _prob,
+ParOpt::ParOpt( ParOptProblem * _prob, int _nwcon, int _nw,
 		int max_lbfgs_subspace ){
   prob = _prob;
 
@@ -41,6 +43,15 @@ ParOpt::ParOpt( ParOptProblem * _prob,
 
   // Get the number of variables/constraints
   prob->getProblemSizes(&nvars, &ncon);
+
+  // Assign the values from the sparsity constraints
+  nwcon = _nwcon;
+  nw = _nw;
+  if (nw*nwcon > nvars){
+    fprintf(stderr, "Weighted constraints are inconsistent\n");
+    nwcon = 0;
+    nw = 0;
+  }
 
   // Calculate the total number of variable across all processors
   MPI_Allreduce(&nvars, &nvars_total, 1, MPI_INT, MPI_SUM, comm);
@@ -133,6 +144,18 @@ ParOpt::ParOpt( ParOptProblem * _prob,
   // Allocate temporary storage for nvars-sized things
   xtemp = new ParOptVec(comm, nvars);
 
+  // Allocate vectors for the weighting constraints
+  wtemp = new ParOptVec(comm, nwcon);
+  zw = new ParOptVec(comm, nwcon);
+  pzw = new ParOptVec(comm, nwcon);
+  rw = new ParOptVec(comm, nwcon);
+  
+  Cwvec = new ParOptVec(comm, nwcon);
+  Ew = new ParOptVec*[ ncon ];
+  for ( int i = 0; i < ncon; i++ ){
+    Ew[i] = new ParOptVec(comm, nwcon);
+  }
+
   // Allocate storage for bfgs/constraint sized things
   int zsize = 2*max_lbfgs_subspace;
   if (ncon > zsize){
@@ -221,6 +244,18 @@ ParOpt::~ParOpt(){
   // Delete the temp data
   delete xtemp;
   delete [] ztemp;
+
+  // Delete the weighting constraints
+  delete wtemp;
+  delete zw;
+  delete pzw;
+  delete rw;
+  delete Cwvec;
+  
+  for ( int i = 0; i < ncon; i++ ){
+    delete Ew[i];
+  }
+  delete [] Ew;
 
   // Delete the various matrices
   delete [] Dmat;
@@ -332,8 +367,9 @@ void ParOpt::setOutputFile( const char * filename ){
 
   This code computes the following terms:
 
-  rx  = -(g(x) - Ac^{T}*z - zl + zu) 
+  rx  = -(g(x) - Ac^{T}*z - Aw^{T}*zw - zl + zu) 
   rc  = -(c(x) - s)
+  rw  = -(Aw*x - e)
   rz  = -(S*z - mu*e) 
   rzu = -((x - xl)*zl - mu*e)
   rzl = -((ub - x)*zu - mu*e)
@@ -356,6 +392,18 @@ void ParOpt::computeKKTRes( double * max_prime,
     rx->axpy(z[i], Ac[i]);
   }
 
+  // Add rx = rx + Aw^{T}*zw
+  if (nwcon > 0){
+    double *rxvals, *zwvals;
+    rx->getArray(&rxvals);
+    zw->getArray(&zwvals);
+    for ( int i = 0; i < nwcon; i++ ){
+      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+	rxvals[j] += zwvals[i];
+      }
+    }
+  }
+
   // Compute the residuals from the second KKT system:
   for ( int i = 0; i < ncon; i++ ){
     rc[i] = -(c[i] - s[i]);
@@ -366,6 +414,20 @@ void ParOpt::computeKKTRes( double * max_prime,
     }
     if (fabs(rs[i]) > *max_dual){
       *max_dual = fabs(rs[i]);
+    }
+  }
+
+  // Compute the residuals from the weighting constraints
+  if (nwcon > 0){
+    double *xvals, *rwvals; 
+    x->getArray(&xvals);
+    rw->getArray(&rwvals);
+
+    for ( int i = 0; i < nwcon; i++ ){
+      rwvals[i] = 1.0;
+      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+	rwvals[i] -= xvals[j];
+      }
     }
   }
 
@@ -399,12 +461,26 @@ void ParOpt::computeKKTRes( double * max_prime,
   
   C = b0 + zl/(x - lb) + zu/(ub - x)
 
-  where C is diagonal whose components. The components of C are stored
-  in Cvec. The code also computes a factorization of the matrix:
+  where C is a diagonal matrix. The components of C^{-1} (also a
+  diagonal matrix) are stored in Cvec.
 
-  D = Z^{-1}*S + A*C^{-1}*A^{T}
+  Next, we compute:
+  
+  Cw = Aw*C^{-1}*Aw^{T}
 
-  which is required to compute the Schur complement.
+  where Cw is another diagonal matrix. The components of Cw^{-1} are
+  stored in Cwvec.  The code then computes the contribution from the
+  weighting constraints as follows:
+
+  Ew = Aw*C^{-1}*A, followed by:
+
+  Dw = Ew^{T}*Cw^{-1}*Ew
+
+  Finally, the code computes a factorization of the matrix:
+
+  D = Z^{-1}*S + A*C^{-1}*A^{T} - Dw
+
+  which is required to compute the solution of the KKT step.
 */
 void ParOpt::setUpKKTDiagSystem(){ 
   // Retrieve the values of the design variables, lower/upper bounds
@@ -415,16 +491,16 @@ void ParOpt::setUpKKTDiagSystem(){
   ub->getArray(&ubvals);
   zl->getArray(&zlvals);
   zu->getArray(&zuvals);
-   
-  // Set the components of the diagonal matrix 
-  double * cvals;
-  Cvec->getArray(&cvals);
 
   // Retrive the diagonal entry for the BFGS update
   double b0;
   const double *d, *M;
   ParOptVec **Z;
   qn->getLBFGSMat(&b0, &d, &M, &Z);
+   
+  // Set the components of the diagonal matrix 
+  double *cvals;
+  Cvec->getArray(&cvals);
 
   // Set the values of the c matrix
   for ( int i = 0; i < nvars; i++ ){
@@ -433,8 +509,72 @@ void ParOpt::setUpKKTDiagSystem(){
 		    zuvals[i]/(ubvals[i] - xvals[i]));
   }
 
+  if (nwcon > 0){
+    // Set the values in the Cw diagonal matrix
+    double *cwvals;
+    Cwvec->getArray(&cwvals);
+    
+    for ( int i = 0; i < nwcon; i++ ){
+      // Compute Cw = Aw*C^{-1}*Aw
+      cwvals[i] = 0.0;
+      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+	cwvals[i] += cvals[j];
+      }
+      
+      // Store Cw^{-1}
+      cwvals[i] = 1.0/cwvals[i];
+    }
+    
+    // Compute Ew = Aw*C^{-1}*A
+    for ( int k = 0; k < ncon; k++ ){
+      double *ewvals, *avals;
+      Cvec->getArray(&cvals);
+      Ew[k]->getArray(&ewvals);
+      Ac[k]->getArray(&avals);
+      
+      for ( int i = 0; i < nwcon; i++ ){
+	ewvals[i] = 0.0;
+	for ( int j = i*nw; j < (i+1)*nw; j++ ){
+	  ewvals[i] += cvals[j]*avals[j];
+	}
+      }
+    }
+  }
+
   // Set the value of the D matrix
   memset(Dmat, 0, ncon*ncon*sizeof(double));
+
+  if (nwcon > 0){
+    // Add the term Dw = - Ew^{T}*Cw^{-1}*Ew to the Dmat matrix first
+    // by computing the inner product with Cwvec = Cw^{-1}
+    for ( int j = 0; j < ncon; j++ ){
+      for ( int i = j; i < ncon; i++ ){
+	// Get the vectors required
+	double *cwvals, *ewivals, *ewjvals;
+	Cwvec->getArray(&cwvals);
+	Ew[i]->getArray(&ewivals);
+	Ew[j]->getArray(&ewjvals);
+	
+	double dmat = 0.0;
+	int k = 0;
+	int remainder = nwcon % 4;
+	for ( ; k < remainder; k++ ){
+	  dmat += ewivals[0]*ewjvals[0]*cwvals[0];
+	  ewivals++; ewjvals++; cwvals++;
+	}
+	
+	for ( int k = remainder; k < nwcon; k += 4 ){
+	  dmat += (ewivals[0]*ewjvals[0]*cwvals[0] +
+		   ewivals[1]*ewjvals[1]*cwvals[1] +
+		   ewivals[2]*ewjvals[2]*cwvals[2] +
+		   ewivals[3]*ewjvals[3]*cwvals[3]);
+	  ewivals += 4; ewjvals += 4; cwvals += 4;
+	}
+	
+	Dmat[i + ncon*j] -= dmat;
+      }
+    }
+  }
 
   // Compute the lower diagonal portion of the matrix. This
   // code unrolls the loop to achieve better performance. Note
@@ -447,20 +587,22 @@ void ParOpt::setUpKKTDiagSystem(){
       Ac[i]->getArray(&aivals);
       Ac[j]->getArray(&ajvals);
 
-      int k = 0;
-      int remainder = nvars % 4;
+      double dmat = 0.0;
+      int k = 0, remainder = nvars % 4;
       for ( ; k < remainder; k++ ){
-	Dmat[i + ncon*j] += aivals[0]*ajvals[0]*cvals[0];
+	dmat += aivals[0]*ajvals[0]*cvals[0];
 	aivals++; ajvals++; cvals++;
       }
-
+      
       for ( int k = remainder; k < nvars; k += 4 ){
-	Dmat[i + ncon*j] += (aivals[0]*ajvals[0]*cvals[0] +
-			     aivals[1]*ajvals[1]*cvals[1] +
-			     aivals[2]*ajvals[2]*cvals[2] +
-			     aivals[3]*ajvals[3]*cvals[3]);
+	dmat += (aivals[0]*ajvals[0]*cvals[0] +
+		 aivals[1]*ajvals[1]*cvals[1] +
+		 aivals[2]*ajvals[2]*cvals[2] +
+		 aivals[3]*ajvals[3]*cvals[3]);
 	aivals += 4; ajvals += 4; cvals += 4;
       }
+
+      Dmat[i + ncon*j] += dmat;
     }
   }
 
@@ -510,8 +652,9 @@ void ParOpt::setUpKKTDiagSystem(){
   Hessian is replaced with only the diagonal terms.  The system of
   equations consists of the following terms:
   
-  B0*yx - A^{T}*yz - yzl + yzu = bx
+  B0*yx - A^{T}*yz - Aw^{T}*yw - yzl + yzu = bx
   A*yx - ys = bc
+  Aw*yx = bw
 
   With the additional equations:
 
@@ -522,33 +665,52 @@ void ParOpt::setUpKKTDiagSystem(){
   Substitution of these three equations yields the following system of
   equations:
 
-  ((B0 + (X - Xl)^{-1}*Zl + (Xu - X)^{-1}*Zu))*yx - A^{T}*yz
+  ((B0 + (X - Xl)^{-1}*Zl + (Xu - X)^{-1}*Zu))*yx - A^{T}*yz - Aw^{T}*yw
   = bx + (X - Xl)^{-1}*bzl - (Xu - X)^{-1}*bzu
+
+  which we rewrite as the equation:
+
+  C*yx - A^{T}*yz - Aw^{T}*yw = d
 
   and
   
-  A*yx + Z^{-1}*S*yz = bc + Z^{-1}*bs.
+  A*yx + Z^{-1}*S*yz = bc + Z^{-1}*bs,
+  Aw*yx = bw.
 
-  Setting the temporary vector: 
+  Where we define d as the vector:
   
   d = bx + (X - Xl)^{-1}*bzl - (Xu - X)^{-1}*bzu,
 
   we can solve for yz by solving the following system of equations:
 
-  [Z^{-1}*S + A*((B0 + (X - Xl)^{-1}*Zl + (Xu - X)^{-1}*Zu))^{-1}*A^{T} ]*yz
-  = bc + Z^{-1}*bs - A*((B0 + (X - Xl)^{-1}*Zl + (Xu - X)^{-1}*Zu))^{-1}*d
+  D0*yz + Ew^{T}*yw = bc + Z^{-1}*bs - A*C^{-1}*d,
+  Ew*yz +     Cw*yw = bw - Aw*C^{-1}*d
 
-  This is:
+  where C, Ew, and D0 are defined as follows:
 
-  Dmat*yz = bc + Z^{-1}*bs - A*C0^{-1}*d 
+  C = B0 + (X - Xl)^{-1}*Zl + (Xu - X)^{-1}*Zu,
+  Ew = Aw*C^{-1}*A^{T},
+  D0 = Z^{-1}*S + A*C^{-1}*A^{T}.
 
-  Note: This code uses the temporary array xtemp, therefore, xtemp
-  cannot be an input/output for this function, otherwise strange
-  behavior will occur.
+  We can then obtain yz by solving the following system of equations:
+  
+  Dmat*yz = bc + Z^{-1}*bs - A*C^{-1}*d 
+  .         - Ew^{T}*Cw^{-1}*(bw - Aw*C^{-1}*d)
+
+  Once yz is obtained, we find yw and yx as follows:
+
+  yw = Cw^{-1}*(bw - Ew*yz - Aw*C^{-1}*d) 
+  yx = C^{-1}*(d + A^{T}*yz + Aw^{T}*yw)
+
+  Note: This code uses the temporary arrays xtemp and wtemp which
+  therefore cannot be inputs/outputs for this function, otherwise
+  strange behavior will occur.
 */
-void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc, double *bs,
+void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc, 
+				 ParOptVec *bw, double *bs,
 				 ParOptVec *bzl, ParOptVec *bzu,
-				 ParOptVec *yx, double *yz, double *ys,
+				 ParOptVec *yx, double *yz, 
+				 ParOptVec *yw, double *ys,
 				 ParOptVec *yzl, ParOptVec *yzu ){
   // Set values in the temporary array
   double *dvals;
@@ -573,28 +735,54 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc, double *bs,
 		bzuvals[i]/(ubvals[i] - xvals[i]));
   }
 
-  // Now, compute yz = (bc + S*Z^{-1} - A*C0^{-1}*d)
+  // Compute the terms from the weighted
+  if (nwcon > 0){
+    double *wvals, *bwvals, *cwvals, *cvals;
+    bw->getArray(&bwvals);
+    Cvec->getArray(&cvals);
+    Cwvec->getArray(&cwvals);
+    wtemp->getArray(&wvals);
+ 
+    // Compute wtemp = Cw^{-1}*(bw - Aw*C^{-1}*d)
+    for ( int i = 0; i < nwcon; i++ ){
+      wvals[i] = bwvals[i];
+      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+	wvals[i] -= cvals[j]*dvals[j];
+      }
+      wvals[i] *= cwvals[i];
+    }
+  }
+
+  // Now, compute yz = bc + S*Z^{-1} - A*C0^{-1}*d - Ew^{T}*wtemp
   memset(yz, 0, ncon*sizeof(double));
+
+  // Compute the contribution from the weighing constraints
+  if (nwcon > 0){
+    wtemp->mdot(Ew, ncon, yz);
+  }
+
   for ( int i = 0; i < ncon; i++ ){
     double *cvals, *avals;
     xtemp->getArray(&dvals);
     Cvec->getArray(&cvals);
     Ac[i]->getArray(&avals);
 
-    int k = 0;
-    int remainder = nvars % 4;
+    double ydot = 0.0;
+    int k = 0, remainder = nvars % 4;
     for ( ; k < remainder; k++ ){
-      yz[i] += avals[0]*dvals[0]*cvals[0];
+      ydot += avals[0]*dvals[0]*cvals[0];
       avals++; dvals++; cvals++; 
     }
 
     for ( int k = remainder; k < nvars; k += 4 ){
-      yz[i] += (avals[0]*dvals[0]*cvals[0] + 
-		avals[1]*dvals[1]*cvals[1] +
-		avals[2]*dvals[2]*cvals[2] + 
-		avals[3]*dvals[3]*cvals[3]);
+      ydot += (avals[0]*dvals[0]*cvals[0] + 
+	       avals[1]*dvals[1]*cvals[1] +
+	       avals[2]*dvals[2]*cvals[2] + 
+	       avals[3]*dvals[3]*cvals[3]);
       avals += 4; dvals += 4; cvals += 4;
     }
+
+    yz[i] += ydot;
   }
 
   int rank;
@@ -629,15 +817,48 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc, double *bs,
     ys[i] = (bs[i] - s[i]*yz[i])/z[i];
   }
 
+  if (nwcon > 0){
+    // Compute yw = Cw^{-1}*(bw - Ew*yz - Aw*C^{-1}*d)
+    // First set yw <- bw - Ew*yz
+    yw->copyValues(bw);
+    for ( int i = 0; i < ncon; i++ ){
+      yw->axpy(-yz[i], Ew[i]);
+    }
+
+    // Compute yw <- Cw^{-1}*(yw - Aw*C^{-1}*d);
+    double *cvals, *cwvals, *ywvals;
+    xtemp->getArray(&dvals);
+    Cvec->getArray(&cvals);
+    Cwvec->getArray(&cwvals);
+    yw->getArray(&ywvals);
+
+    for ( int i = 0; i < nwcon; i++ ){
+      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+	ywvals[i] -= cvals[j]*dvals[j];
+      }
+      ywvals[i] *= cwvals[i];
+    }
+  }
+
   // Compute the step in the design variables
   double *yxvals, *cvals;
   yx->getArray(&yxvals);
   Cvec->getArray(&cvals);
 
-  // Compute yx = C0^{-1}*(d + A^{T}*yz)
+  // Compute yx = C^{-1}*(d + A^{T}*yz + Aw^{T}*yw)
   yx->copyValues(xtemp);
   for ( int i = 0; i < ncon; i++ ){
     yx->axpy(yz[i], Ac[i]);
+  }
+
+  if (nwcon > 0){
+    double *ywvals;
+    yw->getArray(&ywvals);
+    for ( int i = 0; i < nwcon; i++ ){
+      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+	yxvals[j] += ywvals[i];
+      }
+    }
   }
 
   for ( int i = 0; i < nvars; i++ ){
@@ -929,8 +1150,8 @@ void ParOpt::computeKKTStep(){
   int size = qn->getLBFGSMat(&b0, &d, &M, &Z);
 
   // At this point the residuals are no longer required.
-  solveKKTDiagSystem(rx, rc, rs, rzl, rzu,
-		     px, pz, ps, pzl, pzu);
+  solveKKTDiagSystem(rx, rc, rw, rs, rzl, rzu,
+		     px, pz, pzw, ps, pzl, pzu);
 
   if (size > 0){
     // dz = Z^{T}*px
@@ -1515,6 +1736,8 @@ int ParOpt::optimize(){
   MPI_Comm_rank(comm, &rank);
   if (rank == opt_root){
     fprintf(outfp, "ParOpt: Parameter summary\n");
+    fprintf(outfp, "%-30s %15d\n", "total variables", nvars_total);
+    fprintf(outfp, "%-30s %15d\n", "constraints", ncon);
     fprintf(outfp, "%-30s %15d\n", "max_major_iters", max_major_iters);
     fprintf(outfp, "%-30s %15d\n", "init_starting_point", 
 	    init_starting_point);
@@ -2001,11 +2224,45 @@ void ParOpt::checkKKTStep(){
   }
   rx->axpy(-1.0, zl);
   rx->axpy(1.0, zu);
+
+  if (nwcon > 0){
+    double *rxvals, *pzwvals, *zwvals;
+    rx->getArray(&rxvals);
+    zw->getArray(&zwvals);
+    pzw->getArray(&pzwvals);
+    for ( int i = 0; i < nwcon; i++ ){
+      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+	rxvals[j] -= (pzwvals[i] + zwvals[i]);
+      }
+    }
+  }
+
   double max_val = rx->maxabs();
   
   if (rank == opt_root){
-    printf("max |H*px - Ac^{T}*pz - pzl + pzu + \
-(g - Ac^{T}*z - zl + zu)|: %10.4e\n", max_val);
+    printf("max |H*px - Ac^{T}*pz - Aw^{T}*pzw - pzl + pzu + \
+(g - Ac^{T}*z - Aw^{T}*zw - zl + zu)|: %10.4e\n", max_val);
+  }
+  
+  max_val = 0.0;
+  if (nwcon > 0){
+    double *xvals, *pxvals; 
+    x->getArray(&xvals);
+    px->getArray(&pxvals);
+
+    for ( int i = 0; i < nwcon; i++ ){
+      double val = 1.0;
+      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+	val -= xvals[j] + pxvals[j];
+      }
+      if (fabs(val) > max_val){
+	max_val = val;
+      }      
+    }
+  } 
+  MPI_Allreduce(MPI_IN_PLACE, &max_val, 1, MPI_DOUBLE, MPI_MAX, comm);
+  if (rank == opt_root){
+    printf("max |Aw*(x + px) + e|: %10.4e\n", max_val);
   }
 
   // Find the maximum value of the residual equations

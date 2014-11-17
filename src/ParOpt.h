@@ -66,7 +66,7 @@
 
 class ParOpt {
  public:
-  ParOpt( ParOptProblem *_prob, 
+  ParOpt( ParOptProblem *_prob, int _nwcon, int _nw,
 	  int _max_lbfgs_subspace );
   ~ParOpt();
 
@@ -110,9 +110,11 @@ class ParOpt {
   void setUpKKTDiagSystem();
 
   // Solve the diagonal KKT system
-  void solveKKTDiagSystem( ParOptVec *bx, double *bc, double *bs,
+  void solveKKTDiagSystem( ParOptVec *bx, double *bc, 
+			   ParOptVec *bw, double *bs,
 			   ParOptVec *bzl, ParOptVec *bzu,
-			   ParOptVec *yx, double *yz, double *ys,
+			   ParOptVec *yx, double *yz, 
+			   ParOptVec *yw, double *ys,
 			   ParOptVec *yzl, ParOptVec *yzu );
 
   // Solve the diagonal KKT system with a specific RHS structure
@@ -169,24 +171,25 @@ class ParOpt {
   int nvars; // The number of local (on-processor) variables
   int nvars_total; // The total number of variables
   int ncon; // The number of inequality constraints in the problem
+  int nwcon, nw; // The specially constructed weighting constraints
 
   // Temporary vectors for internal usage
-  ParOptVec *xtemp;
+  ParOptVec *xtemp, *wtemp;
   double *ztemp;
 
   // The variables in the optimization problem
-  ParOptVec *x, *zl, *zu;
+  ParOptVec *x, *zl, *zu, *zw;
   double *z, *s;
 
   // The lower/upper bounds on the variables
   ParOptVec *lb, *ub;
 
   // The steps in the variables
-  ParOptVec *px, *pzl, *pzu;
+  ParOptVec *px, *pzl, *pzu, *pzw;
   double *pz, *ps;
 
   // The residuals
-  ParOptVec *rx, *rzl, *rzu;
+  ParOptVec *rx, *rzl, *rzu, *rw;
   double *rc, *rs;
 
   // The objective, gradient, constraints, and constraint gradients
@@ -194,7 +197,8 @@ class ParOpt {
   ParOptVec *g, **Ac;
 
   // Data required for solving the KKT system
-  ParOptVec *Cvec; // The diagonal entries
+  ParOptVec *Cvec, *Cwvec;
+  ParOptVec **Ew;
   double *Dmat, *Ce;
   int *dpiv, *cpiv;
 
