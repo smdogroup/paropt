@@ -56,7 +56,7 @@ class ParOptProblem {
     
   // Get the problem dimensions
   // --------------------------
-  int getProblemSizes( int *_nvars, int *_ncon ){
+  void getProblemSizes( int *_nvars, int *_ncon ){
     *_nvars = nvars;
     *_ncon = ncon;
   }

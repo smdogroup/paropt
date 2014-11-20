@@ -1,4 +1,5 @@
 #include <math.h>
+#include <string.h>
 #include "ParOpt.h"
 #include "ParOptBlasLapack.h"
 
@@ -2348,6 +2349,9 @@ int ParOpt::optimize(){
       }
     }
   }
+
+  // Success - we completed the optimization
+  return 0; 
 }
 
 /*

@@ -1,0 +1,14 @@
+# This is the Makefile.in file for the parallel optimizer. 
+
+# Which compiler to use
+CXX = mpicxx
+
+# The C++ compiler flags
+CCFLAGS = -fPIC -O3
+
+# The lapack libraries to use
+# LAPACK_LIBS = -L/usr/lib -llapack -lblas
+MKLPATH=${MKLROOT}/lib/intel64
+MKL_LIBS = -Wl,--start-group ${MKLPATH}/libmkl_intel_lp64.a ${MKLPATH}/libmkl_sequential.a ${MKLPATH}/libmkl_core.a -Wl,--end-group -lpthread
+
+LAPACK_LIBS = -limf ${MKL_LIBS}
