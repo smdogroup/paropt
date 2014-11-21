@@ -199,6 +199,7 @@ ParOpt::ParOpt( ParOptProblem * _prob, int _nwcon, int _nw,
   barrier_param = 0.1;
   abs_res_tol = 1e-5;
   use_line_search = 1;
+  use_backtracking_alpha = 0;
   max_line_iters = 10;
   rho_penalty_search = 0.0;
   penalty_descent_fraction = 0.3;
@@ -321,6 +322,10 @@ void ParOpt::setUseLineSearch( int truth ){
 
 void ParOpt::setMaxLineSearchIters( int iters ){
   if (iters > 0){ max_line_iters = iters; }
+}
+
+void ParOpt::setBacktrackingLineSearch( int truth ){
+  use_backtracking_alpha = truth;
 }
 
 void ParOpt::setArmijioParam( double c1 ){
@@ -1856,9 +1861,24 @@ int ParOpt::lineSearch( double * _alpha,
 
     // Update the new value of alpha
     if (j < max_line_iters-1){
-      alpha = 0.5*alpha;
+      if (use_backtracking_alpha){
+	alpha = 0.5*alpha;
+      }
+      else {
+	double alpha_new = -0.5*dm0*(alpha*alpha)/(merit - m0 - dm0*alpha);
+
+	// Bound the new step length from below by 0.01
+	if (alpha_new < 0.01*alpha){
+	  alpha = 0.01*alpha;
+	}
+	else {
+	  alpha = alpha_new;
+	}
+      }
     }
     else {
+      // This is the final failure, evaluate the gradient
+      // so that it is consistent on the final iteration
       int fail_gobj = prob->evalObjConGradient(x, g, Ac);
       ngeval++;
     }
@@ -1942,6 +1962,8 @@ int ParOpt::optimize(){
     fprintf(outfp, "%-30s %15g\n", "barrier_param", barrier_param);
     fprintf(outfp, "%-30s %15g\n", "abs_res_tol", abs_res_tol);
     fprintf(outfp, "%-30s %15d\n", "use_line_search", use_line_search);
+    fprintf(outfp, "%-30s %15d\n", "use_backtracking_alpha", 
+	    use_backtracking_alpha);
     fprintf(outfp, "%-30s %15d\n", "max_line_iters", max_line_iters);
     fprintf(outfp, "%-30s %15g\n", "penalty_descent_fraction", 
 	    penalty_descent_fraction);

@@ -94,6 +94,7 @@ class ParOpt {
   // ----------------------------------------------
   void setUseLineSearch( int truth );
   void setMaxLineSearchIters( int iters );
+  void setBacktrackingLineSearch( int truth );
   void setArmijioParam( double c1 );
   void setPenaltyDescentFraction( double frac );
 
@@ -227,7 +228,7 @@ class ParOpt {
 
   // Parameters for the line search
   int max_line_iters;
-  int use_line_search;
+  int use_line_search, use_backtracking_alpha;
   double rho_penalty_search;
   double penalty_descent_fraction, armijio_constant;
 
