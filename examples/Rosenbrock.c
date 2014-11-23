@@ -100,7 +100,9 @@ int main( int argc, char* argv[] ){
   int max_lbfgs = 10;
   int nwcon = 5;
   int nw = 4;
-  ParOpt * opt = new ParOpt(rosen, nwcon, nw, max_lbfgs);
+  int nwstart = 1;
+  int nwskip = 1;
+  ParOpt * opt = new ParOpt(rosen, nwcon, nwstart, nw, nwskip, max_lbfgs);
   
   opt->checkGradients(1e-6);
   // opt->setMajorIterStepCheck(15);

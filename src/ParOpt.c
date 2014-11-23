@@ -38,7 +38,8 @@
   nw:        the number of variables in each constraint
   max_lbfgs: the number of steps to store in the the l-BFGS
 */
-ParOpt::ParOpt( ParOptProblem * _prob, int _nwcon, int _nw,
+ParOpt::ParOpt( ParOptProblem * _prob, int _nwcon, 
+		int _nwstart, int _nw, int _nwskip,
 		int max_lbfgs_subspace ){
   prob = _prob;
 
@@ -51,8 +52,11 @@ ParOpt::ParOpt( ParOptProblem * _prob, int _nwcon, int _nw,
 
   // Assign the values from the sparsity constraints
   nwcon = _nwcon;
+  nwstart = _nwstart;
   nw = _nw;
-  if (nw*nwcon > nvars){
+  nwskip = _nwskip;
+  if (nwskip < 0 || 
+      nwstart + (nw + nwskip)*nwcon > nvars){
     fprintf(stderr, "Weighted constraints are inconsistent\n");
     nwcon = 0;
     nw = 0;
@@ -407,8 +411,8 @@ void ParOpt::computeKKTRes( double * max_prime,
     double *rxvals, *zwvals;
     rx->getArray(&rxvals);
     zw->getArray(&zwvals);
-    for ( int i = 0; i < nwcon; i++ ){
-      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
+      for ( int k = 0; k < nw; k++, j++ ){
 	rxvals[j] += zwvals[i];
       }
     }
@@ -420,9 +424,9 @@ void ParOpt::computeKKTRes( double * max_prime,
     x->getArray(&xvals);
     rw->getArray(&rwvals);
 
-    for ( int i = 0; i < nwcon; i++ ){
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
       rwvals[i] = 1.0;
-      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+      for ( int k = 0; k < nw; k++, j++ ){
 	rwvals[i] -= xvals[j];
       }
     }
@@ -535,10 +539,10 @@ void ParOpt::setUpKKTDiagSystem(){
     double *cwvals;
     Cwvec->getArray(&cwvals);
     
-    for ( int i = 0; i < nwcon; i++ ){
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
       // Compute Cw = Aw*C^{-1}*Aw
       cwvals[i] = 0.0;
-      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+      for ( int k = 0; k < nw; k++, j++ ){
 	cwvals[i] += cvals[j];
       }
       
@@ -547,15 +551,15 @@ void ParOpt::setUpKKTDiagSystem(){
     }
     
     // Compute Ew = Aw*C^{-1}*A
-    for ( int k = 0; k < ncon; k++ ){
+    for ( int kk = 0; kk < ncon; kk++ ){
       double *ewvals, *avals;
       Cvec->getArray(&cvals);
-      Ew[k]->getArray(&ewvals);
-      Ac[k]->getArray(&avals);
+      Ew[kk]->getArray(&ewvals);
+      Ac[kk]->getArray(&avals);
       
-      for ( int i = 0; i < nwcon; i++ ){
+      for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
 	ewvals[i] = 0.0;
-	for ( int j = i*nw; j < (i+1)*nw; j++ ){
+	for ( int k = 0; k < nw; k++, j++ ){
 	  ewvals[i] += cvals[j]*avals[j];
 	}
       }
@@ -765,9 +769,9 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc,
     wtemp->getArray(&wvals);
  
     // Compute wtemp = Cw^{-1}*(bw - Aw*C^{-1}*d)
-    for ( int i = 0; i < nwcon; i++ ){
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
       wvals[i] = bwvals[i];
-      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+      for ( int k = 0; k < nw; k++, j++ ){
 	wvals[i] -= cvals[j]*dvals[j];
       }
       wvals[i] *= cwvals[i];
@@ -860,8 +864,8 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc,
     Cwvec->getArray(&cwvals);
     yw->getArray(&ywvals);
 
-    for ( int i = 0; i < nwcon; i++ ){
-      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
+      for ( int k = 0; k < nw; k++, j++ ){
 	ywvals[i] -= cvals[j]*dvals[j];
       }
       ywvals[i] *= cwvals[i];
@@ -882,8 +886,8 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc,
   if (nwcon > 0){
     double *ywvals;
     yw->getArray(&ywvals);
-    for ( int i = 0; i < nwcon; i++ ){
-      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
+      for ( int k = 0; k < nw; k++, j++ ){
 	yxvals[j] += ywvals[i];
       }
     }
@@ -936,9 +940,9 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
     wtemp->getArray(&wvals);
  
     // Compute wtemp = Cw^{-1}*(bw - Aw*C^{-1}*d)
-    for ( int i = 0; i < nwcon; i++ ){
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
       wvals[i] = 0.0;
-      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+      for ( int k = 0; k < nw; k++, j++ ){
 	wvals[i] -= cvals[j]*bxvals[j];
       }
       wvals[i] *= cwvals[i];
@@ -1031,8 +1035,8 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
     Cwvec->getArray(&cwvals);
     yw->getArray(&ywvals);
 
-    for ( int i = 0; i < nwcon; i++ ){
-      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
+      for ( int k = 0; k < nw; k++, j++ ){
 	ywvals[i] -= cvals[j]*bxvals[j];
       }
       ywvals[i] *= cwvals[i];
@@ -1053,8 +1057,8 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   if (nwcon > 0){
     double *ywvals;
     yw->getArray(&ywvals);
-    for ( int i = 0; i < nwcon; i++ ){
-      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
+      for ( int k = 0; k < nw; k++, j++ ){
 	yxvals[j] += ywvals[i];
       }
     }
@@ -1107,9 +1111,9 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
     wtemp->getArray(&wvals);
  
     // Compute wtemp = Cw^{-1}*(bw - Aw*C^{-1}*d)
-    for ( int i = 0; i < nwcon; i++ ){
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
       wvals[i] = 0.0;
-      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+      for ( int k = 0; k < nw; k++, j++ ){
 	wvals[i] -= cvals[j]*bxvals[j];
       }
       wvals[i] *= cwvals[i];
@@ -1195,8 +1199,8 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
     Cwvec->getArray(&cwvals);
     wtemp->getArray(&ywvals);
 
-    for ( int i = 0; i < nwcon; i++ ){
-      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
+      for ( int k = 0; k < nw; k++, j++ ){
 	ywvals[i] -= cvals[j]*bxvals[j];
       }
       ywvals[i] *= cwvals[i];
@@ -1217,8 +1221,8 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
   if (nwcon > 0){
     double *ywvals;
     wtemp->getArray(&ywvals);
-    for ( int i = 0; i < nwcon; i++ ){
-      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
+      for ( int k = 0; k < nw; k++, j++ ){
 	yxvals[j] += ywvals[i];
       }
     }
@@ -1592,9 +1596,9 @@ double ParOpt::evalMeritFunc( ParOptVec * xk, double *sk ){
 
   // Compute the sum of the squares of the weighting infeasibility
   double weight_infeas = 0.0;
-  for ( int i = 0; i < nwcon; i++ ){
+  for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
     double val = 1.0;
-    for ( int j = i*nw; j < (i+1)*nw; j++ ){
+    for ( int k = 0; k < nw; k++, j++ ){
       val -= xvals[j];
     }
     weight_infeas += val*val;
@@ -1701,9 +1705,9 @@ void ParOpt::evalMeritInitDeriv( double max_x,
 
   // Compute the sum of the squares of the weighting infeasibility
   double weight_infeas = 0.0;
-  for ( int i = 0; i < nwcon; i++ ){
+  for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
     double val = 1.0;
-    for ( int j = i*nw; j < (i+1)*nw; j++ ){
+    for ( int k = 0; k < nw; k++, j++ ){
       val -= xvals[j];
     }
     weight_infeas += val*val;
@@ -2481,8 +2485,8 @@ void ParOpt::checkKKTStep(){
     rx->getArray(&rxvals);
     zw->getArray(&zwvals);
     pzw->getArray(&pzwvals);
-    for ( int i = 0; i < nwcon; i++ ){
-      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
+      for ( int k = 0; k < nw; k++, j++ ){
 	rxvals[j] -= (pzwvals[i] + zwvals[i]);
       }
     }
@@ -2501,9 +2505,9 @@ void ParOpt::checkKKTStep(){
     x->getArray(&xvals);
     px->getArray(&pxvals);
 
-    for ( int i = 0; i < nwcon; i++ ){
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
       double val = 1.0;
-      for ( int j = i*nw; j < (i+1)*nw; j++ ){
+      for ( int k = 0; k < nw; k++, j++ ){
 	val -= xvals[j] + pxvals[j];
       }
       if (fabs(val) > max_val){

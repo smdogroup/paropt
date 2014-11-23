@@ -70,7 +70,8 @@
 
 class ParOpt {
  public:
-  ParOpt( ParOptProblem *_prob, int _nwcon, int _nw,
+  ParOpt( ParOptProblem *_prob, int _nwcon,
+	  int _nwstart, int _nw, int _nwskip,
 	  int _max_lbfgs_subspace );
   ~ParOpt();
 
@@ -177,7 +178,8 @@ class ParOpt {
   int nvars; // The number of local (on-processor) variables
   int nvars_total; // The total number of variables
   int ncon; // The number of inequality constraints in the problem
-  int nwcon, nw; // The specially constructed weighting constraints
+  int nwcon; // The number of specially constructed weighting constraints
+  int nw, nwskip, nwstart; // Parameters for the weighting constraints
 
   // Temporary vectors for internal usage
   ParOptVec *xtemp, *wtemp;
