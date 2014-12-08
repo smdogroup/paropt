@@ -99,13 +99,13 @@ int main( int argc, char* argv[] ){
   // Allocate the optimizer
   int max_lbfgs = 10;
   int nwcon = 5;
-  int nw = 4;
+  int nw = 5;
   int nwstart = 1;
   int nwskip = 1;
   ParOpt * opt = new ParOpt(rosen, nwcon, nwstart, nw, nwskip, max_lbfgs);
   
   opt->checkGradients(1e-6);
-  // opt->setMajorIterStepCheck(15);
+  // opt->setMajorIterStepCheck(1);
   opt->optimize();
 
   delete rosen;

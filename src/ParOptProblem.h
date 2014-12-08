@@ -80,7 +80,7 @@ class ParOptProblem {
   // Over-write this function if you'd like to print out
   // something with the same frequency as the output files
   // -----------------------------------------------------
-  virtual void writeOutput( ParOptVec * x ){}
+  virtual void writeOutput( int iter, ParOptVec * x ){}
   
  protected:
   MPI_Comm comm;

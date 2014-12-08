@@ -56,7 +56,7 @@ ParOpt::ParOpt( ParOptProblem * _prob, int _nwcon,
   nw = _nw;
   nwskip = _nwskip;
   if (nwskip < 0 || 
-      nwstart + (nw + nwskip)*nwcon > nvars){
+      (nwstart + nw*nwcon + nwskip*(nwcon-1) > nvars)){
     fprintf(stderr, "Weighted constraints are inconsistent\n");
     nwcon = 0;
     nw = 0;
@@ -2063,8 +2063,8 @@ int ParOpt::optimize(){
   for ( int k = 0; k < max_major_iters; k++ ){
     // Print out the current solution progress using the 
     // hook in the problem definition
-    if (k % write_output_frequency){
-      prob->writeOutput(x);
+    if (k % write_output_frequency == 0){
+      prob->writeOutput(k, x);
     }
 
     // Compute the complementarity
