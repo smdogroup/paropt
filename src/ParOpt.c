@@ -300,7 +300,6 @@ int ParOpt::writeSolutionFile( const char * filename ){
   MPI_File fp = NULL;
   MPI_File_open(comm, fname, MPI_MODE_WRONLY | MPI_MODE_CREATE, 
                 MPI_INFO_NULL, &fp);
-  delete [] fname;
 
   if (fp){
     // Successfull opened the file
@@ -308,7 +307,7 @@ int ParOpt::writeSolutionFile( const char * filename ){
 
     int size, rank;
     MPI_Comm_rank(comm, &rank);
-    MPI_Comm_rank(comm, &size);
+    MPI_Comm_size(comm, &size);
 
     // Allocate space to store the variable ranges
     int *var_range = new int[ size+1 ];
@@ -334,11 +333,12 @@ int ParOpt::writeSolutionFile( const char * filename ){
       var_sizes[2] = ncon;
 
       MPI_File_write(fp, var_sizes, 3, MPI_INT, MPI_STATUS_IGNORE);
+      MPI_File_write(fp, &barrier_param, 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
       MPI_File_write(fp, z, ncon, MPI_DOUBLE, MPI_STATUS_IGNORE);
       MPI_File_write(fp, s, ncon, MPI_DOUBLE, MPI_STATUS_IGNORE);
     }
 
-    size_t offset = 3*sizeof(int) + 2*ncon*sizeof(double);
+    size_t offset = 3*sizeof(int) + (2*ncon+1)*sizeof(double);
 
     // Use the native representation for the data
     char datarep[] = "native";
@@ -385,6 +385,8 @@ int ParOpt::writeSolutionFile( const char * filename ){
     delete [] nwcon_range;
   }
 
+  delete [] fname;
+
   return fail;
 }
 
@@ -407,7 +409,7 @@ int ParOpt::readSolutionFile( const char * filename ){
 
     int size, rank;
     MPI_Comm_rank(comm, &rank);
-    MPI_Comm_rank(comm, &size);
+    MPI_Comm_size(comm, &size);
 
     // Allocate space to store the variable ranges
     int *var_range = new int[ size+1 ];
@@ -439,7 +441,7 @@ int ParOpt::readSolutionFile( const char * filename ){
       }
 
       if (!size_fail){
-	MPI_File_read(fp, var_sizes, 3, MPI_INT, MPI_STATUS_IGNORE);
+	MPI_File_read(fp, &barrier_param, 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
 	MPI_File_read(fp, z, ncon, MPI_DOUBLE, MPI_STATUS_IGNORE);
 	MPI_File_read(fp, s, ncon, MPI_DOUBLE, MPI_STATUS_IGNORE);
       }
@@ -461,7 +463,7 @@ int ParOpt::readSolutionFile( const char * filename ){
     }
 
     // Set the initial offset
-    size_t offset = 3*sizeof(int) + 2*ncon*sizeof(double);
+    size_t offset = 3*sizeof(int) + (2*ncon+1)*sizeof(double);
 
     // Use the native representation for the data
     char datarep[] = "native";
@@ -514,6 +516,10 @@ int ParOpt::readSolutionFile( const char * filename ){
 /*
   Set optimizer parameters
 */
+void ParOpt::setInitStartingPoint( int init ){
+  init_starting_point = init;
+}
+
 void ParOpt::setMaxMajorIterations( int iters ){
   if (iters > 1){ max_major_iters = iters; }
 }
@@ -2103,12 +2109,6 @@ int ParOpt::lineSearch( double * _alpha,
 	}
       }
     }
-    else {
-      // This is the final failure, evaluate the gradient
-      // so that it is consistent on the final iteration
-      int fail_gobj = prob->evalObjConGradient(x, g, Ac);
-      ngeval++;
-    }
   }
 
   // Set the new values of the variables
@@ -2284,6 +2284,16 @@ int ParOpt::optimize( const char * checkpoint ){
   info[0] = '\0';
 
   for ( int k = 0; k < max_major_iters; k++ ){
+    if (rank == opt_root){
+      for ( int i = 0; i < ncon; i++ ){
+	printf("z[%d] = %10.2e\n", i, z[i]);
+      }
+
+      for ( int i = 0; i < ncon; i++ ){
+	printf("s[%d] = %10.2e\n", i, s[i]);
+      }
+    }
+
     // Print out the current solution progress using the 
     // hook in the problem definition
     if (k % write_output_frequency == 0){
@@ -2652,14 +2662,14 @@ void ParOpt::checkGradients( double dh ){
 
   if (rank == opt_root){
     printf("Objective gradient test\n");
-    printf("FD: %15.8e  Actual: %15.8e  Err: %15.4e\n",
-	   pfd, pobj, pobj - pfd);
+    printf("Objective FD: %15.8e  Actual: %15.8e  Err: %8.2e  Rel err: %8.2e\n",
+	   pfd, pobj, fabs(pobj - pfd), fabs((pobj - pfd)/pfd));
 
     printf("\nConstraint gradient test\n");
     for ( int i = 0; i < ncon; i++ ){
       double fd = (rc[i] - c[i])/dh;
-      printf("Con[%3d] FD: %15.8e  Actual: %15.8e  Err: %15.4e\n",
-	     i, fd, rs[i], fd - rs[i]);
+      printf("Con[%3d]  FD: %15.8e  Actual: %15.8e  Err: %8.2e  Rel err: %8.2e\n",
+	     i, fd, rs[i], fabs(fd - rs[i]), fabs((fd - rs[i])/fd));
     }
   }
 }

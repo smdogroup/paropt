@@ -85,6 +85,7 @@ class ParOpt {
 
   // Set optimizer parameters
   // ------------------------
+  void setInitStartingPoint( int init );
   void setMaxMajorIterations( int iters );
   void setAbsOptimalityTol( double tol );
   void setInitBarrierParameter( double mu );
