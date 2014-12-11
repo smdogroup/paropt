@@ -289,6 +289,229 @@ ParOpt::~ParOpt(){
 }
 
 /*
+  Write out all of the design variables, Lagrange multipliers and
+  slack variables to a binary file.
+*/
+int ParOpt::writeSolutionFile( const char * filename ){
+  char * fname = new char[ strlen(filename)+1 ];
+  strcpy(fname, filename);
+
+  int fail = 1;
+  MPI_File fp = NULL;
+  MPI_File_open(comm, fname, MPI_MODE_WRONLY | MPI_MODE_CREATE, 
+                MPI_INFO_NULL, &fp);
+  delete [] fname;
+
+  if (fp){
+    // Successfull opened the file
+    fail = 0;
+
+    int size, rank;
+    MPI_Comm_rank(comm, &rank);
+    MPI_Comm_rank(comm, &size);
+
+    // Allocate space to store the variable ranges
+    int *var_range = new int[ size+1 ];
+    var_range[0] = 0;
+
+    int *nwcon_range = new int[ size+1 ];
+    nwcon_range[0] = 0;
+    
+    // Count up the displacements/variable ranges
+    MPI_Allgather(&nvars, 1, MPI_INT, &var_range[1], 1, MPI_INT, comm);
+    MPI_Allgather(&nwcon, 1, MPI_INT, &nwcon_range[1], 1, MPI_INT, comm);
+
+    for ( int k = 0; k < size; k++ ){
+      var_range[k+1] += var_range[k];
+      nwcon_range[k+1] += nwcon_range[k];
+    }
+
+    // Print out the problem sizes on the root processor
+    if (rank == opt_root){
+      int var_sizes[3];
+      var_sizes[0] = var_range[size];
+      var_sizes[1] = nwcon_range[size];
+      var_sizes[2] = ncon;
+
+      MPI_File_write(fp, var_sizes, 3, MPI_INT, MPI_STATUS_IGNORE);
+      MPI_File_write(fp, z, ncon, MPI_DOUBLE, MPI_STATUS_IGNORE);
+      MPI_File_write(fp, s, ncon, MPI_DOUBLE, MPI_STATUS_IGNORE);
+    }
+
+    size_t offset = 3*sizeof(int) + 2*ncon*sizeof(double);
+
+    // Use the native representation for the data
+    char datarep[] = "native";
+
+    // Extract the design variables 
+    double *xvals;
+    int xsize = x->getArray(&xvals);
+    MPI_File_set_view(fp, offset, MPI_DOUBLE, MPI_DOUBLE,
+                      datarep, MPI_INFO_NULL);
+    MPI_File_write_at_all(fp, var_range[rank], xvals, xsize, MPI_DOUBLE,
+                          MPI_STATUS_IGNORE);
+    offset += var_range[size]*sizeof(double);
+
+    // Extract the lower Lagrange multipliers
+    double *zlvals, *zuvals;
+    zl->getArray(&zlvals);
+    zu->getArray(&zuvals);
+    MPI_File_set_view(fp, offset, MPI_DOUBLE, MPI_DOUBLE,
+                      datarep, MPI_INFO_NULL);
+    MPI_File_write_at_all(fp, var_range[rank], zlvals, xsize, MPI_DOUBLE,
+                          MPI_STATUS_IGNORE);
+    offset += var_range[size]*sizeof(double);
+
+    // Write out the upper Lagrange multipliers
+    MPI_File_set_view(fp, offset, MPI_DOUBLE, MPI_DOUBLE,
+                      datarep, MPI_INFO_NULL);
+    MPI_File_write_at_all(fp, var_range[rank], zuvals, xsize, MPI_DOUBLE,
+                          MPI_STATUS_IGNORE);
+    offset += var_range[size]*sizeof(double);
+    
+    // Write out the extra constraint bounds
+    if (nwcon_range[size] > 0){
+      double *zwvals;
+      int nwsize = zw->getArray(&zwvals);
+      MPI_File_set_view(fp, offset, MPI_DOUBLE, MPI_DOUBLE,
+			datarep, MPI_INFO_NULL);
+      MPI_File_write_at_all(fp, nwcon_range[rank], zwvals, nwsize, MPI_DOUBLE,
+			    MPI_STATUS_IGNORE);
+    }
+
+    MPI_File_close(&fp);
+
+    delete [] var_range;
+    delete [] nwcon_range;
+  }
+
+  return fail;
+}
+
+/*
+  Read in the design variables, lagrange multipliers and slack
+  variables from a binary file
+*/
+int ParOpt::readSolutionFile( const char * filename ){
+  char * fname = new char[ strlen(filename)+1 ];
+  strcpy(fname, filename);
+
+  int fail = 1;
+  MPI_File fp = NULL;
+  MPI_File_open(comm, fname, MPI_MODE_RDONLY, MPI_INFO_NULL, &fp);
+  delete [] fname;
+
+  if (fp){
+    // Successfully opened the file for reading
+    fail = 0;
+
+    int size, rank;
+    MPI_Comm_rank(comm, &rank);
+    MPI_Comm_rank(comm, &size);
+
+    // Allocate space to store the variable ranges
+    int *var_range = new int[ size+1 ];
+    var_range[0] = 0;
+
+    int *nwcon_range = new int[ size+1 ];
+    nwcon_range[0] = 0;
+    
+    // Count up the displacements/variable ranges
+    MPI_Allgather(&nvars, 1, MPI_INT, &var_range[1], 1, MPI_INT, comm);
+    MPI_Allgather(&nwcon, 1, MPI_INT, &nwcon_range[1], 1, MPI_INT, comm);
+
+    for ( int k = 0; k < size; k++ ){
+      var_range[k+1] += var_range[k];
+      nwcon_range[k+1] += nwcon_range[k];
+    }
+
+    int size_fail = 0;
+
+    // Read in the sizes
+    if (rank == opt_root){
+      int var_sizes[3];
+      MPI_File_read(fp, var_sizes, 3, MPI_INT, MPI_STATUS_IGNORE);
+
+      if (var_sizes[0] != var_range[size] ||
+	  var_sizes[1] != nwcon_range[size] ||
+	  var_sizes[2] != ncon){
+	size_fail = 1;
+      }
+
+      if (!size_fail){
+	MPI_File_read(fp, var_sizes, 3, MPI_INT, MPI_STATUS_IGNORE);
+	MPI_File_read(fp, z, ncon, MPI_DOUBLE, MPI_STATUS_IGNORE);
+	MPI_File_read(fp, s, ncon, MPI_DOUBLE, MPI_STATUS_IGNORE);
+      }
+    }
+    MPI_Bcast(&size_fail, 1, MPI_INT, opt_root, comm);
+
+    // The problem sizes are inconsistent, return
+    if (size_fail){
+      fail = 1;
+      if (rank == opt_root){
+	fprintf(stderr, "ParOpt: Problem size incompatible with solution file\n");
+      }
+
+      delete [] var_range;
+      delete [] nwcon_range;
+
+      MPI_File_close(&fp);
+      return fail;
+    }
+
+    // Set the initial offset
+    size_t offset = 3*sizeof(int) + 2*ncon*sizeof(double);
+
+    // Use the native representation for the data
+    char datarep[] = "native";
+
+    // Extract the design variables 
+    double *xvals;
+    int xsize = x->getArray(&xvals);
+    MPI_File_set_view(fp, offset, MPI_DOUBLE, MPI_DOUBLE,
+                      datarep, MPI_INFO_NULL);
+    MPI_File_read_at_all(fp, var_range[rank], xvals, xsize, MPI_DOUBLE,
+                          MPI_STATUS_IGNORE);
+    offset += var_range[size]*sizeof(double);
+
+    // Extract the lower Lagrange multipliers
+    double *zlvals, *zuvals;
+    zl->getArray(&zlvals);
+    zu->getArray(&zuvals);
+    MPI_File_set_view(fp, offset, MPI_DOUBLE, MPI_DOUBLE,
+                      datarep, MPI_INFO_NULL);
+    MPI_File_read_at_all(fp, var_range[rank], zlvals, xsize, MPI_DOUBLE,
+			 MPI_STATUS_IGNORE);
+    offset += var_range[size]*sizeof(double);
+
+    // Read in the upper Lagrange multipliers
+    MPI_File_set_view(fp, offset, MPI_DOUBLE, MPI_DOUBLE,
+                      datarep, MPI_INFO_NULL);
+    MPI_File_read_at_all(fp, var_range[rank], zuvals, xsize, MPI_DOUBLE,
+			 MPI_STATUS_IGNORE);
+    offset += var_range[size]*sizeof(double);
+    
+    // Read in the extra constraint Lagrange multipliers
+    if (nwcon_range[size] > 0){
+      double *zwvals;
+      int nwsize = zw->getArray(&zwvals);
+      MPI_File_set_view(fp, offset, MPI_DOUBLE, MPI_DOUBLE,
+			datarep, MPI_INFO_NULL);
+      MPI_File_read_at_all(fp, nwcon_range[rank], zwvals, nwsize, MPI_DOUBLE,
+			   MPI_STATUS_IGNORE);
+    }
+
+    MPI_File_close(&fp);
+
+    delete [] var_range;
+    delete [] nwcon_range;
+  }
+
+  return fail;
+}
+
+/*
   Set optimizer parameters
 */
 void ParOpt::setMaxMajorIterations( int iters ){
@@ -1949,7 +2172,7 @@ int ParOpt::lineSearch( double * _alpha,
   constraints are nearly orthogonal. This capability is still under
   development.
 */
-int ParOpt::optimize(){
+int ParOpt::optimize( const char * checkpoint ){
   // Zero out the number of function/gradient evaluations
   neval = ngeval = 0;
   
@@ -2064,6 +2287,14 @@ int ParOpt::optimize(){
     // Print out the current solution progress using the 
     // hook in the problem definition
     if (k % write_output_frequency == 0){
+      if (checkpoint){
+	// Write the checkpoint file, if it fails once, set
+	// the file pointer to null so it won't print again
+	if (writeSolutionFile(checkpoint)){
+	  checkpoint = NULL;
+	}
+      }
+
       prob->writeOutput(k, x);
     }
 

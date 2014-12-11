@@ -77,7 +77,7 @@ class ParOpt {
 
   // Perform the optimization
   // ------------------------
-  int optimize();
+  int optimize( const char * checkpoint = NULL );
 
   // Check the objective and constraint gradients
   // --------------------------------------------
@@ -104,6 +104,11 @@ class ParOpt {
   void setOutputFrequency( int freq );
   void setMajorIterStepCheck( int step );
   void setOutputFile( const char * filename );
+
+  // Write out the design variables to a binary format (fast MPI/IO)
+  // ---------------------------------------------------------------
+  int writeSolutionFile( const char * filename );
+  int readSolutionFile( const char * filename );
 
  private:
   // Compute the negative of the KKT residuals - return
