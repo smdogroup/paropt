@@ -31,6 +31,7 @@
   monotone_barrier_power: decrease the barrier by mu**power
   min_frac_to_boundary:   minimum fraction-to-boundary constant
   major_iter_step_check:  check the step at this major iteration
+  hessian_reset_freq:     reset the Hessian at this frequency
 
   input:
   prob:      the optimization problem
@@ -213,6 +214,7 @@ ParOpt::ParOpt( ParOptProblem * _prob, int _nwcon,
   min_fraction_to_boundary = 0.95;
   write_output_frequency = 10;
   major_iter_step_check = -1;
+  hessian_reset_freq = 100000000;
 
   // By default, set the file pointer to stdout
   outfp = stdout;
@@ -543,6 +545,12 @@ void ParOpt::setBarrierFraction( double frac ){
 void ParOpt::setBarrierPower( double power ){
   if (power > 1.0 && power < 2.0){
     monotone_barrier_power = power;
+  }
+}
+
+void ParOpt::setHessianResetFreq( int freq ){
+  if (freq > 0){
+    hessian_reset_freq = freq;
   }
 }
 
@@ -2203,8 +2211,8 @@ int ParOpt::optimize( const char * checkpoint ){
 	    min_fraction_to_boundary);
     fprintf(outfp, "%-30s %15d\n", "major_iter_step_check", 
 	    major_iter_step_check);
-    fprintf(outfp, "%-30s %15d\n", "write_output_frequency", 
-	    write_output_frequency);
+    fprintf(outfp, "%-30s %15d\n", "hessian_reset_freq",
+	    hessian_reset_freq);
   }
 
   // Evaluate the objective, constraint and their gradients at the
@@ -2284,14 +2292,8 @@ int ParOpt::optimize( const char * checkpoint ){
   info[0] = '\0';
 
   for ( int k = 0; k < max_major_iters; k++ ){
-    if (rank == opt_root){
-      for ( int i = 0; i < ncon; i++ ){
-	printf("z[%d] = %10.2e\n", i, z[i]);
-      }
-
-      for ( int i = 0; i < ncon; i++ ){
-	printf("s[%d] = %10.2e\n", i, s[i]);
-      }
+    if (k > 0 && k % hessian_reset_freq == 0){
+      qn->reset();
     }
 
     // Print out the current solution progress using the 
