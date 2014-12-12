@@ -31,6 +31,7 @@
   monotone_barrier_power: decrease the barrier by mu**power
   min_frac_to_boundary:   minimum fraction-to-boundary constant
   major_iter_step_check:  check the step at this major iteration
+  hessian_reset_freq:     reset the Hessian at this frequency
 
   input:
   prob:      the optimization problem
@@ -544,6 +545,12 @@ void ParOpt::setBarrierFraction( double frac ){
 void ParOpt::setBarrierPower( double power ){
   if (power > 1.0 && power < 2.0){
     monotone_barrier_power = power;
+  }
+}
+
+void ParOpt::setHessianResetFreq( int freq ){
+  if (freq > 0){
+    hessian_reset_freq = freq;
   }
 }
 
@@ -2302,6 +2309,10 @@ int ParOpt::optimize( const char * checkpoint ){
   info[0] = '\0';
 
   for ( int k = 0; k < max_major_iters; k++ ){
+    if (k > 0 && k % hessian_reset_freq == 0){
+      qn->reset();
+    }
+
     // Print out the current solution progress using the 
     // hook in the problem definition
     if (k % write_output_frequency == 0){

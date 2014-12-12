@@ -91,8 +91,8 @@ class ParOpt {
   void setInitBarrierParameter( double mu );
   void setBarrierFraction( double frac );
   void setBarrierPower( double power );
-  void setSequentialLinearMethod( int truth );
-
+  void setHessianResetFreq( int freq );
+  
   // Set parameters associated with the line search
   // ----------------------------------------------
   void setUseLineSearch( int truth );
@@ -234,6 +234,9 @@ class ParOpt {
 
   // Stopping criteria tolerance
   double abs_res_tol;
+
+  // Parameter for controlling the Hessian reset
+  int hessian_reset_freq;
 
   // Parameters for the line search
   int max_line_iters;
