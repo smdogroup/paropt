@@ -213,6 +213,7 @@ ParOpt::ParOpt( ParOptProblem * _prob, int _nwcon,
   min_fraction_to_boundary = 0.95;
   write_output_frequency = 10;
   major_iter_step_check = -1;
+  sequential_linear_method = 0;
 
   // By default, set the file pointer to stdout
   outfp = stdout;
@@ -573,6 +574,10 @@ void ParOpt::setPenaltyDescentFraction( double frac ){
   }
 }
 
+void ParOpt::setSequentialLinearMethod( int truth ){
+  sequential_linear_method = truth;
+}
+
 /*
   Set other parameters
 */
@@ -747,11 +752,13 @@ void ParOpt::setUpKKTDiagSystem(){
   zu->getArray(&zuvals);
 
   // Retrive the diagonal entry for the BFGS update
-  double b0;
-  const double *d, *M;
-  ParOptVec **Z;
-  qn->getLBFGSMat(&b0, &d, &M, &Z);
-   
+  double b0 = 0.0;
+  if (!sequential_linear_method){
+    const double *d, *M;
+    ParOptVec **Z;
+    qn->getLBFGSMat(&b0, &d, &M, &Z);
+  }
+
   // Set the components of the diagonal matrix 
   double *cvals;
   Cvec->getArray(&cvals);
@@ -1481,33 +1488,35 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx ){
   the design variables.  
 */
 void ParOpt::setUpKKTSystem(){
-  // Get the size of the limited-memory BFGS subspace
-  double b0;
-  const double *d0, *M;
-  ParOptVec **Z;
-  int size = qn->getLBFGSMat(&b0, &d0, &M, &Z);
-
-  if (size > 0){
-    memset(Ce, 0, size*size*sizeof(double));
+  if (!sequential_linear_method){
+    // Get the size of the limited-memory BFGS subspace
+    double b0;
+    const double *d0, *M;
+    ParOptVec **Z;
+    int size = qn->getLBFGSMat(&b0, &d0, &M, &Z);
     
-    // Solve the KKT system 
-    for ( int i = 0; i < size; i++ ){
-      // Compute K^{-1}*Z[i]
-      solveKKTDiagSystem(Z[i], xtemp);
+    if (size > 0){
+      memset(Ce, 0, size*size*sizeof(double));
       
-      // Compute the dot products Z^{T}*K^{-1}*Z[i]
-      xtemp->mdot(Z, size, &Ce[i*size]);
-    }
-
-    // Compute the Schur complement
-    for ( int j = 0; j < size; j++ ){
+      // Solve the KKT system 
       for ( int i = 0; i < size; i++ ){
-	Ce[i + j*size] -= M[i + j*size]/(d0[i]*d0[j]);
+	// Compute K^{-1}*Z[i]
+	solveKKTDiagSystem(Z[i], xtemp);
+	
+	// Compute the dot products Z^{T}*K^{-1}*Z[i]
+	xtemp->mdot(Z, size, &Ce[i*size]);
       }
+      
+      // Compute the Schur complement
+      for ( int j = 0; j < size; j++ ){
+	for ( int i = 0; i < size; i++ ){
+	  Ce[i + j*size] -= M[i + j*size]/(d0[i]*d0[j]);
+	}
+      }
+      
+      int info = 0;
+      LAPACKdgetrf(&size, &size, Ce, &size, cpiv, &info);
     }
-    
-    int info = 0;
-    LAPACKdgetrf(&size, &size, Ce, &size, cpiv, &info);
   }
 }
 
@@ -1547,7 +1556,10 @@ void ParOpt::computeKKTStep(){
   double b0;
   const double *d, *M;
   ParOptVec **Z;
-  int size = qn->getLBFGSMat(&b0, &d, &M, &Z);
+  int size = 0;
+  if (!sequential_linear_method){
+    size = qn->getLBFGSMat(&b0, &d, &M, &Z);
+  }
 
   // At this point the residuals are no longer required.
   solveKKTDiagSystem(rx, rc, rw, rs, rzl, rzu,
@@ -2124,10 +2136,12 @@ int ParOpt::lineSearch( double * _alpha,
   
   // Compute the negative gradient of the Lagrangian using the
   // old gradient information with the new multiplier estimates
-  y_qn->copyValues(g);
-  y_qn->scale(-1.0);
-  for ( int i = 0; i < ncon; i++ ){
-    y_qn->axpy(z[i], Ac[i]);
+  if (!sequential_linear_method){
+    y_qn->copyValues(g);
+    y_qn->scale(-1.0);
+    for ( int i = 0; i < ncon; i++ ){
+      y_qn->axpy(z[i], Ac[i]);
+    }
   }
 
   // Evaluate the derivative
@@ -2140,9 +2154,11 @@ int ParOpt::lineSearch( double * _alpha,
 
   // Add the new gradient of the Lagrangian with the new
   // multiplier estimates
-  y_qn->axpy(1.0, g);
-  for ( int i = 0; i < ncon; i++ ){
-    y_qn->axpy(-z[i], Ac[i]);
+  if (!sequential_linear_method){
+    y_qn->axpy(1.0, g);
+    for ( int i = 0; i < ncon; i++ ){
+      y_qn->axpy(-z[i], Ac[i]);
+    }
   }
   
   // Set the final value of alpha used in the line search
@@ -2205,6 +2221,8 @@ int ParOpt::optimize( const char * checkpoint ){
 	    major_iter_step_check);
     fprintf(outfp, "%-30s %15d\n", "write_output_frequency", 
 	    write_output_frequency);
+    fprintf(outfp, "%-30s %15d\n", "sequential_linear_method",
+	    sequential_linear_method);
   }
 
   // Evaluate the objective, constraint and their gradients at the
@@ -2284,16 +2302,6 @@ int ParOpt::optimize( const char * checkpoint ){
   info[0] = '\0';
 
   for ( int k = 0; k < max_major_iters; k++ ){
-    if (rank == opt_root){
-      for ( int i = 0; i < ncon; i++ ){
-	printf("z[%d] = %10.2e\n", i, z[i]);
-      }
-
-      for ( int i = 0; i < ncon; i++ ){
-	printf("s[%d] = %10.2e\n", i, s[i]);
-      }
-    }
-
     // Print out the current solution progress using the 
     // hook in the problem definition
     if (k % write_output_frequency == 0){
@@ -2500,10 +2508,12 @@ int ParOpt::optimize( const char * checkpoint ){
 	
 	// Compute the negative gradient of the Lagrangian using the
 	// old gradient information with the new multiplier estimates
-	y_qn->copyValues(g);
-	y_qn->scale(-1.0);
-	for ( int i = 0; i < ncon; i++ ){
-	  y_qn->axpy(z[i], Ac[i]);
+	if (!sequential_linear_method){
+	  y_qn->copyValues(g);
+	  y_qn->scale(-1.0);
+	  for ( int i = 0; i < ncon; i++ ){
+	    y_qn->axpy(z[i], Ac[i]);
+	  }
 	}
 
 	// Evaluate the objective, constraint and their gradients at the
@@ -2522,10 +2532,12 @@ int ParOpt::optimize( const char * checkpoint ){
 	}
 
 	// Add the new gradient of the Lagrangian with the new
-	// multiplier estimates
-	y_qn->axpy(1.0, g);
-	for ( int i = 0; i < ncon; i++ ){
-	  y_qn->axpy(-z[i], Ac[i]);
+	// multiplier estimates	
+	if (!sequential_linear_method){
+	  y_qn->axpy(1.0, g);
+	  for ( int i = 0; i < ncon; i++ ){
+	    y_qn->axpy(-z[i], Ac[i]);
+	  }
 	}
       }
       else {
@@ -2550,10 +2562,12 @@ int ParOpt::optimize( const char * checkpoint ){
  
       // Compute the negative gradient of the Lagrangian using the
       // old gradient information with the new multiplier estimates
-      y_qn->copyValues(g);
-      y_qn->scale(-1.0);
-      for ( int i = 0; i < ncon; i++ ){
-	y_qn->axpy(z[i], Ac[i]);
+      if (!sequential_linear_method){
+	y_qn->copyValues(g);
+	y_qn->scale(-1.0);
+	for ( int i = 0; i < ncon; i++ ){
+	  y_qn->axpy(z[i], Ac[i]);
+	}
       }
 
       // Evaluate the objective, constraint and their gradients at the
@@ -2572,15 +2586,19 @@ int ParOpt::optimize( const char * checkpoint ){
       }
 
       // Add the new gradient of the Lagrangian with the new
-      // multiplier estimates to complete the y-update step
-      y_qn->axpy(1.0, g);
-      for ( int i = 0; i < ncon; i++ ){
-	y_qn->axpy(-z[i], Ac[i]);
+      // multiplier estimates to complete the y-update step  
+      if (!sequential_linear_method){
+	y_qn->axpy(1.0, g);
+	for ( int i = 0; i < ncon; i++ ){
+	  y_qn->axpy(-z[i], Ac[i]);
+	}
       }
     }
 
     // Complete the updated step
-    s_qn->axpy(1.0, x);
+    if (!sequential_linear_method){
+      s_qn->axpy(1.0, x);
+    }
 
     // Store the steps in x/z for printing later
     alpha_xprev = alpha*max_x;
@@ -2588,7 +2606,7 @@ int ParOpt::optimize( const char * checkpoint ){
 
     // Compute the Quasi-Newton update
     int up_type = 0;
-    if (!line_fail){
+    if (!sequential_linear_method && !line_fail){
       up_type = qn->update(s_qn, y_qn);
     }
 
@@ -2708,7 +2726,9 @@ void ParOpt::checkKKTStep(){
   }
 
   // Check the first residual equation
-  qn->mult(px, rx);
+  if (!sequential_linear_method){
+    qn->mult(px, rx);
+  }
   for ( int i = 0; i < ncon; i++ ){
     rx->axpy(-pz[i], Ac[i]);
   }

@@ -91,6 +91,7 @@ class ParOpt {
   void setInitBarrierParameter( double mu );
   void setBarrierFraction( double frac );
   void setBarrierPower( double power );
+  void setSequentialLinearMethod( int truth );
 
   // Set parameters associated with the line search
   // ----------------------------------------------
@@ -248,6 +249,10 @@ class ParOpt {
 
   // Check the step at this major iteration - for debugging
   int major_iter_step_check;
+
+  // Flag to indicate whether to use a sequential linear programming
+  // approach, completely discarding the quasi-Newton approximation
+  int sequential_linear_method;
 
   // The file pointer to use for printing things out
   FILE *outfp;

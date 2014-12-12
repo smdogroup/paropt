@@ -10,7 +10,7 @@ class Rosenbrock : public ParOptProblem {
  public:
   Rosenbrock( MPI_Comm comm, int n ): 
   ParOptProblem(comm, n+1, 2){
-    scale = 100.0;
+    scale = 1.0;
   }
   
   void getVarsAndBounds( ParOptVec *xvec,
@@ -111,9 +111,10 @@ int main( int argc, char* argv[] ){
   int nwskip = 1;
   ParOpt * opt = new ParOpt(rosen, nwcon, nwstart, nw, nwskip, max_lbfgs);
   
-  opt->checkGradients(1e-6);
-  opt->setMajorIterStepCheck(29);
+  // opt->checkGradients(1e-6);
+  // opt->setMajorIterStepCheck(29);
   opt->optimize();
+  opt->setSequentialLinearMethod(1);
 
   delete rosen;
   delete opt;
