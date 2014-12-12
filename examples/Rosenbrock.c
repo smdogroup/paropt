@@ -9,7 +9,9 @@
 class Rosenbrock : public ParOptProblem {
  public:
   Rosenbrock( MPI_Comm comm, int n ): 
-  ParOptProblem(comm, n+1, 2){}
+  ParOptProblem(comm, n+1, 2){
+    scale = 100.0;
+  }
   
   void getVarsAndBounds( ParOptVec *xvec,
 			 ParOptVec *lbvec, 
@@ -23,7 +25,7 @@ class Rosenbrock : public ParOptProblem {
     for ( int i = 0; i < nvars; i++ ){
       x[i] = -1.0 + i*0.01;
       lb[i] = -2.0;
-      ub[i] = 2.0;
+      ub[i] = 4.0;
     }
   }
   
@@ -57,6 +59,9 @@ class Rosenbrock : public ParOptProblem {
     MPI_Comm_size(comm, &size);
     cons[0] += 20*size*nvars;
 
+    cons[0] *= scale;
+    cons[1] *= scale;
+
     return 0;
   }
   
@@ -77,16 +82,18 @@ class Rosenbrock : public ParOptProblem {
 
     Ac[0]->getArray(&c);
     for ( int i = 0; i < nvars; i++ ){
-      c[i] = -2.0*x[i];
+      c[i] = -2.0*scale*x[i];
     }
 
     Ac[1]->getArray(&c);
     for ( int i = 0; i < nvars; i += 2 ){
-      c[i] = 1.0;
+      c[i] = scale;
     }
 
     return 0;
   }
+
+  double scale;
 };
 
 int main( int argc, char* argv[] ){
@@ -98,14 +105,14 @@ int main( int argc, char* argv[] ){
   
   // Allocate the optimizer
   int max_lbfgs = 10;
-  int nwcon = 5;
+  int nwcon = 0;
   int nw = 5;
   int nwstart = 1;
   int nwskip = 1;
   ParOpt * opt = new ParOpt(rosen, nwcon, nwstart, nw, nwskip, max_lbfgs);
   
   opt->checkGradients(1e-6);
-  // opt->setMajorIterStepCheck(1);
+  opt->setMajorIterStepCheck(29);
   opt->optimize();
 
   delete rosen;
