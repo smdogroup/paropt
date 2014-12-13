@@ -92,7 +92,8 @@ class ParOpt {
   void setBarrierFraction( double frac );
   void setBarrierPower( double power );
   void setHessianResetFreq( int freq );
-  
+  void setSequentialLinearMethod( int truth );
+
   // Set parameters associated with the line search
   // ----------------------------------------------
   void setUseLineSearch( int truth );

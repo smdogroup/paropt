@@ -215,6 +215,7 @@ ParOpt::ParOpt( ParOptProblem * _prob, int _nwcon,
   write_output_frequency = 10;
   major_iter_step_check = -1;
   sequential_linear_method = 0;
+  hessian_reset_freq = 100000000;
 
   // By default, set the file pointer to stdout
   outfp = stdout;
@@ -2230,6 +2231,8 @@ int ParOpt::optimize( const char * checkpoint ){
 	    write_output_frequency);
     fprintf(outfp, "%-30s %15d\n", "sequential_linear_method",
 	    sequential_linear_method);
+    fprintf(outfp, "%-30s %15d\n", "hessian_reset_freq",
+	    hessian_reset_freq);
   }
 
   // Evaluate the objective, constraint and their gradients at the
@@ -2309,8 +2312,10 @@ int ParOpt::optimize( const char * checkpoint ){
   info[0] = '\0';
 
   for ( int k = 0; k < max_major_iters; k++ ){
-    if (k > 0 && k % hessian_reset_freq == 0){
-      qn->reset();
+    if (!sequential_linear_method){
+      if (k > 0 && k % hessian_reset_freq == 0){
+	qn->reset();
+      }
     }
 
     // Print out the current solution progress using the 
@@ -2489,8 +2494,10 @@ int ParOpt::optimize( const char * checkpoint ){
     // is done after the step has been selected, but
     // before the new gradient is evaluated (so we 
     // have the new multipliers)
-    s_qn->copyValues(x);
-    s_qn->scale(-1.0);
+    if (!sequential_linear_method){
+      s_qn->copyValues(x);
+      s_qn->scale(-1.0);
+    }
 
     // Keep track of the step length size
     double alpha = 1.0;
@@ -2739,6 +2746,9 @@ void ParOpt::checkKKTStep(){
   // Check the first residual equation
   if (!sequential_linear_method){
     qn->mult(px, rx);
+  }
+  else {
+    rx->zeroEntries();
   }
   for ( int i = 0; i < ncon; i++ ){
     rx->axpy(-pz[i], Ac[i]);

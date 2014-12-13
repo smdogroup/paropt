@@ -104,7 +104,7 @@ int main( int argc, char* argv[] ){
   Rosenbrock * rosen = new Rosenbrock(MPI_COMM_WORLD, nvars-1);
   
   // Allocate the optimizer
-  int max_lbfgs = 10;
+  int max_lbfgs = 50;
   int nwcon = 0;
   int nw = 5;
   int nwstart = 1;
@@ -113,8 +113,9 @@ int main( int argc, char* argv[] ){
   
   // opt->checkGradients(1e-6);
   // opt->setMajorIterStepCheck(29);
+  opt->setMajorIterStepCheck(10);
+  opt->setSequentialLinearMethod(0);
   opt->optimize();
-  opt->setSequentialLinearMethod(1);
 
   delete rosen;
   delete opt;
