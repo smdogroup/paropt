@@ -12,6 +12,8 @@
 #define BLASdscal    dscal_
 #define LAPACKdgetrf dgetrf_
 #define LAPACKdgetrs dgetrs_
+#define LAPACKdpptrf dpptrf_
+#define LAPACKdpptrs dpptrs_
 
 extern "C" {
   extern double BLASddot( int *n, double *x, int *incx, 

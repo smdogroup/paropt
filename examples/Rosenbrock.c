@@ -109,12 +109,14 @@ int main( int argc, char* argv[] ){
   int nw = 5;
   int nwstart = 1;
   int nwskip = 1;
-  ParOpt * opt = new ParOpt(rosen, nwcon, nwstart, nw, nwskip, max_lbfgs);
+  ParOptConstraint * pcon = new ParOptConstraint(nwcon, nwstart, nw, nwskip);
+  ParOpt * opt = new ParOpt(rosen, pcon, max_lbfgs);
   
   // opt->checkGradients(1e-6);
   // opt->setMajorIterStepCheck(29);
   opt->setMajorIterStepCheck(10);
   opt->setSequentialLinearMethod(0);
+  opt->setMaxMajorIterations(1000);
   opt->optimize();
 
   delete rosen;

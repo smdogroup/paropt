@@ -1116,13 +1116,13 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc,
 
   // Compute the terms from the weighting constraints
   if (nwcon > 0){
-    // Compute wtemp = Cw^{-1}*(bcw + Zw^{-1}*bsw - Aw*C^{-1}*d)
-    wtemp->copyValues(bcw);
+    // Compute wt = Cw^{-1}*(bcw + Zw^{-1}*bsw - Aw*C^{-1}*d)
+    wt->copyValues(bcw);
 
     if (pcon->inequality()){
-      // Add wtemp += Zw^{-1}*bsw
+      // Add wt += Zw^{-1}*bsw
       double *wvals, *bswvals, *zwvals;
-      wtemp->getArray(&wvals);
+      wt->getArray(&wvals);
       zw->getArray(&zwvals);
       bsw->getArray(&bswvals);
       
@@ -1134,17 +1134,17 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc,
     // Add the following term: wt -= Aw*C^{-1}*d
     pcon->addJacobian(-1.0, x, xt, wt);
 
-    // Compute wtemp <- Cw^{-1}*wt
+    // Compute wt <- Cw^{-1}*wt
     applyCwFactor(wt);
   }
 
-  // Now, compute yz = bc + Z^{-1}*bs - A*C^{-1}*d - Ew^{T}*wtemp
+  // Now, compute yz = bc + Z^{-1}*bs - A*C^{-1}*d - Ew^{T}*wt
   memset(yz, 0, ncon*sizeof(double));
 
   // Compute the contribution from the weighing constraints
   if (nwcon > 0){
     double *wvals;
-    int size = wtemp->getArray(&wvals);
+    int size = wt->getArray(&wvals);
     for ( int i = 0; i < ncon; i++ ){
       int one = 1;
       double *ewvals;
@@ -1168,10 +1168,8 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc,
     }
 
     for ( int k = remainder; k < nvars; k += 4 ){
-      ydot += (avals[0]*dvals[0] + 
-	       avals[1]*dvals[1] +
-	       avals[2]*dvals[2] + 
-	       avals[3]*dvals[3]);
+      ydot += (avals[0]*dvals[0] + avals[1]*dvals[1] +
+	       avals[2]*dvals[2] + avals[3]*dvals[3]);
       avals += 4; dvals += 4;
     }
 
@@ -1316,24 +1314,26 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
 				 ParOptVec *yzl, ParOptVec *yzu,
 				 ParOptVec *xt, ParOptVec *wt ){
   // Compute the terms from the weighting constraints
-  if (nwcon > 0){
-    // Compute xt = C^{-1}*bx
-    double *bxvals, *dvals, *cvals;
-    bx->getArray(&bxvals);
-    xt->getArray(&dvals);
-    Cvec->getArray(&cvals);
-    for ( int i = 0; i < nvars; i++ ){
-      dvals[i] = cvals[i]*bxvals[i];
-    }
+  // Compute xt = C^{-1}*bx
+  double *bxvals, *dvals, *cvals;
+  bx->getArray(&bxvals);
+  xt->getArray(&dvals);
+  Cvec->getArray(&cvals);
+  for ( int i = 0; i < nvars; i++ ){
+    dvals[i] = cvals[i]*bxvals[i];
+  }
 
-    // Compute wtemp = -Aw*C^{-1}*bx
+  // Compute the terms from the weighting constraints
+  if (nwcon > 0){
+    // Compute wt = -Aw*C^{-1}*bx
+    wt->zeroEntries();
     pcon->addJacobian(-1.0, x, xt, wt);
 
-    // Compute wtemp <- Cw^{-1}*Aw*C^{-1}*bx
+    // Compute wt <- Cw^{-1}*Aw*C^{-1}*bx
     applyCwFactor(wt);
   }
 
-  // Now, compute yz = - A*C0^{-1}*bx - Ew^{T}*wtemp
+  // Now, compute yz = - A*C0^{-1}*bx - Ew^{T}*wt
   memset(yz, 0, ncon*sizeof(double));
 
   // Compute the contribution from the weighing constraints
@@ -1351,7 +1351,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   // Compute the contribution from each processor
   // to the term yz <- yz - A*C^{-1}*d
   for ( int i = 0; i < ncon; i++ ){
-    double *dvals, *avals;
+    double *avals;
     xt->getArray(&dvals);
     Ac[i]->getArray(&avals);
 
@@ -1444,7 +1444,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   }
 
   // Apply the factor C^{-1}*(A^{T}*yz + Aw^{T}*yzw)
-  double *yxvals, *cvals;
+  double *yxvals;
   yx->getArray(&yxvals);
   Cvec->getArray(&cvals);
   for ( int i = 0; i < nvars; i++ ){
@@ -1491,20 +1491,22 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
 				 double *zt, 
 				 ParOptVec *xt, ParOptVec *wt ){
   // Compute the terms from the weighting constraints
+  // Compute xt = C^{-1}*bx
+  double *bxvals, *dvals, *cvals;
+  bx->getArray(&bxvals);
+  xt->getArray(&dvals);
+  Cvec->getArray(&cvals);
+  for ( int i = 0; i < nvars; i++ ){
+    dvals[i] = cvals[i]*bxvals[i];
+  }
+  
+  // Compute the contribution from the weighting constraints
   if (nwcon > 0){
-    // Compute xt = C^{-1}*bx
-    double *bxvals, *dvals, *cvals;
-    bx->getArray(&bxvals);
-    xt->getArray(&dvals);
-    Cvec->getArray(&cvals);
-    for ( int i = 0; i < nvars; i++ ){
-      dvals[i] = cvals[i]*bxvals[i];
-    }
-
-    // Compute wtemp = -Aw*C^{-1}*bx
+    // Compute wt = -Aw*C^{-1}*bx
+    wt->zeroEntries();
     pcon->addJacobian(-1.0, x, xt, wt);
 
-    // Compute wtemp <- Cw^{-1}*Aw*C^{-1}*bx
+    // Compute wt <- Cw^{-1}*Aw*C^{-1}*bx
     applyCwFactor(wt);
   }
 
@@ -1519,14 +1521,14 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
       int one = 1;
       double *ewvals;
       Ew[i]->getArray(&ewvals);
-      ztemp[i] = BLASddot(&size, wvals, &one, ewvals, &one);
+      zt[i] = BLASddot(&size, wvals, &one, ewvals, &one);
     }
   }
 
   // Compute the contribution from each processor
   // to the term yz <- yz - A*C^{-1}*d
   for ( int i = 0; i < ncon; i++ ){
-    double *dvals, *avals;
+    double *avals;
     xt->getArray(&dvals);
     Ac[i]->getArray(&avals);
 
@@ -1572,14 +1574,14 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
   MPI_Bcast(zt, ncon, MPI_DOUBLE, opt_root, comm);
 
   if (nwcon > 0){
-    // Compute yw = -Cw^{-1}*(Ew*yz + Aw*C^{-1}*bx)
-    // First set yw <- - Ew*yz
+    // Compute wt = -Cw^{-1}*(Ew*yz + Aw*C^{-1}*bx)
+    // First set wt <- - Ew*yz
     wt->zeroEntries();
     for ( int i = 0; i < ncon; i++ ){
       wt->axpy(-zt[i], Ew[i]);
     }
 
-    // Compute yzw <- Cw^{-1}*(yzw - Aw*C^{-1}*d);
+    // Compute yzw <- - Cw^{-1}*Aw*C^{-1}*d);
     pcon->addJacobian(-1.0, x, xt, wt);
     applyCwFactor(wt);
   }
@@ -1597,7 +1599,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
   }
 
   // Apply the factor C^{-1}*(A^{T}*zt + Aw^{T}*wt)
-  double *yxvals, *cvals;
+  double *yxvals;
   yx->getArray(&yxvals);
   Cvec->getArray(&cvals);
   for ( int i = 0; i < nvars; i++ ){
@@ -2268,7 +2270,6 @@ int ParOpt::lineSearch( double * _alpha,
   }
 
   // Set the new values of the variables
-  x->axpy(alpha, px);
   if (pcon->inequality()){
     sw->axpy(alpha, psw);
   }
@@ -2289,7 +2290,17 @@ int ParOpt::lineSearch( double * _alpha,
     for ( int i = 0; i < ncon; i++ ){
       y_qn->axpy(z[i], Ac[i]);
     }
+
+    // Add the term: Aw^{T}*zw
+    if (nwcon > 0){
+      pcon->addJacobianTranspose(1.0, x, zw, y_qn);
+    }
   }
+
+  // Apply the step to the design variables only
+  // after computing the contribution of the constraint
+  // Jacobian to the BFGS update
+  x->axpy(alpha, px);
 
   // Evaluate the derivative
   int fail_gobj = prob->evalObjConGradient(rx, g, Ac);
@@ -2305,6 +2316,11 @@ int ParOpt::lineSearch( double * _alpha,
     y_qn->axpy(1.0, g);
     for ( int i = 0; i < ncon; i++ ){
       y_qn->axpy(-z[i], Ac[i]);
+    }
+	 
+    // Add the term: -Aw^{T}*zw
+    if (nwcon > 0){
+      pcon->addJacobianTranspose(-1.0, x, zw, y_qn);
     }
   }
   
@@ -2561,6 +2577,11 @@ int ParOpt::optimize( const char * checkpoint ){
       rho_penalty_search = 0.0;
     }
 
+    // Note that at this stage, we use s_qn and y_qn as 
+    // temporary arrays to help compute the KKT step. After
+    // the KKT step is computed, we use them to store the
+    // change in variables/gradient for the BFGS update.
+
     // Set up the KKT diagonal system
     setUpKKTDiagSystem(s_qn, wtemp);
 
@@ -2652,14 +2673,15 @@ int ParOpt::optimize( const char * checkpoint ){
       // The directional derivative is so small that we apply the
       // full step, regardless
       if (dm0 > -abs_res_tol*abs_res_tol){
-	// Apply the full step
+	// Apply the full step to the Lagrange multipliers and
+	// slack variables
 	alpha = 1.0;
 	zw->axpy(alpha, pzw);
-	zl->axpy(alpha, pzl);
-	zu->axpy(alpha, pzu);
 	if (pcon->inequality()){
 	  sw->axpy(alpha, psw);
 	}
+	zl->axpy(alpha, pzl);
+	zu->axpy(alpha, pzu);
 
 	for ( int i = 0; i < ncon; i++ ){
 	  s[i] += alpha*ps[i];
@@ -2676,7 +2698,9 @@ int ParOpt::optimize( const char * checkpoint ){
 	  }
 
 	  // Add the term: Aw^{T}*zw
-	  pcon->addJacobianTranspose(1.0, x, zw, y_qn);
+	  if (nwcon > 0){
+	    pcon->addJacobianTranspose(1.0, x, zw, y_qn);
+	  }
 	}
 
 	// Update x here so that we don't impact
@@ -2705,6 +2729,11 @@ int ParOpt::optimize( const char * checkpoint ){
 	  for ( int i = 0; i < ncon; i++ ){
 	    y_qn->axpy(-z[i], Ac[i]);
 	  }
+
+	  // Add the term: -Aw^{T}*zw
+	  if (nwcon > 0){
+	    pcon->addJacobianTranspose(-1.0, x, zw, y_qn);
+	  }	  
 	}
       }
       else {
@@ -2716,8 +2745,8 @@ int ParOpt::optimize( const char * checkpoint ){
       dm0_prev = dm0;
     }
     else {
-      // Apply the full step
-      x->axpy(alpha, px);
+      // Apply the full step to the Lagrange multipliers and
+      // slack varaibles
       if (pcon->inequality()){
 	sw->axpy(alpha, psw);
       }
@@ -2738,7 +2767,17 @@ int ParOpt::optimize( const char * checkpoint ){
 	for ( int i = 0; i < ncon; i++ ){
 	  y_qn->axpy(z[i], Ac[i]);
 	}
+
+	// Add the term: Aw^{T}*zw
+	if (nwcon > 0){
+	  pcon->addJacobianTranspose(1.0, x, zw, y_qn);
+	}
       }
+
+      // Apply the step to the design variables only
+      // after computing the contribution of the constraint
+      // Jacobian to the BFGS update
+      x->axpy(alpha, px);
 
       // Evaluate the objective, constraint and their gradients at the
       // current values of the design variables
@@ -2761,6 +2800,11 @@ int ParOpt::optimize( const char * checkpoint ){
 	y_qn->axpy(1.0, g);
 	for ( int i = 0; i < ncon; i++ ){
 	  y_qn->axpy(-z[i], Ac[i]);
+	}
+	 
+	// Add the term: -Aw^{T}*zw
+	if (nwcon > 0){
+	  pcon->addJacobianTranspose(-1.0, x, zw, y_qn);
 	}
       }
     }
