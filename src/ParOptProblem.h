@@ -87,4 +87,103 @@ class ParOptProblem {
   int nvars, ncon;
 };
 
+/*
+  The following class defines the sparse constraints that can be used
+  during the optimization.  
+
+  The following class implements a series of sparse constraints.
+
+*/
+class ParOptConstraint {
+ public:
+  ParOptConstraint( int _nwcon, int _nwstart, 
+		    int _nw, int _nwskip ){
+    nwcon = _nwcon;
+    nwstart = _nwstart;
+    nw = _nw;
+    nwskip = _nwskip;
+  }
+
+  // Function to indicate whether the constraints are inequalities
+  // -------------------------------------------------------------
+  virtual int inequality(){
+    return 0;
+  }
+
+  // Get the number of constriaints on this processor
+  // ------------------------------------------------
+  virtual int getNumConstraints(){
+    return nwcon;
+  }
+
+  // Return the block size of the problem
+  // ------------------------------------
+  virtual int getBlockSize(){
+    return 1;
+  }
+
+  // Evaluate the constraints
+  // ------------------------
+  virtual void evalCon( ParOptVec *x, ParOptVec *out ){
+    double *xvals, *outvals; 
+    x->getArray(&xvals);
+    out->getArray(&outvals);
+
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
+      outvals[i] = 1.0;
+      for ( int k = 0; k < nw; k++, j++ ){
+	outvals[i] -= xvals[j];
+      }
+    }
+  }
+  
+  // Compute the Jacobian-vector product out = J(x)*px
+  // --------------------------------------------------
+  virtual void addJacobian( double alpha, ParOptVec *x,
+			    ParOptVec *px, ParOptVec *out ){
+    double *pxvals, *outvals; 
+    px->getArray(&pxvals);
+    out->getArray(&outvals);
+
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
+      for ( int k = 0; k < nw; k++, j++ ){
+	outvals[i] += alpha*pxvals[j];
+      }
+    }
+  }
+
+  // Compute the transpose Jacobian-vector product out = J(x)^{T}*pzw
+  // -----------------------------------------------------------------
+  virtual void addJacobianTranspose( double alpha, ParOptVec *x,
+				     ParOptVec *pzw, ParOptVec *out ){
+    double *outvals, *pzwvals;
+    out->getArray(&outvals);
+    pzw->getArray(&pzwvals);
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
+      for ( int k = 0; k < nw; k++, j++ ){
+	outvals[j] += alpha*pzwvals[i];
+      }
+    }
+  }
+
+  // Add the inner product of the constraints to the matrix such 
+  // that A += As*cvec*As where cvec is a diagonal matrix
+  // ------------------------------------------------------
+  virtual void addInnerProduct( double alpha, ParOptVec *x,
+				ParOptVec *cvec, double *A ){
+    double *cvals;
+    cvec->getArray(&cvals);
+
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
+      for ( int k = 0; k < nw; k++, j++ ){
+	A[i] += alpha*cvals[j];
+      }
+    }
+  }
+
+ private:
+  int nwcon;
+  int nwstart, nw, nwskip;
+};
+
 #endif

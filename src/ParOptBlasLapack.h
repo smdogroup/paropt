@@ -20,11 +20,18 @@ extern "C" {
   extern void BLASdaxpy( int *n, double *a, double *x, int *incx, 
 			 double *y, int *incy );
   extern void BLASdscal( int *n, double *a, double *x, int *incx );
+  
+  // General factorization routines
   extern void LAPACKdgetrf( int *m, int *n, 
 			    double *a, int *lda, int *ipiv, int * info );
   extern void LAPACKdgetrs( const char *c, int *n, int *nrhs, 
 			    double *a, int *lda, int *ipiv, 
 			    double *b, int *ldb, int *info );
+  
+  // Factorization of packed-storage matrices
+  extern void LAPACKdpptrf( const char *c, int *n, double *ap, int *info );
+  extern void LAPACKdpptrs( const char *c, int *n, int *nrhs,
+			    double *ap, double *rhs, int *ldrhs, int *info );
 }
 
 #endif

@@ -30,9 +30,10 @@
   conditions for this problem are:
 
   g(x) - A(x)^{T}*z - Aw^{T}*zw - zl + zu = 0
-  Aw*x - e = 0
   c(x) - s = 0
+  cw(x) - sw = 0
   S*z - mu*e = 0
+  Sw*zw - mu*e = 0
   (X - Xl)*zl - mu*e = 0
   (Xu - X)*zu - mu*e = 0
 
@@ -55,12 +56,13 @@
 
   The KKT system can be written as follows:
   
-  [  B   -Aw^{T} -Ac^{T}  0  -I         I        ][ px  ]
-  [  Aw   0       0       0   0         0        ][ pzw ]
-  [  Ac   0       0      -I   0         0        ][ pz  ] = -r
-  [  0    0       S       Z   0         0        ][ ps  ]
-  [  Zl   0       0       0   (X - Xl)  0        ][ pzl ]
-  [ -Zu   0       0       0   0         (Xu - X) ][ pzu ]
+  [  B   -Aw^{T} -Ac^{T}  0   0  -I         I        ][ px  ]
+  [  Ac   0       0      -I   0   0         0        ][ pz  ]
+  [  Aw   0       0       0  -I   0         0        ][ pzw ]
+  [  0    0       S       Z   0   0         0        ][ ps  ] = -r
+  [  0   Sw       0       0  Zw   0         0        ][ psw ]
+  [  Zl   0       0       0   0   (X - Xl)  0        ][ pzl ]
+  [ -Zu   0       0       0   0   0         (Xu - X) ][ pzu ]
 
   where B is a quasi-Newton Hessian approximation. This approximation
   takes the form:
@@ -70,8 +72,8 @@
 
 class ParOpt {
  public:
-  ParOpt( ParOptProblem *_prob, int _nwcon,
-	  int _nwstart, int _nw, int _nwskip,
+  ParOpt( ParOptProblem *_prob, 
+	  ParOptConstraint *_pcon,
 	  int _max_lbfgs_subspace );
   ~ParOpt();
 
@@ -114,6 +116,11 @@ class ParOpt {
   int readSolutionFile( const char * filename );
 
  private:
+  // Factor/apply the Cw matrix
+  // --------------------------
+  int factorCw();
+  int applyCwFactor( ParOptVec *vec );
+
   // Compute the negative of the KKT residuals - return
   // the maximum primal, dual residuals and the max infeasibility
   void computeKKTRes( double * max_prime,
@@ -121,31 +128,41 @@ class ParOpt {
 		      double * max_infeas );
 
   // Set up the diagonal KKT system
-  void setUpKKTDiagSystem();
+  void setUpKKTDiagSystem( ParOptVec *xt, ParOptVec *wt );
 
   // Solve the diagonal KKT system
   void solveKKTDiagSystem( ParOptVec *bx, double *bc, 
-			   ParOptVec *bw, double *bs,
+			   ParOptVec *bcw, double *bs,
+			   ParOptVec *bsw,
 			   ParOptVec *bzl, ParOptVec *bzu,
 			   ParOptVec *yx, double *yz, 
-			   ParOptVec *yw, double *ys,
-			   ParOptVec *yzl, ParOptVec *yzu );
-
+			   ParOptVec *yzw, double *ys,
+			   ParOptVec *ysw,
+			   ParOptVec *yzl, ParOptVec *yzu,
+			   ParOptVec *xt, ParOptVec *wt );
+  
   // Solve the diagonal KKT system with a specific RHS structure
   void solveKKTDiagSystem( ParOptVec *bx, 
 			   ParOptVec *yx, double *yz, 
-			   ParOptVec *yw, double *ys,
-			   ParOptVec *yzl, ParOptVec *yzu );
+			   ParOptVec *yzw, double *ys,
+			   ParOptVec *ysw,
+			   ParOptVec *yzl, ParOptVec *yzu,
+			   ParOptVec *xt, ParOptVec *wt );
 
   // Solve the diagonal KKT system but only return the components
   // corresponding to the design variables
-  void solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx );
+  void solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
+			   double *zt,
+			   ParOptVec *xt, ParOptVec *wt );
 
   // Set up the full KKT system
-  void setUpKKTSystem();
+  void setUpKKTSystem( double *zt, 
+		       ParOptVec *xt1, ParOptVec *xt2,
+		       ParOptVec *wt );
 
   // Solve for the KKT step
-  void computeKKTStep();
+  void computeKKTStep( double *zt, ParOptVec *xt1, 
+		       ParOptVec *xt2, ParOptVec *wt );
 
   // Check that the KKT step is computed correctly
   void checkKKTStep();
@@ -160,7 +177,8 @@ class ParOpt {
 		  double m0, double dm0 );
 
   // Evaluate the merit function
-  double evalMeritFunc( ParOptVec *xk, double *sk );
+  double evalMeritFunc( ParOptVec *xk, double *sk, 
+			ParOptVec *swk );
 
   // Evaluate the merit function, its derivative and the new penalty
   // parameter
@@ -175,8 +193,9 @@ class ParOpt {
   // Check the step
   void checkStep();
 
-  // The parallel optimizer problem
+  // The parallel optimizer problem and constraints
   ParOptProblem * prob;
+  ParOptConstraint * pcon;
 
   // Communicator info
   MPI_Comm comm;
@@ -187,33 +206,36 @@ class ParOpt {
   int nvars_total; // The total number of variables
   int ncon; // The number of inequality constraints in the problem
   int nwcon; // The number of specially constructed weighting constraints
-  int nw, nwskip, nwstart; // Parameters for the weighting constraints
+  int nwblock; // The nuber of constraints per block
 
   // Temporary vectors for internal usage
-  ParOptVec *xtemp, *wtemp;
+  ParOptVec *wtemp;
   double *ztemp;
 
   // The variables in the optimization problem
-  ParOptVec *x, *zl, *zu, *zw;
+  ParOptVec *x, *zl, *zu, *zw, *sw;
   double *z, *s;
 
   // The lower/upper bounds on the variables
   ParOptVec *lb, *ub;
 
   // The steps in the variables
-  ParOptVec *px, *pzl, *pzu, *pzw;
+  ParOptVec *px, *pzl, *pzu, *pzw, *psw;
   double *pz, *ps;
 
   // The residuals
-  ParOptVec *rx, *rzl, *rzu, *rw;
+  ParOptVec *rx, *rzl, *rzu, *rcw, *rsw;
   double *rc, *rs;
 
   // The objective, gradient, constraints, and constraint gradients
   double fobj, *c;
   ParOptVec *g, **Ac;
 
+  // The data for the block-diagonal matrix
+  double *Cw;
+
   // Data required for solving the KKT system
-  ParOptVec *Cvec, *Cwvec;
+  ParOptVec *Cvec;
   ParOptVec **Ew;
   double *Dmat, *Ce;
   int *dpiv, *cpiv;
