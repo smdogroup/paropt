@@ -103,13 +103,13 @@ int main( int argc, char* argv[] ){
   int nvars = 100;
   Rosenbrock * rosen = new Rosenbrock(MPI_COMM_WORLD, nvars-1);
   
+  // Set up the constraints
+  int nwcon = 5, nw = 5;
+  int nwstart = 1, nwskip = 1;
+  ParOptConstraint * pcon = new ParOptWeightConstraint(nwcon, nwstart, nw, nwskip);
+  
   // Allocate the optimizer
   int max_lbfgs = 50;
-  int nwcon = 5;
-  int nw = 5;
-  int nwstart = 1;
-  int nwskip = 1;
-  ParOptConstraint * pcon = new ParOptConstraint(nwcon, nwstart, nw, nwskip);
   ParOpt * opt = new ParOpt(rosen, pcon, max_lbfgs);
   
   // opt->setMajorIterStepCheck(10);
