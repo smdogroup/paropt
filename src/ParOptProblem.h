@@ -107,7 +107,7 @@ class ParOptConstraint {
   // Function to indicate whether the constraints are inequalities
   // -------------------------------------------------------------
   virtual int inequality(){
-    return 0;
+    return 1;
   }
 
   // Get the number of constriaints on this processor
@@ -147,7 +147,7 @@ class ParOptConstraint {
 
     for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
       for ( int k = 0; k < nw; k++, j++ ){
-	outvals[i] += alpha*pxvals[j];
+	outvals[i] -= alpha*pxvals[j];
       }
     }
   }
@@ -161,7 +161,7 @@ class ParOptConstraint {
     pzw->getArray(&pzwvals);
     for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
       for ( int k = 0; k < nw; k++, j++ ){
-	outvals[j] += alpha*pzwvals[i];
+	outvals[j] -= alpha*pzwvals[i];
       }
     }
   }

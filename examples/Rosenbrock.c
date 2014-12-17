@@ -57,7 +57,7 @@ class Rosenbrock : public ParOptProblem {
 
     int size; 
     MPI_Comm_size(comm, &size);
-    cons[0] += 20*size*nvars;
+    cons[0] += 100*size*nvars;
 
     cons[0] *= scale;
     cons[1] *= scale;
@@ -105,18 +105,16 @@ int main( int argc, char* argv[] ){
   
   // Allocate the optimizer
   int max_lbfgs = 50;
-  int nwcon = 0;
+  int nwcon = 5;
   int nw = 5;
   int nwstart = 1;
   int nwskip = 1;
   ParOptConstraint * pcon = new ParOptConstraint(nwcon, nwstart, nw, nwskip);
   ParOpt * opt = new ParOpt(rosen, pcon, max_lbfgs);
   
+  // opt->setMajorIterStepCheck(10);
+  opt->setMaxMajorIterations(50);
   // opt->checkGradients(1e-6);
-  // opt->setMajorIterStepCheck(29);
-  opt->setMajorIterStepCheck(10);
-  opt->setSequentialLinearMethod(0);
-  opt->setMaxMajorIterations(1000);
   opt->optimize();
 
   delete rosen;

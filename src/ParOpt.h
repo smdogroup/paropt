@@ -275,6 +275,9 @@ class ParOpt {
 
   // Check the step at this major iteration - for debugging
   int major_iter_step_check;
+  
+  // The step length for the merit function derivative test
+  double merit_func_check_epsilon;
 
   // Flag to indicate whether to use a sequential linear programming
   // approach, completely discarding the quasi-Newton approximation

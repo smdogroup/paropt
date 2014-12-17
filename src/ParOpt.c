@@ -165,7 +165,7 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   wtemp = new ParOptVec(comm, nwcon);
 
   // Allocate space for the block-diagonal matrix
-  Cw = new double[ nwcon*(nwblock+1) ];
+  Cw = new double[ nwcon*(nwblock+1)/2 ];
 
   // Allocate space for off-diagonal entries
   Ew = new ParOptVec*[ ncon ];
@@ -223,6 +223,7 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   major_iter_step_check = -1;
   sequential_linear_method = 0;
   hessian_reset_freq = 100000000;
+  merit_func_check_epsilon = 1e-6;
 
   // By default, set the file pointer to stdout
   outfp = stdout;
@@ -681,6 +682,7 @@ void ParOpt::computeKKTRes( double * max_prime,
   if (pcon->inequality()){
     rcw->axpy(-1.0, sw);
   }
+  rcw->scale(-1.0);
 
   // Compute the error in the first KKT condition
   *max_prime = rx->maxabs();
@@ -727,6 +729,24 @@ void ParOpt::computeKKTRes( double * max_prime,
   if (dual_zu > *max_dual){
     *max_dual = dual_zu;
   }
+
+  if (pcon->inequality()){
+    // Set the values of the perturbed complementarity
+    // constraints for the sparse slack variables
+    double *zwvals, *swvals, *rswvals;
+    zw->getArray(&zwvals);
+    sw->getArray(&swvals);
+    rsw->getArray(&rswvals);
+    
+    for ( int i = 0; i < nwcon; i++ ){
+      rswvals[i] = -(swvals[i]*zwvals[i] - barrier_param);
+    }
+    
+    double dual_zw = rsw->maxabs();
+    if (dual_zw > *max_dual){
+      *max_dual = dual_zw;
+    }
+  }
 }
 
 /*
@@ -736,11 +756,11 @@ int ParOpt::factorCw(){
   if (nwblock == 1){
     for ( int i = 0; i < nwcon; i++ ){
       // Compute and store Cw^{-1}
-      if (Cw[i] != 0.0){
-	Cw[i] = 1.0/Cw[i];
+      if (Cw[i] == 0.0){
+	return 1;
       }
       else {
-	return 1;
+	Cw[i] = 1.0/Cw[i];
       }
     }
   }
@@ -773,7 +793,7 @@ int ParOpt::applyCwFactor( ParOptVec *vec ){
   
   if (nwblock == 1){
     for ( int i = 0; i < nwcon; i++ ){
-      rhs[i] = Cw[i]*rhs[i];
+      rhs[i] *= Cw[i];
     }
   }
   else {
@@ -828,6 +848,14 @@ int ParOpt::applyCwFactor( ParOptVec *vec ){
 */
 void ParOpt::setUpKKTDiagSystem( ParOptVec * xt,
 				 ParOptVec * wt ){ 
+  // Retrive the diagonal entry for the BFGS update
+  double b0 = 0.0;
+  if (!sequential_linear_method){
+    const double *d, *M;
+    ParOptVec **Z;
+    qn->getLBFGSMat(&b0, &d, &M, &Z);
+  }
+
   // Retrieve the values of the design variables, lower/upper bounds
   // and the corresponding lagrange multipliers
   double *xvals, *lbvals, *ubvals, *zlvals, *zuvals;
@@ -836,14 +864,6 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec * xt,
   ub->getArray(&ubvals);
   zl->getArray(&zlvals);
   zu->getArray(&zuvals);
-
-  // Retrive the diagonal entry for the BFGS update
-  double b0 = 0.0;
-  if (!sequential_linear_method){
-    const double *d, *M;
-    ParOptVec **Z;
-    qn->getLBFGSMat(&b0, &d, &M, &Z);
-  }
 
   // Set the components of the diagonal matrix 
   double *cvals;
@@ -858,7 +878,7 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec * xt,
 
   if (nwcon > 0){
     // Set the values in the Cw diagonal matrix
-    memset(Cw, 0, nwcon*(nwblock+1)*sizeof(double));
+    memset(Cw, 0, nwcon*(nwblock+1)/2*sizeof(double));
     
     // Compute Cw = Zw^{-1}*Sw + Aw*C^{-1}*Aw
     // First compute Cw = Zw^{-1}*Sw
@@ -930,7 +950,8 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec * xt,
 	// Get the vectors required
 	double *wvals, *ewivals;
 	Ew[i]->getArray(&ewivals);
-	
+	wt->getArray(&wvals);
+
 	double dmat = 0.0;
 	int k = 0;
 	int remainder = nwcon % 4;
@@ -940,10 +961,8 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec * xt,
 	}
 	
 	for ( int k = remainder; k < nwcon; k += 4 ){
-	  dmat += (ewivals[0]*wvals[0] +
-		   ewivals[1]*wvals[1] +
-		   ewivals[2]*wvals[2] +
-		   ewivals[3]*wvals[3]);
+	  dmat += (ewivals[0]*wvals[0] + ewivals[1]*wvals[1] +
+		   ewivals[2]*wvals[2] + ewivals[3]*wvals[3]);
 	  ewivals += 4; wvals += 4;
 	}
 	
@@ -1030,7 +1049,7 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec * xt,
   
   B0*yx - A^{T}*yz - Aw^{T}*yzw - yzl + yzu = bx
   A*yx - ys = bc
-  Aw*yx = bw
+  Aw*yx - ysw = bw
 
   With the additional equations:
 
@@ -1247,7 +1266,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc,
       ysw->getArray(&yswvals);
       bsw->getArray(&bswvals);
 
-      // Compute yzw = Zw^{-1}*(bsw - Sw*yzw)
+      // Compute ysw = Zw^{-1}*(bsw - Sw*yzw)
       for ( int i = 0; i < nwcon; i++ ){
 	yswvals[i] = (bswvals[i] - swvals[i]*yzwvals[i])/zwvals[i];
       }
@@ -1906,6 +1925,34 @@ void ParOpt::computeMaxStep( double tau,
     }
   }
 
+  // Check the Lagrange and slack variable steps for the
+  // sparse inequalities if any
+  if (pcon->inequality()){
+    double *zwvals, *pzwvals;
+    zw->getArray(&zwvals);
+    pzw->getArray(&pzwvals);
+    for ( int i = 0; i < nwcon; i++ ){
+      if (pzwvals[i] < 0.0){
+	double alpha = -tau*zwvals[i]/pzwvals[i];
+	if (alpha < max_z){
+	  max_z = alpha;
+	}
+      }
+    }
+
+    double *swvals, *pswvals;
+    sw->getArray(&swvals);
+    psw->getArray(&pswvals);
+    for ( int i = 0; i < nwcon; i++ ){
+      if (pswvals[i] < 0.0){
+	double alpha = -tau*swvals[i]/pswvals[i];
+	if (alpha < max_x){
+	  max_x = alpha;
+	}
+      }
+    }
+  }
+
   // Retrieve the values of the lower/upper Lagrange multipliers
   double *zlvals, *zuvals, *pzlvals, *pzuvals;
   zl->getArray(&zlvals);
@@ -1985,8 +2032,24 @@ double ParOpt::evalMeritFunc( ParOptVec *xk, double *sk,
     }
   }
 
+  // Add the contributions to the log-barrier terms from
+  // weighted-sum sparse constraints
+  if (nwcon > 0 && pcon->inequality()){
+    double *swvals;
+    swk->getArray(&swvals);
+
+    for ( int i = 0; i < nwcon; i++ ){
+      if (swvals[i] > 1.0){
+	pos_result += log(swvals[i]);
+      }
+      else {
+	neg_result += log(swvals[i]);
+      }
+    }
+  }
+
   // Compute the norm of the weight constraint infeasibility
-  pcon->evalCon(x, wtemp);
+  pcon->evalCon(xk, wtemp);
   if (pcon->inequality()){
     wtemp->axpy(-1.0, swk);
   }
@@ -2024,8 +2087,8 @@ double ParOpt::evalMeritFunc( ParOptVec *xk, double *sk,
     for ( int i = 0; i < ncon; i++ ){
       infeas += (c[i] - sk[i])*(c[i] - sk[i]);
     }
-    infeas = sqrt(infeas) + sqrt(weight_infeas);
-
+    infeas = sqrt(infeas) + weight_infeas;
+    
     // Add the contribution from the constraints
     merit = (fobj - barrier_param*(pos_result + neg_result) +
 	     rho_penalty_search*infeas);
@@ -2089,6 +2152,30 @@ void ParOpt::evalMeritInitDeriv( double max_x,
     }
   }
 
+  // Add the contributions to the log-barrier terms from
+  // weighted-sum sparse constraints
+  if (nwcon > 0 && pcon->inequality()){
+    double *swvals, *pswvals;
+    sw->getArray(&swvals);
+    psw->getArray(&pswvals);
+
+    for ( int i = 0; i < nwcon; i++ ){
+      if (swvals[i] > 1.0){
+	pos_result += log(swvals[i]);
+      }
+      else {
+	neg_result += log(swvals[i]);
+      }
+
+      if (pswvals[i] > 0.0){
+	pos_presult += pswvals[i]/swvals[i]; 
+      }
+      else {
+	neg_presult += pswvals[i]/swvals[i];
+      }
+    }
+  }
+
   // Compute the norm of the weight constraint infeasibility
   pcon->evalCon(x, wtemp);
   if (pcon->inequality()){
@@ -2146,8 +2233,8 @@ void ParOpt::evalMeritInitDeriv( double max_x,
     for ( int i = 0; i < ncon; i++ ){
       infeas += (c[i] - s[i])*(c[i] - s[i]);
     }
-    infeas = sqrt(infeas) + sqrt(weight_infeas);
-
+    infeas = sqrt(infeas) + weight_infeas;
+    
     // Compute the numerator term
     double numer = proj - barrier_param*(pos_presult + neg_presult);
     
@@ -2169,11 +2256,11 @@ void ParOpt::evalMeritInitDeriv( double max_x,
 	rho_penalty_search = rho_hat;
       }
     }
-    
+
     // Now, evaluate the merit function and its derivative
     // based on the new value of the penalty parameter
     merit = (fobj - barrier_param*(pos_result + neg_result) + 
-	     rho_penalty_search*infeas);
+    	     rho_penalty_search*infeas);
     pmerit = numer - rho_penalty_search*max_x*infeas;
   }
 
@@ -2406,6 +2493,11 @@ int ParOpt::optimize( const char * checkpoint ){
     return fail_obj;
   }
 
+  // Assign initial multipliers
+  for ( int i = 0; i < ncon; i++ ){
+    z[i] = 1.0;
+  }
+
   // Find an initial estimate of the Lagrange multipliers for the
   // inequality constraints
   if (init_starting_point){
@@ -2434,20 +2526,13 @@ int ParOpt::optimize( const char * checkpoint ){
       int one = 1;
       LAPACKdgetrs("N", &ncon, &one, Dmat, &ncon, dpiv,
 		   z, &ncon, &info);
-    }
-    else {
-      // The system cannot be solved, just assign positive
-      // initial multipliers
-      for ( int i = 0; i < ncon; i++ ){
-	z[i] = 1.0;
-      }
-    }
 
-    // Keep the Lagrange multipliers if they are within 
-    // a reasonable range and they are positive.
-    for ( int i = 0; i < ncon; i++ ){
-      if (z[i] < 0.01 || z[i] > 100.0){
-	z[i] = 1.0;
+      // Keep the Lagrange multipliers if they are within 
+      // a reasonable range and they are positive.
+      for ( int i = 0; i < ncon; i++ ){
+	if (z[i] < 0.01 || z[i] > 100.0){
+	  z[i] = 1.0;
+	}
       }
     }
   }
@@ -2641,6 +2726,9 @@ int ParOpt::optimize( const char * checkpoint ){
 
     // Scale the steps by the maximum permissible step lengths
     px->scale(max_x);
+    if (pcon->inequality()){
+      psw->scale(max_x);
+    }
     pzw->scale(max_z);
     pzl->scale(max_z);
     pzu->scale(max_z);
@@ -2669,6 +2757,34 @@ int ParOpt::optimize( const char * checkpoint ){
       // derivative and a new value for the penalty parameter
       double m0, dm0;
       evalMeritInitDeriv(max_x, &m0, &dm0);
+
+      // Check that the merit function derivative is
+      // correct and print the derivative to the screen on the
+      // optimization-root processor
+      if (k == major_iter_step_check){
+	double dh = merit_func_check_epsilon;
+	rx->copyValues(x);
+	rx->axpy(dh, px);
+	
+	for ( int i = 0; i < ncon; i++ ){
+	  rs[i] = s[i] + dh*ps[i];
+	}
+
+	if (pcon->inequality()){
+	  rsw->copyValues(sw);
+	  rsw->axpy(dh, psw);
+	}
+
+	prob->evalObjCon(rx, &fobj, c);
+	double m1 = evalMeritFunc(rx, rs, rsw);
+
+	if (rank == opt_root){
+	  double fd = (m1 - m0)/dh;
+	  printf("Merit function test\n");
+	  printf("dm FD: %15.8e  Actual: %15.8e  Err: %8.2e  Rel err: %8.2e\n",
+		 fd, dm0, fabs(fd - dm0), fabs((fd - dm0)/fd));
+	}
+      }
       
       // The directional derivative is so small that we apply the
       // full step, regardless
@@ -2961,6 +3077,7 @@ void ParOpt::checkKKTStep(){
 
   // Add the contributions from the constraint
   pcon->addJacobianTranspose(-1.0, x, zw, rx);
+  pcon->addJacobianTranspose(-1.0, x, pzw, rx);
 
   double max_val = rx->maxabs();
   
@@ -2970,7 +3087,6 @@ void ParOpt::checkKKTStep(){
   }
   
   // Compute the residuals from the weighting constraints
-  rcw->zeroEntries();
   pcon->evalCon(x, rcw);
   pcon->addJacobian(1.0, x, px, rcw);
   if (pcon->inequality()){
