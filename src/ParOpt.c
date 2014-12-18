@@ -55,13 +55,14 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   if (pcon){
     nwcon = _pcon->getNumConstraints();
     nwblock = pcon->getBlockSize();
+
+    if (nwcon % nwblock != 0){
+      fprintf(stderr, "Weighted block size inconsistent\n");
+    }
   }
   else {
     nwcon = 0;
     nwblock = 0;
-  }
-  if (nwcon % nwblock != 0){
-    fprintf(stderr, "Weighted block size inconsistent\n");
   }
 
   // Calculate the total number of variable across all processors
@@ -674,15 +675,17 @@ void ParOpt::computeKKTRes( double * max_prime,
     rx->axpy(z[i], Ac[i]);
   }
 
-  // Add rx = rx + Aw^{T}*zw
-  pcon->addJacobianTranspose(1.0, x, zw, rx);
-
-  // Compute the residuals from the weighting constraints
-  pcon->evalCon(x, rcw);
-  if (pcon->inequality()){
-    rcw->axpy(-1.0, sw);
+  if (nwcon > 0){
+    // Add rx = rx + Aw^{T}*zw
+    pcon->addJacobianTranspose(1.0, x, zw, rx);
+    
+    // Compute the residuals from the weighting constraints
+    pcon->evalCon(x, rcw);
+    if (pcon->inequality()){
+      rcw->axpy(-1.0, sw);
+    }
+    rcw->scale(-1.0);
   }
-  rcw->scale(-1.0);
 
   // Compute the error in the first KKT condition
   *max_prime = rx->maxabs();
@@ -730,7 +733,7 @@ void ParOpt::computeKKTRes( double * max_prime,
     *max_dual = dual_zu;
   }
 
-  if (pcon->inequality()){
+  if (nwcon > 0 && pcon->inequality()){
     // Set the values of the perturbed complementarity
     // constraints for the sparse slack variables
     double *zwvals, *swvals, *rswvals;
@@ -1927,7 +1930,7 @@ void ParOpt::computeMaxStep( double tau,
 
   // Check the Lagrange and slack variable steps for the
   // sparse inequalities if any
-  if (pcon->inequality()){
+  if (nwcon > 0 && pcon->inequality()){
     double *zwvals, *pzwvals;
     zw->getArray(&zwvals);
     pzw->getArray(&pzwvals);
@@ -2049,11 +2052,14 @@ double ParOpt::evalMeritFunc( ParOptVec *xk, double *sk,
   }
 
   // Compute the norm of the weight constraint infeasibility
-  pcon->evalCon(xk, wtemp);
-  if (pcon->inequality()){
-    wtemp->axpy(-1.0, swk);
+  double weight_infeas = 0.0;
+  if (nwcon > 0){
+    pcon->evalCon(xk, wtemp);
+    if (pcon->inequality()){
+      wtemp->axpy(-1.0, swk);
+    }
+    weight_infeas = wtemp->norm();
   }
-  double weight_infeas = wtemp->norm();
 
   // Sum up the result from all processors
   double input[2];
@@ -2177,11 +2183,14 @@ void ParOpt::evalMeritInitDeriv( double max_x,
   }
 
   // Compute the norm of the weight constraint infeasibility
-  pcon->evalCon(x, wtemp);
-  if (pcon->inequality()){
-    wtemp->axpy(-1.0, sw);
+  double weight_infeas = 0.0;
+  if (nwcon > 0){
+    pcon->evalCon(x, wtemp);
+    if (pcon->inequality()){
+      wtemp->axpy(-1.0, sw);
+    }
+    weight_infeas = wtemp->norm();
   }
-  double weight_infeas = wtemp->norm();
 
   // Sum up the result from all processors
   double input[4];
@@ -2304,7 +2313,7 @@ int ParOpt::lineSearch( double * _alpha,
     rx->axpy(alpha, px);
 
     // Set rcw = sw + alpha*psw
-    if (pcon->inequality()){
+    if (nwcon > 0 && pcon->inequality()){
       rsw->copyValues(sw);
       rsw->axpy(alpha, psw);
     }
@@ -2357,7 +2366,7 @@ int ParOpt::lineSearch( double * _alpha,
   }
 
   // Set the new values of the variables
-  if (pcon->inequality()){
+  if (nwcon > 0 && pcon->inequality()){
     sw->axpy(alpha, psw);
   }
   zw->axpy(alpha, pzw);
@@ -2726,7 +2735,7 @@ int ParOpt::optimize( const char * checkpoint ){
 
     // Scale the steps by the maximum permissible step lengths
     px->scale(max_x);
-    if (pcon->inequality()){
+    if (nwcon > 0 && pcon->inequality()){
       psw->scale(max_x);
     }
     pzw->scale(max_z);
@@ -2770,7 +2779,7 @@ int ParOpt::optimize( const char * checkpoint ){
 	  rs[i] = s[i] + dh*ps[i];
 	}
 
-	if (pcon->inequality()){
+	if (nwcon > 0 && pcon->inequality()){
 	  rsw->copyValues(sw);
 	  rsw->axpy(dh, psw);
 	}
@@ -2793,7 +2802,7 @@ int ParOpt::optimize( const char * checkpoint ){
 	// slack variables
 	alpha = 1.0;
 	zw->axpy(alpha, pzw);
-	if (pcon->inequality()){
+	if (nwcon > 0 && pcon->inequality()){
 	  sw->axpy(alpha, psw);
 	}
 	zl->axpy(alpha, pzl);
@@ -2863,7 +2872,7 @@ int ParOpt::optimize( const char * checkpoint ){
     else {
       // Apply the full step to the Lagrange multipliers and
       // slack varaibles
-      if (pcon->inequality()){
+      if (nwcon > 0 && pcon->inequality()){
 	sw->axpy(alpha, psw);
       }
       zw->axpy(alpha, pzw);
@@ -3076,9 +3085,10 @@ void ParOpt::checkKKTStep(){
   rx->axpy(1.0, zu);
 
   // Add the contributions from the constraint
-  pcon->addJacobianTranspose(-1.0, x, zw, rx);
-  pcon->addJacobianTranspose(-1.0, x, pzw, rx);
-
+  if (pcon){
+    pcon->addJacobianTranspose(-1.0, x, zw, rx);
+    pcon->addJacobianTranspose(-1.0, x, pzw, rx);
+  }
   double max_val = rx->maxabs();
   
   if (rank == opt_root){
@@ -3087,17 +3097,19 @@ void ParOpt::checkKKTStep(){
   }
   
   // Compute the residuals from the weighting constraints
-  pcon->evalCon(x, rcw);
-  pcon->addJacobian(1.0, x, px, rcw);
-  if (pcon->inequality()){
-    rcw->axpy(-1.0, sw);
-    rcw->axpy(-1.0, psw);
-  }
+  if (pcon){
+    pcon->evalCon(x, rcw);
+    pcon->addJacobian(1.0, x, px, rcw);
+    if (pcon->inequality()){
+      rcw->axpy(-1.0, sw);
+      rcw->axpy(-1.0, psw);
+    }
  
-  max_val = rcw->maxabs();
-
-  if (rank == opt_root){
-    printf("max |cw(x) - sw + Aw*pw - psw|: %10.4e\n", max_val);
+    max_val = rcw->maxabs();
+    
+    if (rank == opt_root){
+      printf("max |cw(x) - sw + Aw*pw - psw|: %10.4e\n", max_val);
+    }
   }
 
   // Find the maximum value of the residual equations

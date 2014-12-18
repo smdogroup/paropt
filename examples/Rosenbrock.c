@@ -110,10 +110,11 @@ int main( int argc, char* argv[] ){
   
   // Allocate the optimizer
   int max_lbfgs = 50;
-  ParOpt * opt = new ParOpt(rosen, pcon, max_lbfgs);
+  // ParOpt * opt = new ParOpt(rosen, pcon, max_lbfgs);
+  ParOpt * opt = new ParOpt(rosen, NULL, max_lbfgs);
   
   // opt->setMajorIterStepCheck(10);
-  opt->setMaxMajorIterations(50);
+  opt->setMaxMajorIterations(1500);
   // opt->checkGradients(1e-6);
   opt->optimize();
 

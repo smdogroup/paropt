@@ -124,8 +124,8 @@ class ParOptConstraint {
 				     ParOptVec *pzw, ParOptVec *out ) = 0;
 
   // Add the inner product of the constraints to the matrix such 
-  // that A += As*cvec*As where cvec is a diagonal matrix
-  // ------------------------------------------------------
+  // that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix
+  // ------------------------------------------------------------
   virtual void addInnerProduct( double alpha, ParOptVec *x,
 				ParOptVec *cvec, double *A ) = 0;
 };
@@ -208,8 +208,8 @@ class ParOptWeightConstraint : public ParOptConstraint {
   }
 
   // Add the inner product of the constraints to the matrix such 
-  // that A += As*cvec*As where cvec is a diagonal matrix
-  // ------------------------------------------------------
+  // that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix
+  // ------------------------------------------------------------
   void addInnerProduct( double alpha, ParOptVec *x,
 			ParOptVec *cvec, double *A ){
     double *cvals;
