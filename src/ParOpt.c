@@ -3030,6 +3030,112 @@ void ParOpt::checkGradients( double dh ){
 	     i, fd, rs[i], fabs(fd - rs[i]), fabs((fd - rs[i])/fd));
     }
   }
+
+  // Now, perform a check of the sparse constraints (if any)
+  if (nwcon > 0){
+    // Check that the Jacobian is the derivative of the constraints
+    pcon->evalCon(x, rsw);
+    x->axpy(dh, px);
+    pcon->evalCon(x, rcw);
+    x->axpy(-dh, px);
+
+    // Compute rcw = (cw(x + dh*px) - cw(x))/dh
+    rcw->axpy(-1.0, rsw);
+    rcw->scale(1.0/dh);
+
+    // Compute the Jacobian-vector product
+    rsw->zeroEntries();
+    pcon->addJacobian(1.0, x, px, rsw);
+
+    // Compute the difference between the vectors
+    rsw->axpy(-1.0, rcw);
+
+    // Compute the relative difference
+    double cw_error = rsw->maxabs();
+
+    if (rank == opt_root){
+      printf("\nSparse constraint checks\n");
+      printf("||(cw(x + h*px) - cw(x))/h - J(x)*px||: %8.2e\n", cw_error);
+    }
+
+    // Check the that the matrix-multiplication and its transpose are
+    // equivalent by computing the inner product with two vectors
+    // from either side
+    double *pzwvals;
+    pzw->getArray(&pzwvals);
+
+    // Set a value for the pzw array
+    for ( int i = 0; i < nwcon; i++ ){
+      pzwvals[i] = 1.05 + 0.25*(i % 21);
+    }
+
+    rsw->zeroEntries();
+    pcon->addJacobian(1.0, x, px, rsw);
+
+    rx->zeroEntries();
+    pcon->addJacobianTranspose(1.0, x, pzw, rx);
+
+    double d1 = rsw->dot(pzw);
+    double d2 = rx->dot(px);
+
+    if (rank == opt_root){
+      printf("\nTranspose-equivalence\n");
+      printf("x^{T}*(J(x)*p): %8.2e  p*(J(x)^{T}*x): %8.2e  Err: %8.2e  Rel Err: %8.2e\n",
+	     d1, d2, fabs(d1 - d2), fabs((d1 - d2)/d2));
+    }
+
+    // Set Cvec to something more-or-less random
+    double *cvals, *rxvals;
+    Cvec->getArray(&cvals);
+    rx->getArray(&rxvals);
+    for ( int i = 0; i < nvars; i++ ){
+      cvals[i] = 0.05 + 0.25*(i % 37);
+    }
+
+    // Check the inner product pzw^{T}*J(x)*cvec*J(x)^{T}*pzw against the 
+    // matrix Cw
+    memset(Cw, 0, nwcon*(nwblock+1)/2*sizeof(double));
+    pcon->addInnerProduct(1.0, x, Cvec, Cw);
+
+    // Compute the inner product using the Jacobians
+    rx->zeroEntries();
+    pcon->addJacobianTranspose(1.0, x, pzw, rx);
+    // Multiply component-wise
+    for ( int i = 0; i < nvars; i++ ){
+      rxvals[i] *= cvals[i];
+    }
+    rcw->zeroEntries();
+    pcon->addJacobian(1.0, x, rx, rcw);
+    d1 = rcw->dot(pzw);
+
+    d2 = 0.0;
+    double *cw = Cw;
+    const int incr = ((nwblock+1)*nwblock)/2;
+
+    // Iterate over each block matrix
+    for ( int i = 0; i < nwcon; i += nwblock ){
+      // Index into each block
+      for ( int j = 0; j < nwblock; j++ ){
+	for ( int k = 0; k < j; k++ ){
+	  d2 += 2.0*cw[0]*pzwvals[i+j]*pzwvals[i+k];
+	  cw++;
+	}
+
+	d2 += cw[0]*pzwvals[i+j]*pzwvals[i+j];
+	cw++;
+      }
+    }
+
+    // Add the result across all processors
+    double temp = d2;
+    MPI_Reduce(&temp, &d2, 1, MPI_DOUBLE, MPI_SUM, opt_root, comm);
+
+    if (rank == opt_root){
+      printf("\nJ(x)*C^{-1}*J(x) test: \n");
+      printf("Product: %8.2e  Matrix: %8.2e  Err: %8.2e  Rel Err: %8.2e\n",
+	     d1, d2, fabs(d1 - d2), fabs((d1 - d2)/d2));
+    }
+  }
 }
 
 /*
