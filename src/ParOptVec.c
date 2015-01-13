@@ -439,6 +439,45 @@ void LBFGS::mult( ParOptVec * x, ParOptVec * y ){
 }
 
 /*
+  Given the input vector, multiply the BFGS approximation by the input
+  vector and add the result to the output vector
+
+  This code computes the product of the LBFGS matrix with the vector x:
+
+  y <- y + alpha*(b0*x - Z*diag{d}*M^{-1}*diag{d}*Z^{T}*x)
+*/
+void LBFGS::multAdd( double alpha, ParOptVec * x, ParOptVec * y ){
+  // Set y = b0*x
+  y->axpy(b0*alpha, x);
+
+  if (msub > 0){
+    // Compute rz = Z^{T}*x
+    x->mdot(Z, 2*msub, rz);
+    
+    // Set rz *= d0
+    for ( int i = 0; i < 2*msub; i++ ){
+      rz[i] *= d0[i];
+    }
+    
+    // Solve rz = M^{-1}*rz
+    int n = 2*msub, one = 1, info = 0;
+    LAPACKdgetrs("N", &n, &one, 
+		 M_factor, &n, mfpiv, 
+		 rz, &n, &info);
+    
+    // Compute rz *= d0
+    for ( int i = 0; i < 2*msub; i++ ){
+      rz[i] *= d0[i];
+    }
+
+    // Now compute: y <- Z*rz
+    for ( int i = 0; i < 2*msub; i++ ){
+      y->axpy(-alpha*rz[i], Z[i]);
+    }
+  }
+}
+
+/*
   Retrieve the internal data for the limited-memory BFGS
   representation
 */

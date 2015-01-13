@@ -8,11 +8,24 @@
 
 class Rosenbrock : public ParOptProblem {
  public:
-  Rosenbrock( MPI_Comm comm, int n ): 
-  ParOptProblem(comm, n+1, 2){
+  Rosenbrock( MPI_Comm comm, int _nvars,
+	      int _nwcon, int _nwstart, 
+	      int _nw, int _nwskip ): 
+  ParOptProblem(comm, _nvars, 2,
+		_nwcon, 1){
+    nwcon = _nwcon;
+    nwstart = _nwstart;
+    nw = _nw;
+    nwskip = _nwskip;
     scale = 1.0;
   }
-  
+
+  // Set whether this is an inequality constraint
+  int isSparseInequality(){
+    return 1;
+  }
+
+  // Get the variables/bounds
   void getVarsAndBounds( ParOptVec *xvec,
 			 ParOptVec *lbvec, 
 			 ParOptVec *ubvec ){
@@ -93,6 +106,92 @@ class Rosenbrock : public ParOptProblem {
     return 0;
   }
 
+
+  int evalHvecProduct( ParOptVec *xvec,
+		       double *z, ParOptVec *zwvec,
+		       ParOptVec *pxvec, ParOptVec *hvec ){
+    double *hvals;
+    hvec->zeroEntries();
+    hvec->getArray(&hvals);
+
+    double *px, *x;
+    xvec->getArray(&x);
+    pxvec->getArray(&px);
+
+    for ( int i = 0; i < nvars-1; i++ ){
+      hvals[i] += (2.0*px[i] + 
+		   200*(x[i+1] - x[i]*x[i])*(-2.0*px[i]) +
+		   200*(px[i+1] - 2.0*x[i]*px[i])*(-2.0*x[i]));
+
+      hvals[i+1] += 200*(px[i+1] - 2.0*x[i]*px[i]);
+    }
+
+    for ( int i = 0; i < nvars; i++ ){
+      hvals[i] += 2.0*scale*z[0]*px[i];
+    }
+  }
+
+  // ------------------------
+  void evalSparseCon( ParOptVec *x, ParOptVec *out ){
+    double *xvals, *outvals; 
+    x->getArray(&xvals);
+    out->getArray(&outvals);
+    
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
+      outvals[i] = 1.0;
+      for ( int k = 0; k < nw; k++, j++ ){
+	outvals[i] -= xvals[j];
+      }
+    }
+  }
+  
+  // Compute the Jacobian-vector product out = J(x)*px
+  // --------------------------------------------------
+  void addSparseJacobian( double alpha, ParOptVec *x,
+			  ParOptVec *px, ParOptVec *out ){
+    double *pxvals, *outvals; 
+    px->getArray(&pxvals);
+    out->getArray(&outvals);
+
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
+      for ( int k = 0; k < nw; k++, j++ ){
+	outvals[i] -= alpha*pxvals[j];
+      }
+    }
+  }
+
+  // Compute the transpose Jacobian-vector product out = J(x)^{T}*pzw
+  // -----------------------------------------------------------------
+  void addSparseJacobianTranspose( double alpha, ParOptVec *x,
+				   ParOptVec *pzw, ParOptVec *out ){
+    double *outvals, *pzwvals;
+    out->getArray(&outvals);
+    pzw->getArray(&pzwvals);
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
+      for ( int k = 0; k < nw; k++, j++ ){
+	outvals[j] -= alpha*pzwvals[i];
+      }
+    }
+  }
+
+  // Add the inner product of the constraints to the matrix such 
+  // that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix
+  // ------------------------------------------------------------
+  void addSparseInnerProduct( double alpha, ParOptVec *x,
+			      ParOptVec *cvec, double *A ){
+    double *cvals;
+    cvec->getArray(&cvals);
+
+    for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
+      for ( int k = 0; k < nw; k++, j++ ){
+	A[i] += alpha*cvals[j];
+      }
+    }
+  }
+
+  int nwcon;
+  int nwstart;
+  int nw, nwskip;
   double scale;
 };
 
@@ -101,21 +200,23 @@ int main( int argc, char* argv[] ){
 
   // Allocate the Rosenbrock function
   int nvars = 100;
-  Rosenbrock * rosen = new Rosenbrock(MPI_COMM_WORLD, nvars-1);
-  
-  // Set up the constraints
   int nwcon = 5, nw = 5;
-  int nwstart = 1, nwskip = 1;
-  ParOptConstraint * pcon = new ParOptWeightConstraint(nwcon, nwstart, nw, nwskip);
+  int nwstart = 1, nwskip = 1;  
+  Rosenbrock * rosen = new Rosenbrock(MPI_COMM_WORLD, nvars-1, 
+				      nwcon, nwstart, nw, nwskip);
   
   // Allocate the optimizer
   int max_lbfgs = 50;
-  // ParOpt * opt = new ParOpt(rosen, pcon, max_lbfgs);
-  ParOpt * opt = new ParOpt(rosen, NULL, max_lbfgs);
-  
-  // opt->setMajorIterStepCheck(10);
+  ParOpt * opt = new ParOpt(rosen, max_lbfgs);
+
+  opt->setGMRESSusbspaceSize(30);
+  opt->setGMRESSwitchTolerance(1e3);
+  opt->setGMRESTolerances(0.5, 1e-30);
+  opt->setUseHvecProduct(1);
+  // opt->setMajorIterStepCheck(15);
   opt->setMaxMajorIterations(1500);
-  // opt->checkGradients(1e-6);
+  opt->checkGradients(1e-6);
+  
   opt->optimize();
 
   delete rosen;

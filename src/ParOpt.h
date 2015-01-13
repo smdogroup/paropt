@@ -72,8 +72,7 @@
 
 class ParOpt {
  public:
-  ParOpt( ParOptProblem *_prob, 
-	  ParOptConstraint *_pcon,
+  ParOpt( ParOptProblem *_prob,
 	  int _max_lbfgs_subspace );
   ~ParOpt();
 
@@ -103,6 +102,13 @@ class ParOpt {
   void setBacktrackingLineSearch( int truth );
   void setArmijioParam( double c1 );
   void setPenaltyDescentFraction( double frac );
+
+  // Set parameters for the internal GMRES algorithm
+  // -----------------------------------------------
+  void setUseHvecProduct( int truth );
+  void setGMRESTolerances( double rtol, double atol );
+  void setGMRESSwitchTolerance( double tol );
+  void setGMRESSusbspaceSize( int _gmres_subspace_size );
 
   // Set other parameters
   // --------------------
@@ -155,6 +161,15 @@ class ParOpt {
 			   double *zt,
 			   ParOptVec *xt, ParOptVec *wt );
 
+  // Solve the diagonal system
+  void solveKKTDiagSystem( ParOptVec *bx, 
+			   double alpha, double *bc, 
+			   ParOptVec *bcw, double *bs,
+			   ParOptVec *bsw,
+			   ParOptVec *bzl, ParOptVec *bzu,
+			   ParOptVec *yx, double *yz,
+			   ParOptVec *xt, ParOptVec *wt );
+
   // Set up the full KKT system
   void setUpKKTSystem( double *zt, 
 		       ParOptVec *xt1, ParOptVec *xt2,
@@ -163,9 +178,14 @@ class ParOpt {
   // Solve for the KKT step
   void computeKKTStep( double *zt, ParOptVec *xt1, 
 		       ParOptVec *xt2, ParOptVec *wt );
+  
+  // Compute the full KKT step
+  int computeKKTInexactNewtonStep( double *zt, ParOptVec *xt1, ParOptVec *xt2,
+				   ParOptVec *wt,
+				   double rtol, double atol );
 
   // Check that the KKT step is computed correctly
-  void checkKKTStep();
+  void checkKKTStep( int is_newton );
 
   // Compute the maximum step length to maintain positivity of 
   // all components of the design variables 
@@ -195,7 +215,6 @@ class ParOpt {
 
   // The parallel optimizer problem and constraints
   ParOptProblem * prob;
-  ParOptConstraint * pcon;
 
   // Communicator info
   MPI_Comm comm;
@@ -247,6 +266,9 @@ class ParOpt {
   // Keep track of the number of objective and gradient evaluations
   int neval, ngeval;
 
+  // Sparse equalities or inequalities?
+  int sparse_inequality;
+
   // Parameters for optimization
   int max_major_iters;
   int init_starting_point;
@@ -272,6 +294,16 @@ class ParOpt {
  
   // The minimum step to the boundary;
   double min_fraction_to_boundary;
+
+  // Control of exact Hessian-vector products
+  int use_hvec_product;
+  double gmres_switch_tol;
+  double gmres_rtol, gmres_atol;
+
+  // Internal information about GMRES
+  int gmres_subspace_size;
+  double *gmres_H, *gmres_alpha, *gmres_res, *gmres_Q;
+  ParOptVec **gmres_W;
 
   // Check the step at this major iteration - for debugging
   int major_iter_step_check;

@@ -76,7 +76,8 @@ class LBFGS {
   // Perform a matrix-vector multiplication
   // --------------------------------------
   void mult( ParOptVec * x, ParOptVec * y );
-  
+  void multAdd( double alpha, ParOptVec *x, ParOptVec * y);
+
   // Get the information for the limited-memory BFGS update
   // ------------------------------------------------------
   int getLBFGSMat( double * _b0, const double ** _d,
