@@ -3305,8 +3305,16 @@ int ParOpt::computeKKTInexactNewtonStep( double *zt,
   // Compute the norm of the initial vector
   double bnorm = sqrt(rx->dot(rx) + beta);
 
-  // Broadcast the norm of the residuals to keep things consistent
-  MPI_Bcast(&bnorm, 1, MPI_DOUBLE, opt_root, comm);
+  // Broadcast the norm of the residuals and the
+  // beta parameter to keep things consistent across processors
+  double temp[2];
+  temp[0] = bnorm;
+  temp[1] = beta;
+
+  MPI_Bcast(temp, 2, MPI_DOUBLE, opt_root, comm);
+
+  bnorm = temp[0];
+  beta = temp[1];
 
   // Compute the final value of the beta term
   beta *= 1.0/(bnorm*bnorm);
