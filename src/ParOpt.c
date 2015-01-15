@@ -3227,11 +3227,12 @@ int ParOpt::optimize( const char * checkpoint ){
       // The string of unforseen events
       info[0] = '\0';
       if (gmres_iters > 0){
+	// Print how well GMRES is doing
 	sprintf(info, "%s%s%d ", info, "iNK", gmres_iters);
       }
       if (up_type == 1){ 
 	// Damped BFGS update
-	sprintf(info, "%s ", "dH");
+	sprintf(info, "%s%s ", info, "dH");
       }
       if (line_fail){
 	// Line search failure
