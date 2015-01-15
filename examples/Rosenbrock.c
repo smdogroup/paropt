@@ -106,7 +106,8 @@ class Rosenbrock : public ParOptProblem {
     return 0;
   }
 
-
+  // Evaluate the product of the Hessian with the given vector
+  // ---------------------------------------------------------
   int evalHvecProduct( ParOptVec *xvec,
 		       double *z, ParOptVec *zwvec,
 		       ParOptVec *pxvec, ParOptVec *hvec ){
@@ -131,6 +132,7 @@ class Rosenbrock : public ParOptProblem {
     }
   }
 
+  // Evaluate the sparse constraints
   // ------------------------
   void evalSparseCon( ParOptVec *x, ParOptVec *out ){
     double *xvals, *outvals; 

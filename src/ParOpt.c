@@ -1710,7 +1710,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
   Hessian is replaced with only the diagonal terms.
 
   Note that in this variant of the function, the right-hand-side
-  includes components that are scaled by a given parameter: alpha.
+  includes components that are scaled by a given alpha-parameter.
 */
 void ParOpt::solveKKTDiagSystem( ParOptVec *bx, 
 				 double alpha, double *bc, 
