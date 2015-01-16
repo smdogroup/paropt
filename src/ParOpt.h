@@ -106,8 +106,8 @@ class ParOpt {
   // Set parameters for the internal GMRES algorithm
   // -----------------------------------------------
   void setUseHvecProduct( int truth );
+  void setNKSwitchTolerance( double tol );
   void setGMRESTolerances( double rtol, double atol );
-  void setGMRESSwitchTolerance( double tol );
   void setGMRESSusbspaceSize( int _gmres_subspace_size );
 
   // Set other parameters
@@ -297,7 +297,7 @@ class ParOpt {
 
   // Control of exact Hessian-vector products
   int use_hvec_product;
-  double gmres_switch_tol;
+  double nk_switch_tol;
   double gmres_rtol, gmres_atol;
 
   // Internal information about GMRES

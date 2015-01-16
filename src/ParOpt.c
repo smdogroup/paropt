@@ -220,7 +220,7 @@ ParOpt::ParOpt( ParOptProblem *_prob,
 
   // Initialize the Hessian-vector product information
   use_hvec_product = 0;
-  gmres_switch_tol = 1e-3;
+  nk_switch_tol = 1e-3;
   gmres_rtol = 0.1;
   gmres_atol = 1e-30;
 
@@ -656,8 +656,8 @@ void ParOpt::setUseHvecProduct( int truth ){
 /*
   Set information about GMRES
 */
-void ParOpt::setGMRESSwitchTolerance( double tol ){
-  gmres_switch_tol = tol;
+void ParOpt::setNKSwitchTolerance( double tol ){
+  nk_switch_tol = tol;
 }
 
 void ParOpt::setGMRESTolerances( double rtol, double atol ){
@@ -2740,10 +2740,11 @@ int ParOpt::optimize( const char * checkpoint ){
 	    hessian_reset_freq);
     fprintf(outfp, "%-30s %15d\n", "use_hvec_product",
 	    use_hvec_product);
-    fprintf(outfp, "%-30s %15g\n", "gmres_rtol",
-	    gmres_rtol);
-    fprintf(outfp, "%-30s %15g\n", "gmres_atol",
-	    gmres_atol);
+    fprintf(outfp, "%-30s %15g\n", "nk_switch_tol", nk_switch_tol);
+    fprintf(outfp, "%-30s %15d\n", "gmres_subspace_size",
+	    gmres_subspace_size);
+    fprintf(outfp, "%-30s %15g\n", "gmres_rtol", gmres_rtol);
+    fprintf(outfp, "%-30s %15g\n", "gmres_atol", gmres_atol);
   }
 
   // Evaluate the objective, constraint and their gradients at the
@@ -2944,9 +2945,9 @@ int ParOpt::optimize( const char * checkpoint ){
 
     int gmres_iters = 0;
     if (use_hvec_product && 
-	(max_prime < gmres_switch_tol &&
-	 max_dual < gmres_switch_tol && 
-	 max_infeas < gmres_switch_tol)){
+	(max_prime < nk_switch_tol &&
+	 max_dual < nk_switch_tol && 
+	 max_infeas < nk_switch_tol)){
       // Compute the inexact step using GMRES - note that this
       // uses a fixed tolerance -- this may lead to over-solving
       // if rtol is too tight
@@ -2957,6 +2958,11 @@ int ParOpt::optimize( const char * checkpoint ){
       // Solve for the KKT step
       computeKKTStep(ztemp, s_qn, y_qn, wtemp);
     }
+
+    if (gmres_iters > 0){
+      checkKKTStep(gmres_iters > 0);
+    }
+    
 
     // Check the KKT step
     if (k == major_iter_step_check){
@@ -2997,12 +3003,14 @@ int ParOpt::optimize( const char * checkpoint ){
     // the full step length. If the complementarity increases,
     // use equal step lengths.
     double comp_new = computeCompStep(max_x, max_z);
-    if (comp_new > comp){
-      if (max_x > max_z){
-	max_x = max_z;
-      }
-      else {
-	max_z = max_x;
+    if (gmres_iters == 0){
+      if (comp_new > comp){
+	if (max_x > max_z){
+	  max_x = max_z;
+	}
+	else {
+	  max_z = max_x;
+	}
       }
     }
 
@@ -3330,6 +3338,14 @@ int ParOpt::computeKKTInexactNewtonStep( double *zt,
   int solve_flag = 0;
   int niters = 0;
 
+  // Print out the results on the root processor
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+
+  if (rank == opt_root){
+    printf("GMRES[%d]: %e\n", 0, fabs(res[0]));
+  }
+
   for ( int i = 0; i < gmres_subspace_size; i++ ){
     // Compute M^{-1}*[ W[i], alpha[i]*yc, ... ] 
 
@@ -3388,7 +3404,7 @@ int ParOpt::computeKKTInexactNewtonStep( double *zt,
 
     // Build the orthogonal factorization MGS
     int hptr = (i+1)*(i+2)/2 - 1;
-    for ( int j = 0; j < i+1; j++ ){
+    for ( int j = i; j >= 0; j-- ){
       H[j + hptr] = W[i+1]->dot(W[j]) + beta*alpha[i+1]*alpha[j];
 
       W[i+1]->axpy(-H[j + hptr], W[j]);
@@ -3428,7 +3444,11 @@ int ParOpt::computeKKTInexactNewtonStep( double *zt,
     res[i+1] = -h1*Qsin[i];
           
     niters++;
-      
+    
+    if (rank == opt_root){
+      printf("GMRES[%d]: %e\n", i+1, fabs(res[i+1]));
+    }
+   
     // Check for convergence
     if (fabs(res[i+1]) < atol ||
 	fabs(res[i+1]) < rtol*bnorm){
@@ -3584,6 +3604,20 @@ void ParOpt::checkGradients( double dh ){
     // Evaluate the Hessian-vector product
     hvec = new ParOptVec(comm, nvars);
     prob->evalHvecProduct(x, ztemp, pzw, px, hvec);
+  
+    // Check that multiple calls to the Hvec code
+    // produce the same result
+    prob->evalHvecProduct(x, ztemp, pzw, px, rx);
+
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+    rx->axpy(-1.0, hvec);
+    double diff_nrm = rx->norm();
+
+    if (rank == opt_root){
+      printf("Hvec code reproducibility test\n");
+      printf("Difference between multiple calls: %15.8e\n\n", diff_nrm);
+    }
   }
 
   // Compute the point xt = x + dh*px

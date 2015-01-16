@@ -212,7 +212,7 @@ int main( int argc, char* argv[] ){
   ParOpt * opt = new ParOpt(rosen, max_lbfgs);
 
   opt->setGMRESSusbspaceSize(30);
-  opt->setGMRESSwitchTolerance(1e3);
+  opt->setNKSwitchTolerance(1e3);
   opt->setGMRESTolerances(0.5, 1e-30);
   opt->setUseHvecProduct(1);
   // opt->setMajorIterStepCheck(15);
