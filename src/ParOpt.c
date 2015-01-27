@@ -3303,7 +3303,10 @@ int ParOpt::computeKKTInexactNewtonStep( double *zt,
   beta += rzl->dot(rzl) + rzu->dot(rzu);
 
   if (nwcon > 0){
-    beta += rcw->dot(rcw) + rsw->dot(rsw);
+    beta += rcw->dot(rcw);
+    if (sparse_inequality){
+      beta += rsw->dot(rsw);
+    }
   }
 
   // Compute the norm of the initial vector
