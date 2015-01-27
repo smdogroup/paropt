@@ -2959,11 +2959,6 @@ int ParOpt::optimize( const char * checkpoint ){
       computeKKTStep(ztemp, s_qn, y_qn, wtemp);
     }
 
-    if (gmres_iters > 0){
-      checkKKTStep(gmres_iters > 0);
-    }
-    
-
     // Check the KKT step
     if (k == major_iter_step_check){
       checkKKTStep(gmres_iters > 0);
