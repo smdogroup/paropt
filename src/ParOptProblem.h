@@ -72,6 +72,9 @@ class ParOptProblem {
   // Function to indicate whether the sparse constraints
   // ---------------------------------------------------
   virtual int isSparseInequality() = 0;
+  virtual int isDenseInequality() = 0;
+  virtual int useLowerBounds() = 0;
+  virtual int useUpperBounds() = 0;
 
   // Get the variables and bounds from the problem
   // ---------------------------------------------

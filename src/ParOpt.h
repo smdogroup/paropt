@@ -122,8 +122,10 @@ class ParOpt {
   int readSolutionFile( const char * filename );
 
  private:
+  // Print out the optimizer options to a file
+  void printOptionSummary( FILE *fp );
+
   // Factor/apply the Cw matrix
-  // --------------------------
   int factorCw();
   int applyCwFactor( ParOptVec *vec );
 
@@ -268,6 +270,12 @@ class ParOpt {
 
   // Sparse equalities or inequalities?
   int sparse_inequality;
+
+  // Dense equality of dense inequality? 
+  int dense_inequality;
+
+  // Flags to indicate whether to use the upper/lower bounds
+  int use_lower, use_upper;
 
   // Parameters for optimization
   int max_major_iters;

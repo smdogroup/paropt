@@ -21,9 +21,10 @@ class Rosenbrock : public ParOptProblem {
   }
 
   // Set whether this is an inequality constraint
-  int isSparseInequality(){
-    return 1;
-  }
+  int isSparseInequality(){ return 1; }
+  int isDenseInequality(){ return 0; }
+  int useLowerBounds(){ return 0; }
+  int useUpperBounds(){ return 0; }
 
   // Get the variables/bounds
   void getVarsAndBounds( ParOptVec *xvec,
@@ -208,14 +209,14 @@ int main( int argc, char* argv[] ){
 				      nwcon, nwstart, nw, nwskip);
   
   // Allocate the optimizer
-  int max_lbfgs = 50;
+  int max_lbfgs = 20;
   ParOpt * opt = new ParOpt(rosen, max_lbfgs);
 
   opt->setGMRESSusbspaceSize(30);
   opt->setNKSwitchTolerance(1e3);
-  opt->setGMRESTolerances(0.5, 1e-30);
-  opt->setUseHvecProduct(1);
-  // opt->setMajorIterStepCheck(15);
+  opt->setGMRESTolerances(0.1, 1e-30);
+  opt->setUseHvecProduct(0);
+  opt->setMajorIterStepCheck(0);
   opt->setMaxMajorIterations(1500);
   opt->checkGradients(1e-6);
   
