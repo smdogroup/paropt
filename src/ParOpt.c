@@ -337,7 +337,7 @@ void ParOpt::printOptionSummary( FILE *fp ){
   // Print out all the parameter values to the screen
   int rank;
   MPI_Comm_rank(comm, &rank);
-  if (rank == opt_root){
+  if (fp && rank == opt_root){
     fprintf(fp, "ParOpt: Parameter summary\n");
     fprintf(fp, "%-30s %15d\n", "total variables", nvars_total);
     fprintf(fp, "%-30s %15d\n", "constraints", ncon);
@@ -3038,7 +3038,7 @@ int ParOpt::optimize( const char * checkpoint ){
     // Print all the information we can to the screen...
     int rank;
     MPI_Comm_rank(comm, &rank);
-    if (rank == opt_root){
+    if (outfp && rank == opt_root){
       if (k % 10 == 0){
 	fprintf(outfp, "\n%4s %4s %4s %7s %7s %12s \
 %7s %7s %7s %7s %7s %8s %7s info\n",
