@@ -133,6 +133,55 @@ int ParOptVec::getArray( double ** array ){
 }
 
 /*
+  Write the vector to a binary file. This is useful for checkpointing
+  or recording the optimization history.
+
+  intput:
+  filename: the name of the file to write
+*/
+int ParOptVec::writeToFile( const char * filename ){
+  int rank, mpisize;
+  MPI_Comm_rank(comm, &rank);
+  MPI_Comm_size(comm, &mpisize);
+
+  // Copy the file name to a non-constant array
+  char * fname = new char[ strlen(filename)+1 ];
+  strcpy(fname, filename);
+
+  // Determine the range
+  int * range = new int[ mpisize+1 ];
+  range[0] = 0;
+  MPI_Allgather(&size, 1, MPI_INT, &range[1], 1, MPI_INT, comm);
+  for ( int i = 0; i < mpisize; i++ ){
+    range[i+1] += range[i];
+  }
+
+  // Try and open the file for writing
+  int fail = 0;
+  MPI_File fp = NULL;
+  MPI_File_open(comm, fname, MPI_MODE_WRONLY | MPI_MODE_CREATE, 
+                MPI_INFO_NULL, &fp);
+
+  // Only write the file if it actually exists...
+  if (fp){
+    char datarep[] = "native";
+    MPI_File_set_view(fp, sizeof(int), MPI_DOUBLE, MPI_DOUBLE,
+                      datarep, MPI_INFO_NULL);
+    MPI_File_write_at_all(fp, range[rank], x, size, MPI_DOUBLE,
+                          MPI_STATUS_IGNORE);
+    MPI_File_close(&fp);
+  }
+  else {
+    fail = 1;
+  }
+
+  delete [] range;
+  delete [] fname;
+
+  return fail;
+}
+
+/*
   The following class implements the limited-memory BFGS update.  
 
   The limited-memory BFGS formula takes the following form:

@@ -33,6 +33,7 @@ class ParOptVec {
   void scale( double alpha );
   void axpy( double alpha, ParOptVec * x );
   int getArray( double ** array );
+  int writeToFile( const char * filename );
 
  private:
   MPI_Comm comm;
