@@ -80,6 +80,12 @@ class ParOpt {
   // ------------------------
   int optimize( const char * checkpoint = NULL );
 
+  // Retrieve the values of the design variables and multipliers
+  // -----------------------------------------------------------
+  void getOptimizedPoint( ParOptVec **_x, 
+			  const double **_z, ParOptVec **_zw,
+			  ParOptVec **_zl, ParOptVec **_zu );
+
   // Check the objective and constraint gradients
   // --------------------------------------------
   void checkGradients( double dh );
@@ -266,7 +272,7 @@ class ParOpt {
   ParOptVec *y_qn, *s_qn;
 
   // Keep track of the number of objective and gradient evaluations
-  int neval, ngeval;
+  int neval, ngeval, nhvec;
 
   // Sparse equalities or inequalities?
   int sparse_inequality;

@@ -203,6 +203,9 @@ ParOpt::ParOpt( ParOptProblem *_prob,
     Ac[i] = new ParOptVec(comm, nvars);
   }
 
+  // Zero the number of evals
+  neval = ngeval = nhvec = 0;
+
   // Initialize the parameters with default values
   max_major_iters = 1000;
   init_starting_point = 1;
@@ -326,6 +329,45 @@ ParOpt::~ParOpt(){
   // Close the output file if it's not stdout
   if (outfp && outfp != stdout){
     fclose(outfp);
+  }
+}
+
+/*
+  Retrieve the optimal values of the design variables and multipliers.
+ 
+  This call can be made during the course of an optimization, but
+  changing the values in x/zw/zl/zu is not recommended and the
+  behavior after doing so is not defined. Note that inputs that are
+  NULL are not assigned. If no output is available, for instance if
+  use_lower == False, then NULL is assigned to the output.
+*/
+void ParOpt::getOptimizedPoint( ParOptVec **_x, 
+				const double **_z, ParOptVec **_zw,
+				ParOptVec **_zl, ParOptVec **_zu ){
+  if (_x){ *_x = x; }
+  if (_z){
+    *_z = NULL;
+    if (ncon > 0){
+      *_z = z;
+    }
+  }
+  if (_zw){
+    *_zw = NULL;
+    if (nwcon > 0){
+      *_zw = zw;
+    }
+  }
+  if (_zl){
+    *_zl = NULL;
+    if (use_lower){
+      *_zl = zl;
+    }
+  }
+  if (_zu){
+    *_zu = NULL;
+    if (use_upper){
+      *_zu = NULL;
+    }
   }
 }
 
@@ -774,7 +816,7 @@ void ParOpt::setOutputFile( const char * filename ){
 
   rx  = -(g(x) - Ac^{T}*z - Aw^{T}*zw - zl + zu) 
   rc  = -(c(x) - s)
-  rcw  = -(cw(x) - sw)
+  rcw = -(cw(x) - sw)
   rz  = -(S*z - mu*e) 
   rzu = -((x - xl)*zl - mu*e)
   rzl = -((ub - x)*zu - mu*e)
@@ -2214,7 +2256,15 @@ double ParOpt::computeComp(){
       }
     }
 
-    comp = product/(ncon + 2*nvars_total);
+    if (use_lower && use_upper){
+      comp = product/(ncon + 2*nvars_total);
+    }
+    else if (use_lower || use_upper){
+      comp = product/(ncon + nvars_total);
+    }
+    else {
+      comp = product/ncon;
+    }
   }
 
   // Broadcast the result to all processors
@@ -2932,7 +2982,7 @@ int ParOpt::lineSearch( double * _alpha,
 */
 int ParOpt::optimize( const char * checkpoint ){
   // Zero out the number of function/gradient evaluations
-  neval = ngeval = 0;
+  neval = ngeval = nhvec = 0;
 
   // Print what options we're using to the file
   printOptionSummary(outfp);
@@ -3040,25 +3090,25 @@ int ParOpt::optimize( const char * checkpoint ){
     MPI_Comm_rank(comm, &rank);
     if (outfp && rank == opt_root){
       if (k % 10 == 0){
-	fprintf(outfp, "\n%4s %4s %4s %7s %7s %12s \
+	fprintf(outfp, "\n%4s %4s %4s %4s %7s %7s %12s \
 %7s %7s %7s %7s %7s %8s %7s info\n",
-		"iter", "nobj", "ngrd", "alphx", "alphz", 
+		"iter", "nobj", "ngrd", "nhvc", "alphx", "alphz", 
 		"fobj", "|opt|", "|infes|", "|dual|", "mu", 
 		"comp", "dmerit", "rho");
       }
 
       if (k == 0){
-	fprintf(outfp, "%4d %4d %4d %7s %7s %12.5e \
+	fprintf(outfp, "%4d %4d %4d %4d %7s %7s %12.5e \
 %7.1e %7.1e %7.1e %7.1e %7.1e %8s %7s %s\n",
-		k, neval, ngeval, " ", " ",
+		k, neval, ngeval, nhvec, " ", " ",
 		fobj, max_prime, max_infeas, max_dual, 
 		barrier_param, comp, " ", " ", info);
       }
       else {
-	fprintf(outfp, "%4d %4d %4d %7.1e %7.1e %12.5e \
+	fprintf(outfp, "%4d %4d %4d %4d %7.1e %7.1e %12.5e \
 %7.1e %7.1e %7.1e %7.1e %7.1e %8.1e %7.1e %s\n",
-	       k, neval, ngeval, alpha_xprev, alpha_zprev,
-	       fobj, max_prime, max_infeas, max_dual, 
+		k, neval, ngeval, nhvec, alpha_xprev, alpha_zprev,
+		fobj, max_prime, max_infeas, max_dual, 
 		barrier_param, comp, dm0_prev, rho_penalty_search, info);
       }
       
@@ -3623,7 +3673,8 @@ int ParOpt::computeKKTInexactNewtonStep( double *zt,
 
     // Compute the inner product with the exact Hessian
     prob->evalHvecProduct(x, z, zw, xt1, W[i+1]);
-    
+    nhvec++;
+
     // Add the term -B*W[i]
     if (!sequential_linear_method){
       qn->multAdd(-1.0, xt1, W[i+1]);
