@@ -165,7 +165,7 @@ int ParOptVec::writeToFile( const char * filename ){
   // Only write the file if it actually exists...
   if (fp){
     char datarep[] = "native";
-    MPI_File_set_view(fp, sizeof(int), MPI_DOUBLE, MPI_DOUBLE,
+    MPI_File_set_view(fp, 0, MPI_DOUBLE, MPI_DOUBLE,
                       datarep, MPI_INFO_NULL);
     MPI_File_write_at_all(fp, range[rank], x, size, MPI_DOUBLE,
                           MPI_STATUS_IGNORE);
