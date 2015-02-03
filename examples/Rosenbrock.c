@@ -22,7 +22,7 @@ class Rosenbrock : public ParOptProblem {
 
   // Set whether this is an inequality constraint
   int isSparseInequality(){ return 1; }
-  int isDenseInequality(){ return 0; }
+  int isDenseInequality(){ return 1; }
   int useLowerBounds(){ return 0; }
   int useUpperBounds(){ return 0; }
 
@@ -215,8 +215,8 @@ int main( int argc, char* argv[] ){
   opt->setGMRESSusbspaceSize(30);
   opt->setNKSwitchTolerance(1e3);
   opt->setGMRESTolerances(0.1, 1e-30);
-  opt->setUseHvecProduct(0);
-  opt->setMajorIterStepCheck(0);
+  opt->setUseHvecProduct(1);
+  opt->setMajorIterStepCheck(45);
   opt->setMaxMajorIterations(1500);
   opt->checkGradients(1e-6);
   

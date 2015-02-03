@@ -2641,12 +2641,18 @@ double ParOpt::evalMeritFunc( ParOptVec *xk, double *sk,
   penalty parameter, compute the value of the merit function and its
   derivative.
 
+  input:
+  max_x:         the maximum value of the x-scaling
+  inexact_step:  is this an inexact Newton step?
+
   output:
-  merit:   the value of the merit function
-  pmerit: the value of the derivative of the merit function
+  merit:     the value of the merit function
+  pmerit:    the value of the derivative of the merit function
 */
 void ParOpt::evalMeritInitDeriv( double max_x, 
-				 double * _merit, double * _pmerit ){
+				 double * _merit, double * _pmerit,
+				 int inexact_step,
+				 ParOptVec *wt1, ParOptVec *wt2 ){
   // Retrieve the values of the design variables, the design
   // variable step, and the lower/upper bounds
   double *xvals, *pxvals, *lbvals, *ubvals;
@@ -2723,13 +2729,39 @@ void ParOpt::evalMeritInitDeriv( double max_x,
   }
 
   // Compute the norm of the weight constraint infeasibility
-  double weight_infeas = 0.0;
+  double weight_infeas = 0.0, weight_proj = 0.0;
   if (nwcon > 0){
-    prob->evalSparseCon(x, wtemp);
+    prob->evalSparseCon(x, wt1);
     if (sparse_inequality){
-      wtemp->axpy(-1.0, sw);
+      wt1->axpy(-1.0, sw);
     }
-    weight_infeas = wtemp->norm();
+    weight_infeas = wt1->norm();
+    
+    // Compute the projection of the weight constraints
+    // onto the descent direction
+    if (inexact_step){
+      // Compute (cw(x) - sw)^{T}*(Aw(x)*px - psw)
+      wt2->zeroEntries();
+      prob->addSparseJacobian(1.0, x, px, wt2);
+
+      if (sparse_inequality){
+	weight_proj = wt1->dot(wt2) - wt1->dot(psw);
+      }
+      else {
+	weight_proj = wt1->dot(wt2);
+      }
+
+      // Complete the weight projection computation
+      if (weight_infeas > 0.0){
+	weight_proj = weight_proj/weight_infeas;
+      }
+      else {
+	weight_proj = 0.0;
+      }
+    }
+    else {
+      weight_proj = -max_x*weight_infeas;
+    }
   }
 
   // Sum up the result from all processors
@@ -2759,6 +2791,44 @@ void ParOpt::evalMeritInitDeriv( double max_x,
   double merit = 0.0;
   double pmerit = 0.0;
 
+  // Compute the infeasibility
+  double dense_infeas = 0.0, dense_proj = 0.0;
+  if (dense_inequality){
+    for ( int i = 0; i < ncon; i++ ){
+      dense_infeas += (c[i] - s[i])*(c[i] - s[i]);
+    }
+  }
+  else {
+    for ( int i = 0; i < ncon; i++ ){
+      dense_infeas += c[i]*c[i];
+    }
+  }
+  dense_infeas = sqrt(dense_infeas);
+  
+  // Compute the projection depending on whether this is
+  // for an exact or inexact step
+  if (inexact_step){
+    if (dense_inequality){
+      for ( int i = 0; i < ncon; i++ ){
+	dense_proj += (c[i] - s[i])*(Ac[i]->dot(px) - ps[i]);
+      }
+    }
+    else {
+      for ( int i = 0; i < ncon; i++ ){
+	dense_proj += c[i]*Ac[i]->dot(px);
+      }
+    }
+
+    // Complete the projected derivative computation for the dense
+    // constraints
+    if (dense_infeas > 0.0){
+      dense_proj = dense_proj/dense_infeas;
+    }
+  }
+  else {
+    dense_proj = -max_x*dense_infeas;
+  }
+  
   if (rank == opt_root){
     // Add the contribution from the slack variables
     if (dense_inequality){
@@ -2778,30 +2848,20 @@ void ParOpt::evalMeritInitDeriv( double max_x,
 	}
       }
     }
-    
-    // Compute the infeasibility
-    double infeas = 0.0;
-    if (dense_inequality){
-      for ( int i = 0; i < ncon; i++ ){
-	infeas += (c[i] - s[i])*(c[i] - s[i]);
-      }
-    }
-    else {
-      for ( int i = 0; i < ncon; i++ ){
-	infeas += c[i]*c[i];
-      }
-    }
-    infeas = sqrt(infeas) + weight_infeas;
-    
+
+    // Now, set up the full problem infeasibility
+    double infeas = dense_infeas + weight_infeas;
+    double infeas_proj = dense_proj + weight_proj;
+          
     // Compute the numerator term
     double numer = proj - barrier_param*(pos_presult + neg_presult);
-    
+      
     // Compute the new penalty parameter initial guess
     double rho_hat = 0.0;
     if (infeas > 0.0){
-      rho_hat = numer/((1.0 - penalty_descent_fraction)*max_x*infeas);
+      rho_hat = -numer/(infeas_proj + penalty_descent_fraction*max_x*infeas);
     }
-
+      
     // Set the penalty parameter to the smallest value
     // if it is greater than the old value
     if (rho_hat > rho_penalty_search){
@@ -2814,12 +2874,12 @@ void ParOpt::evalMeritInitDeriv( double max_x,
 	rho_penalty_search = rho_hat;
       }
     }
-
+    
     // Now, evaluate the merit function and its derivative
     // based on the new value of the penalty parameter
     merit = (fobj - barrier_param*(pos_result + neg_result) + 
-    	     rho_penalty_search*infeas);
-    pmerit = numer - rho_penalty_search*max_x*infeas;
+	     rho_penalty_search*infeas);
+    pmerit = numer + rho_penalty_search*infeas_proj;
   }
 
   input[0] = merit;
@@ -3159,7 +3219,8 @@ int ParOpt::optimize( const char * checkpoint ){
     // Determine if the residual norm has been reduced
     // sufficiently in order to switch to a new barrier
     // problem
-    if (res_norm < 10.0*barrier_param){
+    if (res_norm < 10.0*barrier_param || 
+	(use_line_search && -dm0_prev < barrier_param)){
       // Record the value of the old barrier function
       double mu_old = barrier_param;
 
@@ -3223,7 +3284,6 @@ int ParOpt::optimize( const char * checkpoint ){
       
       // Set up the full KKT system
       setUpKKTSystem(ztemp, s_qn, y_qn, wtemp, use_bfgs);
-
 
       // Compute the inexact step using GMRES - note that this
       // uses a fixed tolerance -- this may lead to over-solving
@@ -3336,11 +3396,12 @@ int ParOpt::optimize( const char * checkpoint ){
     double alpha = 1.0;
     int line_fail = 0;
 
-    if (gmres_iters == 0 && use_line_search){
+    if (use_line_search){
       // Compute the initial value of the merit function and its
       // derivative and a new value for the penalty parameter
       double m0, dm0;
-      evalMeritInitDeriv(max_x, &m0, &dm0);
+      evalMeritInitDeriv(max_x, &m0, &dm0, (gmres_iters > 0),
+			 wtemp, rcw);
 
       // Check that the merit function derivative is
       // correct and print the derivative to the screen on the
@@ -3372,9 +3433,12 @@ int ParOpt::optimize( const char * checkpoint ){
 	}
       }
       
-      // The directional derivative is so small that we apply the
-      // full step, regardless
-      if (dm0 > -abs_res_tol*abs_res_tol){
+      // If the directional derivative is negative, take the full
+      // step, regardless. This can happen when an inexact Newton
+      // step is used. Also, if the directional derivative is too small
+      // we also apply the full step.
+      if (dm0 > 0 ||
+	  dm0 > -abs_res_tol*abs_res_tol){
 	// Apply the full step to the Lagrange multipliers and
 	// slack variables
 	alpha = 1.0;
@@ -3445,7 +3509,7 @@ int ParOpt::optimize( const char * checkpoint ){
 	  // Add the term: -Aw^{T}*zw
 	  if (nwcon > 0){
 	    prob->addSparseJacobianTranspose(-1.0, x, zw, y_qn);
-	  }	  
+	  }
 	}
       }
       else {

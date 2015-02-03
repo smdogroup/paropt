@@ -215,8 +215,8 @@ class ParOpt {
 
   // Evaluate the merit function, its derivative and the new penalty
   // parameter
-  void evalMeritInitDeriv( double max_x,
-			   double * _merit, double * _pmerit );
+  void evalMeritInitDeriv( double max_x, double * _merit, double * _pmerit,
+			   int inexact_step, ParOptVec *wt1, ParOptVec *wt2 );
   
   // Compute the complementarity
   double computeComp(); // Complementarity at the current point

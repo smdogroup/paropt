@@ -69,7 +69,7 @@ class ParOptProblem {
     *_nwblock = nwblock;
   }
 
-  // Function to indicate whether the sparse constraints
+  // Function to indicate the type of sparse constraints
   // ---------------------------------------------------
   virtual int isSparseInequality() = 0;
   virtual int isDenseInequality() = 0;
