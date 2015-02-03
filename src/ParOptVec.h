@@ -84,6 +84,10 @@ class LBFGS {
   int getLBFGSMat( double * _b0, const double ** _d,
 		   const double ** _M, ParOptVec *** Z );
 
+  // Get the maximum size of the limited-memory BFGS
+  // -----------------------------------------------
+  int getMaxLBFGSSize();
+
  private:
   // Information about the parallel decomposition
   MPI_Comm comm;

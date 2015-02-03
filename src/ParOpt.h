@@ -95,11 +95,15 @@ class ParOpt {
   void setInitStartingPoint( int init );
   void setMaxMajorIterations( int iters );
   void setAbsOptimalityTol( double tol );
-  void setInitBarrierParameter( double mu );
   void setBarrierFraction( double frac );
   void setBarrierPower( double power );
   void setHessianResetFreq( int freq );
   void setSequentialLinearMethod( int truth );
+
+  // Set/get the barrier parameter
+  // -----------------------------
+  void setInitBarrierParameter( double mu );
+  double getBarrierParameter();
 
   // Set parameters associated with the line search
   // ----------------------------------------------
@@ -112,6 +116,7 @@ class ParOpt {
   // Set parameters for the internal GMRES algorithm
   // -----------------------------------------------
   void setUseHvecProduct( int truth );
+  void setUseLBFGSGMRESPreCon( int truth );
   void setNKSwitchTolerance( double tol );
   void setGMRESTolerances( double rtol, double atol );
   void setGMRESSusbspaceSize( int _gmres_subspace_size );
@@ -142,7 +147,7 @@ class ParOpt {
 		      double * max_infeas );
 
   // Set up the diagonal KKT system
-  void setUpKKTDiagSystem( ParOptVec *xt, ParOptVec *wt );
+  void setUpKKTDiagSystem( ParOptVec *xt, ParOptVec *wt, int use_bfgs );
 
   // Solve the diagonal KKT system
   void solveKKTDiagSystem( ParOptVec *bx, double *bc, 
@@ -181,16 +186,16 @@ class ParOpt {
   // Set up the full KKT system
   void setUpKKTSystem( double *zt, 
 		       ParOptVec *xt1, ParOptVec *xt2,
-		       ParOptVec *wt );
+		       ParOptVec *wt, int use_bfgs );
 
   // Solve for the KKT step
   void computeKKTStep( double *zt, ParOptVec *xt1, 
-		       ParOptVec *xt2, ParOptVec *wt );
+		       ParOptVec *xt2, ParOptVec *wt, int use_bfgs );
   
   // Compute the full KKT step
   int computeKKTInexactNewtonStep( double *zt, ParOptVec *xt1, ParOptVec *xt2,
 				   ParOptVec *wt,
-				   double rtol, double atol );
+				   double rtol, double atol, int use_bfgs );
 
   // Check that the KKT step is computed correctly
   void checkKKTStep( int is_newton );
@@ -311,6 +316,7 @@ class ParOpt {
 
   // Control of exact Hessian-vector products
   int use_hvec_product;
+  int use_lbfgs_gmres_precon;
   double nk_switch_tol;
   double gmres_rtol, gmres_atol;
 

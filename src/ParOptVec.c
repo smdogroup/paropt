@@ -274,6 +274,13 @@ LBFGS::~LBFGS(){
 }
 
 /*
+  Get the maximum size of the limited-memory BFGS update
+*/
+int LBFGS::getMaxLBFGSSize(){
+  return msub_max;
+}
+
+/*
   Reset the Hessian approximation
 */
 void LBFGS::reset(){
@@ -534,10 +541,10 @@ int LBFGS::getLBFGSMat( double * _b0,
 			const double ** _d,
 			const double ** _M,
 			ParOptVec *** _Z ){
-  *_b0 = b0;
-  *_d = d0;
-  *_M = M;
-  *_Z = Z;
+  if (_b0){ *_b0 = b0; }
+  if (_d){ *_d = d0; }
+  if (_M){ *_M = M; }
+  if (_Z){ *_Z = Z; }
 
   return 2*msub;
 }

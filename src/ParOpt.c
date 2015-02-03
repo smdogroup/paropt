@@ -228,6 +228,7 @@ ParOpt::ParOpt( ParOptProblem *_prob,
 
   // Initialize the Hessian-vector product information
   use_hvec_product = 0;
+  use_lbfgs_gmres_precon = 1;
   nk_switch_tol = 1e-3;
   gmres_rtol = 0.1;
   gmres_atol = 1e-30;
@@ -380,9 +381,15 @@ void ParOpt::printOptionSummary( FILE *fp ){
   int rank;
   MPI_Comm_rank(comm, &rank);
   if (fp && rank == opt_root){
+    int lbfgs_size = 0;
+    if (!sequential_linear_method){
+      lbfgs_size = qn->getMaxLBFGSSize();
+    }
+
     fprintf(fp, "ParOpt: Parameter summary\n");
     fprintf(fp, "%-30s %15d\n", "total variables", nvars_total);
     fprintf(fp, "%-30s %15d\n", "constraints", ncon);
+    fprintf(fp, "%-30s %15d\n", "max_lbfgs_size", lbfgs_size);
     fprintf(fp, "%-30s %15d\n", "max_major_iters", max_major_iters);
     fprintf(fp, "%-30s %15d\n", "init_starting_point", 
 	    init_starting_point);
@@ -411,6 +418,8 @@ void ParOpt::printOptionSummary( FILE *fp ){
 	    hessian_reset_freq);
     fprintf(fp, "%-30s %15d\n", "use_hvec_product",
 	    use_hvec_product);
+    fprintf(fp, "%-30s %15d\n", "use_lbfgs_gmres_precon",
+	    use_lbfgs_gmres_precon);
     fprintf(fp, "%-30s %15g\n", "nk_switch_tol", nk_switch_tol);
     fprintf(fp, "%-30s %15d\n", "gmres_subspace_size",
 	    gmres_subspace_size);
@@ -675,8 +684,18 @@ void ParOpt::setAbsOptimalityTol( double tol ){
   }
 }
 
+/*
+  Set the initial barrier parameter
+*/
 void ParOpt::setInitBarrierParameter( double mu ){
   if (mu > 0.0){ barrier_param = mu; }
+}
+
+/*
+  Retrieve the barrier parameter
+*/
+double ParOpt::getBarrierParameter(){
+  return barrier_param;
 }
 
 void ParOpt::setBarrierFraction( double frac ){
@@ -746,6 +765,13 @@ void ParOpt::setMajorIterStepCheck( int step ){
 */
 void ParOpt::setUseHvecProduct( int truth ){
   use_hvec_product = truth;
+}
+
+/*
+  Use the limited-memory BFGS update as a preconditioner
+*/
+void ParOpt::setUseLBFGSGMRESPreCon( int truth ){
+  use_lbfgs_gmres_precon = truth;
 }
 
 /*
@@ -1041,10 +1067,11 @@ int ParOpt::applyCwFactor( ParOptVec *vec ){
   which is required to compute the solution of the KKT step.
 */
 void ParOpt::setUpKKTDiagSystem( ParOptVec * xt,
-				 ParOptVec * wt ){
+				 ParOptVec * wt, 
+				 int use_bfgs ){
   // Retrive the diagonal entry for the BFGS update
   double b0 = 0.0;
-  if (!sequential_linear_method){
+  if (use_bfgs){
     const double *d, *M;
     ParOptVec **Z;
     qn->getLBFGSMat(&b0, &d, &M, &Z);
@@ -2097,8 +2124,9 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
 void ParOpt::setUpKKTSystem( double *zt,
 			     ParOptVec *xt1,
 			     ParOptVec *xt2, 
-			     ParOptVec *wt ){
-  if (!sequential_linear_method){
+			     ParOptVec *wt,
+			     int use_bfgs ){
+  if (use_bfgs){
     // Get the size of the limited-memory BFGS subspace
     double b0;
     const double *d0, *M;
@@ -2164,13 +2192,13 @@ void ParOpt::setUpKKTSystem( double *zt,
 */
 void ParOpt::computeKKTStep( double *zt,
 			     ParOptVec *xt1, ParOptVec *xt2, 
-			     ParOptVec *wt ){
+			     ParOptVec *wt, int use_bfgs ){
   // Get the size of the limited-memory BFGS subspace
   double b0;
   const double *d, *M;
   ParOptVec **Z;
   int size = 0;
-  if (!sequential_linear_method){
+  if (use_bfgs){
     size = qn->getLBFGSMat(&b0, &d, &M, &Z);
   }
 
@@ -3112,9 +3140,8 @@ int ParOpt::optimize( const char * checkpoint ){
 		barrier_param, comp, dm0_prev, rho_penalty_search, info);
       }
       
-      if (k % write_output_frequency == 0){
-	fflush(outfp);
-      }
+      // Flush the buffer so that we can see things immediately
+      fflush(outfp);
     }
 
     // Compute the norm of the residuals
@@ -3180,27 +3207,45 @@ int ParOpt::optimize( const char * checkpoint ){
     // temporary arrays to help compute the KKT step. After
     // the KKT step is computed, we use them to store the
     // change in variables/gradient for the BFGS update.
-
-    // Set up the KKT diagonal system
-    setUpKKTDiagSystem(s_qn, wtemp);
-
-    // Set up the full KKT system
-    setUpKKTSystem(ztemp, s_qn, y_qn, wtemp);
-
     int gmres_iters = 0;
     if (use_hvec_product && 
 	(max_prime < nk_switch_tol &&
 	 max_dual < nk_switch_tol && 
-	 max_infeas < nk_switch_tol)){
+	 max_infeas < nk_switch_tol)){      
+      int use_bfgs = 1;
+      if (sequential_linear_method || 
+	  !use_lbfgs_gmres_precon){
+	use_bfgs  = 0;
+      }
+      
+      // Set up the KKT diagonal system
+      setUpKKTDiagSystem(s_qn, wtemp, use_bfgs);
+      
+      // Set up the full KKT system
+      setUpKKTSystem(ztemp, s_qn, y_qn, wtemp, use_bfgs);
+
+
       // Compute the inexact step using GMRES - note that this
       // uses a fixed tolerance -- this may lead to over-solving
       // if rtol is too tight
       gmres_iters = computeKKTInexactNewtonStep(ztemp, y_qn, s_qn, wtemp,
-						gmres_rtol, gmres_atol);
+						gmres_rtol, gmres_atol,
+						use_bfgs);
     }
     else {
+      int use_bfgs = 1;
+      if (sequential_linear_method){
+	use_bfgs  = 0;
+      }
+      
+      // Set up the KKT diagonal system
+      setUpKKTDiagSystem(s_qn, wtemp, use_bfgs);
+      
+      // Set up the full KKT system
+      setUpKKTSystem(ztemp, s_qn, y_qn, wtemp, use_bfgs);
+      
       // Solve for the KKT step
-      computeKKTStep(ztemp, s_qn, y_qn, wtemp);
+      computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_bfgs);
     }
 
     // Check the KKT step
@@ -3561,7 +3606,8 @@ int ParOpt::optimize( const char * checkpoint ){
 int ParOpt::computeKKTInexactNewtonStep( double *zt, 
 					 ParOptVec *xt1, ParOptVec *xt2,
 					 ParOptVec *wt,
-					 double rtol, double atol ){
+					 double rtol, double atol,
+					 int use_bfgs ){
   // Initialize the data from the gmres object
   double *H = gmres_H;
   double *alpha = gmres_alpha;
@@ -3631,13 +3677,12 @@ int ParOpt::computeKKTInexactNewtonStep( double *zt,
 
   for ( int i = 0; i < gmres_subspace_size; i++ ){
     // Compute M^{-1}*[ W[i], alpha[i]*yc, ... ] 
-
     // Get the size of the limited-memory BFGS subspace
     double b0;
     const double *d, *M;
     ParOptVec **Z;
     int size = 0;
-    if (!sequential_linear_method){
+    if (use_bfgs){
       size = qn->getLBFGSMat(&b0, &d, &M, &Z);
     }
 
@@ -3792,7 +3837,7 @@ int ParOpt::computeKKTInexactNewtonStep( double *zt,
   const double *d, *M;
   ParOptVec **Z;
   int size = 0;
-  if (!sequential_linear_method){
+  if (use_bfgs){
     size = qn->getLBFGSMat(&b0, &d, &M, &Z);
   }
 
