@@ -17,7 +17,7 @@
   optimization. These parameters can be modified through member
   functions.
 
-  The parameters are as follows:
+  Some of the parameters are as follows:
 
   max_major_iters:        maximum major iterations
   init_starting_point:    (boolean) guess the initial multipliers
@@ -34,12 +34,11 @@
   hessian_reset_freq:     reset the Hessian at this frequency
 
   input:
-  prob:      the optimization problem
-  pcon:      the constraints (if any)
-  max_lbfgs: the number of steps to store in the the l-BFGS
+  prob:        the optimization problem
+  max_qn_size: the number of steps to store in memory
 */
-ParOpt::ParOpt( ParOptProblem *_prob, 
-		int max_lbfgs_subspace ){
+ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
+		enum QuasiNewtonType qn_type ){
   prob = _prob;
 
   // Record the communicator
@@ -63,8 +62,13 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   // Calculate the total number of variable across all processors
   MPI_Allreduce(&nvars, &nvars_total, 1, MPI_INT, MPI_SUM, comm);
 
-  // Allocate the quasi-Newton LBFGS approximation
-  qn = new LBFGS(comm, nvars, max_lbfgs_subspace);
+  // Allocate the quasi-Newton approximation
+  if (qn_type == BFGS){
+    qn = new LBFGS(comm, nvars, max_qn_subspace);
+  }
+  else {
+    qn = new LSR1(comm, nvars, max_qn_subspace);
+  }
 
   // Set the values of the variables/bounds
   x = new ParOptVec(comm, nvars);
@@ -172,7 +176,7 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   }
 
   // Allocate storage for bfgs/constraint sized things
-  int zsize = 2*max_lbfgs_subspace;
+  int zsize = 2*max_qn_subspace;
   if (ncon > zsize){
     ncon = zsize;
   }
@@ -183,8 +187,8 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   dpiv = new int[ ncon ];
 
   // Allocate space for the Ce matrix
-  Ce = new double[ 4*max_lbfgs_subspace*max_lbfgs_subspace ];
-  cpiv = new int[ 2*max_lbfgs_subspace ];
+  Ce = new double[ 4*max_qn_subspace*max_qn_subspace ];
+  cpiv = new int[ 2*max_qn_subspace ];
 
   // Allocate space for the diagonal matrix components
   Cvec = new ParOptVec(comm, nvars);
@@ -228,9 +232,11 @@ ParOpt::ParOpt( ParOptProblem *_prob,
 
   // Initialize the Hessian-vector product information
   use_hvec_product = 0;
-  use_lbfgs_gmres_precon = 1;
+  use_qn_gmres_precon = 1;
   nk_switch_tol = 1e-3;
-  gmres_rtol = 0.1;
+  eisenstat_walker_alpha = 1.5;
+  eisenstat_walker_gamma = 1.0;
+  max_gmres_rtol = 0.1;
   gmres_atol = 1e-30;
 
   // By default, set the file pointer to stdout
@@ -381,15 +387,15 @@ void ParOpt::printOptionSummary( FILE *fp ){
   int rank;
   MPI_Comm_rank(comm, &rank);
   if (fp && rank == opt_root){
-    int lbfgs_size = 0;
+    int qn_size = 0;
     if (!sequential_linear_method){
-      lbfgs_size = qn->getMaxLBFGSSize();
+      qn_size = qn->getMaxLimitedMemorySize();
     }
 
     fprintf(fp, "ParOpt: Parameter summary\n");
     fprintf(fp, "%-30s %15d\n", "total variables", nvars_total);
     fprintf(fp, "%-30s %15d\n", "constraints", ncon);
-    fprintf(fp, "%-30s %15d\n", "max_lbfgs_size", lbfgs_size);
+    fprintf(fp, "%-30s %15d\n", "max_qn_size", qn_size);
     fprintf(fp, "%-30s %15d\n", "max_major_iters", max_major_iters);
     fprintf(fp, "%-30s %15d\n", "init_starting_point", 
 	    init_starting_point);
@@ -418,12 +424,14 @@ void ParOpt::printOptionSummary( FILE *fp ){
 	    hessian_reset_freq);
     fprintf(fp, "%-30s %15d\n", "use_hvec_product",
 	    use_hvec_product);
-    fprintf(fp, "%-30s %15d\n", "use_lbfgs_gmres_precon",
-	    use_lbfgs_gmres_precon);
+    fprintf(fp, "%-30s %15d\n", "use_qn_gmres_precon",
+	    use_qn_gmres_precon);
     fprintf(fp, "%-30s %15g\n", "nk_switch_tol", nk_switch_tol);
+    fprintf(fp, "%-30s %15g\n", "eisenstat_walker_alpha", eisenstat_walker_alpha);
+    fprintf(fp, "%-30s %15g\n", "eisenstat_walker_gamma", eisenstat_walker_gamma);
     fprintf(fp, "%-30s %15d\n", "gmres_subspace_size",
 	    gmres_subspace_size);
-    fprintf(fp, "%-30s %15g\n", "gmres_rtol", gmres_rtol);
+    fprintf(fp, "%-30s %15g\n", "max_gmres_rtol", max_gmres_rtol);
     fprintf(fp, "%-30s %15g\n", "gmres_atol", gmres_atol);
   }
 }
@@ -770,20 +778,32 @@ void ParOpt::setUseHvecProduct( int truth ){
 /*
   Use the limited-memory BFGS update as a preconditioner
 */
-void ParOpt::setUseLBFGSGMRESPreCon( int truth ){
-  use_lbfgs_gmres_precon = truth;
+void ParOpt::setUseQNGMRESPreCon( int truth ){
+  use_qn_gmres_precon = truth;
 }
 
 /*
-  Set information about GMRES
+  Set information about when to use the Newton-Krylov method
 */
 void ParOpt::setNKSwitchTolerance( double tol ){
   nk_switch_tol = tol;
 }
 
 void ParOpt::setGMRESTolerances( double rtol, double atol ){
-  gmres_rtol = rtol;
+  max_gmres_rtol = rtol;
   gmres_atol = atol;
+}
+
+/*
+  Set the parameters for choosing the forcing term in an inexact Newton method
+*/
+void ParOpt::setEisenstatWalkerParameters( double gamma, double alpha ){
+  if (gamma > 0 && gamma <= 1.0){
+    eisenstat_walker_gamma = gamma;
+  }
+  if (alpha > 1.0 && gamma <= 2.0){
+    eisenstat_walker_alpha = alpha;
+  }
 }
 
 void ParOpt::setGMRESSusbspaceSize( int m ){
@@ -1068,13 +1088,13 @@ int ParOpt::applyCwFactor( ParOptVec *vec ){
 */
 void ParOpt::setUpKKTDiagSystem( ParOptVec * xt,
 				 ParOptVec * wt, 
-				 int use_bfgs ){
+				 int use_qn ){
   // Retrive the diagonal entry for the BFGS update
   double b0 = 0.0;
-  if (use_bfgs){
+  if (use_qn){
     const double *d, *M;
     ParOptVec **Z;
-    qn->getLBFGSMat(&b0, &d, &M, &Z);
+    qn->getCompactMat(&b0, &d, &M, &Z);
   }
 
   // Retrieve the values of the design variables, lower/upper bounds
@@ -2125,13 +2145,13 @@ void ParOpt::setUpKKTSystem( double *zt,
 			     ParOptVec *xt1,
 			     ParOptVec *xt2, 
 			     ParOptVec *wt,
-			     int use_bfgs ){
-  if (use_bfgs){
+			     int use_qn ){
+  if (use_qn){
     // Get the size of the limited-memory BFGS subspace
     double b0;
     const double *d0, *M;
     ParOptVec **Z;
-    int size = qn->getLBFGSMat(&b0, &d0, &M, &Z);
+    int size = qn->getCompactMat(&b0, &d0, &M, &Z);
     
     if (size > 0){
       memset(Ce, 0, size*size*sizeof(double));
@@ -2192,14 +2212,14 @@ void ParOpt::setUpKKTSystem( double *zt,
 */
 void ParOpt::computeKKTStep( double *zt,
 			     ParOptVec *xt1, ParOptVec *xt2, 
-			     ParOptVec *wt, int use_bfgs ){
+			     ParOptVec *wt, int use_qn ){
   // Get the size of the limited-memory BFGS subspace
   double b0;
   const double *d, *M;
   ParOptVec **Z;
   int size = 0;
-  if (use_bfgs){
-    size = qn->getLBFGSMat(&b0, &d, &M, &Z);
+  if (use_qn){
+    size = qn->getCompactMat(&b0, &d, &M, &Z);
   }
 
   // At this point the residuals are no longer required.
@@ -3123,7 +3143,7 @@ int ParOpt::optimize( const char * checkpoint ){
       // Keep the Lagrange multipliers if they are within 
       // a reasonable range and they are positive.
       for ( int i = 0; i < ncon; i++ ){
-	if (z[i] < 0.01 || z[i] > 100.0){
+	if (z[i] < 0.01 || z[i] > 1000.0){
 	  z[i] = 1.0;
 	}
       }
@@ -3139,7 +3159,8 @@ int ParOpt::optimize( const char * checkpoint ){
   double alpha_zprev = 0.0;
 
   // Keep track of the projected merit function derivative
-  double dm0_prev = 0.0;
+  double dm0_prev = 0.0, res_norm_prev = 0.0;
+  double gmres_rtol = 0.0;
 
   // Information about what happened on the previous major iteration
   char info[64];
@@ -3173,41 +3194,13 @@ int ParOpt::optimize( const char * checkpoint ){
     double max_prime, max_dual, max_infeas;
     computeKKTRes(&max_prime, &max_dual, &max_infeas);
 
-    // Print all the information we can to the screen...
-    int rank;
-    MPI_Comm_rank(comm, &rank);
-    if (outfp && rank == opt_root){
-      if (k % 10 == 0){
-	fprintf(outfp, "\n%4s %4s %4s %4s %7s %7s %12s \
-%7s %7s %7s %7s %7s %8s %7s info\n",
-		"iter", "nobj", "ngrd", "nhvc", "alphx", "alphz", 
-		"fobj", "|opt|", "|infes|", "|dual|", "mu", 
-		"comp", "dmerit", "rho");
-      }
-
-      if (k == 0){
-	fprintf(outfp, "%4d %4d %4d %4d %7s %7s %12.5e \
-%7.1e %7.1e %7.1e %7.1e %7.1e %8s %7s %s\n",
-		k, neval, ngeval, nhvec, " ", " ",
-		fobj, max_prime, max_infeas, max_dual, 
-		barrier_param, comp, " ", " ", info);
-      }
-      else {
-	fprintf(outfp, "%4d %4d %4d %4d %7.1e %7.1e %12.5e \
-%7.1e %7.1e %7.1e %7.1e %7.1e %8.1e %7.1e %s\n",
-		k, neval, ngeval, nhvec, alpha_xprev, alpha_zprev,
-		fobj, max_prime, max_infeas, max_dual, 
-		barrier_param, comp, dm0_prev, rho_penalty_search, info);
-      }
-      
-      // Flush the buffer so that we can see things immediately
-      fflush(outfp);
-    }
-
     // Compute the norm of the residuals
     double res_norm = max_prime;
     if (max_dual > res_norm){ res_norm = max_dual; }
     if (max_infeas > res_norm){ res_norm = max_infeas; }
+    if (k == 0){
+      res_norm_prev = res_norm;
+    }
 
     // Check for convergence
     if (res_norm < abs_res_tol && 
@@ -3220,7 +3213,7 @@ int ParOpt::optimize( const char * checkpoint ){
     // sufficiently in order to switch to a new barrier
     // problem
     if (res_norm < 10.0*barrier_param || 
-	(use_line_search && -dm0_prev < barrier_param)){
+	(k > 0 && use_line_search && -dm0_prev < 10.0*barrier_param)){
       // Record the value of the old barrier function
       double mu_old = barrier_param;
 
@@ -3238,31 +3231,110 @@ int ParOpt::optimize( const char * checkpoint ){
 
       // Now, that we have adjusted the barrier parameter, we have
       // to modify the residuals to match
+      max_dual = 0.0;
       if (dense_inequality){
 	for ( int i = 0; i < ncon; i++ ){
 	  rs[i] -= (mu_old - barrier_param);
+	
+	  if (fabs(rs[i]) > max_dual){
+	    max_dual = fabs(rs[i]);
+	  }
 	}
       }
 
-      double *rzlvals, *rzuvals;
-      rzl->getArray(&rzlvals);
-      rzu->getArray(&rzuvals);
-      
+      if (nwcon > 0 && sparse_inequality){
+	// Set the values of the perturbed complementarity
+	// constraints for the sparse slack variables
+	double  *rswvals;
+	rsw->getArray(&rswvals);
+    
+	for ( int i = 0; i < nwcon; i++ ){
+	  rswvals[i] -= (mu_old - barrier_param);
+	}
+    
+	double dual_zw = rsw->maxabs();
+	if (dual_zw > max_dual){
+	  max_dual = dual_zw;
+	}
+      }
+
+      // Adjust the lower-bound residuals if required
       if (use_lower){
+	double *rzlvals;
+	rzl->getArray(&rzlvals);
+
 	for ( int i = 0; i < nvars; i++ ){
 	  rzlvals[i] -= (mu_old - barrier_param);
 	}
+
+	double dual_zl = rzl->maxabs();
+	if (dual_zl > max_dual){
+	  max_dual = dual_zl;
+	}
       }
 
+      // Adjust the upper-bound residuals if required
       if (use_upper){
+	double *rzuvals;
+	rzu->getArray(&rzuvals);
+
 	for ( int i = 0; i < nvars; i++ ){
 	  rzuvals[i] -= (mu_old - barrier_param);
+	}
+
+	double dual_zu = rzu->maxabs();
+	if (dual_zu > max_dual){
+	  max_dual = dual_zu;
 	}
       }
 
       // Reset the penalty parameter to zero
       rho_penalty_search = 0.0;
+
+      // Recompute the maximum residual norm after the update
+      res_norm = max_prime;
+      if (max_dual > res_norm){ res_norm = max_dual; }
+      if (max_infeas > res_norm){ res_norm = max_infeas; }
     }
+
+    // Print all the information we can to the screen...
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+    if (outfp && rank == opt_root){
+      if (k % 10 == 0){
+	fprintf(outfp, "\n%4s %4s %4s %4s %7s %7s %12s \
+%7s %7s %7s %7s %7s %8s %7s %7s info\n",
+		"iter", "nobj", "ngrd", "nhvc", "alphx", "alphz", 
+		"fobj", "|opt|", "|infes|", "|dual|", "mu", 
+		"comp", "dmerit", "rho", "nktol");
+      }
+
+      if (k == 0){
+	fprintf(outfp, "%4d %4d %4d %4d %7s %7s %12.5e \
+%7.1e %7.1e %7.1e %7.1e %7.1e %8s %7s %7s %s\n",
+		k, neval, ngeval, nhvec, " ", " ",
+		fobj, max_prime, max_infeas, max_dual, 
+		barrier_param, comp, " ", " ", " ", info);
+      }
+      else {
+	fprintf(outfp, "%4d %4d %4d %4d %7.1e %7.1e %12.5e \
+%7.1e %7.1e %7.1e %7.1e %7.1e %8.1e %7.1e %7.1e %s\n",
+		k, neval, ngeval, nhvec, alpha_xprev, alpha_zprev,
+		fobj, max_prime, max_infeas, max_dual, 
+		barrier_param, comp, dm0_prev, rho_penalty_search, 
+		gmres_rtol, info);
+      }
+      
+      // Flush the buffer so that we can see things immediately
+      fflush(outfp);
+    }
+
+    // Compute the relative GMRES tolerance given the residuals
+    gmres_rtol = eisenstat_walker_gamma*pow((res_norm/res_norm_prev),
+					    eisenstat_walker_alpha);
+
+    // Assign the previous norm for next time through
+    res_norm_prev = res_norm;
 
     // Note that at this stage, we use s_qn and y_qn as 
     // temporary arrays to help compute the KKT step. After
@@ -3272,40 +3344,41 @@ int ParOpt::optimize( const char * checkpoint ){
     if (use_hvec_product && 
 	(max_prime < nk_switch_tol &&
 	 max_dual < nk_switch_tol && 
-	 max_infeas < nk_switch_tol)){      
-      int use_bfgs = 1;
+	 max_infeas < nk_switch_tol) && 
+	gmres_rtol < max_gmres_rtol){      
+      int use_qn = 1;
       if (sequential_linear_method || 
-	  !use_lbfgs_gmres_precon){
-	use_bfgs  = 0;
+	  !use_qn_gmres_precon){
+	use_qn = 0;
       }
       
       // Set up the KKT diagonal system
-      setUpKKTDiagSystem(s_qn, wtemp, use_bfgs);
+      setUpKKTDiagSystem(s_qn, wtemp, use_qn);
       
       // Set up the full KKT system
-      setUpKKTSystem(ztemp, s_qn, y_qn, wtemp, use_bfgs);
+      setUpKKTSystem(ztemp, s_qn, y_qn, wtemp, use_qn);
 
       // Compute the inexact step using GMRES - note that this
       // uses a fixed tolerance -- this may lead to over-solving
       // if rtol is too tight
       gmres_iters = computeKKTInexactNewtonStep(ztemp, y_qn, s_qn, wtemp,
 						gmres_rtol, gmres_atol,
-						use_bfgs);
+						use_qn);
     }
     else {
-      int use_bfgs = 1;
+      int use_qn = 1;
       if (sequential_linear_method){
-	use_bfgs  = 0;
+	use_qn  = 0;
       }
       
       // Set up the KKT diagonal system
-      setUpKKTDiagSystem(s_qn, wtemp, use_bfgs);
+      setUpKKTDiagSystem(s_qn, wtemp, use_qn);
       
       // Set up the full KKT system
-      setUpKKTSystem(ztemp, s_qn, y_qn, wtemp, use_bfgs);
+      setUpKKTSystem(ztemp, s_qn, y_qn, wtemp, use_qn);
       
       // Solve for the KKT step
-      computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_bfgs);
+      computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_qn);
     }
 
     // Check the KKT step
@@ -3322,6 +3395,10 @@ int ParOpt::optimize( const char * checkpoint ){
 
     double max_x = 1.0, max_z = 1.0;
     computeMaxStep(tau, &max_x, &max_z);
+
+    // Keep track of whether we set both the design and Lagrange
+    // multiplier steps equal to one another
+    int ceq_step = 0;
 
     // Bound the difference between the step lengths. This code
     // cuts off the difference between the step lengths by a bound.
@@ -3346,9 +3423,11 @@ int ParOpt::optimize( const char * checkpoint ){
     // As a last check, compute the complementarity at
     // the full step length. If the complementarity increases,
     // use equal step lengths.
-    double comp_new = computeCompStep(max_x, max_z);
     if (gmres_iters == 0){
+      double comp_new = computeCompStep(max_x, max_z);
+
       if (comp_new > comp){
+	ceq_step = 1;
 	if (max_x > max_z){
 	  max_x = max_z;
 	}
@@ -3631,7 +3710,7 @@ int ParOpt::optimize( const char * checkpoint ){
 	// sufficiently descent-y
 	sprintf(info, "%s%s ", info, "sk");
       }
-      if (comp_new > comp){
+      if (ceq_step){
 	// The step lengths are equal due to an increase in the
 	// the complementarity at the new step
 	sprintf(info, "%s%s ", info, "ceq");
@@ -3671,7 +3750,7 @@ int ParOpt::computeKKTInexactNewtonStep( double *zt,
 					 ParOptVec *xt1, ParOptVec *xt2,
 					 ParOptVec *wt,
 					 double rtol, double atol,
-					 int use_bfgs ){
+					 int use_qn ){
   // Initialize the data from the gmres object
   double *H = gmres_H;
   double *alpha = gmres_alpha;
@@ -3746,8 +3825,8 @@ int ParOpt::computeKKTInexactNewtonStep( double *zt,
     const double *d, *M;
     ParOptVec **Z;
     int size = 0;
-    if (use_bfgs){
-      size = qn->getLBFGSMat(&b0, &d, &M, &Z);
+    if (use_qn){
+      size = qn->getCompactMat(&b0, &d, &M, &Z);
     }
 
     // At this point the residuals are no longer required.
@@ -3901,8 +3980,8 @@ int ParOpt::computeKKTInexactNewtonStep( double *zt,
   const double *d, *M;
   ParOptVec **Z;
   int size = 0;
-  if (use_bfgs){
-    size = qn->getLBFGSMat(&b0, &d, &M, &Z);
+  if (use_qn){
+    size = qn->getCompactMat(&b0, &d, &M, &Z);
   }
 
   if (size > 0){

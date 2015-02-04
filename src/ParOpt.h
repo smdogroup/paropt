@@ -72,8 +72,11 @@
 
 class ParOpt {
  public:
+  enum QuasiNewtonType { BFGS, SR1 };
+
   ParOpt( ParOptProblem *_prob,
-	  int _max_lbfgs_subspace );
+	  int _max_lbfgs_subspace,
+	  enum QuasiNewtonType qn_type = BFGS );
   ~ParOpt();
 
   // Perform the optimization
@@ -116,8 +119,9 @@ class ParOpt {
   // Set parameters for the internal GMRES algorithm
   // -----------------------------------------------
   void setUseHvecProduct( int truth );
-  void setUseLBFGSGMRESPreCon( int truth );
+  void setUseQNGMRESPreCon( int truth );
   void setNKSwitchTolerance( double tol );
+  void setEisenstatWalkerParameters( double gamma, double alpha );
   void setGMRESTolerances( double rtol, double atol );
   void setGMRESSusbspaceSize( int _gmres_subspace_size );
 
@@ -273,7 +277,7 @@ class ParOpt {
   int *dpiv, *cpiv;
 
   // Storage for the Quasi-Newton updates
-  LBFGS *qn;
+  CompactQuasiNewton *qn;
   ParOptVec *y_qn, *s_qn;
 
   // Keep track of the number of objective and gradient evaluations
@@ -316,9 +320,10 @@ class ParOpt {
 
   // Control of exact Hessian-vector products
   int use_hvec_product;
-  int use_lbfgs_gmres_precon;
+  int use_qn_gmres_precon;
+  double eisenstat_walker_alpha, eisenstat_walker_gamma;
   double nk_switch_tol;
-  double gmres_rtol, gmres_atol;
+  double max_gmres_rtol, gmres_atol;
 
   // Internal information about GMRES
   int gmres_subspace_size;

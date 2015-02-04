@@ -276,7 +276,7 @@ LBFGS::~LBFGS(){
 /*
   Get the maximum size of the limited-memory BFGS update
 */
-int LBFGS::getMaxLBFGSSize(){
+int LBFGS::getMaxLimitedMemorySize(){
   return msub_max;
 }
 
@@ -537,14 +537,330 @@ void LBFGS::multAdd( double alpha, ParOptVec * x, ParOptVec * y ){
   Retrieve the internal data for the limited-memory BFGS
   representation
 */
-int LBFGS::getLBFGSMat( double * _b0,
-			const double ** _d,
-			const double ** _M,
-			ParOptVec *** _Z ){
+int LBFGS::getCompactMat( double * _b0,
+			  const double ** _d,
+			  const double ** _M,
+			  ParOptVec *** _Z ){
   if (_b0){ *_b0 = b0; }
   if (_d){ *_d = d0; }
   if (_M){ *_M = M; }
   if (_Z){ *_Z = Z; }
 
   return 2*msub;
+}
+
+/*
+  The following class implements the limited-memory SR1 update.  
+
+  The limited-memory SR1 formula takes the following form:
+
+  b0*I - Z*diag{d)*M^{-1}*diag{d}*Z^{T}
+
+  input:
+  comm:     the communicator
+  nvars:    the number of local variables
+  msub_max: the maximum subspace size
+*/
+LSR1::LSR1( MPI_Comm _comm, int _nvars, int _msub_max ){
+  comm = _comm;
+  nvars = _nvars;
+  msub_max = _msub_max;
+  msub = 0;
+
+  b0 = 1.0;
+
+  // Allocate space for the vectors
+  S = new ParOptVec*[ msub_max ];
+  Y = new ParOptVec*[ msub_max ];
+  Z = new ParOptVec*[ msub_max ];
+
+  for ( int i = 0; i < msub_max; i++ ){
+    S[i] = new ParOptVec(comm, nvars);
+    Y[i] = new ParOptVec(comm, nvars);
+    Z[i] = new ParOptVec(comm, nvars);
+  }
+
+  // A temporary vector for the damped update
+  r = new ParOptVec(comm, nvars);
+
+  // The full M-matrix
+  M = new double[ msub_max*msub_max ];
+
+  // The diagonal scaling matrix
+  d0 = new double[ msub_max ];
+
+  // The factored M-matrix
+  M_factor = new double[ msub_max*msub_max ];
+  mfpiv = new int[ msub_max ];
+  
+  // Temporary vector required for multiplications
+  rz = new double[ msub_max ];
+
+  // The components of the M matrix that must be
+  // updated each iteration
+  D = new double[ msub_max ];
+  L = new double[ msub_max*msub_max ];
+  B = new double[ msub_max*msub_max ];  
+
+  // Zero the initial values of everything
+  memset(d0, 0, msub_max*sizeof(double));
+  memset(rz, 0, msub_max*sizeof(double));
+
+  memset(M, 0, msub_max*msub_max*sizeof(double));
+  memset(M_factor, 0, msub_max*msub_max*sizeof(double));
+
+  memset(D, 0, msub_max*sizeof(double));
+  memset(L, 0, msub_max*msub_max*sizeof(double));
+  memset(B, 0, msub_max*msub_max*sizeof(double));
+}
+
+/*
+  Free the memory allocated by the BFGS update
+*/
+LSR1::~LSR1(){
+  // Delete the vectors
+  for ( int i = 0; i < msub_max; i++ ){
+    delete Y[i];
+    delete S[i];
+    delete Z[i];
+  }
+
+  delete [] S;
+  delete [] Y;
+  delete [] Z;
+  delete r;
+
+  // Delete the matrices/data
+  delete [] M;
+  delete [] M_factor;
+  delete [] mfpiv;
+  delete [] rz;
+
+  delete [] D;
+  delete [] L;
+  delete [] B;
+  delete [] d0;
+}
+
+/*
+  Get the maximum size of the limited-memory BFGS update
+*/
+int LSR1::getMaxLimitedMemorySize(){
+  return msub_max;
+}
+
+/*
+  Reset the Hessian approximation
+*/
+void LSR1::reset(){
+  msub = 0;
+  b0 = 1.0;
+
+  // Zero the initial values of everything
+  memset(d0, 0, msub_max*sizeof(double));
+  memset(rz, 0, msub_max*sizeof(double));
+
+  memset(M, 0, msub_max*msub_max*sizeof(double));
+  memset(M_factor, 0, msub_max*msub_max*sizeof(double));
+
+  memset(D, 0, msub_max*sizeof(double));
+  memset(L, 0, msub_max*msub_max*sizeof(double));
+  memset(B, 0, msub_max*msub_max*sizeof(double));
+}
+
+/*
+  Compute the update to the limited-memory SR1 approximate
+  Hessian. The SR1 formula takes the form:
+
+  B*x = (b0*I - Z*diag{d}*M^{-1}*diag{d}*Z^{T})*x
+  
+  Note that the
+
+  input:
+  s:  the step in the design variable values
+  y:  the difference in the gradient
+
+  returns:
+  update type: 0 = normal, 1 = damped update
+*/
+int LSR1::update( ParOptVec * s, ParOptVec * y ){
+  int update_type = 0;
+
+  // Set the diagonal entries of the matrix
+  double gamma = y->dot(y);
+  double alpha = y->dot(s);
+
+  // Set the diagonal components on the first time through
+  if (msub == 0){
+    b0 = gamma/alpha;
+  }
+ 
+  // Set up the new values
+  if (msub < msub_max){
+    S[msub]->copyValues(s);
+    Y[msub]->copyValues(y);
+    msub++;
+  }
+  else { // msub == msub_max
+    // Shift the pointers to the vectors so that everything
+    // will work out
+    S[0]->copyValues(s);
+    Y[0]->copyValues(y);
+
+    // Shift the pointers
+    ParOptVec *stemp = S[0];
+    ParOptVec *ytemp = Y[0];
+    for ( int i = 0; i < msub-1; i++ ){
+      S[i] = S[i+1];
+      Y[i] = Y[i+1];
+    }
+    S[msub-1] = stemp;
+    Y[msub-1] = ytemp;
+
+    // Now, shift the values in the matrices
+    for ( int i = 0; i < msub-1; i++ ){
+      D[i] = D[i+1];
+    }
+
+    for ( int i = 0; i < msub-1; i++ ){
+      for ( int j = 0; j < msub-1; j++ ){
+	B[i + j*msub_max] = B[i+1 + (j+1)*msub_max];
+      }
+    }
+
+    for ( int i = 0; i < msub-1; i++ ){
+      for ( int j = 0; j < i; j++ ){
+	L[i + j*msub_max] = L[i+1 + (j+1)*msub_max];
+      }
+    }
+  }
+
+  // Update the matrices required for the limited-memory update.
+  // Update the S^{T}S matrix:
+  for ( int i = 0; i < msub; i++ ){
+    B[msub-1 + i*msub_max] = S[msub-1]->dot(S[i]);
+    B[i + (msub-1)*msub_max] = B[msub-1 + i*msub_max];
+  }
+
+  // Update the diagonal D-matrix
+  D[msub-1] = S[msub-1]->dot(Y[msub-1]);
+
+  // By definition, we have the L matrix:
+  // For j < i: L[i + j*msub_max] = S[i]->dot(Y[j]);
+  for ( int i = 0; i < msub-1; i++ ){
+    L[msub-1 + i*msub_max] = S[msub-1]->dot(Y[i]);
+  }
+
+  // Set the values into the M-matrix
+  memset(M, 0, msub*msub*sizeof(double));
+
+  // Populate the result in the M-matrix
+  for ( int i = 0; i < msub; i++ ){
+    for ( int j = 0; j < msub; j++ ){
+      M[i + msub*j] += b0*B[i + msub_max*j];
+    }
+  }
+
+  for ( int i = 0; i < msub; i++ ){
+    for ( int j = 0; j < i; j++ ){
+      M[i + msub*j] -= L[i + msub_max*j];
+      M[j + msub*i] -= L[i + msub_max*j];
+    }
+  }
+
+  for ( int i = 0; i < msub; i++ ){
+    M[i*(msub+1)] -= D[i];
+  }
+
+  // Set the new values of the Z-vectors
+  for ( int i = 0; i < msub; i++ ){
+    Z[i]->copyValues(Y[i]);
+    Z[i]->axpy(-b0, S[i]);
+
+    d0[i] = 1.0;
+  }
+
+  // Copy out the M matrix for factorization
+  memcpy(M_factor, M, msub*msub*sizeof(double));
+  
+  // Factor the M matrix for later useage
+  int n = msub, info = 0;
+  LAPACKdgetrf(&n, &n, M_factor, &n, mfpiv, &info);
+
+  return update_type;
+}
+
+/*
+  Given the input vector, multiply the SR1 approximation by the input
+  vector
+
+  This code computes the product of the LSR1 matrix with the vector x:
+
+  y <- b0*x - Z*M^{-1}*Z^{T}*x
+*/
+void LSR1::mult( ParOptVec * x, ParOptVec * y ){
+  // Set y = b0*x
+  y->copyValues(x);
+  y->scale(b0);
+
+  if (msub > 0){
+    // Compute rz = Z^{T}*x
+    x->mdot(Z, msub, rz);
+        
+    // Solve rz = M^{-1}*rz
+    int n = msub, one = 1, info = 0;
+    LAPACKdgetrs("N", &n, &one, 
+		 M_factor, &n, mfpiv, 
+		 rz, &n, &info);
+    
+    // Now compute: y <- Z*rz
+    for ( int i = 0; i < msub; i++ ){
+      y->axpy(-rz[i], Z[i]);
+    }
+  }
+}
+
+/*
+  Given the input vector, multiply the SR1 approximation by the input
+  vector and add the result to the output vector
+
+  This code computes the product of the LSR1 matrix with the vector x:
+
+  y <- y + alpha*(b0*x - Z*M^{-1}*Z^{T}*x)
+*/
+void LSR1::multAdd( double alpha, ParOptVec * x, ParOptVec * y ){
+  // Set y = b0*x
+  y->axpy(b0*alpha, x);
+
+  if (msub > 0){
+    // Compute rz = Z^{T}*x
+    x->mdot(Z, msub, rz);
+        
+    // Solve rz = M^{-1}*rz
+    int n = msub, one = 1, info = 0;
+    LAPACKdgetrs("N", &n, &one, 
+		 M_factor, &n, mfpiv, 
+		 rz, &n, &info);
+    
+    // Now compute: y <- Z*rz
+    for ( int i = 0; i < msub; i++ ){
+      y->axpy(-alpha*rz[i], Z[i]);
+    }
+  }
+}
+
+/*
+  Retrieve the internal data for the limited-memory BFGS
+  representation
+*/
+int LSR1::getCompactMat( double * _b0,
+			 const double ** _d,
+			 const double ** _M,
+			 ParOptVec *** _Z ){
+  if (_b0){ *_b0 = b0; }
+  if (_d){ *_d = d0; }
+  if (_M){ *_M = M; }
+  if (_Z){ *_Z = Z; }
+
+  return msub;
 }
