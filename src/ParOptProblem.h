@@ -2,7 +2,7 @@
 #define PAR_OPT_PROBLEM_H
 
 /*
-  Copyright (c) 2014 Graeme Kennedy. All rights reserved
+  Copyright (c) 2014-2015 Graeme Kennedy. All rights reserved
 */
 
 #include "ParOptVec.h"

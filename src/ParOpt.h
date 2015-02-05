@@ -2,7 +2,7 @@
 #define PAR_OPT_OPTIMIZER_H
 
 /*
-  Copyright (c) 2014 Graeme Kennedy. All rights reserved
+  Copyright (c) 2014-2015 Graeme Kennedy. All rights reserved
 */
 
 #include <stdio.h>
@@ -23,11 +23,13 @@
 
   min f(x)
   s.t.  c(x) >= 0 
-  s.t.  Aw*x = b
+  s.t.  cw*(x) >= 0
   s.t.  lb <= x < ub
   
-  where Aw is a large, sparse constraint matrix. The perturbed KKT
-  conditions for this problem are:
+  where c(x) is a small (n < 100) vector of constraints, cw(x) is a
+  (possibly) nonlinear constraint with a special sparse Jacobian
+  structure and lb/ub are the lower and upper bounds,
+  respectively. The perturbed KKT conditions for this problem are:
 
   g(x) - A(x)^{T}*z - Aw^{T}*zw - zl + zu = 0
   c(x) - s = 0
@@ -37,24 +39,36 @@
   (X - Xl)*zl - mu*e = 0
   (Xu - X)*zu - mu*e = 0
 
-  where g = grad f(x) and A(x) = grad c(x). The Lagrange multipliers
-  are z, zw, zl, and zu, respectively.  Note that here we assume that
-  c(x) has only a few entries, x is very large, and Aw is also very
-  large, but has a special structure.
+  where g = grad f(x), A(x) = grad c(x) and Aw(x) = grad cw(x). The
+  Lagrange multipliers are z, zw, zl, and zu, respectively.
 
   At each step of the optimization, we compute a solution to the
   linear system above, using:
 
-  Km*p = - r
+  ||J(q)*p + r(q)|| <= eta*||r(q)||
 
-  where K is the linearization of the above system of equations, p is
-  a search direction, and r are the residuals. Instead of using an
-  exact linearization, we use an approximation based on a compact
-  limited-memory BFGS representation. To compute the update, we use
-  the Sherman-Morrison-Woodbury formula. This is possible due to the
-  compact L-BFGS representation.
+  where q are all the optimization variables, r(q) are the perturbed
+  KKT residuals and J(q) is either an approximate or exact
+  linearization of r(q). The parameter eta is a forcing term that
+  controls how tightly the linearization is solved. The inexact
+  solution p is a search direction that is subsequently used in a line
+  search.
 
-  The KKT system can be written as follows:
+  During the early stages of the optimization, we use a quasi-Newton
+  Hessian approximations based either on compact limited-memory BFGS
+  or SR1 updates. In this case, we can compute an exact solution to
+  the update equations using the Sherman-Morrison-Woodbury formula.
+  When these formula are used, we can representent the update formula
+  as follows:
+
+  B = b0*I - Z*M*Z^{T}
+
+  where b0 is a scalar, M is a small matrix and Z is a matrix with
+  small column dimension that is stored as a series of vectors. The
+  form of these matrices depends on whether the limited-memory BFGS or
+  SR1 technique is used. 
+  
+  The full KKT system can be written as follows:
   
   [  B   -Aw^{T} -Ac^{T}  0   0  -I         I        ][ px  ]
   [  Ac   0       0      -I   0   0         0        ][ pz  ]
@@ -64,10 +78,36 @@
   [  Zl   0       0       0   0   (X - Xl)  0        ][ pzl ]
   [ -Zu   0       0       0   0   0         (Xu - X) ][ pzu ]
 
-  where B is a quasi-Newton Hessian approximation. This approximation
-  takes the form:
-  
-  B = b0*I - Z*M*Z^{T}
+  where B is a quasi-Newton Hessian approximation. 
+
+  After certain transition criteria are met, we employ an exact
+  Hessian, accessible through Hessian-vector products, and instead
+  solve exact linearization inexactly using a forcing parameter such
+  that eta > 0. We use this technique because the Hessian-vector
+  products are costly to compute and may not provide a benefit early
+  in the optimization. 
+
+  In the inexact phase, we select the forcing parameter based on the
+  work of Eisenstat and Walker as follows:
+
+  eta = gamma*(||r(q_{k})||_{infty}/||r(q_{k-1})||_{infty})^{alpha} 
+
+  where gamma and alpha are parameters such that 0 < gamma <= 1.0, and
+  1 < alpha <= 2.  The transition from the approximate to the inexact
+  optimization phase depends on two factors:
+
+  1. The KKT residuals measured in the infinity norm ||r(q)||_{infty}
+  must be reduced below a specified tolerance
+
+  2. The eta parameter predicted by the Eisenstat-Walker formula must
+  be below some maximum tolerance.
+
+  Once both of these criteria are satisifed, we compute updates using
+  the exact linearization with right-preconditioned GMRES scheme. This
+  method utilizes the limited-memory BFGS or SR1 quasi-Newton
+  approximation as a preconditioner. The preconditioned operator,
+  J*J_{B}^{-1}, takes a special form where only entries associated
+  with the design vector need to be stored.
 */
 
 class ParOpt {
@@ -286,7 +326,7 @@ class ParOpt {
   // Sparse equalities or inequalities?
   int sparse_inequality;
 
-  // Dense equality of dense inequality? 
+  // Dense equality of dense inequalities? 
   int dense_inequality;
 
   // Flags to indicate whether to use the upper/lower bounds

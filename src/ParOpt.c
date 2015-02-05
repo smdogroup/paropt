@@ -4,8 +4,91 @@
 #include "ParOptBlasLapack.h"
 
 /*
-  Copyright (c) 2014 Graeme Kennedy. All rights reserved
+  Copyright (c) 2014-2015 Graeme Kennedy. All rights reserved
 */
+
+/*
+  The following are the help-strings for each of the parameters
+  in the file. These provide some description of the purpose of
+  each parameter and how you should set it. 
+*/
+
+static const int NUM_PAROPT_PARAMETERS = 24;
+static const char * paropt_parameter_help[][2] = {
+  {"max_qn_size", 
+   "Integer: The maximum dimension of the quasi-Newton approximation"},
+  
+  {"max_major_iters",
+   "Integer: The maximum number of major iterations before quiting"},
+  
+  {"init_starting_point",
+   "Boolean: Initialize the Lagrange multiplier estimates"},
+  
+  {"barrier_param",
+   "Float: The initial value of the barrier parameter"},
+  
+  {"abs_res_tol",
+   "Float: Absolute stopping criterion"},
+  
+  {"use_line_search",
+   "Boolean: Perform or skip the line search"},
+  
+  {"use_backtracking_alpha",
+   "Boolean: Perform a back-tracking line search"},
+  
+  {"max_line_iters",
+   "Integer: Maximum number of line search iterations"},
+  
+  {"armijio_constant",
+   "Float: The Armijio constant for the line search"},
+  
+  {"monotone_barrier_fraction",
+   "Float: Factor applied to the barrier update < 1"},
+  
+  {"monotone_barrier_power",
+   "Float: Exponent for barrier parameter update > 1"},
+  
+  {"min_fraction_to_boundary",
+   "Float: Minimum fraction to the boundary rule < 1"},
+  
+  {"major_iter_step_check",
+   "Integer: Perform a check of the computed KKT step at this major iteration"},
+  
+  {"write_output_frequency", 
+   "Integer: Write out the solution file and checkpoint file at this frequency"},
+  
+  {"sequential_linear_method", 
+   "Boolean: Discard the quasi-Newton approximation (but not \
+necessarily the exact Hessian)"},
+  
+  {"hessian_reset_freq", 
+   "Integer: Do a hard reset of the Hessian at this specified major \
+iteration frequency"},
+
+  {"use_hvec_product", 
+   "Boolean: Use or do not use Hessian-vector products"},
+  
+  {"use_qn_gmres_precon", 
+   "Boolean: Use or do not use the quasi-Newton method as a preconditioner"},
+  
+  {"nk_switch_tol", 
+   "Float: Switch to the Newton-Krylov method at this residual tolerance"},
+  
+  {"eisenstat_walker_alpha", 
+   "Float: Exponent in the Eisenstat-Walker INK forcing equation"},
+  
+  {"eisenstat_walker_gamma", 
+   "Float: Multiplier in the Eisenstat-Walker INK forcing equation"},
+  
+  {"gmres_subspace_size", 
+   "Integer: The subspace size for GMRES"},
+  
+  {"max_gmres_rtol", 
+   "Float: The maximum relative tolerance used for GMRES, above this \
+the quasi-Newton approximation is used"},
+  
+  {"gmres_atol", 
+   "Float: The absolute GMRES tolerance (almost never relevant)"}};
 
 /*
   The Parallel Optimizer constructor
@@ -391,8 +474,8 @@ void ParOpt::printOptionSummary( FILE *fp ){
     if (!sequential_linear_method){
       qn_size = qn->getMaxLimitedMemorySize();
     }
-
-    fprintf(fp, "ParOpt: Parameter summary\n");
+    
+    fprintf(fp, "ParOpt: Parameter values\n");
     fprintf(fp, "%-30s %15d\n", "total variables", nvars_total);
     fprintf(fp, "%-30s %15d\n", "constraints", ncon);
     fprintf(fp, "%-30s %15d\n", "max_qn_size", qn_size);
@@ -851,6 +934,13 @@ void ParOpt::setOutputFile( const char * filename ){
 
   if (filename && rank == opt_root){
     outfp = fopen(filename, "w");
+  
+    fprintf(outfp, "ParOpt: Parameter summary\n");
+    for ( int i = 0; i < NUM_PAROPT_PARAMETERS; i++ ){
+      fprintf(outfp, "%s\n%s\n\n",
+	      paropt_parameter_help[i][0],
+	      paropt_parameter_help[i][1]);
+    }
   }
 }
 
@@ -3162,6 +3252,9 @@ int ParOpt::optimize( const char * checkpoint ){
   double dm0_prev = 0.0, res_norm_prev = 0.0;
   double gmres_rtol = 0.0;
 
+  // Keep track of how many GMRES iterations there were
+  int gmres_iters = 0;
+
   // Information about what happened on the previous major iteration
   char info[64];
   info[0] = '\0';
@@ -3301,7 +3394,7 @@ int ParOpt::optimize( const char * checkpoint ){
     int rank;
     MPI_Comm_rank(comm, &rank);
     if (outfp && rank == opt_root){
-      if (k % 10 == 0){
+      if (k % 10 == 0 || gmres_iters > 0){
 	fprintf(outfp, "\n%4s %4s %4s %4s %7s %7s %12s \
 %7s %7s %7s %7s %7s %8s %7s %7s info\n",
 		"iter", "nobj", "ngrd", "nhvc", "alphx", "alphz", 
@@ -3340,7 +3433,7 @@ int ParOpt::optimize( const char * checkpoint ){
     // temporary arrays to help compute the KKT step. After
     // the KKT step is computed, we use them to store the
     // change in variables/gradient for the BFGS update.
-    int gmres_iters = 0;
+    gmres_iters = 0;
     if (use_hvec_product && 
 	(max_prime < nk_switch_tol &&
 	 max_dual < nk_switch_tol && 
@@ -3814,8 +3907,9 @@ int ParOpt::computeKKTInexactNewtonStep( double *zt,
   int rank;
   MPI_Comm_rank(comm, &rank);
 
-  if (rank == opt_root){
-    printf("GMRES[%d]: %e\n", 0, fabs(res[0]));
+  if (rank == opt_root && outfp){
+    fprintf(outfp, "%5s %4s %4s %7s\n", "gmres", "nhvc", "iter", "res");
+    fprintf(outfp, "      %4d %4d %7.1e\n", nhvec, 0, fabs(res[0]));
   }
 
   for ( int i = 0; i < gmres_subspace_size; i++ ){
@@ -3918,7 +4012,7 @@ int ParOpt::computeKKTInexactNewtonStep( double *zt,
     niters++;
     
     if (rank == opt_root){
-      printf("GMRES[%d]: %e\n", i+1, fabs(res[i+1]));
+      fprintf(outfp, "      %4d %4d %7.1e\n", nhvec, i+1, fabs(res[i+1]));
     }
    
     // Check for convergence
