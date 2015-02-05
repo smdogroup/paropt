@@ -1,8 +1,15 @@
 include ../Makefile.in
 
-default:
-	${CXX} ${CCFLAGS} -c ParOptVec.c -o ParOptVec.o
-	${CXX} ${CCFLAGS} -c ParOpt.c -o ParOpt.o
+OBJS = ParOpt.o \
+	ParOptVec.o
+
+default: ${OBJS}
+
+%.o: %.c
+	${CXX} ${CCFLAGS} -c $< -o $@
 
 debug: CCFLAGS=${CCFLAGS_DEBUG}
 debug: default
+
+clean:
+	rm -rf *.o
