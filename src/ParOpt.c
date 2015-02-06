@@ -2938,27 +2938,27 @@ void ParOpt::evalMeritInitDeriv( double max_x,
   else {
     dense_proj = -max_x*dense_infeas;
   }
-  
-  if (rank == opt_root){
-    // Add the contribution from the slack variables
-    if (dense_inequality){
-      for ( int i = 0; i < ncon; i++ ){
-	if (s[i] > 1.0){
-	  pos_result += log(s[i]);
-	}
-	else {
-	  neg_result += log(s[i]);
-	}
-	
-	if (ps[i] > 0.0){
-	  neg_presult += ps[i]/s[i];
-	}
-	else {
-	  neg_presult += ps[i]/s[i];
-	}
+
+  // Add the contribution from the slack variables
+  if (dense_inequality){
+    for ( int i = 0; i < ncon; i++ ){
+      if (s[i] > 1.0){
+	pos_result += log(s[i]);
+      }
+      else {
+	neg_result += log(s[i]);
+      }
+      
+      if (ps[i] > 0.0){
+	pos_presult += ps[i]/s[i];
+      }
+      else {
+	neg_presult += ps[i]/s[i];
       }
     }
-
+  }
+  
+  if (rank == opt_root){
     // Now, set up the full problem infeasibility
     double infeas = dense_infeas + weight_infeas;
     double infeas_proj = dense_proj + weight_proj;
@@ -2966,11 +2966,24 @@ void ParOpt::evalMeritInitDeriv( double max_x,
     // Compute the numerator term
     double numer = proj - barrier_param*(pos_presult + neg_presult);
       
-    // Compute the new penalty parameter initial guess
+    // Compute the new penalty parameter initial guess:
+    // numer + rho*infeas_proj <= - penalty_descent_frac*rho*max_x*infeas
+    // numer <= rho*(-infeas_proj - penalty_descent_frac*max_x*infeas)
+    // We must have that:
+    //     -infeas_proj - penalty_descent_frac*max_x*infeas > 0
+    
+    // Therefore rho >= -numer/(infeas_proj + 
+    //                          penalty_descent_fraction*max_x*infeas)
+    // Note that if we have taken an exact step:
+    //      infeas_proj = -max_x*infeas
+
     double rho_hat = 0.0;
     if (infeas > 0.0){
       rho_hat = -numer/(infeas_proj + penalty_descent_fraction*max_x*infeas);
     }
+
+    printf("rho_hat = %e\ninfeas_proj = %e\ninfeas = %e\nmax_x = %e\n",
+	   rho_hat, infeas_proj, infeas, max_x);
       
     // Set the penalty parameter to the smallest value
     // if it is greater than the old value
@@ -3250,7 +3263,6 @@ int ParOpt::optimize( const char * checkpoint ){
 
   // Keep track of the projected merit function derivative
   double dm0_prev = 0.0, res_norm_prev = 0.0;
-  double gmres_rtol = 0.0;
 
   // Keep track of how many GMRES iterations there were
   int gmres_iters = 0;
@@ -3293,13 +3305,6 @@ int ParOpt::optimize( const char * checkpoint ){
     if (max_infeas > res_norm){ res_norm = max_infeas; }
     if (k == 0){
       res_norm_prev = res_norm;
-    }
-
-    // Check for convergence
-    if (res_norm < abs_res_tol && 
-	barrier_param < 0.1*abs_res_tol){
-      converged = 1;
-      break;
     }
 
     // Determine if the residual norm has been reduced
@@ -3396,35 +3401,41 @@ int ParOpt::optimize( const char * checkpoint ){
     if (outfp && rank == opt_root){
       if (k % 10 == 0 || gmres_iters > 0){
 	fprintf(outfp, "\n%4s %4s %4s %4s %7s %7s %12s \
-%7s %7s %7s %7s %7s %8s %7s %7s info\n",
+%7s %7s %7s %7s %7s %8s %7s info\n",
 		"iter", "nobj", "ngrd", "nhvc", "alphx", "alphz", 
 		"fobj", "|opt|", "|infes|", "|dual|", "mu", 
-		"comp", "dmerit", "rho", "nktol");
+		"comp", "dmerit", "rho");
       }
 
       if (k == 0){
 	fprintf(outfp, "%4d %4d %4d %4d %7s %7s %12.5e \
-%7.1e %7.1e %7.1e %7.1e %7.1e %8s %7s %7s %s\n",
+%7.1e %7.1e %7.1e %7.1e %7.1e %8s %7s %s\n",
 		k, neval, ngeval, nhvec, " ", " ",
 		fobj, max_prime, max_infeas, max_dual, 
-		barrier_param, comp, " ", " ", " ", info);
+		barrier_param, comp, " ", " ", info);
       }
       else {
 	fprintf(outfp, "%4d %4d %4d %4d %7.1e %7.1e %12.5e \
-%7.1e %7.1e %7.1e %7.1e %7.1e %8.1e %7.1e %7.1e %s\n",
+%7.1e %7.1e %7.1e %7.1e %7.1e %8.1e %7.1e %s\n",
 		k, neval, ngeval, nhvec, alpha_xprev, alpha_zprev,
 		fobj, max_prime, max_infeas, max_dual, 
-		barrier_param, comp, dm0_prev, rho_penalty_search, 
-		gmres_rtol, info);
+		barrier_param, comp, dm0_prev, rho_penalty_search, info);
       }
       
       // Flush the buffer so that we can see things immediately
       fflush(outfp);
     }
 
+    // Check for convergence
+    if (res_norm < abs_res_tol && 
+	barrier_param < 0.1*abs_res_tol){
+      converged = 1;
+      break;
+    }
+
     // Compute the relative GMRES tolerance given the residuals
-    gmres_rtol = eisenstat_walker_gamma*pow((res_norm/res_norm_prev),
-					    eisenstat_walker_alpha);
+    double gmres_rtol = eisenstat_walker_gamma*pow((res_norm/res_norm_prev),
+						   eisenstat_walker_alpha);
 
     // Assign the previous norm for next time through
     res_norm_prev = res_norm;
@@ -3893,7 +3904,7 @@ int ParOpt::computeKKTInexactNewtonStep( double *zt,
   // Compute the final value of the beta term
   beta *= 1.0/(bnorm*bnorm);
 
-  // Initialize the terms for
+  // Initialize the residual norm
   res[0] = bnorm;
   W[0]->copyValues(rx);
   W[0]->scale(1.0/res[0]);
@@ -3908,8 +3919,10 @@ int ParOpt::computeKKTInexactNewtonStep( double *zt,
   MPI_Comm_rank(comm, &rank);
 
   if (rank == opt_root && outfp){
-    fprintf(outfp, "%5s %4s %4s %7s\n", "gmres", "nhvc", "iter", "res");
-    fprintf(outfp, "      %4d %4d %7.1e\n", nhvec, 0, fabs(res[0]));
+    fprintf(outfp, "%5s %4s %4s %7s %7s %7.1e\n", 
+	    "gmres", "nhvc", "iter", "res", "rel", rtol);
+    fprintf(outfp, "      %4d %4d %7.1e %7.1e\n", 
+	    nhvec, 0, fabs(res[0]), 1.0);
   }
 
   for ( int i = 0; i < gmres_subspace_size; i++ ){
@@ -4012,7 +4025,9 @@ int ParOpt::computeKKTInexactNewtonStep( double *zt,
     niters++;
     
     if (rank == opt_root){
-      fprintf(outfp, "      %4d %4d %7.1e\n", nhvec, i+1, fabs(res[i+1]));
+      fprintf(outfp, "      %4d %4d %7.1e %7.1e\n", 
+	      nhvec, i+1, fabs(res[i+1]), fabs(res[i+1]/bnorm));
+      fflush(outfp);
     }
    
     // Check for convergence
