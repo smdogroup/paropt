@@ -23,10 +23,10 @@
 
   min f(x)
   s.t.  c(x) >= 0 
-  s.t.  cw*(x) >= 0
+  s.t.  cw(x) >= 0
   s.t.  lb <= x < ub
   
-  where c(x) is a small (n < 100) vector of constraints, cw(x) is a
+  where c(x) is a small (< 100) vector of constraints, cw(x) is a
   (possibly) nonlinear constraint with a special sparse Jacobian
   structure and lb/ub are the lower and upper bounds,
   respectively. The perturbed KKT conditions for this problem are:

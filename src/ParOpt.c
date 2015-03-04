@@ -100,25 +100,10 @@ the quasi-Newton approximation is used"},
   optimization. These parameters can be modified through member
   functions.
 
-  Some of the parameters are as follows:
-
-  max_major_iters:        maximum major iterations
-  init_starting_point:    (boolean) guess the initial multipliers
-  write_output_freq:      the major iter frequency for output
-  barrier_param:          the initial barrier parameter
-  abs_res_tol:            the absolute residual stopping criterion 
-  use_line_search:        (boolean) use/don't use the line search
-  penalty_descent_frac:   parameter to ensure sufficient descent
-  armijio_constant:       line search sufficient decrease parameter
-  monotone_barrier_frac:  decrease the barrier by this fraction
-  monotone_barrier_power: decrease the barrier by mu**power
-  min_frac_to_boundary:   minimum fraction-to-boundary constant
-  major_iter_step_check:  check the step at this major iteration
-  hessian_reset_freq:     reset the Hessian at this frequency
-
   input:
   prob:        the optimization problem
   max_qn_size: the number of steps to store in memory
+  qn_type:     the type of quasi-Newton method to use
 */
 ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
 		enum QuasiNewtonType qn_type ){
@@ -2982,9 +2967,6 @@ void ParOpt::evalMeritInitDeriv( double max_x,
       rho_hat = -numer/(infeas_proj + penalty_descent_fraction*max_x*infeas);
     }
 
-    printf("rho_hat = %e\ninfeas_proj = %e\ninfeas = %e\nmax_x = %e\n",
-	   rho_hat, infeas_proj, infeas, max_x);
-      
     // Set the penalty parameter to the smallest value
     // if it is greater than the old value
     if (rho_hat > rho_penalty_search){
@@ -3436,7 +3418,7 @@ int ParOpt::optimize( const char * checkpoint ){
     // Compute the relative GMRES tolerance given the residuals
     double gmres_rtol = eisenstat_walker_gamma*pow((res_norm/res_norm_prev),
 						   eisenstat_walker_alpha);
-
+    
     // Assign the previous norm for next time through
     res_norm_prev = res_norm;
 
