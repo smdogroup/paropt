@@ -751,7 +751,9 @@ void ParOpt::setInitStartingPoint( int init ){
 }
 
 void ParOpt::setMaxMajorIterations( int iters ){
-  if (iters > 1){ max_major_iters = iters; }
+  if (iters > 1){ 
+    max_major_iters = iters; 
+  }
 }
 
 void ParOpt::setAbsOptimalityTol( double tol ){
@@ -764,7 +766,9 @@ void ParOpt::setAbsOptimalityTol( double tol ){
   Set the initial barrier parameter
 */
 void ParOpt::setInitBarrierParameter( double mu ){
-  if (mu > 0.0){ barrier_param = mu; }
+  if (mu > 0.0){ 
+    barrier_param = mu;
+  }
 }
 
 /*
@@ -800,7 +804,9 @@ void ParOpt::setUseLineSearch( int truth ){
 }
 
 void ParOpt::setMaxLineSearchIters( int iters ){
-  if (iters > 0){ max_line_iters = iters; }
+  if (iters > 0){ 
+    max_line_iters = iters;
+  }
 }
 
 void ParOpt::setBacktrackingLineSearch( int truth ){
@@ -863,13 +869,17 @@ void ParOpt::setGMRESTolerances( double rtol, double atol ){
 }
 
 /*
-  Set the parameters for choosing the forcing term in an inexact Newton method
+  Set the parameters for choosing the forcing term in an inexact
+  Newton method. These parameters are used to compute the forcing term
+  as follows:
+
+  eta = gamma*(||r_{k}||/||r_{k-1}||)^{alpha}
 */
 void ParOpt::setEisenstatWalkerParameters( double gamma, double alpha ){
-  if (gamma > 0 && gamma <= 1.0){
+  if (gamma > 0.0 && gamma <= 1.0){
     eisenstat_walker_gamma = gamma;
   }
-  if (alpha > 1.0 && gamma <= 2.0){
+  if (alpha >= 0.0 && gamma <= 2.0){
     eisenstat_walker_alpha = alpha;
   }
 }
