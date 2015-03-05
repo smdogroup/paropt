@@ -23,8 +23,8 @@ class Rosenbrock : public ParOptProblem {
   // Set whether this is an inequality constraint
   int isSparseInequality(){ return 1; }
   int isDenseInequality(){ return 1; }
-  int useLowerBounds(){ return 0; }
-  int useUpperBounds(){ return 0; }
+  int useLowerBounds(){ return 1; }
+  int useUpperBounds(){ return 1; }
 
   // Get the variables/bounds
   void getVarsAndBounds( ParOptVec *xvec,
@@ -38,8 +38,12 @@ class Rosenbrock : public ParOptProblem {
     // Set the design variable bounds
     for ( int i = 0; i < nvars; i++ ){
       x[i] = -1.0 + i*0.01;
-      lb[i] = -2.0;
-      ub[i] = 4.0;
+      lb[i] = -1.0;
+
+      ub[i] = 1e20;
+      if (i % 2 == 0){
+	ub[i] = 0.5;
+      }
     }
   }
   
@@ -216,7 +220,7 @@ int main( int argc, char* argv[] ){
   opt->setNKSwitchTolerance(1e3);
   opt->setGMRESTolerances(0.1, 1e-30);
   opt->setUseHvecProduct(1);
-  opt->setMajorIterStepCheck(45);
+  opt->setMajorIterStepCheck(20);
   opt->setMaxMajorIterations(1500);
   opt->checkGradients(1e-6);
   

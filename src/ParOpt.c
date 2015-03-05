@@ -106,7 +106,8 @@ the quasi-Newton approximation is used"},
   qn_type:     the type of quasi-Newton method to use
 */
 ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
-		enum QuasiNewtonType qn_type ){
+		enum QuasiNewtonType qn_type,
+		double _max_bound_val ){
   prob = _prob;
 
   // Record the communicator
@@ -138,6 +139,9 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
     qn = new LSR1(comm, nvars, max_qn_subspace);
   }
 
+  // Set the default maximum variable bound
+  max_bound_val = _max_bound_val;
+
   // Set the values of the variables/bounds
   x = new ParOptVec(comm, nvars);
   lb = new ParOptVec(comm, nvars);
@@ -157,22 +161,29 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   if (use_lower && use_upper){
     for ( int i = 0; i < nvars; i++ ){
       // Fixed variables are not allowed
-      if (lbvals[i] >= ubvals[i]){
-	check_flag = (check_flag | 1);
-	
-	// Make up bounds
-	lbvals[i] = 0.5*(lbvals[i] + ubvals[i]) - 0.5*rel_bound;
-	ubvals[i] = lbvals[i] + rel_bound;
+      double delta = 1.0;
+      if (lbvals[i] > -max_bound_val && ubvals[i] < max_bound_val){
+	if (lbvals[i] >= ubvals[i]){
+	  check_flag = (check_flag | 1);
+	  
+	  // Make up bounds
+	  lbvals[i] = 0.5*(lbvals[i] + ubvals[i]) - 0.5*rel_bound;
+	  ubvals[i] = lbvals[i] + rel_bound;
+	}
+
+	delta = ubvals[i] - lbvals[i];
       }
-      
+
       // Check if x is too close the boundary
-      if (xvals[i] < lbvals[i] + rel_bound*(ubvals[i] - lbvals[i])){
+      if (lbvals[i] > -max_bound_val &&
+	  xvals[i] < lbvals[i] + rel_bound*delta){
 	check_flag = (check_flag | 2);
-	xvals[i] = lbvals[i] + rel_bound*(ubvals[i] - lbvals[i]);
+	xvals[i] = lbvals[i] + rel_bound*delta;
       }
-      if (xvals[i] > ubvals[i] - rel_bound*(ubvals[i] - lbvals[i])){
+      if (ubvals[i] < max_bound_val &&
+	  xvals[i] > ubvals[i] - rel_bound*delta){
 	check_flag = (check_flag | 4);
-	xvals[i] = ubvals[i] - rel_bound*(ubvals[i] - lbvals[i]);
+	xvals[i] = ubvals[i] - rel_bound*delta;
       }
     }
   }
@@ -196,6 +207,22 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   zl->set(1.0);
   zu->set(1.0);
 
+  // Set the largrange multipliers with bounds outside the
+  // limits to zero
+  double *zlvals, *zuvals;
+  zl->getArray(&zlvals);
+  zu->getArray(&zuvals);
+  
+  for ( int i = 0; i < nvars; i++ ){
+    if (lbvals[i] <= -max_bound_val){
+      zlvals[i] = 0.0;
+    }
+    if (ubvals[i] >= max_bound_val){
+      zuvals[i] = 0.0;
+    }
+  }
+
+  // Allocate space for the sparse constraints
   zw = new ParOptVec(comm, nwcon);
   sw = new ParOptVec(comm, nwcon);
   zw->set(1.0);
@@ -744,6 +771,31 @@ int ParOpt::readSolutionFile( const char * filename ){
 }
 
 /*
+  Set the maximum variable bound. Bounds that exceed this value will
+  be ignored within the optimization problem.
+*/
+void ParOpt::setMaxAbsVariableBound( double max_bound ){
+  max_bound_val = max_bound;
+
+  // Set the largrange multipliers with bounds outside the
+  // limits to zero
+  double *lbvals, *ubvals, *zlvals, *zuvals;
+  lb->getArray(&lbvals);
+  ub->getArray(&ubvals);
+  zl->getArray(&zlvals);
+  zu->getArray(&zuvals);
+  
+  for ( int i = 0; i < nvars; i++ ){
+    if (lbvals[i] <= -max_bound_val){
+      zlvals[i] = 0.0;
+    }
+    if (ubvals[i] >= max_bound_val){
+      zuvals[i] = 0.0;
+    }
+  }
+}
+
+/*
   Set optimizer parameters
 */
 void ParOpt::setInitStartingPoint( int init ){
@@ -1034,8 +1086,14 @@ void ParOpt::computeKKTRes( double * max_prime,
     // Compute the residuals for the lower bounds
     double *rzlvals;
     rzl->getArray(&rzlvals);
+
     for ( int i = 0; i < nvars; i++ ){
-      rzlvals[i] = -((xvals[i] - lbvals[i])*zlvals[i] - barrier_param);
+      if (lbvals[i] > -max_bound_val){
+	rzlvals[i] = -((xvals[i] - lbvals[i])*zlvals[i] - barrier_param);
+      }
+      else {
+	rzlvals[i] = 0.0;
+      }
     }
   
     double dual_zl = rzl->maxabs();
@@ -1047,8 +1105,14 @@ void ParOpt::computeKKTRes( double * max_prime,
     // Compute the residuals for the upper bounds
     double *rzuvals;
     rzu->getArray(&rzuvals);
+
     for ( int i = 0; i < nvars; i++ ){
-      rzuvals[i] = -((ubvals[i] - xvals[i])*zuvals[i] - barrier_param);
+      if (ubvals[i] < max_bound_val){
+	rzuvals[i] = -((ubvals[i] - xvals[i])*zuvals[i] - barrier_param);
+      }
+      else {
+	rzuvals[i] = 0.0;
+      }
     }
 
     double dual_zu = rzu->maxabs();
@@ -1200,19 +1264,40 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec * xt,
   // Set the values of the c matrix
   if (use_lower && use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      cvals[i] = 1.0/(b0 + 
-		      zlvals[i]/(xvals[i] - lbvals[i]) + 
-		      zuvals[i]/(ubvals[i] - xvals[i]));
+      if (lbvals[i] > -max_bound_val && ubvals[i] < max_bound_val){
+	cvals[i] = 1.0/(b0 + 
+			zlvals[i]/(xvals[i] - lbvals[i]) + 
+			zuvals[i]/(ubvals[i] - xvals[i]));
+      }
+      else if (lbvals[i] > -max_bound_val){
+	cvals[i] = 1.0/(b0 + zlvals[i]/(xvals[i] - lbvals[i]));
+      }
+      else if (ubvals[i] < max_bound_val){
+	cvals[i] = 1.0/(b0 + zuvals[i]/(ubvals[i] - xvals[i]));
+      }
+      else {
+	cvals[i] = 1.0/b0;
+      }
     }
   }
   else if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      cvals[i] = 1.0/(b0 + zlvals[i]/(xvals[i] - lbvals[i]));
+      if (lbvals[i] > -max_bound_val){
+	cvals[i] = 1.0/(b0 + zlvals[i]/(xvals[i] - lbvals[i]));
+      }
+      else {
+	cvals[i] = 1.0/b0;
+      }
     }
   }
   else if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      cvals[i] = 1.0/(b0 + zuvals[i]/(ubvals[i] - xvals[i]));
+      if (ubvals[i] < max_bound_val){
+	cvals[i] = 1.0/(b0 + zuvals[i]/(ubvals[i] - xvals[i]));
+      }
+      else {
+	cvals[i] = 1.0/b0;
+      }
     }
   }
   else {
@@ -1479,12 +1564,16 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc,
   }
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      dvals[i] += cvals[i]*(bzlvals[i]/(xvals[i] - lbvals[i]));
+      if (lbvals[i] > -max_bound_val){
+	dvals[i] += cvals[i]*(bzlvals[i]/(xvals[i] - lbvals[i]));
+      }
     }
   }
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      dvals[i] -= cvals[i]*(bzuvals[i]/(ubvals[i] - xvals[i]));
+      if (ubvals[i] < max_bound_val){
+	dvals[i] -= cvals[i]*(bzuvals[i]/(ubvals[i] - xvals[i]));
+      }
     }
   }
 
@@ -1673,13 +1762,23 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, double *bc,
   // Compute the steps in the bound Lagrange multipliers
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      yzlvals[i] = (bzlvals[i] - zlvals[i]*yxvals[i])/(xvals[i] - lbvals[i]);
+      if (lbvals[i] > -max_bound_val){
+	yzlvals[i] = (bzlvals[i] - zlvals[i]*yxvals[i])/(xvals[i] - lbvals[i]);
+      }
+      else {
+	yzlvals[i] = 0.0;
+      }
     }
   }
 
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      yzuvals[i] = (bzuvals[i] + zuvals[i]*yxvals[i])/(ubvals[i] - xvals[i]);
+      if (ubvals[i] < max_bound_val){
+	yzuvals[i] = (bzuvals[i] + zuvals[i]*yxvals[i])/(ubvals[i] - xvals[i]);
+      }
+      else {
+	yzuvals[i] = 0.0;
+      }
     }
   }
 }
@@ -1863,13 +1962,23 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   // Compute the steps in the bound Lagrange multipliers
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      yzlvals[i] = -(zlvals[i]*yxvals[i])/(xvals[i] - lbvals[i]);
+      if (lbvals[i] > -max_bound_val){
+	yzlvals[i] = -(zlvals[i]*yxvals[i])/(xvals[i] - lbvals[i]);
+      }
+      else {
+	yzlvals[i] = 0.0;
+      }
     }
   }
 
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      yzuvals[i] =  (zuvals[i]*yxvals[i])/(ubvals[i] - xvals[i]);
+      if (ubvals[i] < max_bound_val){
+	yzuvals[i] =  (zuvals[i]*yxvals[i])/(ubvals[i] - xvals[i]);
+      }
+      else {
+	yzuvals[i] = 0.0;
+      }
     }
   }
 }
@@ -2050,12 +2159,16 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      dvals[i] += alpha*cvals[i]*(bzlvals[i]/(xvals[i] - lbvals[i]));
+      if (lbvals[i] > -max_bound_val){
+	dvals[i] += alpha*cvals[i]*(bzlvals[i]/(xvals[i] - lbvals[i]));
+      }
     }
   }
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      dvals[i] -= alpha*cvals[i]*(bzuvals[i]/(ubvals[i] - xvals[i]));
+      if (ubvals[i] < max_bound_val){
+	dvals[i] -= alpha*cvals[i]*(bzuvals[i]/(ubvals[i] - xvals[i]));
+      }
     }
   }
 
@@ -2362,43 +2475,50 @@ double ParOpt::computeComp(){
   zl->getArray(&zlvals);
   zu->getArray(&zuvals);
   
-  // Sum up the complementarity from this processor
-  double comp = 0.0;
+  // Sum up the complementarity from each individual processor
+  double product = 0.0, sum = 0.0;
   
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      comp += zlvals[i]*(xvals[i] - lbvals[i]);
+      if (lbvals[i] > -max_bound_val){
+	product += zlvals[i]*(xvals[i] - lbvals[i]);
+	sum += 1.0;
+      }
     }
   }
 
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      comp += zuvals[i]*(ubvals[i] - xvals[i]);
+      if (ubvals[i] < max_bound_val){
+	product += zuvals[i]*(ubvals[i] - xvals[i]);
+	sum += 1.0;
+      }
     }
   }
 
-  double product = 0.0;
-  MPI_Reduce(&comp, &product, 1, MPI_DOUBLE, MPI_SUM, opt_root, comm);
-  
+  // Add up the contributions from all processors
+  double in[2], out[2];
+  in[0] = product;
+  in[1] = sum;
+  MPI_Reduce(in, out, 2, MPI_DOUBLE, MPI_SUM, opt_root, comm);
+  product = out[0];
+  sum = out[1];
+
   // Compute the complementarity only on the root processor
   int rank = 0;
   MPI_Comm_rank(comm, &rank);
   
+  double comp = 0.0;
   if (rank == opt_root){
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
 	product += s[i]*z[i];
+	sum += 1.0;
       }
     }
 
-    if (use_lower && use_upper){
-      comp = product/(ncon + 2*nvars_total);
-    }
-    else if (use_lower || use_upper){
-      comp = product/(ncon + nvars_total);
-    }
-    else {
-      comp = product/ncon;
+    if (sum != 0.0){
+      comp = product/sum;
     }
   }
 
@@ -2427,38 +2547,53 @@ double ParOpt::computeCompStep( double alpha_x, double alpha_z ){
   pzl->getArray(&pzlvals);
   pzu->getArray(&pzuvals);
   
-  // Sum up the complementarity from this processor
-  double comp = 0.0;
+  // Sum up the complementarity from each individual processor
+  double product = 0.0, sum = 0.0;
   
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      double xnew = xvals[i] + alpha_x*pxvals[i];
-      comp += (zlvals[i] + alpha_z*pzlvals[i])*(xnew - lbvals[i]);
+      if (lbvals[i] > -max_bound_val){
+	double xnew = xvals[i] + alpha_x*pxvals[i];
+	product += (zlvals[i] + alpha_z*pzlvals[i])*(xnew - lbvals[i]);
+	sum += 1.0;
+      }
     }
   }
 
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      double xnew = xvals[i] + alpha_x*pxvals[i];
-      comp += (zuvals[i] + alpha_z*pzuvals[i])*(ubvals[i] - xnew);
+      if (ubvals[i] < max_bound_val){
+	double xnew = xvals[i] + alpha_x*pxvals[i];
+	product += (zuvals[i] + alpha_z*pzuvals[i])*(ubvals[i] - xnew);
+	sum += 1.0;
+      }
     }
   }
 
-  double product = 0.0;
-  MPI_Reduce(&comp, &product, 1, MPI_DOUBLE, MPI_SUM, opt_root, comm);
+  // Add up the contributions from all processors
+  double in[2], out[2];
+  in[0] = product;
+  in[1] = sum;
+  MPI_Reduce(in, out, 2, MPI_DOUBLE, MPI_SUM, opt_root, comm);
+  product = out[0];
+  sum = out[1];
   
   // Compute the complementarity only on the root processor
   int rank = 0;
   MPI_Comm_rank(comm, &rank);
-  
+
+  double comp = 0.0;
   if (rank == opt_root){
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
 	product += (s[i] + alpha_x*ps[i])*(z[i] + alpha_z*pz[i]);
+	sum += 1.0;
       }
     }
-
-    comp = product/(ncon + 2*nvars_total);
+    
+    if (sum != 0.0){
+      comp = product/sum;
+    }
   }
 
   // Broadcast the result to all processors
@@ -2642,22 +2777,26 @@ double ParOpt::evalMeritFunc( ParOptVec *xk, double *sk,
   
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      if (xvals[i] - lbvals[i] > 1.0){ 
-	pos_result += log(xvals[i] - lbvals[i]);
-      }
-      else {
-	neg_result += log(xvals[i] - lbvals[i]);
+      if (lbvals[i] > -max_bound_val){
+	if (xvals[i] - lbvals[i] > 1.0){
+	  pos_result += log(xvals[i] - lbvals[i]);
+	}
+	else {
+	  neg_result += log(xvals[i] - lbvals[i]);
+	}
       }
     }
   }
 
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      if (ubvals[i] - xvals[i] > 1.0){
-	pos_result += log(ubvals[i] - xvals[i]);
-      }
-      else {
-	neg_result += log(ubvals[i] - xvals[i]);
+      if (ubvals[i] < max_bound_val){
+	if (ubvals[i] - xvals[i] > 1.0){
+	  pos_result += log(ubvals[i] - xvals[i]);
+	}
+	else {
+	  neg_result += log(ubvals[i] - xvals[i]);
+	}
       }
     }
   }
@@ -2777,36 +2916,40 @@ void ParOpt::evalMeritInitDeriv( double max_x,
 
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      if (xvals[i] - lbvals[i] > 1.0){ 
-	pos_result += log(xvals[i] - lbvals[i]);
-      }
-      else {
-	neg_result += log(xvals[i] - lbvals[i]);
-      }
-      
-      if (pxvals[i] > 0.0){
-	pos_presult += pxvals[i]/(xvals[i] - lbvals[i]);
-      }
-      else {
-	neg_presult += pxvals[i]/(xvals[i] - lbvals[i]);
+      if (lbvals[i] > -max_bound_val){
+	if (xvals[i] - lbvals[i] > 1.0){ 
+	  pos_result += log(xvals[i] - lbvals[i]);
+	}
+	else {
+	  neg_result += log(xvals[i] - lbvals[i]);
+	}
+	
+	if (pxvals[i] > 0.0){
+	  pos_presult += pxvals[i]/(xvals[i] - lbvals[i]);
+	}
+	else {
+	  neg_presult += pxvals[i]/(xvals[i] - lbvals[i]);
+	}
       }
     }
   }
   
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      if (ubvals[i] - xvals[i] > 1.0){
-	pos_result += log(ubvals[i] - xvals[i]);
-      }
-      else {
-	neg_result += log(ubvals[i] - xvals[i]);
-      }
-      
-      if (pxvals[i] > 0.0){
-	neg_presult -= pxvals[i]/(ubvals[i] - xvals[i]);
-      }
-      else {
-	pos_presult -= pxvals[i]/(ubvals[i] - xvals[i]);
+      if (ubvals[i] < max_bound_val){
+	if (ubvals[i] - xvals[i] > 1.0){
+	  pos_result += log(ubvals[i] - xvals[i]);
+	}
+	else {
+	  neg_result += log(ubvals[i] - xvals[i]);
+	}
+	
+	if (pxvals[i] > 0.0){
+	  neg_presult -= pxvals[i]/(ubvals[i] - xvals[i]);
+	}
+	else {
+	  pos_presult -= pxvals[i]/(ubvals[i] - xvals[i]);
+	}
       }
     }
   }
@@ -3208,6 +3351,23 @@ int ParOpt::optimize( const char * checkpoint ){
     return fail_obj;
   }
 
+  // Set the largrange multipliers with bounds outside the
+  // limits to zero
+  double *lbvals, *ubvals, *zlvals, *zuvals;
+  lb->getArray(&lbvals);
+  ub->getArray(&ubvals);
+  zl->getArray(&zlvals);
+  zu->getArray(&zuvals);
+  
+  for ( int i = 0; i < nvars; i++ ){
+    if (lbvals[i] <= -max_bound_val){
+      zlvals[i] = 0.0;
+    }
+    if (ubvals[i] >= max_bound_val){
+      zuvals[i] = 0.0;
+    }
+  }
+
   // Find an initial estimate of the Lagrange multipliers for the
   // inequality constraints
   if (init_starting_point){
@@ -3304,8 +3464,7 @@ int ParOpt::optimize( const char * checkpoint ){
     // Determine if the residual norm has been reduced
     // sufficiently in order to switch to a new barrier
     // problem
-    if (res_norm < 10.0*barrier_param || 
-	(k > 0 && use_line_search && -dm0_prev < 10.0*barrier_param)){
+    if (res_norm < 10.0*barrier_param){
       // Record the value of the old barrier function
       double mu_old = barrier_param;
 
@@ -3352,11 +3511,17 @@ int ParOpt::optimize( const char * checkpoint ){
 
       // Adjust the lower-bound residuals if required
       if (use_lower){
-	double *rzlvals;
+	double *lbvals, *rzlvals;
+	lb->getArray(&lbvals);
 	rzl->getArray(&rzlvals);
 
 	for ( int i = 0; i < nvars; i++ ){
-	  rzlvals[i] -= (mu_old - barrier_param);
+	  if (lbvals[i] > -max_bound_val){
+	    rzlvals[i] -= (mu_old - barrier_param);
+	  }
+	  else {
+	    rzlvals[i] = 0.0;
+	  }
 	}
 
 	double dual_zl = rzl->maxabs();
@@ -3367,11 +3532,17 @@ int ParOpt::optimize( const char * checkpoint ){
 
       // Adjust the upper-bound residuals if required
       if (use_upper){
-	double *rzuvals;
+	double *ubvals, *rzuvals;
+	lb->getArray(&ubvals);
 	rzu->getArray(&rzuvals);
 
 	for ( int i = 0; i < nvars; i++ ){
-	  rzuvals[i] -= (mu_old - barrier_param);
+	  if (ubvals[i] < max_bound_val){
+	    rzuvals[i] -= (mu_old - barrier_param);
+	  }
+	  else {
+	    rzuvals[i] = 0.0;
+	  }
 	}
 
 	double dual_zu = rzu->maxabs();
@@ -3599,7 +3770,13 @@ int ParOpt::optimize( const char * checkpoint ){
 	  rsw->axpy(dh, psw);
 	}
 
-	prob->evalObjCon(rx, &fobj, c);
+	// Evaluate the objective
+	int fail_obj = prob->evalObjCon(rx, &fobj, c);
+	neval++;
+	if (fail_obj){
+	  fprintf(stderr, "Function and constraint evaluation failed\n");
+	  return fail_obj;
+	}
 	double m1 = evalMeritFunc(rx, rs, rsw);
 
 	if (rank == opt_root){
@@ -4497,10 +4674,12 @@ void ParOpt::checkKKTStep( int is_newton ){
   max_val = 0.0;
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      double val = (zlvals[i]*pxvals[i] + (xvals[i] - lbvals[i])*pzlvals[i] +
-		    (zlvals[i]*(xvals[i] - lbvals[i]) - barrier_param));
-      if (fabs(val) > max_val){
-	max_val = fabs(val);
+      if (lbvals[i] > -max_bound_val){
+	double val = (zlvals[i]*pxvals[i] + (xvals[i] - lbvals[i])*pzlvals[i] +
+		      (zlvals[i]*(xvals[i] - lbvals[i]) - barrier_param));
+	if (fabs(val) > max_val){
+	  max_val = fabs(val);
+	}
       }
     }
   }
@@ -4517,10 +4696,12 @@ void ParOpt::checkKKTStep( int is_newton ){
   max_val = 0.0;
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      double val = (-zuvals[i]*pxvals[i] + (ubvals[i] - xvals[i])*pzuvals[i] +
-		    (zuvals[i]*(ubvals[i] - xvals[i]) - barrier_param));
-      if (fabs(val) > max_val){
-	max_val = fabs(val);
+      if (ubvals[i] < max_bound_val){
+	double val = (-zuvals[i]*pxvals[i] + (ubvals[i] - xvals[i])*pzuvals[i] +
+		      (zuvals[i]*(ubvals[i] - xvals[i]) - barrier_param));
+	if (fabs(val) > max_val){
+	  max_val = fabs(val);
+	}
       }
     }
   }

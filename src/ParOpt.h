@@ -116,7 +116,8 @@ class ParOpt {
 
   ParOpt( ParOptProblem *_prob,
 	  int _max_lbfgs_subspace,
-	  enum QuasiNewtonType qn_type = BFGS );
+	  enum QuasiNewtonType qn_type = BFGS,
+	  double _max_bound_val = 1e20 );
   ~ParOpt();
 
   // Perform the optimization
@@ -132,6 +133,10 @@ class ParOpt {
   // Check the objective and constraint gradients
   // --------------------------------------------
   void checkGradients( double dh );
+
+  // Set the maximum absolute value of the variable bound
+  // ----------------------------------------------------
+  void setMaxAbsVariableBound( double max_bound );
 
   // Set optimizer parameters
   // ------------------------
@@ -276,6 +281,9 @@ class ParOpt {
   // Communicator info
   MPI_Comm comm;
   int opt_root;
+
+  // Set the variable bound value
+  double max_bound_val;
 
   // The number of variables and constraints in the problem
   int nvars; // The number of local (on-processor) variables
