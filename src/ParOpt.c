@@ -930,11 +930,13 @@ void ParOpt::setOutputFile( const char * filename ){
   if (filename && rank == opt_root){
     outfp = fopen(filename, "w");
   
-    fprintf(outfp, "ParOpt: Parameter summary\n");
-    for ( int i = 0; i < NUM_PAROPT_PARAMETERS; i++ ){
-      fprintf(outfp, "%s\n%s\n\n",
-	      paropt_parameter_help[i][0],
-	      paropt_parameter_help[i][1]);
+    if (outfp){
+      fprintf(outfp, "ParOpt: Parameter summary\n");
+      for ( int i = 0; i < NUM_PAROPT_PARAMETERS; i++ ){
+	fprintf(outfp, "%s\n%s\n\n",
+		paropt_parameter_help[i][0],
+		paropt_parameter_help[i][1]);
+      }
     }
   }
 }
