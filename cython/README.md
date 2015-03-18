@@ -22,5 +22,6 @@ These are the Cython source files that handles the wrapping.
 This specifies the files that are wrapped and uses distutils
 
 To start, install the Cython package
+
 To compile, type the following commands into the directory:
    	    CC=mpicxx python setup.py build_ext --inplace
