@@ -200,3 +200,36 @@ int nwcon;
 int nwstart;
 int nw, nwskip;
 double scale;
+
+/*
+int main( int argc, char* argv[] ){
+  MPI_Init(&argc, &argv);
+
+  // Allocate the Rosenbrock function
+  int nvars = 100;
+  int nwcon = 5, nw = 5;
+  int nwstart = 1, nwskip = 1;  
+  Rosenbrock * rosen = new Rosenbrock(MPI_COMM_WORLD, nvars-1, 
+				      nwcon, nwstart, nw, nwskip);
+  
+  // Allocate the optimizer
+  int max_lbfgs = 20;
+  ParOpt * opt = new ParOpt(rosen, max_lbfgs);
+
+  opt->setGMRESSusbspaceSize(30);
+  opt->setNKSwitchTolerance(1e3);
+  opt->setGMRESTolerances(0.1, 1e-30);
+  opt->setUseHvecProduct(1);
+  opt->setMajorIterStepCheck(45);
+  opt->setMaxMajorIterations(1500);
+  opt->checkGradients(1e-6);
+  
+  opt->optimize();
+
+  delete rosen;
+  delete opt;
+
+  MPI_Finalize();
+  return (0);
+}
+*/

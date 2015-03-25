@@ -68,8 +68,11 @@ cdef class pyParOptVec:
       _array = &array[0]
       return self.paroptvec_ptr.getArray(&_array)
       
-   def writeToFile(self, char[::1]filename):
-      return self.paroptvec_ptr.writeToFile(&filename[0])
+   def writeToFile(self, const char[:] filename):
+      if filename is None:
+         return self.paroptvec_ptr.writeToFile(NULL)
+      else:
+         return self.paroptvec_ptr.writeToFile(&filename[0])
    
 cdef class pyCompactQuasiNewton:
    cdef ParOptVec_c.CompactQuasiNewton *cqnptr
