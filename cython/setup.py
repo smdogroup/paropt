@@ -9,14 +9,14 @@ sources1 = ['ParOptVec_c.pyx', 'ParOptVec.c']
 sources=['ParOpt_c.pyx', 'ParOptVec.c', 'ParOpt.c', 'Rosenbrock.c']
     
 setup(
-    ext_modules=[Extension("pyParOptVec",
+    ext_modules=[Extension("ParOptVec_c",
                            sources=sources1,
                            language="c++",
                            libraries=["mpi_cxx", "lapack", "blas"],
                            extra_compile_args=["-O3"],
                            extra_link_args=["-L/usr/lib/libmpi_cxx","-L/usr/lib/lapack/liblapack",
                                             "-L/usr/lib/libblas/libblas", "-O3"]),
-                Extension("pyParOptRosen",
+                Extension("ParOpt_c",
                            sources=sources,
                            language="c++",
                            libraries=["mpi_cxx", "lapack", "blas"],
