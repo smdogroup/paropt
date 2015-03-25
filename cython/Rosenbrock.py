@@ -1,4 +1,4 @@
-import pyParOptRosen
+import ParOpt_c
 import mpi4py.MPI as MPI
 import time
 
@@ -17,13 +17,13 @@ nwblock = 1
 
 
 #Create an instance of the pyRosenbrock
-rosen = pyParOptRosen.pyRosenbrock(comm, nvars-1, ncon, nwcon, nwblock, nwstart, nw, nwskip)
+rosen = ParOpt_c.pyRosenbrock(comm, nvars-1, ncon, nwcon, nwblock, nwstart, nw, nwskip)
 
 #Allocate the optimizer
 max_lbfgs = 20
 qn_type = 1 #BFGS method
 
-opt = pyParOptRosen.pyParOpt(rosen, max_lbfgs, qn_type )
+opt = ParOpt_c.pyParOpt(rosen, max_lbfgs, qn_type )
 
 opt.setGMRESSusbspaceSize(30)
 opt.setNKSwitchTolerance(1e3)
