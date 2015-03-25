@@ -19,9 +19,15 @@ requires them
 These are the Cython source files that handles the wrapping.
 
 #setup.py#
-This specifies the files that are wrapped and uses distutils
+This specifies the files that are wrapped and uses distutils.
 
 To start, install the Cython package
 
-To compile, type the following commands into the directory:
+There are 2 ways to compile this example.
+
+#Using Distutils#
+To compile using distutils, a  standard Python packaging tool, type the following commands into the directory:
    	    CC=mpicxx python setup.py build_ext --inplace
+
+#Using Makefile#
+To compile using Makefile, simply type make in the current directory.
