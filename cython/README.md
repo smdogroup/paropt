@@ -24,7 +24,6 @@ This specifies the files that are wrapped and uses distutils.
 To start, install the Cython package
 
 There are 2 ways to compile this example.
-
 #Using Distutils#
 To compile using distutils, a  standard Python packaging tool, type the following commands into the directory:
    	    CC=mpicxx python setup.py build_ext --inplace
