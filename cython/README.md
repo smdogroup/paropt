@@ -9,24 +9,24 @@ Note:
 If copying newer versions of ParOpt from /src directory, this might not work 
 if newer functions were created and utilized
 
-#.pxd files#
+###.pxd files###
 These are files that handles the declarations that are shared amongst other 
 Cython source files (.pyx). By writing the declarations in these files, one can
 cimport (c-level import) these declarations to any Cython source files that
 requires them
 
-#.pyx files#
+###.pyx files###
 These are the Cython source files that handles the wrapping.
 
-#setup.py#
+###setup.py###
 This specifies the files that are wrapped and uses distutils.
 
 To start, install the Cython package
 
 There are 2 ways to compile this example.
-#Using Distutils#
+###Using Distutils###
 To compile using distutils, a  standard Python packaging tool, type the following commands into the directory:
    	    CC=mpicxx python setup.py build_ext --inplace
 
-#Using Makefile#
+###Using Makefile###
 To compile using Makefile, simply type make in the current directory.
