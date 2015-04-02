@@ -139,6 +139,9 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
     qn = new LSR1(comm, nvars, max_qn_subspace);
   }
 
+  // Set the diagonal entry to zero
+  qn_sigma = 0.0;
+
   // Set the default maximum variable bound
   max_bound_val = _max_bound_val;
 
@@ -849,6 +852,15 @@ void ParOpt::setHessianResetFreq( int freq ){
 }
 
 /*
+  Set the diagonal entry to add to the quasi-Newton Hessian approximation
+*/
+void ParOpt::setQNDiagonalFactor( double sigma ){
+  if (sigma >= 0.0){
+    qn_sigma = sigma;
+  }
+}
+
+/*
   Set parameters associated with the line search
 */
 void ParOpt::setUseLineSearch( int truth ){
@@ -936,6 +948,11 @@ void ParOpt::setEisenstatWalkerParameters( double gamma, double alpha ){
   }
 }
 
+/*
+  Set the size of the GMRES subspace and allocate the vectors
+  required. Note that the old subspace information is deleted before
+  the new subspace data is allocated.
+*/
 void ParOpt::setGMRESSusbspaceSize( int m ){
   if (gmres_H){
     delete [] gmres_H;
@@ -968,7 +985,9 @@ void ParOpt::setGMRESSusbspaceSize( int m ){
 }
 
 /*
-  Set the file to use
+  Set the optimization history file name to use.
+
+  The file is only opened on the root processor
 */
 void ParOpt::setOutputFile( const char * filename ){
   if (outfp && outfp != stdout){
@@ -1263,46 +1282,50 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec * xt,
 
   // Set the values of the c matrix
   if (use_lower && use_upper){
+    double diag_no_bound = 1.0/(b0 + qn_sigma);
     for ( int i = 0; i < nvars; i++ ){
       if (lbvals[i] > -max_bound_val && ubvals[i] < max_bound_val){
-	cvals[i] = 1.0/(b0 + 
+	cvals[i] = 1.0/(b0 + qn_sigma +
 			zlvals[i]/(xvals[i] - lbvals[i]) + 
 			zuvals[i]/(ubvals[i] - xvals[i]));
       }
       else if (lbvals[i] > -max_bound_val){
-	cvals[i] = 1.0/(b0 + zlvals[i]/(xvals[i] - lbvals[i]));
+	cvals[i] = 1.0/(b0 + qn_sigma + zlvals[i]/(xvals[i] - lbvals[i]));
       }
       else if (ubvals[i] < max_bound_val){
-	cvals[i] = 1.0/(b0 + zuvals[i]/(ubvals[i] - xvals[i]));
+	cvals[i] = 1.0/(b0 + qn_sigma + zuvals[i]/(ubvals[i] - xvals[i]));
       }
       else {
-	cvals[i] = 1.0/b0;
+	cvals[i] = diag_no_bound;
       }
     }
   }
   else if (use_lower){
+    double diag_no_bound = 1.0/(b0 + qn_sigma);
     for ( int i = 0; i < nvars; i++ ){
       if (lbvals[i] > -max_bound_val){
-	cvals[i] = 1.0/(b0 + zlvals[i]/(xvals[i] - lbvals[i]));
+	cvals[i] = 1.0/(b0 + qn_sigma + zlvals[i]/(xvals[i] - lbvals[i]));
       }
       else {
-	cvals[i] = 1.0/b0;
+	cvals[i] = diag_no_bound;
       }
     }
   }
   else if (use_upper){
+    double diag_no_bound = 1.0/(b0 + qn_sigma);
     for ( int i = 0; i < nvars; i++ ){
       if (ubvals[i] < max_bound_val){
-	cvals[i] = 1.0/(b0 + zuvals[i]/(ubvals[i] - xvals[i]));
+	cvals[i] = 1.0/(b0 + qn_sigma + zuvals[i]/(ubvals[i] - xvals[i]));
       }
       else {
-	cvals[i] = 1.0/b0;
+	cvals[i] = diag_no_bound;
       }
     }
   }
   else {
+    double diag_no_bound = 1.0/(b0 + qn_sigma);
     for ( int i = 0; i < nvars; i++ ){
-      cvals[i] = 1.0/b0;
+      cvals[i] = diag_no_bound;
     }
   }
 
@@ -3651,7 +3674,7 @@ int ParOpt::optimize( const char * checkpoint ){
     }
 
     // Check the KKT step
-    if (k == major_iter_step_check){
+    if (gmres_iters > 0){ // if (k == major_iter_step_check){
       checkKKTStep(gmres_iters > 0);
     }
 
@@ -4144,6 +4167,7 @@ int ParOpt::computeKKTInexactNewtonStep( double *zt,
     // Add the term -B*W[i]
     if (!sequential_linear_method){
       qn->multAdd(-1.0, xt1, W[i+1]);
+      W[i+1]->axpy(-qn_sigma, xt1);
     }
 
     // Add the term from the diagonal
@@ -4592,6 +4616,7 @@ void ParOpt::checkKKTStep( int is_newton ){
   else {
     if (!sequential_linear_method){
       qn->mult(px, rx);
+      rx->axpy(qn_sigma, px);
     }
     else {
       rx->zeroEntries();
@@ -4618,7 +4643,7 @@ void ParOpt::checkKKTStep( int is_newton ){
   double max_val = rx->maxabs();
   
   if (rank == opt_root){
-    printf("max |H*px - Ac^{T}*pz - Aw^{T}*pzw - pzl + pzu + \
+    printf("max |(H + sigma*I)*px - Ac^{T}*pz - Aw^{T}*pzw - pzl + pzu + \
 (g - Ac^{T}*z - Aw^{T}*zw - zl + zu)|: %10.4e\n", max_val);
   }
   

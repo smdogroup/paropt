@@ -146,6 +146,7 @@ class ParOpt {
   void setBarrierFraction( double frac );
   void setBarrierPower( double power );
   void setHessianResetFreq( int freq );
+  void setQNDiagonalFactor( double sigma );
   void setSequentialLinearMethod( int truth );
 
   // Set/get the barrier parameter
@@ -327,6 +328,9 @@ class ParOpt {
   // Storage for the Quasi-Newton updates
   CompactQuasiNewton *qn;
   ParOptVec *y_qn, *s_qn;
+
+  // Diagonal factor added to the Hessian to promote descent
+  double qn_sigma;
 
   // Keep track of the number of objective and gradient evaluations
   int neval, ngeval, nhvec;

@@ -218,12 +218,12 @@ int main( int argc, char* argv[] ){
 
   opt->setGMRESSusbspaceSize(30);
   opt->setNKSwitchTolerance(1e3);
-  opt->setGMRESTolerances(0.1, 1e-30);
+  opt->setGMRESTolerances(1.0, 1e-30);
   opt->setUseHvecProduct(1);
   opt->setMajorIterStepCheck(20);
   opt->setMaxMajorIterations(1500);
   opt->checkGradients(1e-6);
-  
+  opt->setQNDiagonalFactor(1.0);
   opt->optimize();
 
   delete rosen;
