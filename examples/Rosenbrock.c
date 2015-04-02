@@ -1,5 +1,5 @@
 #include "ParOpt.h"
-
+#include "time.h"
 /*
   The following is a simple implementation of a scalable Rosenbrock
   function with constraints that can be used to test the parallel
@@ -224,7 +224,13 @@ int main( int argc, char* argv[] ){
   opt->setMaxMajorIterations(1500);
   opt->checkGradients(1e-6);
   opt->setQNDiagonalFactor(1.0);
+  
+  clock_t start = clock(), diff;
   opt->optimize();
+  diff = clock() - start;
+  double sec = diff *1000.0/ CLOCKS_PER_SEC;
+  printf("Time taken %f seconds \n", sec/1000.0);
+
 
   delete rosen;
   delete opt;
