@@ -149,95 +149,18 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   x = new ParOptVec(comm, nvars);
   lb = new ParOptVec(comm, nvars);
   ub = new ParOptVec(comm, nvars);
-  prob->getVarsAndBounds(x, lb, ub);
-
-  // Check the design variables and bounds, move things that 
-  // don't make sense and print some warnings
-  double *xvals, *lbvals, *ubvals;
-  x->getArray(&xvals);
-  lb->getArray(&lbvals);
-  ub->getArray(&ubvals);
-
-  // Check the variable values to see if they are reasonable
-  double rel_bound = 1e-3;
-  int check_flag = 0;
-  if (use_lower && use_upper){
-    for ( int i = 0; i < nvars; i++ ){
-      // Fixed variables are not allowed
-      double delta = 1.0;
-      if (lbvals[i] > -max_bound_val && ubvals[i] < max_bound_val){
-	if (lbvals[i] >= ubvals[i]){
-	  check_flag = (check_flag | 1);
-	  
-	  // Make up bounds
-	  lbvals[i] = 0.5*(lbvals[i] + ubvals[i]) - 0.5*rel_bound;
-	  ubvals[i] = lbvals[i] + rel_bound;
-	}
-
-	delta = ubvals[i] - lbvals[i];
-      }
-
-      // Check if x is too close the boundary
-      if (lbvals[i] > -max_bound_val &&
-	  xvals[i] < lbvals[i] + rel_bound*delta){
-	check_flag = (check_flag | 2);
-	xvals[i] = lbvals[i] + rel_bound*delta;
-      }
-      if (ubvals[i] < max_bound_val &&
-	  xvals[i] > ubvals[i] - rel_bound*delta){
-	check_flag = (check_flag | 4);
-	xvals[i] = ubvals[i] - rel_bound*delta;
-      }
-    }
-  }
-
-  // Print the results of the warnings
-  if (check_flag & 1){
-    fprintf(stderr, "Warning: Variable bounds are inconsistent\n");
-  }
-  if (check_flag & 2){
-    fprintf(stderr, 
-	    "Warning: Modification of variables; too close to lower bound\n");
-  }
-  if (check_flag & 4){
-    fprintf(stderr, 
-	    "Warning: Modification of variables; too close to upper bound\n");
-  }
   
   // Allocate storage space for the variables etc.
   zl = new ParOptVec(comm, nvars);
   zu = new ParOptVec(comm, nvars);
-  zl->set(1.0);
-  zu->set(1.0);
-
-  // Set the largrange multipliers with bounds outside the
-  // limits to zero
-  double *zlvals, *zuvals;
-  zl->getArray(&zlvals);
-  zu->getArray(&zuvals);
-  
-  for ( int i = 0; i < nvars; i++ ){
-    if (lbvals[i] <= -max_bound_val){
-      zlvals[i] = 0.0;
-    }
-    if (ubvals[i] >= max_bound_val){
-      zuvals[i] = 0.0;
-    }
-  }
 
   // Allocate space for the sparse constraints
   zw = new ParOptVec(comm, nwcon);
   sw = new ParOptVec(comm, nwcon);
-  zw->set(1.0);
-  sw->set(1.0);
 
   // Set the initial values of the Lagrange multipliers
   z = new double[ ncon ];
   s = new double[ ncon ];
-  for ( int i = 0; i < ncon; i++ ){
-    z[i] = 1.0;
-    s[i] = 1.0;
-  }
 
   // Allocate space for the steps
   px = new ParOptVec(comm, nvars);
@@ -304,6 +227,10 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   for ( int i = 0; i < ncon; i++ ){
     Ac[i] = new ParOptVec(comm, nvars);
   }
+
+  // Initialize the design variables and bounds
+  int init_multipliers = 1;
+  initAndCheckDesignAndBounds(init_multipliers);
 
   // Zero the number of evals
   neval = ngeval = nhvec = 0;
@@ -3332,6 +3259,106 @@ int ParOpt::lineSearch( double * _alpha,
 }
 
 /*
+  Get the initial design variable values, and the lower and upper
+  bounds. Perform a check to see that the bounds are consistent and
+  modify the design variable to conform to the bounds if neccessary.
+
+  input:
+  init_multipliers:  Flag to indicate whether to initialize multipliers
+*/
+void ParOpt::initAndCheckDesignAndBounds( int init_multipliers ){
+  if (init_multipliers){
+    // Set the Largrange multipliers associated with the
+    // the lower/upper bounds to 1.0
+    zl->set(1.0);
+    zu->set(1.0);
+    
+    // Set the Lagrange multipliers and slack variables
+    // associated with the sparse constraints to 1.0
+    zw->set(1.0);
+    sw->set(1.0);
+    
+    // Set the Largrange multipliers and slack variables associated
+    // with the dense constraints to 1.0
+    for ( int i = 0; i < ncon; i++ ){
+      z[i] = 1.0;
+      s[i] = 1.0;
+    }
+  }
+
+  // Get the design variables and bounds
+  prob->getVarsAndBounds(x, lb, ub);
+
+  // Check the design variables and bounds, move things that 
+  // don't make sense and print some warnings
+  double *xvals, *lbvals, *ubvals;
+  x->getArray(&xvals);
+  lb->getArray(&lbvals);
+  ub->getArray(&ubvals);
+
+  // Check the variable values to see if they are reasonable
+  double rel_bound = 1e-3;
+  int check_flag = 0;
+  if (use_lower && use_upper){
+    for ( int i = 0; i < nvars; i++ ){
+      // Fixed variables are not allowed
+      double delta = 1.0;
+      if (lbvals[i] > -max_bound_val && ubvals[i] < max_bound_val){
+	if (lbvals[i] >= ubvals[i]){
+	  check_flag = (check_flag | 1);
+	  
+	  // Make up bounds
+	  lbvals[i] = 0.5*(lbvals[i] + ubvals[i]) - 0.5*rel_bound;
+	  ubvals[i] = lbvals[i] + rel_bound;
+	}
+
+	delta = ubvals[i] - lbvals[i];
+      }
+
+      // Check if x is too close the boundary
+      if (lbvals[i] > -max_bound_val &&
+	  xvals[i] < lbvals[i] + rel_bound*delta){
+	check_flag = (check_flag | 2);
+	xvals[i] = lbvals[i] + rel_bound*delta;
+      }
+      if (ubvals[i] < max_bound_val &&
+	  xvals[i] > ubvals[i] - rel_bound*delta){
+	check_flag = (check_flag | 4);
+	xvals[i] = ubvals[i] - rel_bound*delta;
+      }
+    }
+  }
+
+  // Print the results of the warnings
+  if (check_flag & 1){
+    fprintf(stderr, "Warning: Variable bounds are inconsistent\n");
+  }
+  if (check_flag & 2){
+    fprintf(stderr, 
+	    "Warning: Modification of variables; too close to lower bound\n");
+  }
+  if (check_flag & 4){
+    fprintf(stderr, 
+	    "Warning: Modification of variables; too close to upper bound\n");
+  }
+
+  // Set the largrange multipliers with bounds outside the
+  // limits to zero
+  double *zlvals, *zuvals;
+  zl->getArray(&zlvals);
+  zu->getArray(&zuvals);
+  
+  for ( int i = 0; i < nvars; i++ ){
+    if (lbvals[i] <= -max_bound_val){
+      zlvals[i] = 0.0;
+    }
+    if (ubvals[i] >= max_bound_val){
+      zuvals[i] = 0.0;
+    }
+  }
+}
+
+/*
   Perform the actual optimization. 
 
   This is the main function that performs the actual optimization.
@@ -3354,6 +3381,9 @@ int ParOpt::lineSearch( double * _alpha,
 int ParOpt::optimize( const char * checkpoint ){
   // Zero out the number of function/gradient evaluations
   neval = ngeval = nhvec = 0;
+
+  // Initialize and check the design variables and bounds
+  initAndCheckDesignAndBounds(init_starting_point); 
 
   // Print what options we're using to the file
   printOptionSummary(outfp);

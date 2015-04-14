@@ -225,12 +225,10 @@ int main( int argc, char* argv[] ){
   opt->checkGradients(1e-6);
   opt->setQNDiagonalFactor(1.0);
   
-  clock_t start = clock(), diff;
+  double start = MPI_Wtime();
   opt->optimize();
-  diff = clock() - start;
-  double sec = diff *1000.0/ CLOCKS_PER_SEC;
-  printf("Time taken %f seconds \n", sec/1000.0);
-
+  double diff = MPI_Wtime() - start;
+  printf("Time taken: %f seconds \n", diff);
 
   delete rosen;
   delete opt;

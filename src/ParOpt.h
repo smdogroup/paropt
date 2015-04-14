@@ -186,6 +186,9 @@ class ParOpt {
   // Print out the optimizer options to a file
   void printOptionSummary( FILE *fp );
 
+  // Check and initialize the design variables and their bounds
+  void initAndCheckDesignAndBounds( int init_multipliers );
+
   // Factor/apply the Cw matrix
   int factorCw();
   int applyCwFactor( ParOptVec *vec );
