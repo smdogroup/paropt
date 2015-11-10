@@ -85,7 +85,8 @@ class ParOptProblem {
   // Evaluate the objective and constraints
   // --------------------------------------
   virtual int evalObjCon( ParOptVec *x, 
-			  double *fobj, double *cons ) = 0;
+			  ParOptScalar *fobj, 
+			  ParOptScalar *cons ) = 0;
 
   // Evaluate the objective and constraint gradients
   // -----------------------------------------------
@@ -95,7 +96,7 @@ class ParOptProblem {
   // Evaluate the product of the Hessian with a given vector
   // -------------------------------------------------------
   virtual int evalHvecProduct( ParOptVec *x,
-			       double *z, ParOptVec *zw,
+			       ParOptScalar *z, ParOptVec *zw,
 			       ParOptVec *px, ParOptVec *hvec ) = 0;
 
   // Evaluate the constraints
@@ -104,19 +105,19 @@ class ParOptProblem {
   
   // Compute the Jacobian-vector product out = J(x)*px
   // --------------------------------------------------
-  virtual void addSparseJacobian( double alpha, ParOptVec *x,
+  virtual void addSparseJacobian( ParOptScalar alpha, ParOptVec *x,
 				  ParOptVec *px, ParOptVec *out ) = 0;
 
   // Compute the transpose Jacobian-vector product out = J(x)^{T}*pzw
   // -----------------------------------------------------------------
-  virtual void addSparseJacobianTranspose( double alpha, ParOptVec *x,
+  virtual void addSparseJacobianTranspose( ParOptScalar alpha, ParOptVec *x,
 					   ParOptVec *pzw, ParOptVec *out ) = 0;
 
   // Add the inner product of the constraints to the matrix such 
   // that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix
   // ------------------------------------------------------------
-  virtual void addSparseInnerProduct( double alpha, ParOptVec *x,
-				      ParOptVec *cvec, double *A ) = 0;
+  virtual void addSparseInnerProduct( ParOptScalar alpha, ParOptVec *x,
+				      ParOptVec *cvec, ParOptScalar *A ) = 0;
 
   // Over-write this function if you'd like to print out
   // something with the same frequency as the output files

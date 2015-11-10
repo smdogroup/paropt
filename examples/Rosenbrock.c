@@ -30,7 +30,7 @@ class Rosenbrock : public ParOptProblem {
   void getVarsAndBounds( ParOptVec *xvec,
 			 ParOptVec *lbvec, 
 			 ParOptVec *ubvec ){
-    double *x, *lb, *ub;
+    ParOptScalar *x, *lb, *ub;
     xvec->getArray(&x);
     lbvec->getArray(&lb);
     ubvec->getArray(&ub);
@@ -50,9 +50,9 @@ class Rosenbrock : public ParOptProblem {
   // Evaluate the objective and constraints
   // --------------------------------------
   int evalObjCon( ParOptVec *xvec, 
-		  double *fobj, double *cons ){
-    double obj = 0.0;
-    double *x;
+		  ParOptScalar *fobj, ParOptScalar *cons ){
+    ParOptScalar obj = 0.0;
+    ParOptScalar *x;
     xvec->getArray(&x);
 
     for ( int i = 0; i < nvars-1; i++ ){
@@ -60,7 +60,7 @@ class Rosenbrock : public ParOptProblem {
 	      100*(x[i+1] - x[i]*x[i])*(x[i+1] - x[i]*x[i]));
     }
 
-    double con[2];
+    ParOptScalar con[2];
     con[0] = con[1] = 0.0;
     for ( int i = 0; i < nvars; i++ ){
       con[0] -= x[i]*x[i];
@@ -70,8 +70,8 @@ class Rosenbrock : public ParOptProblem {
       con[1] += x[i];
     }
 
-    MPI_Allreduce(&obj, fobj, 1, MPI_DOUBLE, MPI_SUM, comm);
-    MPI_Allreduce(con, cons, 2, MPI_DOUBLE, MPI_SUM, comm);
+    MPI_Allreduce(&obj, fobj, 1, PAROPT_MPI_TYPE, MPI_SUM, comm);
+    MPI_Allreduce(con, cons, 2, PAROPT_MPI_TYPE, MPI_SUM, comm);
 
     int size; 
     MPI_Comm_size(comm, &size);
@@ -87,7 +87,7 @@ class Rosenbrock : public ParOptProblem {
   // -----------------------------------------------
   int evalObjConGradient( ParOptVec *xvec,
 			  ParOptVec *gvec, ParOptVec **Ac ){
-    double *x, *g, *c;
+    ParOptScalar *x, *g, *c;
     xvec->getArray(&x);
     gvec->getArray(&g);
     gvec->zeroEntries();
@@ -114,13 +114,13 @@ class Rosenbrock : public ParOptProblem {
   // Evaluate the product of the Hessian with the given vector
   // ---------------------------------------------------------
   int evalHvecProduct( ParOptVec *xvec,
-		       double *z, ParOptVec *zwvec,
+		       ParOptScalar *z, ParOptVec *zwvec,
 		       ParOptVec *pxvec, ParOptVec *hvec ){
-    double *hvals;
+    ParOptScalar *hvals;
     hvec->zeroEntries();
     hvec->getArray(&hvals);
 
-    double *px, *x;
+    ParOptScalar *px, *x;
     xvec->getArray(&x);
     pxvec->getArray(&px);
 
@@ -140,7 +140,7 @@ class Rosenbrock : public ParOptProblem {
   // Evaluate the sparse constraints
   // ------------------------
   void evalSparseCon( ParOptVec *x, ParOptVec *out ){
-    double *xvals, *outvals; 
+    ParOptScalar *xvals, *outvals; 
     x->getArray(&xvals);
     out->getArray(&outvals);
     
@@ -154,9 +154,9 @@ class Rosenbrock : public ParOptProblem {
   
   // Compute the Jacobian-vector product out = J(x)*px
   // --------------------------------------------------
-  void addSparseJacobian( double alpha, ParOptVec *x,
+  void addSparseJacobian( ParOptScalar alpha, ParOptVec *x,
 			  ParOptVec *px, ParOptVec *out ){
-    double *pxvals, *outvals; 
+    ParOptScalar *pxvals, *outvals; 
     px->getArray(&pxvals);
     out->getArray(&outvals);
 
@@ -169,9 +169,9 @@ class Rosenbrock : public ParOptProblem {
 
   // Compute the transpose Jacobian-vector product out = J(x)^{T}*pzw
   // -----------------------------------------------------------------
-  void addSparseJacobianTranspose( double alpha, ParOptVec *x,
+  void addSparseJacobianTranspose( ParOptScalar alpha, ParOptVec *x,
 				   ParOptVec *pzw, ParOptVec *out ){
-    double *outvals, *pzwvals;
+    ParOptScalar *outvals, *pzwvals;
     out->getArray(&outvals);
     pzw->getArray(&pzwvals);
     for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
@@ -184,9 +184,9 @@ class Rosenbrock : public ParOptProblem {
   // Add the inner product of the constraints to the matrix such 
   // that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix
   // ------------------------------------------------------------
-  void addSparseInnerProduct( double alpha, ParOptVec *x,
-			      ParOptVec *cvec, double *A ){
-    double *cvals;
+  void addSparseInnerProduct( ParOptScalar alpha, ParOptVec *x,
+			      ParOptVec *cvec, ParOptScalar *A ){
+    ParOptScalar *cvals;
     cvec->getArray(&cvals);
 
     for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
@@ -199,7 +199,7 @@ class Rosenbrock : public ParOptProblem {
   int nwcon;
   int nwstart;
   int nw, nwskip;
-  double scale;
+  ParOptScalar scale;
 };
 
 int main( int argc, char* argv[] ){

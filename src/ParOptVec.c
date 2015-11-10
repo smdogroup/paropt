@@ -17,8 +17,8 @@
 ParOptVec::ParOptVec( MPI_Comm _comm, int n ){
   comm = _comm;
   size = n;
-  x = new double[ size ];
-  memset(x, 0, size*sizeof(double));
+  x = new ParOptScalar[ size ];
+  memset(x, 0, size*sizeof(ParOptScalar));
 }
 
 /*
@@ -31,7 +31,7 @@ ParOptVec::~ParOptVec(){
 /*
   Set the vector value
 */
-void ParOptVec::set( double alpha ){
+void ParOptVec::set( ParOptScalar alpha ){
   for ( int i = 0; i < size; i++ ){
     x[i] = alpha;
   }
@@ -41,14 +41,14 @@ void ParOptVec::set( double alpha ){
   Zero the entries of the vector
 */
 void ParOptVec::zeroEntries(){
-  memset(x, 0, size*sizeof(double));
+  memset(x, 0, size*sizeof(ParOptScalar));
 }
 
 /*
   Copy the values from the given vector
 */
 void ParOptVec::copyValues( ParOptVec * vec ){
-  memcpy(x, vec->x, size*sizeof(double));
+  memcpy(x, vec->x, size*sizeof(ParOptScalar));
 }
 
 /*
@@ -71,8 +71,8 @@ double ParOptVec::norm(){
 double ParOptVec::maxabs(){
   double res = 0.0;
   for ( int i = 0; i < size; i++ ){
-    if (fabs(x[i]) > res){
-      res = fabs(x[i]);
+    if (fabs(RealPart(x[i])) > res){
+      res = fabs(RealPart(x[i]));
     }
   }
 
@@ -85,12 +85,12 @@ double ParOptVec::maxabs(){
 /*
   Compute the dot-product of two vectors and return the result.
 */
-double ParOptVec::dot( ParOptVec * vec ){
+ParOptScalar ParOptVec::dot( ParOptVec * vec ){
   int one = 1;
-  double res = BLASddot(&size, x, &one, vec->x, &one);
+  ParOptScalar res = BLASddot(&size, x, &one, vec->x, &one);
 
-  double sum = 0.0;
-  MPI_Allreduce(&res, &sum, 1, MPI_DOUBLE, MPI_SUM, comm);
+  ParOptScalar sum = 0.0;
+  MPI_Allreduce(&res, &sum, 1, PAROPT_MPI_TYPE, MPI_SUM, comm);
 
   return sum;
 }
@@ -99,19 +99,19 @@ double ParOptVec::dot( ParOptVec * vec ){
   Compute multiple dot-products simultaneously. This reduces the
   parallel communication overhead.
 */
-void ParOptVec::mdot( ParOptVec ** vecs, int nvecs, double * output ){
+void ParOptVec::mdot( ParOptVec ** vecs, int nvecs, ParOptScalar * output ){
   int one = 1;
   for ( int i = 0; i < nvecs; i++ ){
     output[i] = BLASddot(&size, x, &one, vecs[i]->x, &one);
   }
 
-  MPI_Allreduce(MPI_IN_PLACE, output, nvecs, MPI_DOUBLE, MPI_SUM, comm);
+  MPI_Allreduce(MPI_IN_PLACE, output, nvecs, PAROPT_MPI_TYPE, MPI_SUM, comm);
 }
 
 /*
   Compute the dot product of the
 */
-void ParOptVec::scale( double alpha ){
+void ParOptVec::scale( ParOptScalar alpha ){
   int one = 1;
   BLASdscal(&size, &alpha, x, &one);
 }
@@ -119,7 +119,7 @@ void ParOptVec::scale( double alpha ){
 /*
   Compute: self <- self + alpha*x
 */
-void ParOptVec::axpy( double alpha, ParOptVec * vec ){
+void ParOptVec::axpy( ParOptScalar alpha, ParOptVec * vec ){
   int one = 1;
   BLASdaxpy(&size, &alpha, vec->x, &one, x, &one);
 }
@@ -127,7 +127,7 @@ void ParOptVec::axpy( double alpha, ParOptVec * vec ){
 /*
   Retrieve the locally stored values from the array
 */
-int ParOptVec::getArray( double ** array ){
+int ParOptVec::getArray( ParOptScalar ** array ){
   *array = x;
   return size;
 }
@@ -165,9 +165,10 @@ int ParOptVec::writeToFile( const char * filename ){
   // Only write the file if it actually exists...
   if (fp){
     char datarep[] = "native";
-    MPI_File_set_view(fp, 0, MPI_DOUBLE, MPI_DOUBLE,
+    MPI_File_set_view(fp, 0, PAROPT_MPI_TYPE, PAROPT_MPI_TYPE,
                       datarep, MPI_INFO_NULL);
-    MPI_File_write_at_all(fp, range[rank], x, size, MPI_DOUBLE,
+    MPI_File_write_at_all(fp, range[rank], x, size, 
+			  PAROPT_MPI_TYPE,
                           MPI_STATUS_IGNORE);
     MPI_File_close(&fp);
   }
@@ -216,34 +217,34 @@ LBFGS::LBFGS( MPI_Comm _comm, int _nvars,
   r = new ParOptVec(comm, nvars);
 
   // The full M-matrix
-  M = new double[ 4*msub_max*msub_max ];
+  M = new ParOptScalar[ 4*msub_max*msub_max ];
 
   // The diagonal scaling matrix
-  d0 = new double[ 2*msub_max ];
+  d0 = new ParOptScalar[ 2*msub_max ];
 
   // The factored M-matrix
-  M_factor = new double[ 4*msub_max*msub_max ];
+  M_factor = new ParOptScalar[ 4*msub_max*msub_max ];
   mfpiv = new int[ 2*msub_max ];
   
   // Temporary vector required for multiplications
-  rz = new double[ 2*msub_max ];
+  rz = new ParOptScalar[ 2*msub_max ];
 
   // The components of the M matrix that must be
   // updated each iteration
-  D = new double[ msub_max ];
-  L = new double[ msub_max*msub_max ];
-  B = new double[ msub_max*msub_max ];  
+  D = new ParOptScalar[ msub_max ];
+  L = new ParOptScalar[ msub_max*msub_max ];
+  B = new ParOptScalar[ msub_max*msub_max ];  
 
   // Zero the initial values of everything
-  memset(d0, 0, 2*msub_max*sizeof(double));
-  memset(rz, 0, 2*msub_max*sizeof(double));
+  memset(d0, 0, 2*msub_max*sizeof(ParOptScalar));
+  memset(rz, 0, 2*msub_max*sizeof(ParOptScalar));
 
-  memset(M, 0, 4*msub_max*msub_max*sizeof(double));
-  memset(M_factor, 0, 4*msub_max*msub_max*sizeof(double));
+  memset(M, 0, 4*msub_max*msub_max*sizeof(ParOptScalar));
+  memset(M_factor, 0, 4*msub_max*msub_max*sizeof(ParOptScalar));
 
-  memset(D, 0, msub_max*sizeof(double));
-  memset(L, 0, msub_max*msub_max*sizeof(double));
-  memset(B, 0, msub_max*msub_max*sizeof(double));
+  memset(D, 0, msub_max*sizeof(ParOptScalar));
+  memset(L, 0, msub_max*msub_max*sizeof(ParOptScalar));
+  memset(B, 0, msub_max*msub_max*sizeof(ParOptScalar));
 }
 
 /*
@@ -288,15 +289,15 @@ void LBFGS::reset(){
   b0 = 1.0;
 
   // Zero the initial values of everything
-  memset(d0, 0, 2*msub_max*sizeof(double));
-  memset(rz, 0, 2*msub_max*sizeof(double));
+  memset(d0, 0, 2*msub_max*sizeof(ParOptScalar));
+  memset(rz, 0, 2*msub_max*sizeof(ParOptScalar));
 
-  memset(M, 0, 4*msub_max*msub_max*sizeof(double));
-  memset(M_factor, 0, 4*msub_max*msub_max*sizeof(double));
+  memset(M, 0, 4*msub_max*msub_max*sizeof(ParOptScalar));
+  memset(M_factor, 0, 4*msub_max*msub_max*sizeof(ParOptScalar));
 
-  memset(D, 0, msub_max*sizeof(double));
-  memset(L, 0, msub_max*msub_max*sizeof(double));
-  memset(B, 0, msub_max*msub_max*sizeof(double));
+  memset(D, 0, msub_max*sizeof(ParOptScalar));
+  memset(L, 0, msub_max*msub_max*sizeof(ParOptScalar));
+  memset(B, 0, msub_max*msub_max*sizeof(ParOptScalar));
 }
 
 /*
@@ -319,8 +320,8 @@ int LBFGS::update( ParOptVec * s, ParOptVec * y ){
   int update_type = 0;
 
   // Set the diagonal entries of the matrix
-  double gamma = y->dot(y);
-  double alpha = y->dot(s);
+  ParOptScalar gamma = y->dot(y);
+  ParOptScalar alpha = y->dot(s);
 
   // Set the diagonal components on the first time through
   if (msub == 0){
@@ -332,7 +333,7 @@ int LBFGS::update( ParOptVec * s, ParOptVec * y ){
  
   // Compute the step times the old Hessian approximation
   mult(s, r);
-  double beta = r->dot(s);
+  ParOptScalar beta = r->dot(s);
 
   ParOptVec *new_vec = y;
 
@@ -342,7 +343,7 @@ int LBFGS::update( ParOptVec * s, ParOptVec * y ){
     update_type = 1;
 
     // Compute r = theta*y + (1.0 - theta)*B*s
-    double theta = 0.8*beta/(beta - alpha);
+    ParOptScalar theta = 0.8*beta/(beta - alpha);
     r->scale(1.0 - theta);
     r->axpy(theta, y);
     new_vec = r;
@@ -411,7 +412,7 @@ int LBFGS::update( ParOptVec * s, ParOptVec * y ){
   }
 
   // Set the values into the M-matrix
-  memset(M, 0, 4*msub*msub*sizeof(double));
+  memset(M, 0, 4*msub*msub*sizeof(ParOptScalar));
 
   // Populate the result in the M-matrix
   for ( int i = 0; i < msub; i++ ){
@@ -445,7 +446,7 @@ int LBFGS::update( ParOptVec * s, ParOptVec * y ){
   }
 
   // Copy out the M matrix for factorization
-  memcpy(M_factor, M, 4*msub*msub*sizeof(double));
+  memcpy(M_factor, M, 4*msub*msub*sizeof(ParOptScalar));
   
   // Factor the M matrix for later useage
   int n = 2*msub, info = 0;
@@ -502,7 +503,7 @@ void LBFGS::mult( ParOptVec * x, ParOptVec * y ){
 
   y <- y + alpha*(b0*x - Z*diag{d}*M^{-1}*diag{d}*Z^{T}*x)
 */
-void LBFGS::multAdd( double alpha, ParOptVec * x, ParOptVec * y ){
+void LBFGS::multAdd( ParOptScalar alpha, ParOptVec * x, ParOptVec * y ){
   // Set y = b0*x
   y->axpy(b0*alpha, x);
 
@@ -537,9 +538,9 @@ void LBFGS::multAdd( double alpha, ParOptVec * x, ParOptVec * y ){
   Retrieve the internal data for the limited-memory BFGS
   representation
 */
-int LBFGS::getCompactMat( double * _b0,
-			  const double ** _d,
-			  const double ** _M,
+int LBFGS::getCompactMat( ParOptScalar * _b0,
+			  const ParOptScalar ** _d,
+			  const ParOptScalar ** _M,
 			  ParOptVec *** _Z ){
   if (_b0){ *_b0 = b0; }
   if (_d){ *_d = d0; }
@@ -584,34 +585,34 @@ LSR1::LSR1( MPI_Comm _comm, int _nvars, int _msub_max ){
   r = new ParOptVec(comm, nvars);
 
   // The full M-matrix
-  M = new double[ msub_max*msub_max ];
+  M = new ParOptScalar[ msub_max*msub_max ];
 
   // The diagonal scaling matrix
-  d0 = new double[ msub_max ];
+  d0 = new ParOptScalar[ msub_max ];
 
   // The factored M-matrix
-  M_factor = new double[ msub_max*msub_max ];
+  M_factor = new ParOptScalar[ msub_max*msub_max ];
   mfpiv = new int[ msub_max ];
   
   // Temporary vector required for multiplications
-  rz = new double[ msub_max ];
+  rz = new ParOptScalar[ msub_max ];
 
   // The components of the M matrix that must be
   // updated each iteration
-  D = new double[ msub_max ];
-  L = new double[ msub_max*msub_max ];
-  B = new double[ msub_max*msub_max ];  
+  D = new ParOptScalar[ msub_max ];
+  L = new ParOptScalar[ msub_max*msub_max ];
+  B = new ParOptScalar[ msub_max*msub_max ];  
 
   // Zero the initial values of everything
-  memset(d0, 0, msub_max*sizeof(double));
-  memset(rz, 0, msub_max*sizeof(double));
+  memset(d0, 0, msub_max*sizeof(ParOptScalar));
+  memset(rz, 0, msub_max*sizeof(ParOptScalar));
 
-  memset(M, 0, msub_max*msub_max*sizeof(double));
-  memset(M_factor, 0, msub_max*msub_max*sizeof(double));
+  memset(M, 0, msub_max*msub_max*sizeof(ParOptScalar));
+  memset(M_factor, 0, msub_max*msub_max*sizeof(ParOptScalar));
 
-  memset(D, 0, msub_max*sizeof(double));
-  memset(L, 0, msub_max*msub_max*sizeof(double));
-  memset(B, 0, msub_max*msub_max*sizeof(double));
+  memset(D, 0, msub_max*sizeof(ParOptScalar));
+  memset(L, 0, msub_max*msub_max*sizeof(ParOptScalar));
+  memset(B, 0, msub_max*msub_max*sizeof(ParOptScalar));
 }
 
 /*
@@ -657,15 +658,15 @@ void LSR1::reset(){
   b0 = 1.0;
 
   // Zero the initial values of everything
-  memset(d0, 0, msub_max*sizeof(double));
-  memset(rz, 0, msub_max*sizeof(double));
+  memset(d0, 0, msub_max*sizeof(ParOptScalar));
+  memset(rz, 0, msub_max*sizeof(ParOptScalar));
 
-  memset(M, 0, msub_max*msub_max*sizeof(double));
-  memset(M_factor, 0, msub_max*msub_max*sizeof(double));
+  memset(M, 0, msub_max*msub_max*sizeof(ParOptScalar));
+  memset(M_factor, 0, msub_max*msub_max*sizeof(ParOptScalar));
 
-  memset(D, 0, msub_max*sizeof(double));
-  memset(L, 0, msub_max*msub_max*sizeof(double));
-  memset(B, 0, msub_max*msub_max*sizeof(double));
+  memset(D, 0, msub_max*sizeof(ParOptScalar));
+  memset(L, 0, msub_max*msub_max*sizeof(ParOptScalar));
+  memset(B, 0, msub_max*msub_max*sizeof(ParOptScalar));
 }
 
 /*
@@ -687,8 +688,8 @@ int LSR1::update( ParOptVec * s, ParOptVec * y ){
   int update_type = 0;
 
   // Set the diagonal entries of the matrix
-  double gamma = y->dot(y);
-  double alpha = y->dot(s);
+  ParOptScalar gamma = y->dot(y);
+  ParOptScalar alpha = y->dot(s);
 
   // Set the diagonal components on the first time through
   if (msub == 0){
@@ -752,7 +753,7 @@ int LSR1::update( ParOptVec * s, ParOptVec * y ){
   }
 
   // Set the values into the M-matrix
-  memset(M, 0, msub*msub*sizeof(double));
+  memset(M, 0, msub*msub*sizeof(ParOptScalar));
 
   // Populate the result in the M-matrix
   for ( int i = 0; i < msub; i++ ){
@@ -781,7 +782,7 @@ int LSR1::update( ParOptVec * s, ParOptVec * y ){
   }
 
   // Copy out the M matrix for factorization
-  memcpy(M_factor, M, msub*msub*sizeof(double));
+  memcpy(M_factor, M, msub*msub*sizeof(ParOptScalar));
   
   // Factor the M matrix for later useage
   int n = msub, info = 0;
@@ -828,7 +829,7 @@ void LSR1::mult( ParOptVec * x, ParOptVec * y ){
 
   y <- y + alpha*(b0*x - Z*M^{-1}*Z^{T}*x)
 */
-void LSR1::multAdd( double alpha, ParOptVec * x, ParOptVec * y ){
+void LSR1::multAdd( ParOptScalar alpha, ParOptVec * x, ParOptVec * y ){
   // Set y = b0*x
   y->axpy(b0*alpha, x);
 
@@ -853,9 +854,9 @@ void LSR1::multAdd( double alpha, ParOptVec * x, ParOptVec * y ){
   Retrieve the internal data for the limited-memory BFGS
   representation
 */
-int LSR1::getCompactMat( double * _b0,
-			 const double ** _d,
-			 const double ** _M,
+int LSR1::getCompactMat( ParOptScalar * _b0,
+			 const ParOptScalar ** _d,
+			 const ParOptScalar ** _M,
 			 ParOptVec *** _Z ){
   if (_b0){ *_b0 = b0; }
   if (_d){ *_d = d0; }

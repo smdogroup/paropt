@@ -11,6 +11,15 @@
 */
 
 #include "mpi.h"
+#include "complexify.h"
+
+#ifdef PAROPT_USE_COMPLEX
+#define PAROPT_MPI_TYPE MPI_DOUBLE_COMPLEX
+typedef cplx ParOptScalar;
+#else
+#define PAROPT_MPI_TYPE MPI_DOUBLE
+typedef double ParOptScalar;
+#endif // PAROPT_USE_COMPLEX
 
 /*
   This vector class implements basic linear algebra operations
@@ -23,22 +32,22 @@ class ParOptVec {
 
   // Perform standard operations required for linear algebra
   // -------------------------------------------------------
-  void set( double alpha );
+  void set( ParOptScalar alpha );
   void zeroEntries();
   void copyValues( ParOptVec * vec );
   double norm();
   double maxabs();
-  double dot( ParOptVec * vec );
-  void mdot( ParOptVec ** vecs, int nvecs, double * output );
-  void scale( double alpha );
-  void axpy( double alpha, ParOptVec * x );
-  int getArray( double ** array );
+  ParOptScalar dot( ParOptVec * vec );
+  void mdot( ParOptVec ** vecs, int nvecs, ParOptScalar * output );
+  void scale( ParOptScalar alpha );
+  void axpy( ParOptScalar alpha, ParOptVec * x );
+  int getArray( ParOptScalar ** array );
   int writeToFile( const char * filename );
 
  private:
   MPI_Comm comm;
   int size;
-  double * x;
+  ParOptScalar * x;
 };
 
 /*
@@ -63,12 +72,12 @@ class CompactQuasiNewton {
   // Perform a matrix-vector multiplication
   // --------------------------------------
   virtual void mult( ParOptVec * x, ParOptVec * y ) = 0;
-  virtual void multAdd( double alpha, ParOptVec *x, ParOptVec * y) = 0;
+  virtual void multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec * y) = 0;
 
   // Get the information for the limited-memory BFGS update
   // ------------------------------------------------------
-  virtual int getCompactMat( double * _b0, const double ** _d,
-			     const double ** _M, ParOptVec *** Z ) = 0;
+  virtual int getCompactMat( ParOptScalar * _b0, const ParOptScalar ** _d,
+			     const ParOptScalar ** _M, ParOptVec *** Z ) = 0;
 
   // Get the maximum size of the limited-memory BFGS
   // -----------------------------------------------
@@ -111,12 +120,12 @@ class LBFGS : public CompactQuasiNewton {
   // Perform a matrix-vector multiplication
   // --------------------------------------
   void mult( ParOptVec * x, ParOptVec * y );
-  void multAdd( double alpha, ParOptVec *x, ParOptVec * y);
+  void multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec * y);
 
   // Get the information for the limited-memory BFGS update
   // ------------------------------------------------------
-  int getCompactMat( double * _b0, const double ** _d,
-		     const double ** _M, ParOptVec *** Z );
+  int getCompactMat( ParOptScalar * _b0, const ParOptScalar ** _d,
+		     const ParOptScalar ** _M, ParOptVec *** Z );
 
   // Get the maximum size of the limited-memory BFGS
   // -----------------------------------------------
@@ -135,19 +144,19 @@ class LBFGS : public CompactQuasiNewton {
 
   // Temporary data for internal usage
   ParOptVec *r;
-  double *rz; // rz = Z^{T}*x
+  ParOptScalar *rz; // rz = Z^{T}*x
 
   // The update S/Y vectors
   ParOptVec **S, **Y;
-  double b0; // The diagonal scalar
+  ParOptScalar b0; // The diagonal scalar
 
   // The M-matrix
-  double *M, *M_factor;
+  ParOptScalar *M, *M_factor;
   int *mfpiv; // The pivot array for the M-factorization
 
   // Data for the internal storage of M/M_factor
-  double *B, *L, *D; 
-  double *d0; // The diagonal matrix
+  ParOptScalar *B, *L, *D; 
+  ParOptScalar *d0; // The diagonal matrix
 };
 
 /*
@@ -182,12 +191,12 @@ class LSR1 : public CompactQuasiNewton {
   // Perform a matrix-vector multiplication
   // --------------------------------------
   void mult( ParOptVec * x, ParOptVec * y );
-  void multAdd( double alpha, ParOptVec *x, ParOptVec * y);
+  void multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec * y);
 
   // Get the information for the limited-memory BFGS update
   // ------------------------------------------------------
-  int getCompactMat( double * _b0, const double ** _d,
-		     const double ** _M, ParOptVec *** Z );
+  int getCompactMat( ParOptScalar * _b0, const ParOptScalar ** _d,
+		     const ParOptScalar ** _M, ParOptVec *** Z );
 
   // Get the maximum size of the limited-memory BFGS
   // -----------------------------------------------
@@ -206,19 +215,19 @@ class LSR1 : public CompactQuasiNewton {
 
   // Temporary data for internal usage
   ParOptVec *r;
-  double *rz; // rz = Z^{T}*x
+  ParOptScalar *rz; // rz = Z^{T}*x
 
   // The update S/Y vectors
   ParOptVec **S, **Y;
-  double b0; // The diagonal scalar
+  ParOptScalar b0; // The diagonal scalar
 
   // The M-matrix
-  double *M, *M_factor;
+  ParOptScalar *M, *M_factor;
   int *mfpiv; // The pivot array for the M-factorization
 
   // Data for the internal storage of M/M_factor
-  double *B, *L, *D; 
-  double *d0; // The diagonal matrix
+  ParOptScalar *B, *L, *D; 
+  ParOptScalar *d0; // The diagonal matrix
 };
 
 #endif

@@ -127,7 +127,7 @@ class ParOpt {
   // Retrieve the values of the design variables and multipliers
   // -----------------------------------------------------------
   void getOptimizedPoint( ParOptVec **_x, 
-			  const double **_z, ParOptVec **_zw,
+			  const ParOptScalar **_z, ParOptVec **_zw,
 			  ParOptVec **_zl, ParOptVec **_zu );
 
   // Check the objective and constraint gradients
@@ -203,20 +203,20 @@ class ParOpt {
   void setUpKKTDiagSystem( ParOptVec *xt, ParOptVec *wt, int use_bfgs );
 
   // Solve the diagonal KKT system
-  void solveKKTDiagSystem( ParOptVec *bx, double *bc, 
-			   ParOptVec *bcw, double *bs,
+  void solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bc, 
+			   ParOptVec *bcw, ParOptScalar *bs,
 			   ParOptVec *bsw,
 			   ParOptVec *bzl, ParOptVec *bzu,
-			   ParOptVec *yx, double *yz, 
-			   ParOptVec *yzw, double *ys,
+			   ParOptVec *yx, ParOptScalar *yz, 
+			   ParOptVec *yzw, ParOptScalar *ys,
 			   ParOptVec *ysw,
 			   ParOptVec *yzl, ParOptVec *yzu,
 			   ParOptVec *xt, ParOptVec *wt );
   
   // Solve the diagonal KKT system with a specific RHS structure
   void solveKKTDiagSystem( ParOptVec *bx, 
-			   ParOptVec *yx, double *yz, 
-			   ParOptVec *yzw, double *ys,
+			   ParOptVec *yx, ParOptScalar *yz, 
+			   ParOptVec *yzw, ParOptScalar *ys,
 			   ParOptVec *ysw,
 			   ParOptVec *yzl, ParOptVec *yzu,
 			   ParOptVec *xt, ParOptVec *wt );
@@ -224,30 +224,30 @@ class ParOpt {
   // Solve the diagonal KKT system but only return the components
   // corresponding to the design variables
   void solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
-			   double *zt,
+			   ParOptScalar *zt,
 			   ParOptVec *xt, ParOptVec *wt );
 
   // Solve the diagonal system
   void solveKKTDiagSystem( ParOptVec *bx, 
-			   double alpha, double *bc, 
-			   ParOptVec *bcw, double *bs,
+			   ParOptScalar alpha, ParOptScalar *bc, 
+			   ParOptVec *bcw, ParOptScalar *bs,
 			   ParOptVec *bsw,
 			   ParOptVec *bzl, ParOptVec *bzu,
-			   ParOptVec *yx, double *yz,
+			   ParOptVec *yx, ParOptScalar *yz,
 			   ParOptVec *xt, ParOptVec *wt );
 
   // Set up the full KKT system
-  void setUpKKTSystem( double *zt, 
+  void setUpKKTSystem( ParOptScalar *zt, 
 		       ParOptVec *xt1, ParOptVec *xt2,
 		       ParOptVec *wt, int use_bfgs );
 
   // Solve for the KKT step
-  void computeKKTStep( double *zt, ParOptVec *xt1, 
+  void computeKKTStep( ParOptScalar *zt, ParOptVec *xt1, 
 		       ParOptVec *xt2, ParOptVec *wt, int use_bfgs );
   
   // Compute the full KKT step
-  int computeKKTInexactNewtonStep( double *zt, ParOptVec *xt1, ParOptVec *xt2,
-				   ParOptVec *wt,
+  int computeKKTInexactNewtonStep( ParOptScalar *zt, ParOptVec *xt1, 
+				   ParOptVec *xt2, ParOptVec *wt,
 				   double rtol, double atol, int use_bfgs );
 
   // Check that the KKT step is computed correctly
@@ -259,22 +259,23 @@ class ParOpt {
 		       double *_max_x, double *_max_z );
 
   // Perform the line search
-  int lineSearch( double * _alpha, 
-		  double m0, double dm0 );
+  int lineSearch( double *_alpha, 
+		  ParOptScalar m0, ParOptScalar dm0 );
 
   // Evaluate the merit function
-  double evalMeritFunc( ParOptVec *xk, double *sk, 
-			ParOptVec *swk );
+  ParOptScalar evalMeritFunc( ParOptVec *xk, ParOptScalar *sk, 
+			      ParOptVec *swk );
 
   // Evaluate the merit function, its derivative and the new penalty
   // parameter
-  void evalMeritInitDeriv( double max_x, double * _merit, double * _pmerit,
+  void evalMeritInitDeriv( double max_x, 
+			   ParOptScalar *_merit, ParOptScalar *_pmerit,
 			   int inexact_step, ParOptVec *wt1, ParOptVec *wt2 );
   
   // Compute the complementarity
-  double computeComp(); // Complementarity at the current point
-  double computeCompStep( double alpha_x,
-			  double alpha_z ); // Complementarity at (x + p)
+  ParOptScalar computeComp(); // Complementarity at the current point
+  ParOptScalar computeCompStep( double alpha_x,
+				double alpha_z ); // Complementarity at (x + p)
 
   // Check the step
   void checkStep();
@@ -298,34 +299,34 @@ class ParOpt {
 
   // Temporary vectors for internal usage
   ParOptVec *wtemp;
-  double *ztemp;
+  ParOptScalar *ztemp;
 
   // The variables in the optimization problem
   ParOptVec *x, *zl, *zu, *zw, *sw;
-  double *z, *s;
+  ParOptScalar *z, *s;
 
   // The lower/upper bounds on the variables
   ParOptVec *lb, *ub;
 
   // The steps in the variables
   ParOptVec *px, *pzl, *pzu, *pzw, *psw;
-  double *pz, *ps;
+  ParOptScalar *pz, *ps;
 
   // The residuals
   ParOptVec *rx, *rzl, *rzu, *rcw, *rsw;
-  double *rc, *rs;
+  ParOptScalar *rc, *rs;
 
   // The objective, gradient, constraints, and constraint gradients
-  double fobj, *c;
+  ParOptScalar fobj, *c;
   ParOptVec *g, **Ac;
 
   // The data for the block-diagonal matrix
-  double *Cw;
+  ParOptScalar *Cw;
 
   // Data required for solving the KKT system
   ParOptVec *Cvec;
   ParOptVec **Ew;
-  double *Dmat, *Ce;
+  ParOptScalar *Dmat, *Ce;
   int *dpiv, *cpiv;
 
   // Storage for the Quasi-Newton updates
@@ -382,7 +383,7 @@ class ParOpt {
 
   // Internal information about GMRES
   int gmres_subspace_size;
-  double *gmres_H, *gmres_alpha, *gmres_res, *gmres_Q;
+  ParOptScalar *gmres_H, *gmres_alpha, *gmres_res, *gmres_Q;
   ParOptVec **gmres_W;
 
   // Check the step at this major iteration - for debugging

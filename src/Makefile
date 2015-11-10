@@ -11,5 +11,8 @@ default: ${OBJS}
 debug: CCFLAGS=${CCFLAGS_DEBUG}
 debug: default
 
+complex: CCFLAGS+=-DPAROPT_USE_COMPLEX
+complex: default
+
 clean:
 	rm -rf *.o
