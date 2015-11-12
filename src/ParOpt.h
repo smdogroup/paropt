@@ -171,6 +171,10 @@ class ParOpt {
   void setGMRESTolerances( double rtol, double atol );
   void setGMRESSusbspaceSize( int _gmres_subspace_size );
 
+  // Force a quasi-Newton Hessian reset
+  // ----------------------------------
+  void resetQuasiNewtonHessian();
+
   // Set other parameters
   // --------------------
   void setOutputFrequency( int freq );

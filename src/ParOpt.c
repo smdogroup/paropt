@@ -883,6 +883,15 @@ void ParOpt::setEisenstatWalkerParameters( double gamma, double alpha ){
 }
 
 /*
+  Reset the Quasi-Newton Hessian approximation if it is used
+*/
+void ParOpt::resetQuasiNewtonHessian(){
+  if (qn){
+    qn->reset();
+  }
+}
+
+/*
   Set the size of the GMRES subspace and allocate the vectors
   required. Note that the old subspace information is deleted before
   the new subspace data is allocated.
