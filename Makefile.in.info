@@ -1,5 +1,7 @@
 # This is the Makefile.in file for the parallel optimizer. 
 
+PAROPT_DIR=${HOME}/hg/paropt
+
 # Which compiler to use
 CXX = mpicxx
 
@@ -9,3 +11,7 @@ CCFLAGS_DEBUG = -fPIC -g
 
 # The lapack libraries to use
 LAPACK_LIBS = -L/usr/lib -llapack -lblas
+
+# For linux systems, use the following settings:
+SO_EXT=so
+SO_LINK_FLAGS=-fPIC -shared
