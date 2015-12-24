@@ -1,81 +1,40 @@
 #distuils: language = c++
-#distuils: sources = ParOpt.c, Rosenbrock.c
+#distuils: sources = ParOpt.c
 
-#For the use of MPI
+# For the use of MPI
 from mpi4py.libmpi cimport *
 cimport mpi4py.MPI as MPI
-#Import the declarations required
-cimport ParOptVec_c
-cimport ParOptProblem_c 
-from ParOpt_c cimport ParOpt
+
+# Import the declarations required
+from ParOpt_c cimport ParOptProblem, ParOptVec, ParOpt
 
 import numpy as np
 cimport numpy as np
-
-include "ParOptVec_c.pyx"
 
 from libc.string cimport const_char
 
 cdef extern from "mpi-compat.h":
    pass
 
-#Declare the public methods that are in Rosenbrock.h
-cdef extern from "Rosenbrock.h":
-   cdef cppclass Rosenbrock(ParOptProblem_c.ParOptProblem):
-   
-      Rosenbrock(MPI_Comm, int _nvars, int _nwcon, int _nwstart, int _nw, int _nwskip) except +
-   
-      #Determine whether there is an inequality constraint
-      int isSparseInequality()
-      int isDenseInequality()
-      int useLowerBounds()
-      int useUpperBounds()
-      #Get the communicator for the problem
-      MPI_Comm getMPIComm()
-      #Get the problem dimensions
-      void getProblemSizes( int *_nvars, int *_ncon, int *_nwcon, int *_nwblock)
-      #Get variables and bounds
-      void getVarsAndBounds(ParOptVec_c.ParOptVec *xvec, ParOptVec_c.ParOptVec *lbvec,
-                            ParOptVec_c.ParOptVec *ubvec)
-      #Evaluate the objective and constraints
-      int evalObjCon(ParOptVec_c.ParOptVec *xvec, double *fobj, double *cons)
-      #Evaluate the objective and constraints gradients
-      int evalObjConGradient(ParOptVec_c.ParOptVec *xvec, ParOptVec_c.ParOptVec *gvec,
-                             ParOptVec_c.ParOptVec ** Ac)
-      #Evaluate the product of the Hessian with the given vector
-      int evalHvecProduct(ParOptVec_c.ParOptVec *xvec, double *z, ParOptVec_c.ParOptVec *zwvec,
-                          ParOptVec_c.ParOptVec *pxvec, ParOptVec_c.ParOptVec *hvec)
-      #Evaluate the sparse constraints
-      void evalSparseCon(ParOptVec_c.ParOptVec *xvec, ParOptVec_c.ParOptVec *out)
-      #Compute the Jacobian-vector product out = J(x)*px
-      void addSparseJacobian(double alpha, ParOptVec_c.ParOptVec *x, ParOptVec_c.ParOptVec *px,
-                             ParOptVec_c.ParOptVec *out)
-      #Compute the transpose Jacobian-vector product out=J(x)^{T}*pzw
-      void addSparseJacobianTranspose(double alpha, ParOptVec_c.ParOptVec *x,
-                                      ParOptVec_c.ParOptVec *pzw, ParOptVec_c.ParOptVec *out)
-      #Add inner product of the constraints to the matrix such that A+=J(x)*cvec*J(x)^{T} where
-      #cvec is a diagonal matrix
-      void addSparseInnerProduct(double alpha, ParOptVec_c.ParOptVec *x,
-                                 ParOptVec_c.ParOptVec *cvec, double *A)
-
-#"Wrap" the abtract base class ParOptProblem 
+# "Wrap" the abtract base class ParOptProblem 
 cdef class pyParOptProblem:
    cdef MPI.Comm _comm
-   cdef ParOptProblem_c.ParOptProblem *thisptr
+   cdef ParOptProblem *thisptr
    
-   def __cinit__(self, MPI.Comm _comm, int _nvars, int _ncon, int _nwcon, int _nwblock,
+   def __cinit__(self, MPI.Comm _comm, 
+                 int _nvars, int _ncon, int _nwcon, int _nwblock,
                  *args, **kwargs):
-      
       pass
-   def __dealloc__(self):
-      
+
+   def __dealloc__(self):      
       pass
+
    def getMPIComm(self):
       pass
                
-   def getProblemSizes(self):
-      
-      pass      
+   def getProblemSizes(self):      
+      pass
+
    def isSparseInequality(self):
       pass
   
@@ -88,63 +47,110 @@ cdef class pyParOptProblem:
    def useUpperBounds(self):
       pass
   
-   def getVarsAndBounds(self, pyParOptVec x not None, pyParOptVec lb not None,
+   def getVarsAndBounds(self, pyParOptVec x not None, 
+                        pyParOptVec lb not None,
                         pyParOptVec ub not None):
       pass
   
-   def evalObjCon(self, pyParOptVec x not None, double[::1] fobj, double[::1] cons):
+   def evalObjCon(self, pyParOptVec x not None, double[::1] fobj, 
+                  double[::1] cons):
       pass
   
-   def evalObjconGradient(self, pyParOptVec x not None, pyParOptVec g not None,
+   def evalObjconGradient(self, pyParOptVec x not None, 
+                          pyParOptVec g not None,
                           pyParOptVec AC not None):
       pass
-   def evalHvecProduct(self, pyParOptVec x not None, double[::1] z, pyParOptVec zw not None,
-                       pyParOptVec px not None, pyParOptVec hvec not None):
+
+   def evalHvecProduct(self, pyParOptVec x not None, 
+                       double[::1] z, 
+                       pyParOptVec zw not None,
+                       pyParOptVec px not None, 
+                       pyParOptVec hvec not None):
       pass
   
-   def evalSparseCon(self, pyParOptVec x not None, pyParOptVec out not None):
+   def evalSparseCon(self, pyParOptVec x not None, 
+                     pyParOptVec out not None):
       pass
   
-   def addSparseJacobian(self, double alpha, pyParOptVec x not None, pyParOptVec px not None,
+   def addSparseJacobian(self, double alpha, 
+                         pyParOptVec x not None, 
+                         pyParOptVec px not None,
                          pyParOptVec out not None):
       pass
 
-   def addSparseJacobianTranspose(self, double alpha, pyParOptVec x not None,
-                                  pyParOptVec pzw not None, pyParOptVec out not None):
+   def addSparseJacobianTranspose(self, double alpha, 
+                                  pyParOptVec x not None,
+                                  pyParOptVec pzw not None, 
+                                  pyParOptVec out not None):
       pass
 
-   def addSparseInnerProduct(self, double alpha, pyParOptVec x not None, pyParOptVec cvec not None,
+   def addSparseInnerProduct(self, double alpha, 
+                             pyParOptVec x not None, 
+                             pyParOptVec cvec not None,
                              double [:,::1]A):
       pass
   
    def writeOutput(self, int iter, pyParOptVec x not None):
       pass
 
-#Wrap the subclass Rosenbrock which is derived from ParOptProblem  
-cdef class pyRosenbrock(pyParOptProblem):
-   
-   cdef Rosenbrock *rosenptr
-   def __cinit__(self, MPI.Comm _comm, int _nvars, int _ncon, int _nwcon, int _nwblock,
-                 int _nwstart, int _nw, int _nwskip):
+# Corresponds to the C++ class defined in the pxd file
+cdef class pyParOptVec:
+   cdef ParOptVec *paroptvec_ptr
 
-      if type(self) != pyRosenbrock:
-         return
-      cdef ParOptProblem_c.ParOptProblem *base = NULL
-      
+   def __cinit__(self, MPI.Comm _comm, int n):
       cdef MPI_Comm c_comm = _comm.ob_mpi
-      
-      self.rosenptr = self.thisptr = new Rosenbrock(c_comm, _nvars, _nwcon, _nwstart,_nw, _nwskip)
+      self.paroptvec_ptr = new ParOptVec(c_comm, n)
 
    def __dealloc__(self):
-      #print "Cython: running pyRosenbrock.__dealloc__ on", self 
-      cdef Rosenbrock *temp
-      if self.thisptr is not NULL:
-         temp = <Rosenbrock *>self.thisptr
-         del temp
-         self.thisptr = NULL  
-      
+      del self.paroptvec_ptr
+
+   cdef setThis(self, ParOptVec *other):
+      del self.paroptvec_ptr
+      self.paroptvec_ptr = other
+      return self
+       
+   def set(self,double alpha):
+      self.paroptvec_ptr.set(alpha)
+       
+   def zeroEntries(self):
+      self.paroptvec_ptr.zeroEntries()
+       
+   def copyValues(self, pyParOptVec vec not None):
+      self.paroptvec_ptr.copyValues(vec.paroptvec_ptr)
    
-#Python class for corresponding instance ParOpt
+   def norm(self):
+      return self.paroptvec_ptr.norm()
+
+   def maxabs(self):
+      return self.paroptvec_ptr.maxabs()
+   
+   def dot(self, pyParOptVec vec not None):
+      return self.paroptvec_ptr.dot(vec.paroptvec_ptr)
+   
+   def mdot(self, pyParOptVec vecs not None, int nvecs, 
+            double[::1] output):
+      cdef pyParOptVec _vec
+      _vec = pyParOptVec().setThis(vecs.paroptvec_ptr)
+      self.paroptvec_ptr.mdot(&_vec.paroptvec_ptr, nvecs, &output[0])
+   
+   def scale(self, double alpha):
+      self.paroptvec_ptr.scale(alpha)
+      
+   def axpy(self, double alpha, pyParOptVec x not None):
+      self.paroptvec_ptr.axpy(alpha, x.paroptvec_ptr)
+   
+   def getArray(self, double[::1]array):
+      cdef double *_array
+      _array = &array[0]
+      return self.paroptvec_ptr.getArray(&_array)
+      
+   def writeToFile(self, const char[:] filename):
+      if filename is None:
+         return self.paroptvec_ptr.writeToFile(NULL)
+      else:
+         return self.paroptvec_ptr.writeToFile(&filename[0])
+   
+# Python class for corresponding instance ParOpt
 cdef class pyParOpt:
    cdef ParOpt *paropt_ptr
    
@@ -154,27 +160,29 @@ cdef class pyParOpt:
    cdef pyParOptVec zu
    cdef pyParOptProblem _prob
       
-   def __cinit__(self, pyParOptProblem _prob, int _max_lbfgs_subspace, int qn_type,
+   def __cinit__(self, pyParOptProblem _prob, 
+                 int _max_lbfgs_subspace,
                  *args, **kwargs):
       
-      self.paropt_ptr = new ParOpt(<ParOptProblem_c.ParOptProblem *>_prob.thisptr,
-                                   _max_lbfgs_subspace, qn_type)
+      self.paropt_ptr =\
+          new ParOpt(<ParOptProblem*>_prob.thisptr,
+                      _max_lbfgs_subspace)
       
    def __dealloc__(self):
-      #print "Cython: running pyParOpt.__dealloc__ on", self 
+      # print "Cython: running pyParOpt.__dealloc__ on", self 
       del self.paropt_ptr
       
-   #Perform the optimization
+   # Perform the optimization
    def optimize(self, const char[:] checkpoint=None):
-      
       if checkpoint is None: 
          return self.paropt_ptr.optimize(NULL)
       else:
          return self.paropt_ptr.optimize(&checkpoint[0])  
      
-   #Retrieve values of design variables and Lagrange multipliers
+   # Retrieve values of design variables and Lagrange multipliers
    def getOptimizedPoint(self, pyParOptVec x not None, double[::1] z,
-                         pyParOptVec zw not None, pyParOptVec zl not None,
+                         pyParOptVec zw not None, 
+                         pyParOptVec zl not None,
                          pyParOptVec zu not None):
       
       cdef const double *_z
@@ -189,15 +197,17 @@ cdef class pyParOpt:
       _zl = pyParOptVec().setThis(zl.paroptvec_ptr)
       _zu = pyParOptVec().setThis(zu.paroptvec_ptr)
       
-      self.paropt_ptr.getOptimizedPoint(&_x.paroptvec_ptr, &_z, &_zw.paroptvec_ptr,
-                                        &_zl.paroptvec_ptr, &_zu.paroptvec_ptr)
+      self.paropt_ptr.getOptimizedPoint(&_x.paroptvec_ptr, &_z, 
+                                         &_zw.paroptvec_ptr,
+                                         &_zl.paroptvec_ptr, 
+                                         &_zu.paroptvec_ptr)
    
-   #Check objective and constraint gradients
+   # Check objective and constraint gradients
    def checkGradients(self, double dh):
     
       self.paropt_ptr.checkGradients(dh)
       
-   #Set optimizer parameters
+   # Set optimizer parameters
    def setInitStartingPoint(self, int init):
       self.paropt_ptr.setInitStartingPoint(init)
       
@@ -219,14 +229,14 @@ cdef class pyParOpt:
    def setSequentialLinearMethod(self, int truth):
       self.paropt_ptr.setSequentialLinearMethod(truth)
       
-   #Set/obtain the barrier parameter
+   # Set/obtain the barrier parameter
    def setInitBarrierParameter(self, double mu):
       self.paropt_ptr.setInitBarrierParameter(mu)
       
    def getBarrierParameter(self):
       return self.paropt_ptr.getBarrierParameter()
   
-   #Set parameters associated with the linesearch
+   # Set parameters associated with the linesearch
    def setUseLineSearch(self, int truth):
       self.paropt_ptr.setUseLineSearch(truth)
       
@@ -242,7 +252,7 @@ cdef class pyParOpt:
    def setPenaltyDescentFraction(self, double frac):
       self.paropt_ptr.setPenaltyDescentFraction(frac)
       
-   #Set parameters for the interal GMRES algorithm
+   # Set parameters for the interal GMRES algorithm
    def setUseHvecProduct(self, int truth):
       self.paropt_ptr.setUseHvecProduct(truth)
       
@@ -261,7 +271,7 @@ cdef class pyParOpt:
    def setGMRESSusbspaceSize(self, int _gmres_subspace_size):
       self.paropt_ptr.setGMRESSusbspaceSize(_gmres_subspace_size)
       
-   #Set other parameters
+   # Set other parameters
    def setOutputFrequency(self, int freq):
       self.paropt_ptr.setOutputFrequency(freq)
       
@@ -274,7 +284,7 @@ cdef class pyParOpt:
       else:     
          self.paropt_ptr.setOutputFile(&filename[0])
       
-   #Write out the design variables to binary format (fast MPI/IO)
+   # Write out the design variables to binary format (fast MPI/IO)
    def writeSolutionFile(self, const char[:] filename):
       if filename is None:
          return self.paropt_ptr.writeSolutionFile(NULL)
