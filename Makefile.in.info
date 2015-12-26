@@ -1,9 +1,13 @@
 # This is the Makefile.in file for the parallel optimizer. 
 
+# This is the default location for ParOpt
 PAROPT_DIR=${HOME}/hg/paropt
 
 # Which compiler to use
 CXX = mpicxx
+
+# The cython command
+CYTHON = cython
 
 # The C++ compiler flags
 CCFLAGS = -fPIC -O3
@@ -15,3 +19,11 @@ LAPACK_LIBS = -L/usr/lib -llapack -lblas
 # For linux systems, use the following settings:
 SO_EXT=so
 SO_LINK_FLAGS=-fPIC -shared
+
+# If using the python interface you'll need to include python and numpy 
+PYTHON_INCLUDE = ${shell python-config --includes}
+NUMPY_DIR=${shell python -c "import numpy; print numpy.get_include()"}
+
+# If you're going to use the python interface you'll also have to have
+# a working version of mpi4py
+MPI4PY_DIR=${shell python -c "import mpi4py; print mpi4py.get_include()"}

@@ -1,0 +1,190 @@
+import numpy as np
+from mpi4py import MPI
+import matplotlib.pyplot as plt
+
+# Import ParOpt
+from paropt import ParOpt
+
+class Problem1(ParOpt.pyParOptProblem):
+    def __init__(self):
+        self.x_hist = []
+        super(Problem1, self).__init__(MPI.COMM_SELF, 2, 1)
+        return
+
+    def getVarsAndBounds(self, x, lb, ub):
+        '''Get the variable values and bounds'''
+        lb[:] = -2.0
+        ub[:] = 2.0
+        x[:] = -2.0 + 4.0*np.random.uniform(size=x.shape)
+        return
+
+    def evalObjCon(self, x):
+        '''Evaluate the objective and constraint values'''
+        
+        # Append the point to the solution history
+        self.x_hist.append(np.array(x))
+
+        # Evaluate the objective and constraints
+        fail = 0
+        fobj = 2*x[0]**2 + 2*x[1]**2 + x[0]*x[1]
+        cons = np.array([x[0] + x[1] - 0.5])
+        return fail, fobj, cons
+
+    def evalObjConGradient(self, x, g, A):
+        fail = 0
+        g[0] = 4*x[0] + x[1]
+        g[1] = 4*x[1] + x[0]
+        A[0,0] = 1.0
+        A[0,1] = 1.0
+        return fail
+
+class Problem2(ParOpt.pyParOptProblem):
+    def __init__(self):
+        self.x_hist = []
+        super(Problem2, self).__init__(MPI.COMM_SELF, 2, 1)
+        return
+
+    def getVarsAndBounds(self, x, lb, ub):
+        '''Get the variable values and bounds'''
+        lb[:] = -2.0
+        ub[:] = 2.0
+        x[:] = -2.0 + 4.0*np.random.uniform(size=x.shape)
+        return
+
+    def evalObjCon(self, x):
+        '''Evaluate the objective and constraint values'''
+
+        # Append the point to the history
+        self.x_hist.append(np.array(x))
+        
+        # Evaluate the objective and constraints
+        fail = 0
+        fobj = x[0]**4 + x[1]**2 + 2*x[0]*x[1] - x[0] - x[1]
+        cons = np.array([x[0] + x[1] - 0.5])
+        return fail, fobj, cons
+
+    def evalObjConGradient(self, x, g, A):
+        fail = 0
+        g[0] = 4*x[0]**3 + 2*x[1] - 1.0 
+        g[1] = 2*x[1] + 2*x[0] - 1.0
+        A[0,0] = 1.0
+        A[0,1] = 1.0
+        return fail
+
+class Problem3(ParOpt.pyParOptProblem):
+    def __init__(self):
+        self.x_hist = []
+        super(Problem3, self).__init__(MPI.COMM_SELF, 2, 1)
+        return
+
+    def getVarsAndBounds(self, x, lb, ub):
+        '''Get the variable values and bounds'''
+        lb[:] = -2.0
+        ub[:] = 2.0
+        x[:] = -2.0 + 4.0*np.random.uniform(size=x.shape)
+        return
+
+    def evalObjCon(self, x):
+        '''Evaluate the objective and constraint values'''
+
+        # Append the point to the solution history
+        self.x_hist.append(np.array(x))
+        
+        # Evaluate the objective and constraints
+        fail = 0
+        fobj = x[0]**4 + x[1]**4 + 1 - x[0]**2 - x[1]**2
+        cons = np.array([x[0] + x[1] - 0.5])
+        return fail, fobj, cons
+
+    def evalObjConGradient(self, x, g, A):
+        fail = 0
+        g[0] = 4*x[0]**3 - 2*x[0]
+        g[1] = 4*x[1]**3 - 2*x[1]
+        A[0,0] = 1.0
+        A[0,1] = 1.0
+        return fail
+
+class Problem4(ParOpt.pyParOptProblem):
+    def __init__(self):
+        self.x_hist = []
+        super(Problem4, self).__init__(MPI.COMM_SELF, 2, 1)
+        return
+
+    def getVarsAndBounds(self, x, lb, ub):
+        '''Get the variable values and bounds'''
+        lb[:] = -2.0
+        ub[:] = 2.0
+        x[:] = -2.0 + 4.0*np.random.uniform(size=x.shape)
+        return
+
+    def evalObjCon(self, x):
+        '''Evaluate the objective and constraint values'''
+
+        # Append the point to the solution history
+        self.x_hist.append(np.array(x))
+        
+        # Evaluate the objective and constraints
+        fail = 0
+        fobj = -10*x[0]**2 + 10*x[1]**2 + 4*np.sin(x[0]*x[1]) - 2*x[0] + x[0]**4
+        cons = np.array([x[0] + x[1] - 0.5])
+        return fail, fobj, cons
+
+    def evalObjConGradient(self, x, g, A):
+        fail = 0
+        g[0] = -20*x[0] + 4*np.cos(x[0]*x[1])*x[1] - 2.0 + 4*x[0]**3
+        g[1] =  20*x[1] + 4*np.cos(x[0]*x[1])*x[0]
+        A[0,0] = 1.0
+        A[0,1] = 1.0
+        return fail
+
+def plot_it_all(problem):
+    '''
+    Plot a carpet plot with the search histories for steepest descent,
+    conjugate gradient and BFGS from the same starting point.
+    '''
+
+    # Create the data for the carpet plot
+    n = 150
+    xlow = -4.0
+    xhigh = 4.0
+    x1 = np.linspace(xlow, xhigh, n)
+    r = np.zeros((n, n))
+
+    for j in xrange(n):
+        for i in xrange(n):
+            fail, fobj, con = problem.evalObjCon([x1[i], x1[j]])
+            r[j, i] = fobj
+
+    # Run steepest descent
+    x0 = np.array(x_start)
+    problem.x_hist = []
+
+    # Optimize the problem
+    max_lbfgs = 20
+    opt = ParOpt.pyParOpt(problem, max_lbfgs)
+    opt.checkGradients(1e-6)
+    opt.optimize()
+
+    # Copy out the steepest descent points
+    sd = np.zeros((2, len(problem.x_hist)))
+    for i in xrange(len(problem.x_hist)):
+        sd[0, i] = problem.x_hist[i][0]
+        sd[1, i] = problem.x_hist[i][1]
+
+    # Now, plot it all on a single plot
+    # Assign the contour levels
+    levels = np.min(r) + np.linspace(0, 1.0, 75)**2*(np.max(r) - np.min(r))
+
+    fig = plt.figure(facecolor='w')
+    plt.contour(x1, x1, r, levels)
+    plt.plot(sd[0, :], sd[1, :], '-bo', label='SD')
+    plt.plot(sd[0, -1], sd[1, -1], '-ro', label='x*')
+    plt.legend()
+    plt.axis([xlow, xhigh, xlow, xhigh])
+    plt.show()
+
+x_start = [-1.2, -0.133]
+problems = [Problem1(), Problem2(), Problem3(), Problem4()]
+
+for problem in problems:
+    plot_it_all(problem)
