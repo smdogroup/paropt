@@ -6,7 +6,7 @@ from mpi4py.libmpi cimport *
 cimport mpi4py.MPI as MPI
 
 # Import the declarations required from the pxd file
-from ParOpt_c cimport CyParOptProblem, ParOpt
+from ParOpt cimport CyParOptProblem, ParOpt
 
 # Import numpy 
 import numpy as np

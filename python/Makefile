@@ -6,7 +6,7 @@ PY_INCLUDE = ${PYTHON_INCLUDE} -I${NUMPY_DIR} -I${MPI4PY_DIR}
 CYTHON_INCLUDE = -I${NUMPY_DIR} -I${MPI4PY_DIR}
 
 # ParOpt shared objects
-CYTHON_SO = ParOpt_c.${SO_EXT} 
+CYTHON_SO = ParOpt.${SO_EXT} 
 
 default: ${CYTHON_SO}
 

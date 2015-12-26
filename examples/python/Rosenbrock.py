@@ -1,11 +1,11 @@
 import numpy as np
-import ParOpt_c
 import mpi4py.MPI as MPI
 
-from ParOpt_c import pyParOptProblem, pyParOpt
+# Import ParOpt
+from paropt import ParOpt
 
 # Create the rosenbrock function class
-class Rosenbrock(pyParOptProblem):
+class Rosenbrock(ParOpt.pyParOptProblem):
     def __init__(self):
         # Set the communicator pointer
         self.comm = MPI.COMM_WORLD
@@ -50,7 +50,7 @@ rosen = Rosenbrock()
 
 # Create the optimizer
 max_lbfgs = 20
-opt = pyParOpt(rosen, max_lbfgs)
+opt = ParOpt.pyParOpt(rosen, max_lbfgs)
 
 # Set optimization parameters
 opt.setGMRESSusbspaceSize(30)
