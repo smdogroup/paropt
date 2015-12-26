@@ -16,6 +16,12 @@ default:
 	done
 	${CXX} ${SO_LINK_FLAGS} -o ${PAROPT_DIR}/lib/libparopt.${SO_EXT} ${PAROPT_OBJS}
 
+debug:
+	@for subdir in ${PAROPT_SUBDIRS}; do \
+	   echo; (cd $$subdir && ${MAKE} debug) || exit 1; \
+	done
+	${CXX} ${SO_LINK_FLAGS} -o ${PAROPT_DIR}/lib/libparopt.${SO_EXT} ${PAROPT_OBJS}
+
 complex:
 	@for subdir in ${PAROPT_SUBDIRS}; do \
 	   echo; (cd $$subdir && ${MAKE} complex) || exit 1; \

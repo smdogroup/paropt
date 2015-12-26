@@ -10,6 +10,9 @@ CYTHON_SO = ParOpt_c.${SO_EXT}
 
 default: ${CYTHON_SO}
 
+debug: PAROPT_CC_FLAGS=${PAROPT_DEBUG_CC_FLAGS}
+debug: default
+
 %.cpp:%.pyx
 	${CYTHON} --cplus $*.pyx
 
