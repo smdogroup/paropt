@@ -6,7 +6,7 @@ from mpi4py.libmpi cimport *
 cimport mpi4py.MPI as MPI
 
 # Import the declarations required from the pxd file
-from ParOpt cimport CyParOptProblem, ParOpt
+from ParOpt cimport CyParOptProblem, ParOpt, ParOptVec
 
 # Import numpy 
 import numpy as np
@@ -14,9 +14,6 @@ cimport numpy as np
 
 # Ensure that numpy is initialized
 np.import_array()
-
-# Import the definition required for const strings
-from libc.string cimport const_char
 
 # Import C methods for python
 from cpython cimport PyObject, Py_INCREF
@@ -113,7 +110,7 @@ cdef int _evalobjcon(void *_self, int nvars, int ncon,
    # Copy the values from the numpy arrays
    for i in range(ncon):
       cons[i] = _cons[i]
-
+         
    return fail
 
 cdef int _evalobjcongradient(void *_self, int nvars, int ncon,
@@ -139,26 +136,84 @@ cdef int _evalobjcongradient(void *_self, int nvars, int ncon,
 
    return fail
 
+cdef int _evalhvecproduct(void *_self, int nvars, int ncon, int nwcon,
+                          double *x, double *z, double *zw,
+                          double *px, double *hvec):
+   # The numpy arrays that will be used for x
+   cdef np.ndarray xnp, znp, pxnp, hnp
+   cdef np.ndarray zwnp = None
+   
+   # Create the wrapper objects
+   xwrap = NpArrayWrap()
+   zwrap = NpArrayWrap()
+   pxwrap = NpArrayWrap()
+   hwrap = NpArrayWrap()
+
+   # Set the arrays
+   xwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>x)
+   zwrap.set_data1d(np.NPY_DOUBLE, ncon, <void*>z)
+   pxwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>px)
+   hwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>hvec)
+
+   # Get the resulting numpy arrays
+   xnp = xwrap.as_ndarray()
+   znp = zwrap.as_ndarray()
+   pxnp = pxwrap.as_ndarray()
+   hnp = hwrap.as_ndarray()
+
+   if nwcon > 0:
+      zwwrap = NpArrayWrap()
+      zwwrap.set_data1d(np.NPY_DOUBLE, nwcon, <void*>zw)
+      zwnp = zwwrap.as_ndarray()
+
+   # Call the objective function
+   fail = (<object>_self).evalHvecProduct(xnp, znp, zwnp,
+                                          pxnp, hnp)
+
+   return fail
+
 # "Wrap" the abtract base class ParOptProblem 
 cdef class pyParOptProblem:
    cdef CyParOptProblem *this_ptr
    
-   def __init__(self, MPI.Comm comm, int nvars, int ncon):
+   def __init__(self, MPI.Comm comm, int nvars, int ncon,
+                int nwcon=0, int nwblock=0):
       # Convert the communicator
       cdef MPI_Comm c_comm = comm.ob_mpi
 
       # Create the pointer to the underlying C++ object
-      self.this_ptr = new CyParOptProblem(c_comm, nvars, ncon)
+      self.this_ptr = new CyParOptProblem(c_comm, nvars, ncon,
+                                          nwcon, nwblock)
       self.this_ptr.setSelfPointer(<void*>self)
       self.this_ptr.setGetVarsAndBounds(_getvarsandbounds)
       self.this_ptr.setEvalObjCon(_evalobjcon)
       self.this_ptr.setEvalObjConGradient(_evalobjcongradient)
+      self.this_ptr.setEvalHvecProduct(_evalhvecproduct)
       return
 
    def __dealloc__(self):
       del self.this_ptr
       return
+
+   def setInequalityOptions(self, dense_ineq=True, sparse_ineq=True,
+                            use_lower=True, use_upper=True):
+      # Assume that everything is false
+      cdef int dense = 0
+      cdef int sparse = 0
+      cdef int lower = 0
+      cdef int upper = 0
+
+      # Swap the integer values if the flags are set
+      if dense_ineq: dense = 1
+      if sparse_ineq: sparse = 1
+      if use_lower: lower = 1
+      if use_upper: upper = 1
+
+      # Set the options
+      self.this_ptr.setInequalityOptions(dense, sparse, lower, upper)
    
+      return
+
 # Python class for corresponding instance ParOpt
 cdef class pyParOpt:
    cdef ParOpt *this_ptr
@@ -170,12 +225,84 @@ cdef class pyParOpt:
       del self.this_ptr
       
    # Perform the optimization
-   def optimize(self, const char[:] checkpoint=None):
+   def optimize(self, char *checkpoint=''):
       if checkpoint is None: 
          return self.this_ptr.optimize(NULL)
       else:
          return self.this_ptr.optimize(&checkpoint[0])
    
+   def getOptimizedPoint(self):
+      '''Get the optimized solution from ParOpt'''
+      cdef int n = 0
+      cdef double *values = NULL
+      cdef ParOptVec *vec = NULL
+      
+      # Retrieve the optimized vector
+      self.this_ptr.getOptimizedPoint(&vec, NULL, NULL, NULL, NULL)
+      
+      # Get the variables from the vector
+      n = vec.getArray(&values)
+
+      # Allocate a new numpy array
+      x = np.zeros(n, np.double)
+
+      # Assign the new entries
+      for i in xrange(n):
+         x[i] = values[i]
+
+      return x
+
+   def getOptimizedMultipliers(self):
+      '''Get the optimized multipliers'''
+      cdef int n = 0, nc = 0, nw = 0
+      cdef const double *zvals = NULL
+      cdef double *zwvals = NULL
+      cdef double *zlvals = NULL
+      cdef double *zuvals = NULL
+      cdef ParOptVec *zwvec = NULL
+      cdef ParOptVec *zlvec = NULL
+      cdef ParOptVec *zuvec = NULL
+      
+      # Set the initial values for the multipliers etc.
+      z = None
+      zw = None
+      zl = None
+      zu = None
+
+      # Retrieve the optimized vector
+      self.this_ptr.getOptimizedPoint(NULL, &zvals, &zwvec, &zlvec, &zuvec)
+
+      # Get the number of constraints
+      self.this_ptr.getProblemSizes(NULL, &nc, NULL, NULL)
+      
+      # Copy over the Lagrange multipliers
+      z = np.zeros(nc, np.double)
+      for i in xrange(nc):
+         z[i] = zvals[i]
+
+      # Convert the weighting multipliers
+      if zwvec:
+         nw = zwvec.getArray(&zwvals)
+         zw = np.zeros(nw, np.double)
+         for i in xrange(nw):
+            zw[i] = zwvals[i]
+
+      # Convert the lower bound multipliers
+      if zlvec:
+         n = zlvec.getArray(&zlvals)
+         zl = np.zeros(n, np.double)
+         for i in xrange(n):
+            zl[i] = zlvals[i]
+
+      # Convert the upper bound multipliers
+      if zuvec:
+         n = zuvec.getArray(&zuvals)
+         zu = np.zeros(n, np.double)
+         for i in xrange(n):
+            zu[i] = zuvals[i]
+
+      return z, zw, zl, zu
+
    # Check objective and constraint gradients
    def checkGradients(self, double dh):    
       self.this_ptr.checkGradients(dh)
@@ -241,8 +368,8 @@ cdef class pyParOpt:
    def setGMRESTolerances(self, double rtol, double atol):
       self.this_ptr.setGMRESTolerances(rtol, atol)
       
-   def setGMRESSusbspaceSize(self, int _gmres_subspace_size):
-      self.this_ptr.setGMRESSusbspaceSize(_gmres_subspace_size)
+   def setGMRESSubspaceSize(self, int _gmres_subspace_size):
+      self.this_ptr.setGMRESSubspaceSize(_gmres_subspace_size)
       
    # Set other parameters
    def setOutputFrequency(self, int freq):
@@ -251,22 +378,16 @@ cdef class pyParOpt:
    def setMajorIterStepCheck(self, int step):
       self.this_ptr.setMajorIterStepCheck(step)
       
-   def setOutputFile(self, const char [:] filename):
-      if filename is None:
-         self.this_ptr.setOutputFile(NULL)
-      else:     
-         self.this_ptr.setOutputFile(&filename[0])
+   def setOutputFile(self, char *filename):
+      if filename is not None:
+         self.this_ptr.setOutputFile(filename)
       
    # Write out the design variables to binary format (fast MPI/IO)
-   def writeSolutionFile(self, const char[:] filename):
-      if filename is None:
-         return self.this_ptr.writeSolutionFile(NULL)
-      else: 
-         return self.this_ptr.writeSolutionFile(&filename[0])
+   def writeSolutionFile(self, char *filename):
+      if filename is not None:
+         return self.this_ptr.writeSolutionFile(filename)
   
-   def readSolutionFile(self, const char[:] filename):
-      if filename is None:
-         return self.this_ptr.readSolutionFile(NULL)
-      else: 
-         return self.this_ptr.readSolutionFile(&filename[0])
+   def readSolutionFile(self, char *filename):
+      if filename is not None:
+         return self.this_ptr.readSolutionFile(filename)
       

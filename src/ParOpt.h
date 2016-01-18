@@ -124,6 +124,11 @@ class ParOpt {
   // ------------------------
   int optimize( const char * checkpoint = NULL );
 
+  // Get the problem sizes from the underlying problem class
+  // -------------------------------------------------------
+  void getProblemSizes( int *_nvars, int *_ncon, 
+			int *_nwcon, int *_nwblock );
+
   // Retrieve the values of the design variables and multipliers
   // -----------------------------------------------------------
   void getOptimizedPoint( ParOptVec **_x, 
@@ -169,7 +174,7 @@ class ParOpt {
   void setNKSwitchTolerance( double tol );
   void setEisenstatWalkerParameters( double gamma, double alpha );
   void setGMRESTolerances( double rtol, double atol );
-  void setGMRESSusbspaceSize( int _gmres_subspace_size );
+  void setGMRESSubspaceSize( int _gmres_subspace_size );
 
   // Force a quasi-Newton Hessian reset
   // ----------------------------------

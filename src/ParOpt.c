@@ -365,6 +365,14 @@ ParOpt::~ParOpt(){
 }
 
 /*
+  Retrieve the problem sizes from the underlying problem class
+*/
+void ParOpt::getProblemSizes( int *_nvars, int *_ncon, 
+			      int *_nwcon, int *_nwblock ){
+  prob->getProblemSizes(_nvars, _ncon, _nwcon, _nwblock);
+}
+
+/*
   Retrieve the optimal values of the design variables and multipliers.
  
   This call can be made during the course of an optimization, but
@@ -896,7 +904,7 @@ void ParOpt::resetQuasiNewtonHessian(){
   required. Note that the old subspace information is deleted before
   the new subspace data is allocated.
 */
-void ParOpt::setGMRESSusbspaceSize( int m ){
+void ParOpt::setGMRESSubspaceSize( int m ){
   if (gmres_H){
     delete [] gmres_H;
     delete [] gmres_alpha;
@@ -3729,7 +3737,7 @@ int ParOpt::optimize( const char * checkpoint ){
     }
 
     // Check the KKT step
-    if (gmres_iters > 0){ // if (k == major_iter_step_check){
+    if (k == major_iter_step_check){
       checkKKTStep(gmres_iters > 0);
     }
 

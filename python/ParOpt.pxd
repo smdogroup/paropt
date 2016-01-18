@@ -5,7 +5,6 @@ cimport mpi4py.MPI as MPI
 # Import numpy
 import numpy as np
 cimport numpy as np
-from libc.string cimport const_char
 
 cdef extern from "CyParOptProblem.h":
    # Define the callback types
@@ -15,15 +14,32 @@ cdef extern from "CyParOptProblem.h":
                               double *x, double *fobj, double *cons)
    ctypedef int (*evalobjcongradient)(void *_self, int nvars, int ncon,
                                       double *x, double *gobj, double *A)
+   ctypedef int (*evalhvecproduct)(void *_self, int nvars, int ncon, 
+                                   int nwcon, double *x, double *z,
+                                   double *zw, double *px, double *hvec)
 
    cdef cppclass CyParOptProblem:
-      CyParOptProblem(MPI_Comm _comm, int _nvars, int _ncon)
+      CyParOptProblem(MPI_Comm _comm, int _nvars, int _ncon,
+                      int _nwcon, int _nwblock)
 
       # Set the callback functions
       void setSelfPointer(void *_self)
       void setGetVarsAndBounds(getvarsandbounds usr_func)
       void setEvalObjCon(evalobjcon usr_func)
       void setEvalObjConGradient(evalobjcongradient usr_func)
+      void setEvalHvecProduct(evalhvecproduct usr_func)
+
+      # Set options for the inequality constraints
+      void setInequalityOptions(int _isSparseInequal, 
+                                int _isDenseInequal,
+                                int _useLower, int _useUpper)
+
+cdef extern from "ParOptVec.h":
+   cdef cppclass ParOptVec:
+      ParOptVec(MPI_Comm comm, int n)
+      
+      # Retrieve the values from the array
+      int getArray(double **array)
 
 cdef extern from "ParOpt.h":
    cdef cppclass ParOpt:
@@ -31,8 +47,17 @@ cdef extern from "ParOpt.h":
              int _max_lbfgs_subspace) except +
              
       # Perform the optimiztion
-      int optimize(const_char *checkpoint)
-            
+      int optimize(const char *checkpoint)
+
+      # Get the problem dimensions
+      void getProblemSizes(int *nvars, int *ncon, 
+                           int *nwcon, int *nwblock)
+
+      # Retrieve the optimized point
+      void getOptimizedPoint(ParOptVec **_x,
+                             const double **_z, ParOptVec **_zw,
+                             ParOptVec **_zl, ParOptVec **_zu)
+
       # Check objective and constraint gradients
       void checkGradients(double dh)
       
@@ -62,13 +87,13 @@ cdef extern from "ParOpt.h":
       void setNKSwitchTolerance(double tol)
       void setEisenstatWalkerParameters(double gamma, double alpha)
       void setGMRESTolerances(double rtol, double atol)
-      void setGMRESSusbspaceSize(int _gmres_subspace_size)
+      void setGMRESSubspaceSize(int _gmres_subspace_size)
 
       # Set other parameters
       void setOutputFrequency(int freq)
       void setMajorIterStepCheck(int step)
-      void setOutputFile(const_char *filename)
+      void setOutputFile(const char *filename)
 
       # Write out the design variables to binary format (fast MPI/IO)
-      int writeSolutionFile(const_char * filename)
-      int readSolutionFile(const_char *filename)
+      int writeSolutionFile(const char *filename)
+      int readSolutionFile(const char *filename)

@@ -63,16 +63,16 @@ class ParOptProblem {
   // --------------------------
   void getProblemSizes( int *_nvars, int *_ncon, 
 			int *_nwcon, int *_nwblock ){
-    *_nvars = nvars;
-    *_ncon = ncon;
-    *_nwcon = nwcon;
-    *_nwblock = nwblock;
+    if (_nvars){ *_nvars = nvars; }
+    if (_ncon){ *_ncon = ncon; }
+    if (_nwcon){ *_nwcon = nwcon; }
+    if (_nwblock){ *_nwblock = nwblock; }
   }
 
   // Function to indicate the type of sparse constraints
   // ---------------------------------------------------
-  virtual int isSparseInequality() = 0;
   virtual int isDenseInequality() = 0;
+  virtual int isSparseInequality() = 0;
   virtual int useLowerBounds() = 0;
   virtual int useUpperBounds() = 0;
 
