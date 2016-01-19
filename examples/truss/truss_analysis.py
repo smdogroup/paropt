@@ -3,8 +3,6 @@ import numpy as np
 
 # Import parts of matplotlib for plotting
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-import matplotlib.cm as cmx
 
 # Import MPI
 from mpi4py import MPI
@@ -57,7 +55,12 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             self.mass_scale = self.m_fixed/nvars
         else:
             self.mass_scale = mass_scale
-
+            
+        # Keep track of the different counts
+        self.fevals = 0
+        self.gevals = 0
+        self.hevals = 0
+            
         return
 
     def getVarsAndBounds(self, x, lb, ub):
@@ -71,21 +74,26 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         '''
         Evaluate the objective (compliance) and constraint (mass)
         '''
+        
+        # Add the number of function evaluations
+        self.fevals += 1
+
         # Keep a pointer to the design vector
         self.x = x
 
+        # Convert the design variables with the scaling
         A = self.Area_scale*x
 
         # Evaluate compliance objective
-        K = self.assembleMat(A)
-        f = self.assembleLoadVec()
-        self.applyBCs(K, f)
+        self.K = self.assembleMat(A)
+        self.f = self.assembleLoadVec()
+        self.applyBCs(self.K, self.f)
 
         # Solve the resulting linear system of equations
-        u = np.linalg.solve(K, f)
+        self.u = np.linalg.solve(self.K, self.f)
         
         # Compute the compliance objective
-        obj = 0.5*np.dot(u, f)
+        obj = np.dot(self.u, self.f)
         if self.obj_scale is None:
             self.obj_scale = 1.0*obj
 
@@ -120,20 +128,15 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         Evaluate the derivative of the compliance and mass
         '''
         
+        # Add the number of gradient evaluations
+        self.gevals += 1
+
         # Zero the objecive and constraint gradients
         gobj[:] = 0.0
         Acon[:] = 0.0
 
         # Retrieve the area variables
         A = self.Area_scale*x
-
-        # Evaluate compliance objective
-        K = self.assembleMat(A)
-        f = self.assembleLoadVec()
-        self.applyBCs(K, f)
-
-        # Solve the resulting linear system of equations
-        u = np.linalg.solve(K, f)
         
         # Add up the contribution to the gradient
         index = 0
@@ -165,7 +168,8 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             # Add the product to the derivative of the compliance
             for i in xrange(4):
                 for j in xrange(4):
-                    gobj[index] -= 0.5*u[elem_vars[i]]*u[elem_vars[j]]*Ke[i, j]
+                    gobj[index] -= \
+                        self.u[elem_vars[i]]*self.u[elem_vars[j]]*Ke[i, j]
             
             index += 1
 
@@ -175,8 +179,6 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         # Scale the objective gradient
         gobj *= self.Area_scale/self.obj_scale
 
-        print 'max gobj, gcon', max(abs(gobj)), max(abs(Acon[0,:]))
-
         fail = 0
         return fail
 
@@ -185,6 +187,9 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         Evaluate the product of the input vector px with the Hessian
         of the Lagrangian.
         '''
+
+        # Add the number of function evaluations
+        self.hevals += 1
         
         # Zero the hessian-vector product
         hvec[:] = 0.0
@@ -192,21 +197,13 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         # Retrieve the area variables
         A = self.Area_scale*x
 
-        # Evaluate compliance objective
-        K = self.assembleMat(A)
-        f = self.assembleLoadVec()
-        self.applyBCs(K, f)
-
-        # Solve the resulting linear system of equations
-        u = np.linalg.solve(K, f)
-
         # Assemble the stiffness matrix along the px direction
         Kp = self.assembleMat(self.Area_scale*px)
-        rp = np.dot(Kp, u)
+        rp = np.dot(Kp, self.u)
         self.applyBCs(Kp, rp)
 
         # Solve for the vector phi
-        phi = np.linalg.solve(K, rp)
+        phi = np.linalg.solve(self.K, rp)
         
         # Add up the contribution to the gradient
         index = 0
@@ -235,7 +232,8 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             # Add the product to the derivative of the compliance
             for i in xrange(4):
                 for j in xrange(4):
-                    hvec[index] += phi[elem_vars[i]]*u[elem_vars[j]]*Ke[i, j]
+                    hvec[index] += \
+                        2.0*phi[elem_vars[i]]*self.u[elem_vars[j]]*Ke[i, j]
             
             index += 1
 
@@ -420,14 +418,19 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         return A
 
-    def plotTruss(self, A, tol=None, filename='opt_truss.pdf'):
+    def plotTruss(self, x, tol=None, filename='opt_truss.pdf'):
         '''
         Plot the deformed and undeformed truss structure
         '''
 
+        # Scale the values of the design variables
+        A = self.Area_scale*x
+
+        # Find out if the tolerance is set
         if tol is None:
             tol = 0.0
 
+        # Set the background colour
         fig = plt.figure(facecolor='w')
 
         # Evaluate compliance objective
@@ -437,12 +440,6 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Solve the resulting linear system of equations
         u = np.linalg.solve(K, f)
-
-        forces = self.computeForces(A, u)
-
-        cm = plt.get_cmap('jet') 
-        cNorm = colors.Normalize(vmin=min(forces), vmax=max(forces))
-        scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cm)
         
         index = 0
         for bar in self.conn:
@@ -457,6 +454,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         plt.axis('equal')
         plt.savefig(filename)
+        plt.close()
 
         return
 
