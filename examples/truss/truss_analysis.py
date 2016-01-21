@@ -1,5 +1,6 @@
 # Import numpy 
 import numpy as np
+import scipy.linalg as linalg
 
 # Import parts of matplotlib for plotting
 import matplotlib.pyplot as plt
@@ -55,7 +56,15 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             self.mass_scale = self.m_fixed/nvars
         else:
             self.mass_scale = mass_scale
-            
+
+        # Allocate the matrices required
+        nvars = len(self.xpos)
+        self.K = np.zeros((nvars, nvars))
+        self.Kp = np.zeros((nvars, nvars))
+        self.f = np.zeros(nvars)
+        self.u = np.zeros(nvars)
+        self.phi = np.zeros(nvars)
+        
         # Keep track of the different counts
         self.fevals = 0
         self.gevals = 0
@@ -85,12 +94,21 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         A = self.Area_scale*x
 
         # Evaluate compliance objective
-        self.K = self.assembleMat(A)
-        self.f = self.assembleLoadVec()
+        self.assembleMat(A, self.K)
+        self.assembleLoadVec(self.f)
         self.applyBCs(self.K, self.f)
 
+        # Copy the values
+        self.u[:] = self.f[:]
+
+        # Perform the Cholesky factorization
+        self.L = linalg.cholesky(self.K, lower=True)
+
         # Solve the resulting linear system of equations
-        self.u = np.linalg.solve(self.K, self.f)
+        linalg.solve_triangular(self.L, self.u, lower=True,
+                                trans='N', overwrite_b=True)
+        linalg.solve_triangular(self.L, self.u, lower=True, 
+                                trans='T', overwrite_b=True)
         
         # Compute the compliance objective
         obj = np.dot(self.u, self.f)
@@ -198,12 +216,15 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         A = self.Area_scale*x
 
         # Assemble the stiffness matrix along the px direction
-        Kp = self.assembleMat(self.Area_scale*px)
-        rp = np.dot(Kp, self.u)
-        self.applyBCs(Kp, rp)
+        self.assembleMat(self.Area_scale*px, self.Kp)
+        np.dot(self.Kp, self.u, out=self.phi)
+        self.applyBCs(self.Kp, self.phi)
 
-        # Solve for the vector phi
-        phi = np.linalg.solve(self.K, rp)
+        # Solve the resulting linear system of equations
+        linalg.solve_triangular(self.L, self.phi, lower=True,
+                                trans='N', overwrite_b=True)
+        linalg.solve_triangular(self.L, self.phi, lower=True, 
+                                trans='T', overwrite_b=True)
         
         # Add up the contribution to the gradient
         index = 0
@@ -233,7 +254,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             for i in xrange(4):
                 for j in xrange(4):
                     hvec[index] += \
-                        2.0*phi[elem_vars[i]]*self.u[elem_vars[j]]*Ke[i, j]
+                        2.0*self.phi[elem_vars[i]]*self.u[elem_vars[j]]*Ke[i, j]
             
             index += 1
 
@@ -242,18 +263,20 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         fail = 0
         return fail
 
-    def assembleMat(self, A):
+    def assembleMat(self, A, K):
         '''
         Given the connectivity, nodal locations and material properties,
         assemble the stiffness matrix
         
         input:
         A:   the bar area
+
+        output:
+        K:   the stiffness matrix
         '''
 
-        # Create the global stiffness matrix
-        nvars = len(self.xpos)
-        K = np.zeros((nvars, nvars))
+        # Zero the stiffness matrix
+        K[:,:] = 0.0
 
         # Loop over each element in the mesh
         for bar, A_bar in zip(self.conn, A):
@@ -284,20 +307,20 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
                 for j in xrange(4):
                     K[elem_vars[i], elem_vars[j]] += Ke[i, j]
                     
-        return K
+        return
 
-    def assembleLoadVec(self):
+    def assembleLoadVec(self, f):
         '''
         Create the load vector and populate the vector with entries
         '''
-
-        f = np.zeros(len(self.xpos))
+        
+        f[:] = 0.0
         for node in self.loads:
             # Add the values to the nodal locations
             f[2*node] += self.loads[node][0]
             f[2*node+1] += self.loads[node][1]
 
-        return f
+        return
 
     def applyBCs(self, K, f):
         ''' 
@@ -364,16 +387,16 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         A = self.Area_scale*x
 
         # Evaluate compliance objective
-        K = self.assembleMat(A)
-        f = self.assembleLoadVec()
-        self.applyBCs(K, f)
+        self.assembleMat(A, self.K)
+        self.assembleLoadVec(self.f)
+        self.applyBCs(self.K, self.f)
 
         # Solve the resulting linear system of equations
-        u = np.linalg.solve(K, f)
+        self.u = np.linalg.solve(self.K, self.f)
         
-        forces = self.computeForces(A, u)
+        forces = self.computeForces(A, self.u)
 
-        print 'Compliance:     %15.10f'%(0.5*np.dot(u, f))
+        print 'Compliance:     %15.10f'%(0.5*np.dot(self.u, self.f))
         print 'Max strain:     %15.10f'%(max(forces/(self.E*A)))
         print 'Max abs strain: %15.10f'%(max(np.fabs(forces/(self.E*A))))
         print 'Min strain:     %15.10f'%(min(forces/(self.E*A)))
@@ -387,12 +410,12 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         for i in xrange(100):
             # Evaluate compliance objective
-            K = self.assembleMat(A)
-            f = self.assembleLoadVec()
-            self.applyBCs(K, f)
-
+            self.assembleMat(A, self.K)
+            self.assembleLoadVec(self.f)
+            self.applyBCs(self.K, self.f)
+            
             # Solve the resulting linear system of equations
-            u = np.linalg.solve(K, f)
+            self.u = np.linalg.solve(self.K, self.f)
 
             # Evaluate the forces
             forces = self.compute_forces(A, u)
@@ -434,12 +457,12 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         fig = plt.figure(facecolor='w')
 
         # Evaluate compliance objective
-        K = self.assembleMat(A)
-        f = self.assembleLoadVec()
-        self.applyBCs(K, f)
-
+        self.assembleMat(A, self.K)
+        self.assembleLoadVec(self.f)
+        self.applyBCs(self.K, self.f)
+            
         # Solve the resulting linear system of equations
-        u = np.linalg.solve(K, f)
+        self.u = np.linalg.solve(self.K, self.f)
         
         index = 0
         for bar in self.conn:

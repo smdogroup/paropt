@@ -74,7 +74,7 @@ def get_ground_structure(N=4, M=4, L=2.5, P=10.0):
     return conn, xpos, loads, bcs
 
 def setup_ground_struct(N, M, L=2.5, E=70e9, rho=2700.0,
-                        A_min=1e-3, A_max=10.0):
+                        A_min=5e-3, A_max=10.0):
     '''
     Create a ground structure with a given number of nodes and
     material properties.
@@ -123,7 +123,7 @@ def paropt_truss(truss, use_hessian=False, prefix='results'):
         opt.setUseHvecProduct(1)
         opt.setGMRESSubspaceSize(30)
         opt.setNKSwitchTolerance(1.0)
-        opt.setEisenstatWalkerParameters(0.5, 1.5)
+        opt.setEisenstatWalkerParameters(0.5, 0.0)
         opt.setGMRESTolerances(1.0, 1e-30)
     else:
         opt.setUseHvecProduct(0)
@@ -136,6 +136,8 @@ def paropt_truss(truss, use_hessian=False, prefix='results'):
     # Set the output file to use
     fname = os.path.join(prefix, 'truss_paropt%dx%d.out'%(N, M)) 
     opt.setOutputFile(fname)
+
+    opt.checkGradients(1e-6)
     
     # Optimize the truss
     opt.optimize()
@@ -321,7 +323,7 @@ if profile:
 
         # Plot the truss
         filename = os.path.join(prefix, 'opt_truss%dx%d.pdf'%(N, M))
-        truss.plotTruss(x, tol=1e-2, filename=filename) 
+        truss.plotTruss(x, tol=1e-1, filename=filename) 
             
         # Record the performance of the algorithm
         fp.write('%d %d %d %d %d %e\n'%(
@@ -376,14 +378,33 @@ else:
     # Optimize the structure
     prefix = 'results'
     truss = setup_ground_struct(N, M)
-    opt = paropt_truss(truss, prefix=prefix,
-                       use_hessian=use_hessian)
 
-    # Get the optimized point
-    x = opt.getOptimizedPoint()
+
+    if optimizer is 'None':
+        opt = paropt_truss(truss, prefix=prefix,
+                           use_hessian=use_hessian)
+
+        # Get the optimized point
+        x = opt.getOptimizedPoint()
+    else:
+        # Read out the options from the dictionary of options
+        options = all_options[optimizer]
+        
+        # Set the output file
+        options[outfile_name] = os.path.join(prefix, 
+                                             'output_%dx%d.out'%(N, M))
+        # Optimize the truss with the specified optimizer
+        opt, prob, sol = pyopt_truss(truss, optimizer=optimizer,
+                                     options=options)
+        
+        # Extract the design variable values
+        x = []
+        for var in sol.variables['x']:
+            x.append(var.value)
+        x = np.array(x)
 
     # Plot the truss
-    truss.plotTruss(x, tol=1e-2, 
+    truss.plotTruss(x, tol=1e-1,
                     filename=prefix+'/opt_truss%dx%d.pdf'%(N, M))
     print truss.Area_scale*x
     
