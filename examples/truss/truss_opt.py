@@ -187,8 +187,12 @@ def pyopt_truss(truss, optimizer='snopt', options={}):
     prob.addObj('objective')
 
     # Optimize the problem
-    opt = OPT(optimizer, options=options)
-    sol = opt(prob, sens=wrap.gobjcon)
+    try:
+        opt = OPT(optimizer, options=options)
+        sol = opt(prob, sens=wrap.gobjcon)
+    except:
+        opt = None
+        sol = None
 
     return opt, prob, sol
 
@@ -311,17 +315,21 @@ if profile:
                                          options=options)
 
             # Extract the design variable values
-            x = []
-            for var in sol.variables['x']:
-                x.append(var.value)
-            x = np.array(x)
+            if sol is not None:
+                x = []
+                for var in sol.variables['x']:
+                    x.append(var.value)
+                x = np.array(x)
+            else:
+                x = None
 
         # Keep track of the optimization time
         t0 = MPI.Wtime() - t0
 
         # Plot the truss
         filename = os.path.join(prefix, 'opt_truss%dx%d.pdf'%(N, M))
-        truss.plotTruss(x, tol=1e-2, filename=filename) 
+        if x is not None:
+            truss.plotTruss(x, tol=1e-2, filename=filename) 
             
         # Record the performance of the algorithm
         fp.write('%d %d %d %d %d %e\n'%(
@@ -346,7 +354,7 @@ if profile:
 
         # Set the performance metric
         for i in xrange(len(trusses)):
-            perform[i, index] = perf[i, 1]
+            perform[i, index] = perf[i, -1]
         index += 1
 
     # Create the performance profiles
