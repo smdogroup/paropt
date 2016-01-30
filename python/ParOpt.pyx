@@ -6,7 +6,8 @@ from mpi4py.libmpi cimport *
 cimport mpi4py.MPI as MPI
 
 # Import the declarations required from the pxd file
-from ParOpt cimport CyParOptProblem, ParOpt, ParOptVec
+from ParOpt cimport *
+# CyParOptProblem, ParOpt, ParOptVec
 
 # Import numpy 
 import numpy as np
@@ -214,12 +215,19 @@ cdef class pyParOptProblem:
    
       return
 
+# Constants that define what Quasi-Newton method to use
+BFGS = PAROPT_BFGS
+SR1 = PAROPT_SR1
+
 # Python class for corresponding instance ParOpt
 cdef class pyParOpt:
    cdef ParOpt *this_ptr
       
-   def __cinit__(self, pyParOptProblem _prob, int _max_lbfgs_subspace):
-      self.this_ptr = new ParOpt(_prob.this_ptr, _max_lbfgs_subspace)
+   def __cinit__(self, pyParOptProblem _prob, 
+                 int max_qn_subspace, 
+                 QuasiNewtonType qn_type):
+      self.this_ptr = new ParOpt(_prob.this_ptr, 
+                                 max_qn_subspace, qn_type)
       
    def __dealloc__(self):
       del self.this_ptr
@@ -325,6 +333,9 @@ cdef class pyParOpt:
       
    def setHessianResetFreq(self, int freq):
       self.this_ptr.setHessianResetFreq(freq)
+   
+   def setQNDiagonalFactor(self, double sigma):
+      self.this_ptr.setQNDiagonalFactor(sigma)
       
    def setSequentialLinearMethod(self, int truth):
       self.this_ptr.setSequentialLinearMethod(truth)
@@ -336,6 +347,10 @@ cdef class pyParOpt:
    def getBarrierParameter(self):
       return self.this_ptr.getBarrierParameter()
   
+   # Reset the quasi-Newton Hessian
+   def resetQuasiNewtonHessian(self):
+      self.this_ptr.resetQuasiNewtonHessian()
+
    # Set parameters associated with the linesearch
    def setUseLineSearch(self, int truth):
       self.this_ptr.setUseLineSearch(truth)

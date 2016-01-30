@@ -19,8 +19,8 @@ debug: default
 %.o:%.cpp
 	${CXX} ${PAROPT_CC_FLAGS} ${PY_INCLUDE} -c $< -o $@
 
-%.${SO_EXT}:%.o
-	${CXX} ${SO_LINK_FLAGS} $< ${PAROPT_LD_FLAGS} -o $@
+ParOpt.${SO_EXT}:ParOpt.o CyParOptProblem.o
+	${CXX} ${SO_LINK_FLAGS} $< CyParOptProblem.o ${PAROPT_LD_FLAGS} -o $@
 
 clean:
 	${RM} *.cpp

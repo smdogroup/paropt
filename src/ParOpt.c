@@ -13,7 +13,7 @@
   each parameter and how you should set it. 
 */
 
-static const int NUM_PAROPT_PARAMETERS = 24;
+static const int NUM_PAROPT_PARAMETERS = 25;
 static const char * paropt_parameter_help[][2] = {
   {"max_qn_size", 
    "Integer: The maximum dimension of the quasi-Newton approximation"},
@@ -64,6 +64,9 @@ necessarily the exact Hessian)"},
   {"hessian_reset_freq", 
    "Integer: Do a hard reset of the Hessian at this specified major \
 iteration frequency"},
+
+  {"qn_sigma",
+   "Float: Scalar added to the diagonal of the quasi-Newton approximation > 0"},
 
   {"use_hvec_product", 
    "Boolean: Use or do not use Hessian-vector products"},
@@ -138,9 +141,6 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   else {
     qn = new LSR1(comm, nvars, max_qn_subspace);
   }
-
-  // Set the diagonal entry to zero
-  qn_sigma = 0.0;
 
   // Set the default maximum variable bound
   max_bound_val = _max_bound_val;
@@ -253,6 +253,7 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   major_iter_step_check = -1;
   sequential_linear_method = 0;
   hessian_reset_freq = 100000000;
+  qn_sigma = 0.0;
   merit_func_check_epsilon = 1e-6;
 
   // Initialize the Hessian-vector product information
@@ -457,6 +458,7 @@ void ParOpt::printOptionSummary( FILE *fp ){
 	    sequential_linear_method);
     fprintf(fp, "%-30s %15d\n", "hessian_reset_freq",
 	    hessian_reset_freq);
+    fprintf(fp, "%-30s %15g\n", "qn_sigma", qn_sigma);
     fprintf(fp, "%-30s %15d\n", "use_hvec_product",
 	    use_hvec_product);
     fprintf(fp, "%-30s %15d\n", "use_qn_gmres_precon",
@@ -3685,13 +3687,15 @@ int ParOpt::optimize( const char * checkpoint ){
     }
 
     // Compute the relative GMRES tolerance given the residuals
-    double gmres_rtol = eisenstat_walker_gamma*pow((res_norm/res_norm_prev),
-						   eisenstat_walker_alpha);
+    double gmres_rtol = 
+      eisenstat_walker_gamma*pow((res_norm/res_norm_prev),
+				 eisenstat_walker_alpha);
     
     // Assign the previous norm for next time through
     res_norm_prev = res_norm;
 
-    // Note that at this stage, we use s_qn and y_qn as 
+    // Check if we should compute a Newton step or a quasi-Newton
+    // step. Note that at this stage, we use s_qn and y_qn as
     // temporary arrays to help compute the KKT step. After
     // the KKT step is computed, we use them to store the
     // change in variables/gradient for the BFGS update.
@@ -3716,9 +3720,10 @@ int ParOpt::optimize( const char * checkpoint ){
       // Compute the inexact step using GMRES - note that this
       // uses a fixed tolerance -- this may lead to over-solving
       // if rtol is too tight
-      gmres_iters = computeKKTInexactNewtonStep(ztemp, y_qn, s_qn, wtemp,
-						gmres_rtol, gmres_atol,
-						use_qn);
+      gmres_iters = 
+	computeKKTInexactNewtonStep(ztemp, y_qn, s_qn, wtemp,
+				    gmres_rtol, gmres_atol,
+				    use_qn);
     }
     else {
       int use_qn = 1;
@@ -3755,30 +3760,32 @@ int ParOpt::optimize( const char * checkpoint ){
     // multiplier steps equal to one another
     int ceq_step = 0;
 
-    // Bound the difference between the step lengths. This code
-    // cuts off the difference between the step lengths by a bound.
-    double max_bnd = 1e2;
-    if (max_x > max_z){
-      if (max_x > max_bnd*max_z){
-	max_x = max_bnd*max_z;
-      }
-      else if (max_x < max_z/max_bnd){
-	max_x = max_z/max_bnd;
-      }
-    }
-    else {
-      if (max_z > max_bnd*max_x){
-	max_z = max_bnd*max_x;
-      }
-      else if (max_z < max_x/max_bnd){
-	max_z = max_x/max_bnd;
-      }
-    }
-    
-    // As a last check, compute the complementarity at
-    // the full step length. If the complementarity increases,
-    // use equal step lengths.
+    // Check if we're using a Newton step or not
     if (gmres_iters == 0){
+      // First, bound the difference between the step lengths. This
+      // code cuts off the difference between the step lengths if the
+      // difference is greater that 100.
+      double max_bnd = 1e2;
+      if (max_x > max_z){
+	if (max_x > max_bnd*max_z){
+	  max_x = max_bnd*max_z;
+	}
+	else if (max_x < max_z/max_bnd){
+	  max_x = max_z/max_bnd;
+	}
+      }
+      else {
+	if (max_z > max_bnd*max_x){
+	  max_z = max_bnd*max_x;
+	}
+	else if (max_z < max_x/max_bnd){
+	  max_z = max_x/max_bnd;
+	}
+      }
+    
+      // As a last check, compute the complementarity at
+      // the full step length. If the complementarity increases,
+      // use equal step lengths.
       ParOptScalar comp_new = computeCompStep(max_x, max_z);
 
       if (comp_new > comp){
@@ -3789,6 +3796,16 @@ int ParOpt::optimize( const char * checkpoint ){
 	else {
 	  max_z = max_x;
 	}
+      }
+    }
+    else if (gmres_iters > 0){
+      // If we're using a Newton method, use the same step
+      // size for both the multipliers and variables
+      if (max_x > max_z){
+	max_x = max_z;
+      }
+      else {
+	max_z = max_x;
       }
     }
 

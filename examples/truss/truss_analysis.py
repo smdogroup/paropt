@@ -87,9 +87,6 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         # Add the number of function evaluations
         self.fevals += 1
 
-        # Keep a pointer to the design vector
-        self.x = x
-
         # Convert the design variables with the scaling
         A = self.Area_scale*x
 
@@ -116,7 +113,8 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             self.obj_scale = 1.0*obj
 
         # Scale the compliance objective
-        obj = obj/self.obj_scale
+        self.gamma = 0.0
+        obj = obj/self.obj_scale + 0.5*self.gamma*np.dot(x, x)
 
         # Compute the mass of the entire truss
         mass = 0.0
@@ -196,6 +194,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Scale the objective gradient
         gobj *= self.Area_scale/self.obj_scale
+        gobj += self.gamma*x
 
         fail = 0
         return fail
@@ -259,6 +258,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             index += 1
 
         hvec *= self.Area_scale**2/self.obj_scale
+        hvec += self.gamma*px
 
         fail = 0
         return fail

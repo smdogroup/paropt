@@ -1,6 +1,9 @@
 # Import this for directory creation
 import os
 
+# Import the greatest common divisor code
+from fractions import gcd
+
 # Import MPI 
 import mpi4py.MPI as MPI
 
@@ -19,7 +22,7 @@ import matplotlib.pyplot as plt
 # Import numpy
 import numpy as np
 
-def get_ground_structure(N=4, M=4, L=2.5, P=10.0):
+def get_ground_structure(N=4, M=4, L=2.5, P=10.0, n=5):
     '''
     Set up the connectivity for a ground structure consisting of a 2D
     mesh of (N x M) nodes of completely connected elements.
@@ -40,22 +43,31 @@ def get_ground_structure(N=4, M=4, L=2.5, P=10.0):
     P:      the load applied to the mesh
     '''
 
+    # First, generate a co-prime grid that will be used to 
+    grid = []
+    for x in range(1,n+1):
+        for y in range(1,n+1):
+            if gcd(x, y) == 1:
+                grid.append((x,y))
+
+    # Reflect the ge
+    reflect = []
+    for d in grid:
+        reflect.append((-d[0], d[1]))
+
+    grid.extend(reflect)
+    grid.extend([(0,1), (1,0)])
+
     # Set up the connectivity array
     conn = []
-    for ii in xrange(N*M):
-        for i in xrange(ii+1, N*M):
-            if (i/N == ii/N or
-                i%N == ii%N):
-                continue
-            conn.append([ii, i])
-
     for i in xrange(N):
-        for j in xrange(M-1):
-            conn.append([i + j*N, i + (j+1)*N])
-
-    for i in xrange(N-1):
         for j in xrange(M):
-            conn.append([i + j*N, i+1 + j*N])
+            n1 = i + N*j
+            for d in grid:
+                if ((i + d[0] < N) and (j + d[1] < M) and
+                    (i + d[0] >= 0) and (j + d[1] >= 0)):
+                    n2 = i + d[0] + (j + d[1])*N
+                    conn.append([n1, n2])
 
     # Set the positions of all the nodes
     xpos = []
@@ -74,7 +86,7 @@ def get_ground_structure(N=4, M=4, L=2.5, P=10.0):
     return conn, xpos, loads, bcs
 
 def setup_ground_struct(N, M, L=2.5, E=70e9, rho=2700.0,
-                        A_min=5e-3, A_max=10.0):
+                        A_min=5e-4, A_max=10.0):
     '''
     Create a ground structure with a given number of nodes and
     material properties.
@@ -88,10 +100,10 @@ def setup_ground_struct(N, M, L=2.5, E=70e9, rho=2700.0,
     Area_scale = 1.0
 
     # Set the fixed mass constraint
-    mass_fixed = 5*N*M*L*rho
+    mass_fixed = 5.0*N*M*L*rho
 
     # Set the mass scaling
-    mass_scale = 0.5*(N+M)*L*rho
+    mass_scale = L*rho
 
     # Create the truss topology optimization object
     truss = TrussAnalysis(conn, xpos, loads, bcs, 
@@ -105,14 +117,18 @@ def setup_ground_struct(N, M, L=2.5, E=70e9, rho=2700.0,
 
     return truss
 
-def paropt_truss(truss, use_hessian=False, prefix='results'):
+def paropt_truss(truss, use_hessian=False, 
+                 prefix='results', use_sr1=False):
     '''
     Optimize the given truss structure using ParOpt
     '''
 
     # Create the optimizer
-    max_lbfgs = 50
-    opt = ParOpt.pyParOpt(truss, max_lbfgs)
+    qn_type = ParOpt.BFGS
+    if not use_sr1:
+        qn_type = ParOpt.SR1
+    max_qn_subspace = 50
+    opt = ParOpt.pyParOpt(truss, max_qn_subspace, qn_type)
 
     # Set the optimality tolerance
     opt.setAbsOptimalityTol(1e-5)
@@ -121,7 +137,7 @@ def paropt_truss(truss, use_hessian=False, prefix='results'):
     if use_hessian:
         opt.setUseLineSearch(0)
         opt.setUseHvecProduct(1)
-        opt.setGMRESSubspaceSize(30)
+        opt.setGMRESSubspaceSize(100)
         opt.setNKSwitchTolerance(1.0)
         opt.setEisenstatWalkerParameters(0.5, 0.0)
         opt.setGMRESTolerances(1.0, 1e-30)
@@ -131,12 +147,12 @@ def paropt_truss(truss, use_hessian=False, prefix='results'):
     # Set optimization parameters
     opt.setArmijioParam(1e-5)
     opt.setMaxMajorIterations(2500)
-    opt.setHessianResetFreq(max_lbfgs)
     
     # Set the output file to use
     fname = os.path.join(prefix, 'truss_paropt%dx%d.out'%(N, M)) 
     opt.setOutputFile(fname)
 
+    # Perform a quick check of the gradient (and Hessian)
     opt.checkGradients(1e-6)
     
     # Optimize the truss
@@ -252,7 +268,8 @@ optimizer = args.optimizer
 # Set the options for the pyOptSparse optimizers for comparisons
 all_options = {
     'slsqp': {'MAXIT': 5000},
-    'snopt': {},
+    'snopt': {'Major iterations limit': 10000000,
+              'Minor iterations limit': 10000000},
     'ipopt': {}}
 
 # Set the output file name
@@ -310,8 +327,9 @@ if profile:
             options = all_options[optimizer]
             
             # Set the output file
-            options[outfile_name] = os.path.join(prefix, 
-                                                 'output_%dx%d.out'%(N, M))
+            filename = os.path.join(prefix, 'output_%dx%d.out'%(N, M))
+            options[outfile_name] = filename
+
             # Optimize the truss with the specified optimizer
             opt, prob, sol = pyopt_truss(truss, optimizer=optimizer,
                                          options=options)
@@ -331,7 +349,7 @@ if profile:
         # Plot the truss
         filename = os.path.join(prefix, 'opt_truss%dx%d.pdf'%(N, M))
         if x is not None:
-            truss.plotTruss(x, tol=1e-2, filename=filename) 
+            truss.plotTruss(x, tol=1e-1, filename=filename) 
             
         # Record the performance of the algorithm
         fp.write('%d %d %d %d %d %e\n'%(
@@ -387,13 +405,19 @@ else:
     prefix = 'results'
     truss = setup_ground_struct(N, M)
 
-
     if optimizer is 'None':
         opt = paropt_truss(truss, prefix=prefix,
                            use_hessian=use_hessian)
 
         # Get the optimized point
         x = opt.getOptimizedPoint()
+
+        # Retrieve the optimized multipliers
+        z, zw, zl, zu = opt.getOptimizedMultipliers()
+        print 'z =  ', z
+        print 'zw = ', zw
+        print 'zl = ', zl
+        print 'zu = ', zu
     else:
         # Read out the options from the dictionary of options
         options = all_options[optimizer]
@@ -412,13 +436,7 @@ else:
         x = np.array(x)
 
     # Plot the truss
-    truss.plotTruss(x, tol=1e-1,
+    truss.plotTruss(x, tol=0.1,
                     filename=prefix+'/opt_truss%dx%d.pdf'%(N, M))
-    print truss.Area_scale*x
-    
-    # Retrieve the optimized multipliers
-    z, zw, zl, zu = opt.getOptimizedMultipliers()
-    print 'z =  ', z
-    print 'zw = ', zw
-    print 'zl = ', zl
-    print 'zu = ', zu
+
+    print 'x = ', truss.Area_scale*x

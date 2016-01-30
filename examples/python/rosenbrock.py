@@ -50,12 +50,9 @@ rosen = Rosenbrock()
 
 # Create the optimizer
 max_lbfgs = 20
-opt = ParOpt.pyParOpt(rosen, max_lbfgs)
+opt = ParOpt.pyParOpt(rosen, max_lbfgs, ParOpt.BFGS)
 
 # Set optimization parameters
-opt.setGMRESSusbspaceSize(30)
-opt.setNKSwitchTolerance(1e3)
-opt.setGMRESTolerances(0.1, 1e-30)
 opt.setUseHvecProduct(0)
 opt.setMajorIterStepCheck(45)
 opt.setMaxMajorIterations(1500)

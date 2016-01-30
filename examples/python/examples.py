@@ -143,6 +143,11 @@ def plot_it_all(problem):
     conjugate gradient and BFGS from the same starting point.
     '''
 
+    # Set up the optimization problem
+    max_lbfgs = 20
+    opt = ParOpt.pyParOpt(problem, max_lbfgs, ParOpt.BFGS)
+    opt.checkGradients(1e-6)
+
     # Create the data for the carpet plot
     n = 150
     xlow = -4.0
@@ -155,35 +160,38 @@ def plot_it_all(problem):
             fail, fobj, con = problem.evalObjCon([x1[i], x1[j]])
             r[j, i] = fobj
 
-    # Run steepest descent
-    x0 = np.array(x_start)
-    problem.x_hist = []
-
-    # Optimize the problem
-    max_lbfgs = 20
-    opt = ParOpt.pyParOpt(problem, max_lbfgs)
-    opt.checkGradients(1e-6)
-    opt.optimize()
-
-    # Copy out the steepest descent points
-    sd = np.zeros((2, len(problem.x_hist)))
-    for i in xrange(len(problem.x_hist)):
-        sd[0, i] = problem.x_hist[i][0]
-        sd[1, i] = problem.x_hist[i][1]
-
-    # Now, plot it all on a single plot
     # Assign the contour levels
     levels = np.min(r) + np.linspace(0, 1.0, 75)**2*(np.max(r) - np.min(r))
 
+    # Create the plot
     fig = plt.figure(facecolor='w')
     plt.contour(x1, x1, r, levels)
-    plt.plot(sd[0, :], sd[1, :], '-bo', label='SD')
-    plt.plot(sd[0, -1], sd[1, -1], '-ro', label='x*')
+
+    colours = ['-bo', '-ko', '-co', '-mo', '-yo',
+               '-bx', '-kx', '-cx', '-mx', '-yx' ]
+
+    for k in xrange(len(colours)):
+        # Optimize the problem
+        problem.x_hist = []
+        opt.resetQuasiNewtonHessian()
+        opt.setInitBarrierParameter(0.1)
+        opt.setUseLineSearch(0)
+        opt.optimize()
+
+        # Copy out the steepest descent points
+        sd = np.zeros((2, len(problem.x_hist)))
+        for i in xrange(len(problem.x_hist)):
+            sd[0, i] = problem.x_hist[i][0]
+            sd[1, i] = problem.x_hist[i][1]
+
+        plt.plot(sd[0, :], sd[1, :], colours[k],
+                 label='SD %d'%(sd.shape[1]))
+        plt.plot(sd[0, -1], sd[1, -1], '-ro')
+
     plt.legend()
     plt.axis([xlow, xhigh, xlow, xhigh])
     plt.show()
 
-x_start = [-1.2, -0.133]
 problems = [Problem1(), Problem2(), Problem3(), Problem4()]
 
 for problem in problems:

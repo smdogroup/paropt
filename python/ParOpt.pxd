@@ -18,7 +18,7 @@ cdef extern from "CyParOptProblem.h":
                                    int nwcon, double *x, double *z,
                                    double *zw, double *px, double *hvec)
 
-   cdef cppclass CyParOptProblem:
+   cppclass CyParOptProblem:
       CyParOptProblem(MPI_Comm _comm, int _nvars, int _ncon,
                       int _nwcon, int _nwblock)
 
@@ -35,16 +35,21 @@ cdef extern from "CyParOptProblem.h":
                                 int _useLower, int _useUpper)
 
 cdef extern from "ParOptVec.h":
-   cdef cppclass ParOptVec:
+   cppclass ParOptVec:
       ParOptVec(MPI_Comm comm, int n)
       
       # Retrieve the values from the array
       int getArray(double **array)
 
 cdef extern from "ParOpt.h":
-   cdef cppclass ParOpt:
-      ParOpt(CyParOptProblem *_prob, 
-             int _max_lbfgs_subspace) except +
+   # Set the quasi-Newton type to use
+   enum QuasiNewtonType"ParOpt::QuasiNewtonType": 
+      PAROPT_BFGS"ParOpt::BFGS"
+      PAROPT_SR1"ParOpt::SR1"
+
+   cppclass ParOpt:
+      ParOpt(CyParOptProblem *_prob, int _max_lbfgs_subspace, 
+             QuasiNewtonType qn_type) except +
              
       # Perform the optimiztion
       int optimize(const char *checkpoint)
@@ -68,11 +73,15 @@ cdef extern from "ParOpt.h":
       void setBarrierFraction(double frac)
       void setBarrierPower(double power)
       void setHessianResetFreq(int freq)
+      void setQNDiagonalFactor(double sigma)
       void setSequentialLinearMethod(int truth)
 
       # Set/obtain the barrier parameter
       void setInitBarrierParameter(double mu)
       double getBarrierParameter()
+
+      # Reset the quasi-Newton approximation
+      void resetQuasiNewtonHessian()
       
       # Set parameters associated with the line search
       void setUseLineSearch(int truth)

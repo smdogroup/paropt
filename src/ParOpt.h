@@ -24,7 +24,7 @@
   min f(x)
   s.t.  c(x) >= 0 
   s.t.  cw(x) >= 0
-  s.t.  lb <= x < ub
+  s.t.  lb <= x <= ub
   
   where c(x) is a small (< 100) vector of constraints, cw(x) is a
   (possibly) nonlinear constraint with a special sparse Jacobian
@@ -109,13 +109,12 @@
   J*J_{B}^{-1}, takes a special form where only entries associated
   with the design vector need to be stored.
 */
-
 class ParOpt {
  public:
   enum QuasiNewtonType { BFGS, SR1 };
 
   ParOpt( ParOptProblem *_prob,
-	  int _max_lbfgs_subspace,
+	  int _max_qn_subspace,
 	  enum QuasiNewtonType qn_type = BFGS,
 	  double _max_bound_val = 1e20 );
   ~ParOpt();
