@@ -84,16 +84,16 @@ void CyParOptProblem::setEvalHvecProduct( int (*func)(void *, int, int, int,
 						      ParOptScalar*) ){
   evalhvecproduct = func;
 }
-void CyParOptProblem::setEvalSparseCon( void (*func)(void *, int, int, int,
+void CyParOptProblem::setEvalSparseCon( void (*func)(void *, int, int,
 						     ParOptScalar*, ParOptScalar*) ){
   evalsparsecon = func;
 }
-void CyParOptProblem::setAddSparseJacobian( void (*func)(void *, int, int, int,
+void CyParOptProblem::setAddSparseJacobian( void (*func)(void *, int, int,
 							 ParOptScalar, ParOptScalar*, 
 							 ParOptScalar*, ParOptScalar*) ){
   addsparsejacobian = func;
 }
-void CyParOptProblem::setAddSparseJacobianTranspose( void (*func)(void *, int, int, int,
+void CyParOptProblem::setAddSparseJacobianTranspose( void (*func)(void *, int, int,
 								  ParOptScalar, 
 								  ParOptScalar*, 
 								  ParOptScalar*, 
@@ -223,7 +223,7 @@ void CyParOptProblem::evalSparseCon( ParOptVec *x,
   out->getArray(&outvals);
   
   // Evaluate the Hessian-vector callback
-  evalsparsecon(self, nvars, nwcon, nwblock,
+  evalsparsecon(self, nvars, nwcon,
 		xvals, outvals);
 }
 
@@ -246,7 +246,7 @@ void CyParOptProblem::addSparseJacobian( ParOptScalar alpha,
   out->getArray(&outvals);
   
   // Evaluate the sparse Jacobian output
-  addsparsejacobian(self, nvars, nwcon, nwblock,
+  addsparsejacobian(self, nvars, nwcon,
 		    alpha, xvals, pxvals, outvals);
 }
 
@@ -269,7 +269,7 @@ void CyParOptProblem::addSparseJacobianTranspose( ParOptScalar alpha,
   out->getArray(&outvals);
   
   // Evaluate the sparse Jacobian output
-  addsparsejacobiantranspose(self, nvars, nwcon, nwblock,
+  addsparsejacobiantranspose(self, nvars, nwcon,
 			     alpha, xvals, pzwvals, outvals);
 }
 

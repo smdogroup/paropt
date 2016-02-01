@@ -7,9 +7,6 @@ from fractions import gcd
 # Import MPI 
 import mpi4py.MPI as MPI
 
-# Import the truss analysis problem
-from truss_analysis import TrussAnalysis
-
 # Import ParOpt
 from paropt import ParOpt
 
@@ -21,6 +18,9 @@ import matplotlib.pyplot as plt
 
 # Import numpy
 import numpy as np
+
+# Import the truss analysis problem
+from truss_analysis import TrussAnalysis
 
 def get_ground_structure(N=4, M=4, L=2.5, P=10.0, n=5):
     '''

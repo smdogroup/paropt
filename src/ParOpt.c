@@ -1346,7 +1346,7 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec * xt,
 
   if (nwcon > 0){
     // Add the term Dw = - Ew^{T}*Cw^{-1}*Ew to the Dmat matrix first
-    // by computing the inner product with Cw^{-1}
+    // by computing the product with Cw^{-1}
     for ( int j = 0; j < ncon; j++ ){
       // Apply Cw^{-1}*Ew[j] -> wt
       wt->copyValues(Ew[j]);
@@ -4105,7 +4105,7 @@ int ParOpt::optimize( const char * checkpoint ){
   This function approximately solves the linearized KKT system with
   Hessian-vector products using GMRES.  This procedure uses a
   preconditioner formed from a portion of the KKT system.  Grouping
-  the lagrange multipliers and slack variables from the remaining
+  the Lagrange multipliers and slack variables from the remaining
   portion of the matrix, yields the following decomposition:
 
   K = [ 0; A ] + [ H; 0 ]
@@ -4138,7 +4138,7 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
   ParOptScalar *Qsin = &gmres_Q[gmres_subspace_size];
   ParOptVec **W = gmres_W;
 
-  // Compute the beta factor: the inner product of the
+  // Compute the beta factor: the product of the
   // diagonal terms after normalization
   ParOptScalar beta = 0.0;
   for ( int i = 0; i < ncon; i++ ){
@@ -4240,7 +4240,7 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
       xt1->axpy(-1.0, px);
     }
 
-    // Compute the inner product with the exact Hessian
+    // Compute the vector product with the exact Hessian
     prob->evalHvecProduct(x, z, zw, xt1, W[i+1]);
     nhvec++;
 
@@ -4639,7 +4639,7 @@ void ParOpt::checkGradients( double dh ){
     memset(Cw, 0, nwcon*(nwblock+1)/2*sizeof(ParOptScalar));
     prob->addSparseInnerProduct(1.0, x, Cvec, Cw);
 
-    // Compute the inner product using the Jacobians
+    // Compute the vector product using the Jacobians
     rx->zeroEntries();
     prob->addSparseJacobianTranspose(1.0, x, pzw, rx);
 

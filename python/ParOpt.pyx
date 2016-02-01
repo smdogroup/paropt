@@ -170,8 +170,103 @@ cdef int _evalhvecproduct(void *_self, int nvars, int ncon, int nwcon,
    # Call the objective function
    fail = (<object>_self).evalHvecProduct(xnp, znp, zwnp,
                                           pxnp, hnp)
-
    return fail
+
+cdef void _evalsparsecon(void *_self, int nvars, int nwcon,
+                         double *x, double *con):
+   # The numpy arrays
+   cdef np.ndarray xnp, cnp
+   
+   # Create the wrapper
+   xwrap = NpArrayWrap()
+   cwrap = NpArrayWrap()
+
+   # Set the arrays
+   xwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>x)
+   cwrap.set_data1d(np.NPY_DOUBLE, nwcon, <void*>con)
+
+   # Get the resulting arrays
+   xnp = xwrap.as_ndarray()
+   cnp = cwrap.as_ndarray()
+
+   (<object>_self).evalSparseCon(xnp, cnp)
+   
+   return
+
+cdef void _addsparsejacobian(void *_self, int nvars, 
+                             int nwcon, double alpha, 
+                             double *x, double *px, double *con):
+   # The numpy arrays
+   cdef np.ndarray xnp, pxnp, cnp
+   
+   # Create the wrapper
+   xwrap = NpArrayWrap()
+   pxwrap = NpArrayWrap()
+   cwrap = NpArrayWrap()
+
+   # Set the arrays
+   xwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>x)
+   pxwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>px)
+   cwrap.set_data1d(np.NPY_DOUBLE, nwcon, <void*>con)
+
+   # Get the resulting arrays
+   xnp = xwrap.as_ndarray()
+   pxnp = pxwrap.as_ndarray()
+   cnp = cwrap.as_ndarray()
+
+   (<object>_self).addSparseJacobian(alpha, xnp, pxnp, cnp)
+
+   return
+
+cdef void _addsparsejacobiantranspose(void *_self, int nvars, 
+                                      int nwcon, double alpha, 
+                                      double *x, double *pzw, double *out):
+   # The numpy arrays
+   cdef np.ndarray xnp, pzwnp, outnp
+   
+   # Create the wrapper
+   xwrap = NpArrayWrap()
+   pzwwrap = NpArrayWrap()
+   outwrap = NpArrayWrap()
+
+   # Set the arrays
+   xwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>x)
+   pzwwrap.set_data1d(np.NPY_DOUBLE, nwcon, <void*>pzw)
+   outwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>out)
+
+   # Get the resulting arrays
+   xnp = xwrap.as_ndarray()
+   pzwnp = pzwwrap.as_ndarray()
+   outnp = outwrap.as_ndarray()
+
+   (<object>_self).addSparseJacobianTranspose(alpha, xnp, pzwnp, outnp)
+
+   return
+
+cdef void _addsparseinnerproduct(void *_self, int nvars,
+                                 int nwcon, int nwblock, double alpha,
+                                 double *x, double *c, double *A):
+   # The numpy arrays
+   cdef np.ndarray xnp, cnp, Anp
+   
+   # Create the wrapper
+   xwrap = NpArrayWrap()
+   cwrap = NpArrayWrap()
+   Awrap = NpArrayWrap()
+
+   # Set the arrays
+   xwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>x)
+   cwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>c)
+   Awrap.set_data1d(np.NPY_DOUBLE, nwcon*nwblock*nwblock, <void*>A)
+
+   # Get the resulting arrays
+   xnp = xwrap.as_ndarray()
+   cnp = cwrap.as_ndarray()
+   Anp = Awrap.as_ndarray()
+
+   (<object>_self).addSparseInnerProduct(alpha, xnp, cnp, Anp)
+
+   return
 
 # "Wrap" the abtract base class ParOptProblem 
 cdef class pyParOptProblem:
@@ -190,6 +285,10 @@ cdef class pyParOptProblem:
       self.this_ptr.setEvalObjCon(_evalobjcon)
       self.this_ptr.setEvalObjConGradient(_evalobjcongradient)
       self.this_ptr.setEvalHvecProduct(_evalhvecproduct)
+      self.this_ptr.setEvalSparseCon(_evalsparsecon)
+      self.this_ptr.setAddSparseJacobian(_addsparsejacobian)
+      self.this_ptr.setAddSparseJacobianTranspose(_addsparsejacobiantranspose)
+      self.this_ptr.setAddSparseInnerProduct(_addsparseinnerproduct)
       return
 
    def __dealloc__(self):

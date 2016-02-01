@@ -56,17 +56,21 @@ class CyParOptProblem : public ParOptProblem {
 				       ParOptScalar *, ParOptScalar *,
 				       ParOptScalar *, ParOptScalar *,
 				       ParOptScalar *) );
-  void setEvalSparseCon( void (*func)(void*, int, int, int,
+  void setEvalSparseCon( void (*func)(void*, int, int,
 				      ParOptScalar*, ParOptScalar*) );
-  void setAddSparseJacobian( void (*func)(void*, int, int, int,
+  void setAddSparseJacobian( void (*func)(void*, int, int,
 					  ParOptScalar, ParOptScalar*, 
 					  ParOptScalar*, ParOptScalar*) );
-  void setAddSparseJacobianTranspose( void (*func)(void*, int, int, int,
-						   ParOptScalar, ParOptScalar*,
-						   ParOptScalar*, ParOptScalar*) );
+  void setAddSparseJacobianTranspose( void (*func)(void*, int, int,
+						   ParOptScalar, 
+						   ParOptScalar*,
+						   ParOptScalar*, 
+						   ParOptScalar*) );
   void setAddSparseInnerProduct( void (*func)(void*, int, int, int,
-					      ParOptScalar, ParOptScalar*, 
-					      ParOptScalar*, ParOptScalar*) );
+					      ParOptScalar, 
+					      ParOptScalar*, 
+					      ParOptScalar*, 
+					      ParOptScalar*) );
 
   // Get the variables and bounds from the problem
   // ---------------------------------------------
@@ -127,13 +131,12 @@ class CyParOptProblem : public ParOptProblem {
 			  ParOptScalar *x, ParOptScalar *z,
 			  ParOptScalar *zw, ParOptScalar *px,
 			  ParOptScalar *hvec );
-  void (*evalsparsecon)( void *self, int nvars, int nwcon, int nwblock,
+  void (*evalsparsecon)( void *self, int nvars, int nwcon,
 			 ParOptScalar *x, ParOptScalar *out );
-  void (*addsparsejacobian)( void *self, int nvars, int nwcon, int nwblock,
+  void (*addsparsejacobian)( void *self, int nvars, int nwcon,
 			     ParOptScalar alpha, ParOptScalar *x, 
 			     ParOptScalar *px, ParOptScalar *out );
-  void (*addsparsejacobiantranspose)( void *self, int nvars, 
-				      int nwcon, int nwblock,
+  void (*addsparsejacobiantranspose)( void *self, int nvars, int nwcon,
 				      ParOptScalar alpha, ParOptScalar *x, 
 				      ParOptScalar *px, ParOptScalar *out );
   void (*addsparseinnerproduct)( void *self,

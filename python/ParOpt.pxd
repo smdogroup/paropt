@@ -17,6 +17,19 @@ cdef extern from "CyParOptProblem.h":
    ctypedef int (*evalhvecproduct)(void *_self, int nvars, int ncon, 
                                    int nwcon, double *x, double *z,
                                    double *zw, double *px, double *hvec)
+   ctypedef void (*evalsparsecon)(void *_self, int nvars, int nwcon,
+                                  double *x, double *out)
+   ctypedef void (*addsparsejacobian)(void *_self, int nvars, int nwcon,
+                                      double alpha, double *x, 
+                                      double *px, double *out)
+   ctypedef void (*addsparsejacobiantranspose)(void *_self, 
+                                               int nvars, int nwcon,
+                                               double alpha, double *x, 
+                                               double *px, double *out)
+   ctypedef void (*addsparseinnerproduct)(void *_self, int nvars, 
+                                          int nwcon, int nwblock,
+                                          double alpha, double *x, 
+                                          double *c, double *A)
 
    cppclass CyParOptProblem:
       CyParOptProblem(MPI_Comm _comm, int _nvars, int _ncon,
@@ -28,6 +41,10 @@ cdef extern from "CyParOptProblem.h":
       void setEvalObjCon(evalobjcon usr_func)
       void setEvalObjConGradient(evalobjcongradient usr_func)
       void setEvalHvecProduct(evalhvecproduct usr_func)
+      void setEvalSparseCon(evalsparsecon usr_func)
+      void setAddSparseJacobian(addsparsejacobian usr_func)
+      void setAddSparseJacobianTranspose(addsparsejacobiantranspose usr_func)
+      void setAddSparseInnerProduct(addsparseinnerproduct usr_func)
 
       # Set options for the inequality constraints
       void setInequalityOptions(int _isSparseInequal, 

@@ -7,3 +7,9 @@ syntax: glob
 *.pdf
 *.dat
 *.pyc
+*.aux
+*.log
+*.tex
+*.pdf
+*.lay
+*.phy
