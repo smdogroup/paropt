@@ -13,8 +13,8 @@ from paropt import ParOpt
 
 class TrussAnalysis(ParOpt.pyParOptProblem):
     def __init__(self, conn, xpos, loads, bcs, 
-                 E, rho, Avals, m_fixed, t_min=1e-3, sigma=10.0,
-                 Area_scale=1e-3, mass_scale=None, no_bound=1e30):
+                 E, rho, Avals, m_fixed, use_mass_constraint=True,
+                 t_min=1e-3, sigma=10.0, no_bound=1e30):
         '''
         Analysis problem for mass-constrained compliance minimization
         '''
@@ -53,8 +53,13 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         self.nelems = len(self.conn)
         self.nvars = len(self.xpos)
 
+        # Set the flag for whether to use a mass constraint or not
+        self.use_mass_constraint = use_mass_constraint
+
         # Initialize the super class
-        ncon = 1
+        ncon = 0
+        if self.use_mass_constraint:
+            ncon = 1
         nwcon = self.nelems
         nwblock = 1
         ndv = self.nblock*self.nelems
@@ -71,7 +76,6 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Set the lower bounds on the variables
         self.x_lb = 0.0
-        self.t_lb = 0.0
 
         # Allocate the matrices required
         self.K = np.zeros((self.nvars, self.nvars))
@@ -87,6 +91,26 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         self.fevals = 0
         self.gevals = 0
         self.hevals = 0
+
+        # Allocate a vector that stores the gradient of the mass
+        self.gmass = np.zeros(ndv)
+
+        # Compute the gradient of the mass for each bar in the mesh
+        index = 0
+        for bar in self.conn:
+            # Get the first and second node numbers from the bar
+            n1 = bar[0]
+            n2 = bar[1]
+
+            # Compute the nodal locations
+            xd = self.xpos[2*n2] - self.xpos[2*n1]
+            yd = self.xpos[2*n2+1] - self.xpos[2*n1+1]
+            Le = np.sqrt(xd**2 + yd**2)
+
+            for j in xrange(self.nmats):
+                self.gmass[self.nblock*index+1+j] += self.rho[j]*Le
+
+            index += 1
             
         return
 
@@ -103,8 +127,8 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         bound = 2e-3
         for i in xrange(self.nelems):
             # Modify the bounds of the thickness variables
-            if self.xinit[i*self.nblock] - self.t_lb < bound:
-                self.xinit[i*self.nblock] = self.t_lb + bound
+            if self.xinit[i*self.nblock] - self.t_min < bound:
+                self.xinit[i*self.nblock] = self.t_min + bound
             elif self.xinit[i*self.nblock] > 1.0 - bound:
                 self.xinit[i*self.nblock] = 1.0 - bound
 
@@ -203,7 +227,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         ub[:] = self.no_bound
 
         # Set the bounds on the thickness variables
-        lb[::self.nblock] = max(self.t_min, self.t_lb)
+        lb[::self.nblock] = self.t_min
         ub[::self.nblock] = 1.0
 
         return
@@ -221,6 +245,10 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
                 self.A[i] += self.Avals[j]*x[i*self.nblock+1+j]
 
         return
+
+    def getMass(self, x):
+        '''Return the mass of the truss'''
+        return np.dot(self.gmass, x)    
 
     def evalObjCon(self, x):
         '''
@@ -260,26 +288,15 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         obj = obj/self.obj_scale + np.dot(self.penalty, x)
                     
         # Compute the mass of the entire truss
-        mass = 0.0
-        index = 0
+        mass = np.dot(self.gmass, x)
 
-        for bar in self.conn:
-            # Get the first and second node numbers from the bar
-            n1 = bar[0]
-            n2 = bar[1]
-
-            # Compute the nodal locations
-            xd = self.xpos[2*n2] - self.xpos[2*n1]
-            yd = self.xpos[2*n2+1] - self.xpos[2*n1+1]
-            Le = np.sqrt(xd**2 + yd**2)
-
-            for j in xrange(self.nmats):
-                mass += self.rho[j]*Le*x[self.nblock*index+1+j]
-
-            index += 1
-
-        # Create the constraint c(x) = 0.0 for the mass
-        con = np.array([1.0 - mass/self.m_fixed])
+        if self.use_mass_constraint:            
+            # Create the constraint c(x) >= 0.0 for the mass
+            con = np.array([1.0 - mass/self.m_fixed])
+        else:
+            # Add the deviation from the fixed mass to the objective function
+            obj += 0.5*self.sigma*(mass/self.m_fixed - 1.0)**2
+            con = np.array([])
 
         fail = 0
         return fail, obj, con
@@ -297,7 +314,9 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Zero the objecive and constraint gradients
         gobj[:] = 0.0
-        Acon[:] = 0.0
+
+        # Allocate a numpy array for the gradient of the mass
+        gmass = np.zeros(gobj.shape)
 
         # Set the number of materials
         nmats = len(self.Avals)+1
@@ -335,18 +354,23 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             # Add the contribution to each derivative
             for j in xrange(self.nmats):
                 gobj[self.nblock*index+1+j] += g*self.Avals[j]
-                Acon[0, self.nblock*index+1+j] += self.rho[j]*Le
 
             # Increment the index
             index += 1
 
-        # Scale the constraint gradient and add the contribution
-        # from the slack variables
-        Acon[0, :] /= -self.m_fixed
-
         # Scale the objective gradient
         gobj /= self.obj_scale
         gobj[:] += self.penalty
+
+        # Check how to handle the mass constraint
+        if self.use_mass_constraint:
+            Acon[0, :] = -self.gmass[:]/self.m_fixed
+        else:
+            # Compute the mass of the truss
+            mass = np.dot(self.gmass, x)
+
+            # Add the contribution to the gradient of the mass
+            gobj[:] += (self.sigma/self.m_fixed)*(mass/self.m_fixed - 1.0)*self.gmass
 
         fail = 0
         return fail
@@ -413,6 +437,10 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Evaluate the derivative
         hvec /= self.obj_scale
+
+        if not self.use_mass_constraint:
+            # Add the contribution from the mass penalty term in the objective function
+            hvec[:] += self.sigma*self.gmass*np.dot(self.gmass, px)/self.m_fixed**2
 
         fail = 0
         return fail

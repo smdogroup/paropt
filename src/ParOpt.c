@@ -1415,35 +1415,37 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec * xt,
     }
   }
 
-  int rank;
-  MPI_Comm_rank(comm, &rank);
+  if (ncon > 0){
+    int rank;
+    MPI_Comm_rank(comm, &rank);
 
-  // Reduce the result to the root processor
-  if (rank == opt_root){
-    MPI_Reduce(MPI_IN_PLACE, Dmat, ncon*ncon, 
-	       PAROPT_MPI_TYPE, MPI_SUM, opt_root, comm);
-  }
-  else {
-    MPI_Reduce(Dmat, NULL, ncon*ncon, PAROPT_MPI_TYPE, MPI_SUM, 
-	       opt_root, comm);
-  }
-  
-  // Add the diagonal component to the matrix
-  if (rank == opt_root){
-    if (dense_inequality){
-      for ( int i = 0; i < ncon; i++ ){
-	Dmat[i*(ncon + 1)] += s[i]/z[i];
+    // Reduce the result to the root processor
+    if (rank == opt_root){
+      MPI_Reduce(MPI_IN_PLACE, Dmat, ncon*ncon, 
+		 PAROPT_MPI_TYPE, MPI_SUM, opt_root, comm);
+    }
+    else {
+      MPI_Reduce(Dmat, NULL, ncon*ncon, PAROPT_MPI_TYPE, MPI_SUM, 
+		 opt_root, comm);
+    }
+    
+    // Add the diagonal component to the matrix
+    if (rank == opt_root){
+      if (dense_inequality){
+	for ( int i = 0; i < ncon; i++ ){
+	  Dmat[i*(ncon + 1)] += s[i]/z[i];
+	}
       }
     }
+    
+    // Broadcast the result to all processors. Note that this ensures
+    // that the factorization will be the same on all processors
+    MPI_Bcast(Dmat, ncon*ncon, PAROPT_MPI_TYPE, opt_root, comm);
+    
+    // Factor the matrix for future use
+    int info = 0;
+    LAPACKdgetrf(&ncon, &ncon, Dmat, &ncon, dpiv, &info);
   }
-
-  // Broadcast the result to all processors. Note that this ensures
-  // that the factorization will be the same on all processors
-  MPI_Bcast(Dmat, ncon*ncon, PAROPT_MPI_TYPE, opt_root, comm);
-
-  // Factor the matrix for future use
-  int info = 0;
-  LAPACKdgetrf(&ncon, &ncon, Dmat, &ncon, dpiv, &info);
 }
 
 /*
@@ -1618,44 +1620,46 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bc,
   // Reduce all the results to the opt-root processor:
   // yz will now store the following term:
   // yz = - A*C^{-1}*d - Ew^{T}*Cw^{-1}*(bcw + Zw^{-1}*bsw - Aw*C^{-1}*d)
-  int rank;
-  MPI_Comm_rank(comm, &rank);
-  if (rank == opt_root){
-    // Reduce the result to the root processor
-    MPI_Reduce(MPI_IN_PLACE, yz, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
-	       opt_root, comm);
-  }
-  else {
-    MPI_Reduce(yz, NULL, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
-	       opt_root, comm);
-  }
-
-  // Compute the full right-hand-side
-  if (rank == opt_root){
-    // Compute the full right-hand-side on the root processor
-    // and solve for the Lagrange multipliers
-    if (dense_inequality){
-      for ( int i = 0; i < ncon; i++ ){
-	yz[i] = bc[i] + bs[i]/z[i] - yz[i];
-      }
+  if (ncon > 0){
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+    if (rank == opt_root){
+      // Reduce the result to the root processor
+      MPI_Reduce(MPI_IN_PLACE, yz, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
+		 opt_root, comm);
     }
     else {
-      for ( int i = 0; i < ncon; i++ ){
-	yz[i] = bc[i] - yz[i];
+      MPI_Reduce(yz, NULL, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
+		 opt_root, comm);
+    }
+    
+    // Compute the full right-hand-side
+    if (rank == opt_root){
+      // Compute the full right-hand-side on the root processor
+      // and solve for the Lagrange multipliers
+      if (dense_inequality){
+	for ( int i = 0; i < ncon; i++ ){
+	  yz[i] = bc[i] + bs[i]/z[i] - yz[i];
+	}
       }
+      else {
+	for ( int i = 0; i < ncon; i++ ){
+	  yz[i] = bc[i] - yz[i];
+	}
+      }
+      
+      int one = 1, info = 0;
+      LAPACKdgetrs("N", &ncon, &one, 
+		   Dmat, &ncon, dpiv, yz, &ncon, &info);
     }
 
-    int one = 1, info = 0;
-    LAPACKdgetrs("N", &ncon, &one, 
-		 Dmat, &ncon, dpiv, yz, &ncon, &info);
-  }
+    MPI_Bcast(yz, ncon, PAROPT_MPI_TYPE, opt_root, comm);
 
-  MPI_Bcast(yz, ncon, PAROPT_MPI_TYPE, opt_root, comm);
-
-  // Compute the step in the slack variables 
-  if (dense_inequality){
-    for ( int i = 0; i < ncon; i++ ){
-      ys[i] = (bs[i] - s[i]*yz[i])/z[i];
+    // Compute the step in the slack variables 
+    if (dense_inequality){
+      for ( int i = 0; i < ncon; i++ ){
+	ys[i] = (bs[i] - s[i]*yz[i])/z[i];
+      }
     }
   }
 
@@ -1836,36 +1840,38 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
     yz[i] += ydot;
   }
 
-  // Reduce the result to the root processor
-  int rank;
-  MPI_Comm_rank(comm, &rank);
-
-  if (rank == opt_root){
-    MPI_Reduce(MPI_IN_PLACE, yz, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
-	       opt_root, comm);
-  }
-  else {
-    MPI_Reduce(yz, NULL, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
-	       opt_root, comm);
-  }
-
-  // Compute the full right-hand-side
-  if (rank == opt_root){
-    for ( int i = 0; i < ncon; i++ ){
-      yz[i] *= -1.0;
+  if (ncon > 0){
+    // Reduce the result to the root processor
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+    
+    if (rank == opt_root){
+      MPI_Reduce(MPI_IN_PLACE, yz, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
+		 opt_root, comm);
+    }
+    else {
+      MPI_Reduce(yz, NULL, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
+		 opt_root, comm);
+    }
+    
+    // Compute the full right-hand-side
+    if (rank == opt_root){
+      for ( int i = 0; i < ncon; i++ ){
+	yz[i] *= -1.0;
+      }
+      
+      int one = 1, info = 0;
+      LAPACKdgetrs("N", &ncon, &one, 
+		   Dmat, &ncon, dpiv, yz, &ncon, &info);
     }
 
-    int one = 1, info = 0;
-    LAPACKdgetrs("N", &ncon, &one, 
-		 Dmat, &ncon, dpiv, yz, &ncon, &info);
-  }
-
-  MPI_Bcast(yz, ncon, PAROPT_MPI_TYPE, opt_root, comm);
-
-  // Compute the step in the slack variables 
-  if (dense_inequality){
-    for ( int i = 0; i < ncon; i++ ){
-      ys[i] = -(s[i]*yz[i])/z[i];
+    MPI_Bcast(yz, ncon, PAROPT_MPI_TYPE, opt_root, comm);
+    
+    // Compute the step in the slack variables 
+    if (dense_inequality){
+      for ( int i = 0; i < ncon; i++ ){
+	ys[i] = -(s[i]*yz[i])/z[i];
+      }
     }
   }
 
@@ -2032,30 +2038,32 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
     zt[i] += ydot;
   }
 
-  // Reduce the result to the root processor
-  int rank;
-  MPI_Comm_rank(comm, &rank);
-
-  if (rank == opt_root){
-    MPI_Reduce(MPI_IN_PLACE, zt, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
-	       opt_root, comm);
-  }
-  else {
-    MPI_Reduce(zt, NULL, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
-	       opt_root, comm);
-  }
-
-  if (rank == opt_root){
-    for ( int i = 0; i < ncon; i++ ){
-      zt[i] *= -1.0;
+  if (ncon > 0){
+    // Reduce the result to the root processor
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+    
+    if (rank == opt_root){
+      MPI_Reduce(MPI_IN_PLACE, zt, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
+		 opt_root, comm);
     }
-
-    int one = 1, info = 0;
-    LAPACKdgetrs("N", &ncon, &one, 
-		 Dmat, &ncon, dpiv, zt, &ncon, &info);
+    else {
+      MPI_Reduce(zt, NULL, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
+		 opt_root, comm);
+    }
+    
+    if (rank == opt_root){
+      for ( int i = 0; i < ncon; i++ ){
+	zt[i] *= -1.0;
+      }
+      
+      int one = 1, info = 0;
+      LAPACKdgetrs("N", &ncon, &one, 
+		   Dmat, &ncon, dpiv, zt, &ncon, &info);
+    }
+    
+    MPI_Bcast(zt, ncon, PAROPT_MPI_TYPE, opt_root, comm);
   }
-
-  MPI_Bcast(zt, ncon, PAROPT_MPI_TYPE, opt_root, comm);
 
   if (nwcon > 0){
     // Compute wt = -Cw^{-1}*(Ew*yz + Aw*C^{-1}*bx)
@@ -2211,42 +2219,44 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
     yz[i] += ydot;
   }
 
-  // Reduce all the results to the opt-root processor:
-  // yz will now store the following term:
-  // yz = - A*C^{-1}*d - Ew^{T}*Cw^{-1}*(bcw + Zw^{-1}*bsw - Aw*C^{-1}*d)
-  int rank;
-  MPI_Comm_rank(comm, &rank);
-  if (rank == opt_root){
-    // Reduce the result to the root processor
-    MPI_Reduce(MPI_IN_PLACE, yz, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
-	       opt_root, comm);
-  }
-  else {
-    MPI_Reduce(yz, NULL, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
-	       opt_root, comm);
-  }
-
-  // Compute the full right-hand-side
-  if (rank == opt_root){
-    // Compute the full right-hand-side on the root processor
-    // and solve for the Lagrange multipliers
-    if (dense_inequality){
-      for ( int i = 0; i < ncon; i++ ){
-	yz[i] = alpha*(bc[i] + bs[i]/z[i]) - yz[i];
-      }
+  if (ncon > 0){
+    // Reduce all the results to the opt-root processor:
+    // yz will now store the following term:
+    // yz = - A*C^{-1}*d - Ew^{T}*Cw^{-1}*(bcw + Zw^{-1}*bsw - Aw*C^{-1}*d)
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+    if (rank == opt_root){
+      // Reduce the result to the root processor
+      MPI_Reduce(MPI_IN_PLACE, yz, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
+		 opt_root, comm);
     }
     else {
-      for ( int i = 0; i < ncon; i++ ){
-	yz[i] = alpha*bc[i] - yz[i];
-      }
+      MPI_Reduce(yz, NULL, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
+		 opt_root, comm);
     }
-
-    int one = 1, info = 0;
-    LAPACKdgetrs("N", &ncon, &one, 
-		 Dmat, &ncon, dpiv, yz, &ncon, &info);
+    
+    // Compute the full right-hand-side
+    if (rank == opt_root){
+      // Compute the full right-hand-side on the root processor
+      // and solve for the Lagrange multipliers
+      if (dense_inequality){
+	for ( int i = 0; i < ncon; i++ ){
+	  yz[i] = alpha*(bc[i] + bs[i]/z[i]) - yz[i];
+	}
+      }
+      else {
+	for ( int i = 0; i < ncon; i++ ){
+	  yz[i] = alpha*bc[i] - yz[i];
+	}
+      }
+      
+      int one = 1, info = 0;
+      LAPACKdgetrs("N", &ncon, &one, 
+		   Dmat, &ncon, dpiv, yz, &ncon, &info);
+    }
+    
+    MPI_Bcast(yz, ncon, PAROPT_MPI_TYPE, opt_root, comm);
   }
-
-  MPI_Bcast(yz, ncon, PAROPT_MPI_TYPE, opt_root, comm);
 
   if (nwcon > 0){
     // Compute yzw = Cw^{-1}*(bcw + Zw^{-1}*bsw - Ew*yz - Aw*C^{-1}*d)
@@ -3473,21 +3483,23 @@ int ParOpt::optimize( const char * checkpoint ){
       Ac[i]->mdot(Ac, ncon, &Dmat[i*ncon]);
     }
 
-    // Compute the factorization of Dmat
-    int info;
-    LAPACKdgetrf(&ncon, &ncon, Dmat, &ncon, dpiv, &info);
+    if (ncon > 0){
+      // Compute the factorization of Dmat
+      int info;
+      LAPACKdgetrf(&ncon, &ncon, Dmat, &ncon, dpiv, &info);
     
-    // Solve the linear system
-    if (!info){
-      int one = 1;
-      LAPACKdgetrs("N", &ncon, &one, Dmat, &ncon, dpiv,
-		   z, &ncon, &info);
+      // Solve the linear system
+      if (!info){
+	int one = 1;
+	LAPACKdgetrs("N", &ncon, &one, Dmat, &ncon, dpiv,
+		     z, &ncon, &info);
 
-      // Keep the Lagrange multipliers if they are within 
-      // a reasonable range and they are positive.
-      for ( int i = 0; i < ncon; i++ ){
-	if (z[i] < 0.01 || z[i] > 1000.0){
-	  z[i] = 1.0;
+	// Keep the Lagrange multipliers if they are within 
+	// a reasonable range and they are positive.
+	for ( int i = 0; i < ncon; i++ ){
+	  if (z[i] < 0.01 || z[i] > 1000.0){
+	    z[i] = 1.0;
+	  }
 	}
       }
     }

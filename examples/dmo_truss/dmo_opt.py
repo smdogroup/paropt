@@ -13,9 +13,6 @@ from paropt import ParOpt
 # Import argparse
 import argparse
 
-# Import parts of matplotlib for plotting
-import matplotlib.pyplot as plt
-
 # Import numpy
 import numpy as np
 
@@ -85,7 +82,7 @@ def get_ground_structure(N=4, M=4, L=2.5, P=10.0, n=5):
 
     return conn, xpos, loads, bcs
 
-def setup_ground_struct(N, M, L=2.5, E=70e9):
+def setup_ground_struct(N, M, L=2.5, E=70e9, t_min=1e-2):
     '''
     Create a ground structure with a given number of nodes and
     material properties.
@@ -103,11 +100,12 @@ def setup_ground_struct(N, M, L=2.5, E=70e9):
     Area_scale = 1.0
 
     # Set the fixed mass constraint
-    m_fixed = 5.0*N*M*L*rho[0]
+    m_fixed = (N-1)*(M-1)*L*rho[-1]
 
     # Create the truss topology optimization object
     truss = TrussAnalysis(conn, xpos, loads, bcs, 
-                          E, rho, Avals, m_fixed)
+                          E, rho, Avals, m_fixed, t_min=t_min,
+                          use_mass_constraint=False)
 
     # Set the options
     truss.setInequalityOptions(dense_ineq=True, 
@@ -172,6 +170,7 @@ def optimize_truss(N, M, heuristic):
     s += '"min gamma", "max gamma", "gamma", '
     s += '"min d", "max d", "tau", '
     s += 'feval, geval, hvec, time\n'
+    s += 'Zone T = %s\n'%(heuristic)
     fp.write(s)
 
     init_time = MPI.Wtime()
@@ -182,7 +181,6 @@ def optimize_truss(N, M, heuristic):
 
     # Set the lower limits for the bounds
     truss.x_lb = 0.0
-    truss.t_lb = 0.0
 
     alpha = 1.25
     beta = 0.25
@@ -211,6 +209,9 @@ def optimize_truss(N, M, heuristic):
         # Get the strain energy associated with each element
         Ue = truss.getStrainEnergy(x)
 
+        # Compute the infeasibility of the mass constraint
+        m_infeas = truss.getMass(x)/truss.m_fixed - 1.0
+
         # Compute the objective function
         fobj = np.sum(Ue)
 
@@ -222,11 +223,7 @@ def optimize_truss(N, M, heuristic):
             np.min(gamma), np.max(gamma), np.sum(gamma))
         print 'Min/max d:     %15.5e %15.5e  Total: %15.5e'%(
             np.min(d), np.max(d), np.sum(d))
-
-        # Terminate if the maximum discrete infeasibility measure is
-        # sufficiently low
-        if np.max(d) < 3.0*(truss.t_min - truss.t_min**2):
-            break
+        print 'Mass infeas:   %15.5e'%(m_infeas)
 
         s = '%d %e %e %e %e %e %e %e %e %e '%(
             k, np.min(Ue), np.max(Ue), np.sum(Ue),
@@ -238,13 +235,15 @@ def optimize_truss(N, M, heuristic):
         fp.write(s)
         fp.flush()
 
+        # Terminate if the maximum discrete infeasibility measure is
+        # sufficiently low
+        if np.max(d) < 3.0*(truss.t_min - truss.t_min**2):
+            break
+
         # Print the output
         filename = 'opt_truss_iter%d.tex'%(k)
         output = os.path.join(prefix, filename)
         truss.printTruss(x, filename=output)
-
-        # Decrease the lower bound on the thickness by up to 0.5
-        truss.t_lb *= 0.5
 
         # Set the new penalty
         truss.setNewInitPointPenalty(x, gamma)
@@ -264,10 +263,14 @@ def optimize_truss(N, M, heuristic):
         # Increase the iteration counter
         niters += 1
 
+    # Close the file
+    fp.close()
+
     # PDFLatex all the output files
     for k in xrange(niters):
         filename = 'opt_truss_iter%d.tex'%(k)
-        os.system('cd %s; pdflatex %s > /dev/null ; cd ..;'%(prefix, filename))
+        os.system('cd %s; pdflatex %s > /dev/null ; cd ..;'%(
+            prefix, filename))
     
     # Print out the last optimized truss
     filename = 'opt_truss.tex'
@@ -299,15 +302,10 @@ heuristic = args.heuristic
 # Set the use Hessian
 use_hessian = True
 
-trusses = [
-    (4, 4),   (5, 5),   (6, 6), 
-    (7, 7),   (8, 8),   (9, 9), 
-    (10, 10), (11, 11), (12, 12), 
-    (13, 13), (14, 14), (15, 15), # 1:1
-    (4, 2),   (6, 3),   (8, 4), 
-    (10, 5),  (12, 6),  (14, 7), # 2:1
-    (9, 3),   (12, 4),  (15, 5), # 3:1
-    (4, 3),   (8, 6),   (12, 4)] # 4:3
+trusses = [ (3, 3), (4, 3), (5, 3), (6, 3),
+            (4, 4), (5, 4), (6, 4), (7, 4), (8, 4), (9, 4), (10, 4),
+            (5, 5), (6, 5), (7, 5), (8, 5), (9, 5), (10, 5),
+            (6, 6), (7, 6), (8, 6), (9, 6), (10, 6) ]
 
 if profile:
     for N, M in trusses:
