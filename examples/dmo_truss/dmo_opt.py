@@ -318,8 +318,11 @@ trusses = [ (3, 3), (4, 3), (5, 3), (6, 3),
 # Run either the optimizations or the
 if profile:
     for N, M in trusses:
-        optimize_truss(N, M, heuristic, root_dir=root_dir,
-                       use_mass_constraint=use_mass_constraint)
+        try:
+            optimize_truss(N, M, heuristic, root_dir=root_dir,
+                           use_mass_constraint=use_mass_constraint)
+        except:
+            pass
 else:
     optimize_truss(N, M, heuristic, root_dir=root_dir,
                    use_mass_constraint=use_mass_constraint)
