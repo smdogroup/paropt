@@ -82,7 +82,9 @@ def get_ground_structure(N=4, M=4, L=2.5, P=10.0, n=5):
 
     return conn, xpos, loads, bcs
 
-def setup_ground_struct(N, M, L=2.5, E=70e9, t_min=1e-2):
+def setup_ground_struct(N, M, L=2.5, E=70e9, 
+                        t_min=1e-2, sigma=100.0,
+                        use_mass_constraint=False):
     '''
     Create a ground structure with a given number of nodes and
     material properties.
@@ -105,7 +107,7 @@ def setup_ground_struct(N, M, L=2.5, E=70e9, t_min=1e-2):
     # Create the truss topology optimization object
     truss = TrussAnalysis(conn, xpos, loads, bcs, 
                           E, rho, Avals, m_fixed, t_min=t_min,
-                          use_mass_constraint=False)
+                          sigma=100.0, use_mass_constraint=False)
 
     # Set the options
     truss.setInequalityOptions(dense_ineq=True, 
@@ -116,8 +118,7 @@ def setup_ground_struct(N, M, L=2.5, E=70e9, t_min=1e-2):
     return truss
 
 def paropt_truss(truss, use_hessian=False,
-                 max_qn_subspace=50, qn_type=ParOpt.BFGS,
-                 prefix='results'):
+                 max_qn_subspace=50, qn_type=ParOpt.BFGS):
     '''
     Optimize the given truss structure using ParOpt
     '''
@@ -148,9 +149,9 @@ def paropt_truss(truss, use_hessian=False,
 
     return opt
 
-def optimize_truss(N, M, heuristic):
+def optimize_truss(N, M, heuristic, root_dir='results'):
     # Optimize the structure
-    prefix = os.path.join('results', '%dx%d'%(N, M), heuristic)
+    prefix = os.path.join(root_dir, '%dx%d'%(N, M), heuristic)
 
     # Make sure that the directory exists
     if not os.path.exists(prefix):
@@ -168,7 +169,7 @@ def optimize_truss(N, M, heuristic):
     # Write the header out to the file
     s = 'Variables = iteration, "min SE", "max SE", "fobj", '
     s += '"min gamma", "max gamma", "gamma", '
-    s += '"min d", "max d", "tau", '
+    s += '"min d", "max d", "tau", "mass infeas", '
     s += 'feval, geval, hvec, time\n'
     s += 'Zone T = %s\n'%(heuristic)
     fp.write(s)
@@ -210,7 +211,7 @@ def optimize_truss(N, M, heuristic):
         Ue = truss.getStrainEnergy(x)
 
         # Compute the infeasibility of the mass constraint
-        m_infeas = truss.getMass(x)/truss.m_fixed - 1.0
+        m_infeas = max(truss.getMass(x)/truss.m_fixed - 1.0, 0.0)
 
         # Compute the objective function
         fobj = np.sum(Ue)
@@ -225,10 +226,10 @@ def optimize_truss(N, M, heuristic):
             np.min(d), np.max(d), np.sum(d))
         print 'Mass infeas:   %15.5e'%(m_infeas)
 
-        s = '%d %e %e %e %e %e %e %e %e %e '%(
+        s = '%d %e %e %e %e %e %e %e %e %e %e '%(
             k, np.min(Ue), np.max(Ue), np.sum(Ue),
             np.min(gamma), np.max(gamma), np.sum(gamma),
-            np.min(d), np.max(d), np.sum(d))
+            np.min(d), np.max(d), np.sum(d), m_infeas)
         s += '%d %d %d %e\n'%(
             truss.fevals, truss.gevals, truss.hevals, 
             MPI.Wtime() - init_time)
@@ -290,7 +291,8 @@ parser.add_argument('--profile', action='store_true',
                     default=False, help='Performance profile')
 parser.add_argument('--heuristic', type=str, default='scalar',
                     help='Heuristic type')
-
+parser.add_argument('--use_mass_constraint', action='store_true',
+                    default=False, help='Use the mass constraint')
 args = parser.parse_args()
 
 # Get the arguments
@@ -298,17 +300,26 @@ N = args.N
 M = args.M
 profile = args.profile
 heuristic = args.heuristic
+use_mass_constraint = args.use_mass_constraint
 
-# Set the use Hessian
+root_dir = 'results'
+if use_mass_constraint:
+    root_dir = ''
+
+# Always use the Hessian-vector product implementation
 use_hessian = True
 
+# The trusses used in this instance
 trusses = [ (3, 3), (4, 3), (5, 3), (6, 3),
             (4, 4), (5, 4), (6, 4), (7, 4), (8, 4), (9, 4), (10, 4),
             (5, 5), (6, 5), (7, 5), (8, 5), (9, 5), (10, 5),
             (6, 6), (7, 6), (8, 6), (9, 6), (10, 6) ]
 
+# Run either the optimizations or the
 if profile:
     for N, M in trusses:
-        optimize_truss(N, M, heuristic)
+        optimize_truss(N, M, heuristic, root_dir=root_dir,
+                       use_mass_constraint=use_mass_constraint)
 else:
-    optimize_truss(N, M, heuristic)
+    optimize_truss(N, M, heuristic, root_dir=root_dir,
+                   use_mass_constraint=use_mass_constraint)
