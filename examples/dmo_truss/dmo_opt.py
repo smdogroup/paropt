@@ -160,7 +160,8 @@ def optimize_truss(N, M, heuristic, root_dir='results',
         os.makedirs(prefix)
 
     # Create the ground structure and optimization
-    truss = setup_ground_struct(N, M)
+    truss = setup_ground_struct(N, M, 
+                                use_mass_constraint=use_mass_constraint)
     opt = paropt_truss(truss,
                        use_hessian=use_hessian,
                        qn_type=ParOpt.BFGS)

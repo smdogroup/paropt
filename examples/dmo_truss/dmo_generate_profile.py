@@ -206,7 +206,7 @@ else:
     xmin = 0.5
     xmax = len(trusses)+0.5
     ymin = -2
-    ymax = max(-1, np.max(np.log10(discrete_infeas)))
+    ymax = -1 # max(-1, np.max(np.log10(discrete_infeas)))
     
     # Set the positions of the tick locations
     yticks = [-1, np.log10(0.075), np.log10(0.05), np.log10(.025), -2]
@@ -239,7 +239,7 @@ else:
 
         # Add a label to the legend
         length = 1.
-        s += tikz.get_legend_entry(4.5, -1.1 - 0.1*k, length,
+        s += tikz.get_legend_entry(1.5, -1.1 - 0.1*k, length,
                                    xscale=xscale, yscale=yscale,
                                    color=colors[k], line_dim='ultra thick',
                                    symbol=None, label=heuristics[k])
