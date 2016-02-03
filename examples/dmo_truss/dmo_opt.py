@@ -106,8 +106,9 @@ def setup_ground_struct(N, M, L=2.5, E=70e9,
 
     # Create the truss topology optimization object
     truss = TrussAnalysis(conn, xpos, loads, bcs, 
-                          E, rho, Avals, m_fixed, t_min=t_min,
-                          sigma=100.0, use_mass_constraint=False)
+                          E, rho, Avals, m_fixed, 
+                          t_min=t_min, sigma=sigma, 
+                          use_mass_constraint=use_mass_constraint)
 
     # Set the options
     truss.setInequalityOptions(dense_ineq=True, 
@@ -149,7 +150,8 @@ def paropt_truss(truss, use_hessian=False,
 
     return opt
 
-def optimize_truss(N, M, heuristic, root_dir='results'):
+def optimize_truss(N, M, heuristic, root_dir='results',
+                   use_mass_constraint=False):
     # Optimize the structure
     prefix = os.path.join(root_dir, '%dx%d'%(N, M), heuristic)
 
@@ -159,7 +161,7 @@ def optimize_truss(N, M, heuristic, root_dir='results'):
 
     # Create the ground structure and optimization
     truss = setup_ground_struct(N, M)
-    opt = paropt_truss(truss, prefix=prefix,
+    opt = paropt_truss(truss,
                        use_hessian=use_hessian,
                        qn_type=ParOpt.BFGS)
 
@@ -304,7 +306,7 @@ use_mass_constraint = args.use_mass_constraint
 
 root_dir = 'results'
 if use_mass_constraint:
-    root_dir = ''
+    root_dir = 'con-results'
 
 # Always use the Hessian-vector product implementation
 use_hessian = True
