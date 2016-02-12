@@ -222,7 +222,7 @@ int main( int argc, char* argv[] ){
   opt->setUseHvecProduct(1);
   opt->setMajorIterStepCheck(20);
   opt->setMaxMajorIterations(1500);
-  opt->checkGradients(1e-6);
+  opt->setGradientCheckFrequency(5, 1e-6);
   opt->setQNDiagonalFactor(1.0);
   
   double start = MPI_Wtime();

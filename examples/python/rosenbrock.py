@@ -57,6 +57,7 @@ opt.setUseHvecProduct(0)
 opt.setMajorIterStepCheck(45)
 opt.setMaxMajorIterations(1500)
 
-opt.checkGradients(1e-6)
+#opt.checkGradients(1e-6)
+opt.setGradientCheckFrequency(5, 1e-6)
 
 opt.optimize()

@@ -147,6 +147,7 @@ def plot_it_all(problem):
     max_lbfgs = 20
     opt = ParOpt.pyParOpt(problem, max_lbfgs, ParOpt.BFGS)
     opt.checkGradients(1e-6)
+    #opt.setGradientCheckFrequency(10, 1e-6)
 
     # Create the data for the carpet plot
     n = 150
