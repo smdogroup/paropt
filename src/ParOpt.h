@@ -184,6 +184,7 @@ class ParOpt {
   void setOutputFrequency( int freq );
   void setMajorIterStepCheck( int step );
   void setOutputFile( const char * filename );
+  void setGradientCheckFrequency( int freq, double step_size );
 
   // Write out the design variables to a binary format (fast MPI/IO)
   // ---------------------------------------------------------------
@@ -360,6 +361,8 @@ class ParOpt {
   int max_major_iters;
   int init_starting_point;
   int write_output_frequency;
+  int gradient_check_frequency;
+  double gradient_check_step;
 
   // The barrier parameter
   double barrier_param;
