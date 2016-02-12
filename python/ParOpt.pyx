@@ -495,7 +495,10 @@ cdef class pyParOpt:
    def setOutputFile(self, char *filename):
       if filename is not None:
          self.this_ptr.setOutputFile(filename)
-      
+         
+   def setGradientCheckFrequency(self, int freq, double step_size):
+       self.this_ptr.setGradientCheckFrequency(freq, step_size)
+         
    # Write out the design variables to binary format (fast MPI/IO)
    def writeSolutionFile(self, char *filename):
       if filename is not None:

@@ -119,6 +119,7 @@ cdef extern from "ParOpt.h":
       void setOutputFrequency(int freq)
       void setMajorIterStepCheck(int step)
       void setOutputFile(const char *filename)
+      void setGradientCheckFrequency(int freq, double step_size)
 
       # Write out the design variables to binary format (fast MPI/IO)
       int writeSolutionFile(const char *filename)
