@@ -48,7 +48,7 @@ def get_performance_profile(r, tau_max):
 # Define the performance profile objective function
 parser = argparse.ArgumentParser()
 parser.add_argument('--merit', type=str, default='fobj',
-                    help='Nodes in x-direction')
+                    help='Figure of merit for the performance profile')
 parser.add_argument('--use_mass_constraint', action='store_true',
                     default=False, help='Use the mass constraint')
 
@@ -61,7 +61,7 @@ if use_mass_constraint:
     root_dir = 'con-results'
 
 # The heuristics to include in the plot
-heuristics = ['scalar', 'linear', 'discrete']
+heuristics = ['scalar', 'discrete', 'linear', 'inverse']
 
 # The trusses to include in the plot
 trusses = [ (3, 3), (4, 3), (5, 3), (6, 3),
@@ -79,6 +79,7 @@ variables = ['iteration', 'min SE', 'max SE', 'fobj',
 imerit = variables.index(merit)
 infeas_index = variables.index('max d')
 mass_index = variables.index('mass infeas')
+fobj_index = variables.index('fobj')
 
 # Check the performance 
 max_badness = 1e20
@@ -87,7 +88,7 @@ discrete_infeas = np.ones((len(trusses), len(heuristics)))
 mass_infeas = np.ones((len(trusses), len(heuristics)))
 
 # Set the minimum thickness
-t_min = 1e-2
+t_min = 1e-3
 
 # Read in all the data required for each problem
 iheur = 0
@@ -152,25 +153,42 @@ else:
     ymin = 0
     ymax = 1
 
+    # Set the offset for the label
+    ylabel_offset = 0.25
+    tick_frac = 0.02
+
+    # Set legend parameters
+    length = 0.15
     xlegend = 2.0
     
     # Set the positions of the tick locations
     yticks = [0, 0.25, 0.5, 0.75, 1.0]
     xticks = [ 1, 1.5, 2, 2.5 ]
   
+    colors = ['Red', 'NavyBlue', 'black', 'ForestGreen', 'Gray']
+    symbols = ['circle', 'square', 'triangle', 'delta', None ]
+
+    if merit == None: # 'fobj':
+        xscale = 15.0
+        xmin = 0.995
+        xmax = 1.1
+        tick_frac = 0.1
+        xticks = [1, 1.025, 1.05, 1.075, 1.1]
+
+        ylabel_offset = 0.15
+        length = 0.01
+        xlegend = 1.06
+
     # Get the header info
     s = tikz.get_header()
     s += tikz.get_begin_tikz(xdim=2, ydim=2, xunit='in', yunit='in')
 
     # Plot the axes
     s += tikz.get_2d_axes(xmin, xmax, ymin, ymax,
-                          tick_frac=0.02, ylabel_offset=0.25,
+                          tick_frac=tick_frac, ylabel_offset=ylabel_offset,
                           xscale=xscale, yscale=yscale,
                           xticks=xticks, yticks=yticks,
                           xlabel='$\\alpha$', ylabel='Fraction of problems')
-    
-    colors = ['Red', 'NavyBlue', 'black', 'ForestGreen']
-    symbols = ['circle', 'square', 'triangle', 'delta' ]
 
     for k in xrange(len(heuristics)):
         tau, rho = get_performance_profile(r[:, k], 1.5*xmax)
@@ -180,7 +198,6 @@ else:
                               symbol=None)
 
         # Add a label to the legend
-        length = 0.15
         s += tikz.get_legend_entry(xlegend, 0.4 - 0.1*k, length,
                                    xscale=xscale, yscale=yscale,
                                    color=colors[k], line_dim='ultra thick',
@@ -205,13 +222,13 @@ else:
     # Set the bounds on the plot
     xmin = 0.5
     xmax = len(trusses)+0.5
-    ymin = -2
-    ymax = -1 # max(-1, np.max(np.log10(discrete_infeas)))
+    ymin = -6
+    ymax = -4 # max(-1, np.max(np.log10(discrete_infeas)))
     
     # Set the positions of the tick locations
-    yticks = [-1, np.log10(0.075), np.log10(0.05), np.log10(.025), -2]
-    ytick_labels=['$10^{-1}$', '$7.5 \\times$', 
-                  '$5 \\times$', '$2.5 \\times$', '$10^{-2}$']
+    yticks = [-6, np.log10(5e-6), -5, np.log10(5e-5), -4]
+    ytick_labels=['$10^{-6}$', '$5 \\times$', 
+                  '$10^{-5}$', '$5 \\times$', '$10^{-4}$']
     xticks = range(1, len(trusses)+1, 3)
   
     # Get the header info
@@ -226,9 +243,6 @@ else:
                           xlabel='Problem', 
                           ylabel='Discrete infeasibility')
     
-    colors = ['Red', 'NavyBlue', 'black', 'ForestGreen']
-    symbols = ['circle', 'square', 'triangle', 'delta' ]
-
     for k in xrange(len(heuristics)):
         s += tikz.get_2d_plot(range(1, len(trusses)+1), 
                               np.log10(discrete_infeas[:, k]), 
@@ -239,14 +253,13 @@ else:
 
         # Add a label to the legend
         length = 1.
-        s += tikz.get_legend_entry(1.5, -1.1 - 0.1*k, length,
+        s += tikz.get_legend_entry(1.5, -2.1 - 0.1*k, length,
                                    xscale=xscale, yscale=yscale,
                                    color=colors[k], line_dim='ultra thick',
                                    symbol=None, label=heuristics[k])
 
     # Keep track of the discrete infeasibility measure
-    t_min = 1e-2
-    yvals = np.array([ 3*(t_min - t_min**2), 3*(t_min - t_min**2) ])
+    yvals = np.array([ 1e-5, 1e-5 ])
     xvals = [ 1, len(trusses) ]
     s += tikz.get_2d_plot(xvals, np.log10(yvals), 
                           xscale=xscale, yscale=yscale,
@@ -294,9 +307,6 @@ else:
                           xlabel='Problem', 
                           ylabel='Mass infeasibility')
     
-    colors = ['Red', 'NavyBlue', 'black', 'ForestGreen']
-    symbols = ['circle', 'square', 'triangle', 'delta' ]
-
     for k in xrange(len(heuristics)):
         s += tikz.get_2d_plot(range(1, len(trusses)+1), 
                               mass_infeas[:, k], 
@@ -325,3 +335,58 @@ else:
     os.system('cd %s; pdflatex %s > /dev/null; cd ..'%(root_dir, 
                                                        filename))
 
+    # Plot the mass infeasibility 
+    xscale = 0.1
+    yscale = 10.0
+
+    # Set the bounds on the plot
+    xmin = 0.5
+    xmax = len(trusses)+0.5
+    ymin = 0.995
+    ymax = 1.1       
+    
+    # Set the positions of the tick locations
+    yticks = [1, 1.025, 1.05, 1.075, 1.1]
+    xticks = range(1, len(trusses)+1, 3)
+  
+    # Get the header info
+    s = tikz.get_header()
+    s += tikz.get_begin_tikz(xdim=2, ydim=2, xunit='in', yunit='in')
+
+    # Plot the axes
+    s += tikz.get_2d_axes(xmin, xmax, ymin, ymax,
+                          xscale=xscale, yscale=yscale,
+                          xticks=xticks, yticks=yticks,
+                          tick_frac=1.0, xlabel_offset=0.1,
+                          ylabel_offset=0.125, xlabel='Problem', 
+                          ylabel='$f(\mathbf{x}^{*})$/best $f(\mathbf{x}^{*})$')
+    
+    colors = ['Red', 'NavyBlue', 'black', 'ForestGreen']
+    symbols = ['circle', 'square', 'triangle', 'delta' ]
+
+    for k in xrange(len(heuristics)):
+        s += tikz.get_2d_plot(range(1, len(trusses)+1), r[:, k], 
+                              xscale=xscale, yscale=yscale,
+                              color=colors[k], line_dim='ultra thick',
+                              xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax,
+                              symbol=symbols[k], symbol_size=0.025)
+
+        # Add a label to the legend
+        length = 1.
+        s += tikz.get_legend_entry(15, 1.1 - 0.0075*k, length,
+                                   xscale=xscale, yscale=yscale,
+                                   color=colors[k], line_dim='ultra thick',
+                                   symbol=None, label=heuristics[k])
+
+    s += tikz.get_end_tikz()
+
+    # Create the tikz/LaTeX file
+    filename = 'compare_%s.tex'%(variables[imerit])
+    output = os.path.join(root_dir, filename)
+    fp = open(output, 'w')
+    fp.write(s)
+    fp.close()
+
+    # pdflatex the resulting file
+    os.system('cd %s; pdflatex %s > /dev/null; cd ..'%(root_dir, 
+                                                       filename))

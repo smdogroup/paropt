@@ -14,7 +14,7 @@ from paropt import ParOpt
 class TrussAnalysis(ParOpt.pyParOptProblem):
     def __init__(self, conn, xpos, loads, bcs, 
                  E, rho, Avals, m_fixed, use_mass_constraint=True,
-                 t_min=1e-3, sigma=10.0, no_bound=1e30):
+                 t_min=1e-3, epsilon=1e-3, sigma=10.0, no_bound=1e30):
         '''
         Analysis problem for mass-constrained compliance minimization
         '''
@@ -37,6 +37,10 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Set the minimum t value
         self.t_min = t_min
+
+        # Set the factor on the lowest value of the thickness
+        # This avoids
+        self.epsilon = epsilon
 
         # Set the bound for no variable bound
         self.no_bound = no_bound
@@ -164,7 +168,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Set the cross-sectional areas from the design variable
         # values
-        self.setAreas(x)
+        self.setAreas(x, lb_factor=self.epsilon)
 
         # Evaluate compliance objective
         self.assembleMat(self.A, self.K)
@@ -198,7 +202,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             S = yd/Le
 
             # Compute the element stiffness matrix
-            Ke = (self.E/Le)*np.array(
+            Ke = (self.E*A_bar/Le)*np.array(
                 [[C**2, C*S, -C**2, -C*S],
                  [C*S, S**2, -C*S, -S**2],
                  [-C**2, -C*S, C**2, C*S],
@@ -210,7 +214,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             # Add the product to the derivative of the compliance
             for i in xrange(4):
                 for j in xrange(4):
-                    Ue[index] += self.u[elem_vars[i]]*self.u[elem_vars[j]]*Ke[i, j]
+                    Ue[index] += 0.5*self.u[elem_vars[i]]*self.u[elem_vars[j]]*Ke[i, j]
 
             index += 1
 
@@ -223,20 +227,20 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         x[:] = self.xinit[:]
 
         # Set the bounds on the material selection variables
-        lb[:] = max(0.0, self.x_lb)
+        lb[:] = max(0.0, self.t_min/self.nmats)
         ub[:] = self.no_bound
 
         # Set the bounds on the thickness variables
-        lb[::self.nblock] = self.t_min
+        lb[::self.nblock] = -self.no_bound
         ub[::self.nblock] = 1.0
 
         return
 
-    def setAreas(self, x):
+    def setAreas(self, x, lb_factor=0.0):
         '''Set the areas from the design variable values'''
         
         # Zero all the areas
-        self.A[:] = 0.0
+        self.A[:] = lb_factor*self.Avals[0]
 
         # Add up the contributions to the areas from each 
         # discrete variable
@@ -260,7 +264,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Set the cross-sectional areas from the design variable
         # values
-        self.setAreas(x)
+        self.setAreas(x, lb_factor=self.epsilon)
 
         # Evaluate compliance objective
         self.assembleMat(self.A, self.K)
@@ -310,7 +314,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         self.gevals += 1
 
         # Set the areas from the design variable values
-        self.setAreas(x)
+        self.setAreas(x, lb_factor=self.epsilon)
 
         # Zero the objecive and constraint gradients
         gobj[:] = 0.0
@@ -323,7 +327,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         
         # Add up the contribution to the gradient
         index = 0
-        for bar, A_bar in zip(self.conn, self.A):
+        for bar in self.conn:
             # Get the first and second node numbers from the bar
             n1 = bar[0]
             n2 = bar[1]
@@ -388,7 +392,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         hvec[:] = 0.0
 
         # Assemble the stiffness matrix along the px direction
-        self.setAreas(px)
+        self.setAreas(px, lb_factor=0.0)
         self.assembleMat(self.A, self.Kp)
         np.dot(self.Kp, self.u, out=self.phi)
         self.applyBCs(self.Kp, self.phi)
@@ -585,15 +589,15 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             n2 = self.conn[i][1]
 
             t = x[self.nblock*i]
-            j = np.argmax(x[(self.nblock*i+1):self.nblock*(i+1)])
-            xj = x[self.nblock*i+1+j]
-
-            if t >= 0.05:
-                s += '\\draw[line width=%f, color=%s, opacity=%f]'%(
-                    2.0*self.Avals[j]/Amin, bar_colors[j], t*xj)
-                s += '(%f,%f) -- (%f,%f);\n'%(
-                    self.xpos[2*n1], self.xpos[2*n1+1], 
-                    self.xpos[2*n2], self.xpos[2*n2+1])
+            if t >= 3*self.t_min:
+                for j in xrange(self.nmats):
+                    xj = x[self.nblock*i+1+j]
+                    if xj > 3*self.t_min:
+                        s += '\\draw[line width=%f, color=%s, opacity=%f]'%(
+                            2.0*self.Avals[j]/Amin, bar_colors[j], t*xj)
+                        s += '(%f,%f) -- (%f,%f);\n'%(
+                            self.xpos[2*n1], self.xpos[2*n1+1], 
+                            self.xpos[2*n2], self.xpos[2*n2+1])
 
         s += '\\end{tikzpicture}'
         s += '\\end{figure}'

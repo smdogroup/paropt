@@ -19,7 +19,7 @@ import numpy as np
 # Import the truss analysis problem
 from dmo_truss_analysis import TrussAnalysis
 
-def get_ground_structure(N=4, M=4, L=2.5, P=10.0, n=5):
+def get_ground_structure(N=4, M=4, L=2.5, P=10.0, n=10):
     '''
     Set up the connectivity for a ground structure consisting of a 2D
     mesh of (N x M) nodes of completely connected elements.
@@ -102,7 +102,8 @@ def setup_ground_struct(N, M, L=2.5, E=70e9,
     Area_scale = 1.0
 
     # Set the fixed mass constraint
-    m_fixed = (N-1)*(M-1)*L*rho[-1]
+    AR = 1.0*(N-1)/(M-1)
+    m_fixed = (M-1)*(N-1)*L*rho[-1]
 
     # Create the truss topology optimization object
     truss = TrussAnalysis(conn, xpos, loads, bcs, 
@@ -151,21 +152,35 @@ def paropt_truss(truss, use_hessian=False,
     return opt
 
 def optimize_truss(N, M, heuristic, root_dir='results',
-                   use_mass_constraint=False):
+                   use_mass_constraint=False, sigma=100.0,
+                   t_min_init=0.125, max_d=1e-5, theta=1e-2):
     # Optimize the structure
     prefix = os.path.join(root_dir, '%dx%d'%(N, M), heuristic)
 
     # Make sure that the directory exists
     if not os.path.exists(prefix):
         os.makedirs(prefix)
-
+   
     # Create the ground structure and optimization
-    truss = setup_ground_struct(N, M, 
-                                use_mass_constraint=use_mass_constraint)
-    opt = paropt_truss(truss,
-                       use_hessian=use_hessian,
+    truss = setup_ground_struct(N, M, sigma=sigma,
+                                use_mass_constraint=use_mass_constraint,
+                                t_min=t_min_init)
+    
+    # Set up the optimization problem in ParOpt
+    opt = paropt_truss(truss, use_hessian=use_hessian,
                        qn_type=ParOpt.BFGS)
 
+    # Create a vector of all ones
+    m_add = 0.0
+    if use_mass_constraint:
+        xones = np.ones(truss.gmass.shape)
+        m_add = truss.getMass(xones)/truss.nmats
+    
+    # Keep track of the fixed mass
+    m_fixed_init = 1.0*truss.m_fixed
+    truss.m_fixed = m_fixed_init + truss.t_min*m_add
+
+    # Log the optimization file
     log_filename = os.path.join(prefix, 'log_file.dat')
     fp = open(log_filename, 'w')
 
@@ -177,24 +192,30 @@ def optimize_truss(N, M, heuristic, root_dir='results',
     s += 'Zone T = %s\n'%(heuristic)
     fp.write(s)
 
+    # Keep track of the ellapsed CPU time
     init_time = MPI.Wtime()
 
     # Initialize the gamma values
     gamma_init = 1e-4
-    gamma = gamma_init*np.ones(truss.nelems)
+    gamma = np.zeros(truss.nelems)
 
-    # Set the lower limits for the bounds
-    truss.x_lb = 0.0
-
+    # Set the heuristic parameters
     alpha = 1.25
     beta = 0.25
     print 'Heuristic: %s  alpha = %8.4f beta = %8.4f'%(
         heuristic, alpha, beta)
 
+    # Previous value of the objective function
     fobj_prev = 0.0
 
+    # Keep track of the objective/tau the last time
+    # the penalty parameters were incremented
+    fobj_iter = 0.0
+    tau_iter = 0.0
+
+    # Keep track of the number of iterations
     niters = 0
-    for k in xrange(100):
+    for k in xrange(150):
         # Set the output file to use
         fname = os.path.join(prefix, 'truss_paropt_iter%d.out'%(k)) 
         opt.setOutputFile(fname)
@@ -219,6 +240,9 @@ def optimize_truss(N, M, heuristic, root_dir='results',
         # Compute the objective function
         fobj = np.sum(Ue)
 
+        # Compute the discrete infeasibility measure
+        tau = np.sum(d)
+
         # Print out the iteration information to the screen
         print 'Iteration %d'%(k)
         print 'Min/max SE:    %15.5e %15.5e  Total: %15.5e'%(
@@ -228,6 +252,7 @@ def optimize_truss(N, M, heuristic, root_dir='results',
         print 'Min/max d:     %15.5e %15.5e  Total: %15.5e'%(
             np.min(d), np.max(d), np.sum(d))
         print 'Mass infeas:   %15.5e'%(m_infeas)
+        print 'min(t):        %15.5e'%(truss.t_min)
 
         s = '%d %e %e %e %e %e %e %e %e %e %e '%(
             k, np.min(Ue), np.max(Ue), np.sum(Ue),
@@ -241,7 +266,7 @@ def optimize_truss(N, M, heuristic, root_dir='results',
 
         # Terminate if the maximum discrete infeasibility measure is
         # sufficiently low
-        if np.max(d) < 3.0*(truss.t_min - truss.t_min**2):
+        if np.max(d) < max_d:
             break
 
         # Print the output
@@ -249,17 +274,37 @@ def optimize_truss(N, M, heuristic, root_dir='results',
         output = os.path.join(prefix, filename)
         truss.printTruss(x, filename=output)
 
-        # Set the new penalty
-        truss.setNewInitPointPenalty(x, gamma)
+        if k == 0:
+            tau_iter = 1.0*tau
+            fobj_iter = 1.0*fobj
+            gamma[:] = gamma_init
+        elif abs((fobj - fobj_prev)/fobj < 0.001):
+            # Normalize the coefficients
+            y = Ue/np.max(Ue)
+            z = d/np.max(d)
 
-        if abs((fobj - fobj_prev)/fobj < 0.001):
-            y = Ue*d/np.max(Ue*d)
+            # Compute the new coefficients based on the scheme
             if heuristic == 'scalar':
-                gamma *= (alpha + beta)
+                gamma *= alpha + beta
             elif heuristic == 'linear':
                 gamma *= alpha + beta*y
             elif heuristic == 'discrete':
-                gamma *= alpha + beta*d
+                gamma *= alpha + beta*z
+            elif heuristic == 'inverse':
+                gamma *= alpha + beta*z*(1.0 - y)/(1.0 + 2*y)
+
+            # Adjust the coefficients so they satisfy the convergence
+            # property
+            gmax = max(gamma)
+            for i in xrange(len(gamma)):
+                gamma[i] = max(gamma[i], theta*gmax)
+
+            # Set the new value of t_min
+            truss.t_min = 0.0 # max(0.0, truss.t_min - 0.1*t_min_init)
+            truss.m_fixed = m_fixed_init + max(0.0, truss.t_min*m_add)
+    
+        # Set the new penalty
+        truss.setNewInitPointPenalty(x, gamma)
 
         # Store the previous value of the objective function
         fobj_prev = 1.0*fobj
@@ -296,6 +341,8 @@ parser.add_argument('--heuristic', type=str, default='scalar',
                     help='Heuristic type')
 parser.add_argument('--use_mass_constraint', action='store_true',
                     default=False, help='Use the mass constraint')
+parser.add_argument('--sigma', type=float, default=100.0,
+                    help='Penalty parameter value')
 args = parser.parse_args()
 
 # Get the arguments
@@ -304,7 +351,9 @@ M = args.M
 profile = args.profile
 heuristic = args.heuristic
 use_mass_constraint = args.use_mass_constraint
+sigma = args.sigma
 
+# Set the root results directory
 root_dir = 'results'
 if use_mass_constraint:
     root_dir = 'con-results'
@@ -323,9 +372,11 @@ if profile:
     for N, M in trusses:
         try:
             optimize_truss(N, M, heuristic, root_dir=root_dir,
-                           use_mass_constraint=use_mass_constraint)
+                           use_mass_constraint=use_mass_constraint,
+                           sigma=sigma)
         except:
             pass
 else:
     optimize_truss(N, M, heuristic, root_dir=root_dir,
-                   use_mass_constraint=use_mass_constraint)
+                   use_mass_constraint=use_mass_constraint,
+                   sigma=sigma)
