@@ -13,7 +13,7 @@
   each parameter and how you should set it. 
 */
 
-static const int NUM_PAROPT_PARAMETERS = 25;
+static const int NUM_PAROPT_PARAMETERS = 26;
 static const char * paropt_parameter_help[][2] = {
   {"max_qn_size", 
    "Integer: The maximum dimension of the quasi-Newton approximation"},
@@ -56,7 +56,10 @@ static const char * paropt_parameter_help[][2] = {
   
   {"write_output_frequency", 
    "Integer: Write out the solution file and checkpoint file at this frequency"},
-  
+
+  {"gradient_check_frequency",
+   "Integer: Print to screen the output of the gradient check at this frequency "},
+
   {"sequential_linear_method", 
    "Boolean: Discard the quasi-Newton approximation (but not \
 necessarily the exact Hessian)"},
@@ -250,6 +253,8 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   monotone_barrier_power = 1.1;
   min_fraction_to_boundary = 0.95;
   write_output_frequency = 10;
+  gradient_check_frequency = -1;
+  gradient_check_step = 1e-6;
   major_iter_step_check = -1;
   sequential_linear_method = 0;
   hessian_reset_freq = 100000000;
@@ -454,6 +459,10 @@ void ParOpt::printOptionSummary( FILE *fp ){
 	    major_iter_step_check);
     fprintf(fp, "%-30s %15d\n", "write_output_frequency", 
 	    write_output_frequency);
+    fprintf(fp, "%-30s %15d\n", "gradient_check_frequency", 
+	    gradient_check_frequency);
+    fprintf(fp, "%-30s %15g\n", "gradient_check_step", 
+	    gradient_check_step);
     fprintf(fp, "%-30s %15d\n", "sequential_linear_method",
 	    sequential_linear_method);
     fprintf(fp, "%-30s %15d\n", "hessian_reset_freq",
@@ -848,6 +857,11 @@ void ParOpt::setOutputFrequency( int freq ){
 
 void ParOpt::setMajorIterStepCheck( int step ){
   major_iter_step_check = step;
+}
+
+void ParOpt::setGradientCheckFrequency( int freq, double step_size ){
+  gradient_check_frequency = freq;
+  gradient_check_step = step_size;
 }
 
 /*
@@ -3541,8 +3555,13 @@ int ParOpt::optimize( const char * checkpoint ){
 	  checkpoint = NULL;
 	}
       }
+      prob->writeOutput(k, x);      
+    }
 
-      prob->writeOutput(k, x);
+    // Print to screen the gradient check results at 
+    // iteration k 
+    if ((gradient_check_frequency > 0) && (k % gradient_check_frequency == 0)){
+      checkGradients(gradient_check_step);
     }
 
     // Compute the complementarity
@@ -4429,7 +4448,6 @@ void ParOpt::checkGradients( double dh ){
   ParOptScalar *pxvals, *gvals;
   px->getArray(&pxvals);
   g->getArray(&gvals);
-  
   for ( int i = 0; i < nvars; i++ ){
     if (gvals[i] >= 0.0){
       pxvals[i] = 1.0;
@@ -4438,7 +4456,7 @@ void ParOpt::checkGradients( double dh ){
       pxvals[i] = -1.0;
     }
   }
-
+  
   // Compute the projected derivative
   ParOptScalar pobj = g->dot(px);
   px->mdot(Ac, ncon, rs);
@@ -4498,6 +4516,7 @@ void ParOpt::checkGradients( double dh ){
 #else
   xt->axpy(dh, px);
 #endif // PAROPT_USE_COMPLEX
+
 
   // Compute the finite-difference product
   ParOptScalar fobj2;
