@@ -14,7 +14,7 @@ from paropt import ParOpt
 class TrussAnalysis(ParOpt.pyParOptProblem):
     def __init__(self, conn, xpos, loads, bcs, 
                  E, rho, Avals, m_fixed, use_mass_constraint=True,
-                 t_min=1e-3, epsilon=1e-3, sigma=10.0, no_bound=1e30):
+                 x_lb=0.0, epsilon=1e-3, sigma=10.0, no_bound=1e30):
         '''
         Analysis problem for mass-constrained compliance minimization
         '''
@@ -34,9 +34,6 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Fixed mass value
         self.m_fixed = m_fixed
-
-        # Set the minimum t value
-        self.t_min = t_min
 
         # Set the factor on the lowest value of the thickness
         # This avoids
@@ -79,7 +76,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         self.xinit[::self.nblock] = 0.5
 
         # Set the lower bounds on the variables
-        self.x_lb = 0.0
+        self.x_lb = max(x_lb, 0.0)
 
         # Allocate the matrices required
         self.K = np.zeros((self.nvars, self.nvars))
@@ -131,9 +128,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         bound = 2e-3
         for i in xrange(self.nelems):
             # Modify the bounds of the thickness variables
-            if self.xinit[i*self.nblock] - self.t_min < bound:
-                self.xinit[i*self.nblock] = self.t_min + bound
-            elif self.xinit[i*self.nblock] > 1.0 - bound:
+            if self.xinit[i*self.nblock] > 1.0 - bound:
                 self.xinit[i*self.nblock] = 1.0 - bound
 
             # Check the bounds of the material selection variables
@@ -227,7 +222,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         x[:] = self.xinit[:]
 
         # Set the bounds on the material selection variables
-        lb[:] = max(0.0, self.t_min/self.nmats)
+        lb[:] = max(0.0, self.x_lb)
         ub[:] = self.no_bound
 
         # Set the bounds on the thickness variables
@@ -246,7 +241,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         # discrete variable
         for i in xrange(len(self.conn)):
             for j in xrange(self.nmats):
-                self.A[i] += self.Avals[j]*x[i*self.nblock+1+j]
+                self.A[i] += self.Avals[j]*(lb_factor + x[i*self.nblock+1+j])
 
         return
 
@@ -478,7 +473,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             S = yd/Le
         
             # Compute the element stiffness matrix
-            Ke = self.E*A_bar/Le*np.array(
+            Ke = (self.E*A_bar/Le)*np.array(
                 [[C**2, C*S, -C**2, -C*S],
                  [C*S, S**2, -C*S, -S**2],
                  [-C**2, -C*S, C**2, C*S],
@@ -552,7 +547,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
     def addSparseInnerProduct(self, alpha, x, c, A):
         '''Add the results from the product J(x)*C*J(x)^{T} to A'''
-        A[:] += alpha*np.sum(c.reshape(-1, self.nblock), axis=1)
+        A[:] += alpha*np.sum(c.reshape(-1, self.nblock), axis=1)        
         return
 
     def getTikzPrefix(self):
@@ -574,7 +569,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         return s
 
-    def printTruss(self, x, filename='file.tex'):
+    def printTruss(self, x, filename='file.tex', gamma=None):
         '''Print the truss to an output file'''
 
         s = self.getTikzPrefix()
@@ -589,15 +584,35 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             n2 = self.conn[i][1]
 
             t = x[self.nblock*i]
-            if t >= 3*self.t_min:
+            if t >= self.epsilon:
                 for j in xrange(self.nmats):
                     xj = x[self.nblock*i+1+j]
-                    if xj > 3*self.t_min:
+                    if xj > self.epsilon:
                         s += '\\draw[line width=%f, color=%s, opacity=%f]'%(
-                            2.0*self.Avals[j]/Amin, bar_colors[j], t*xj)
+                            2.0*self.Avals[j]/Amin, bar_colors[j], xj)
                         s += '(%f,%f) -- (%f,%f);\n'%(
                             self.xpos[2*n1], self.xpos[2*n1+1], 
                             self.xpos[2*n2], self.xpos[2*n2+1])
+
+        # Show the discrete infeasibility measure...
+        if gamma is not None:
+            d = self.getDiscreteInfeas(x)
+            U = self.getStrainEnergy(x)
+            
+            ymax = max(self.xpos[1::2])
+            yoffset = -1.05*ymax
+
+            for i in xrange(self.nelems):
+                # Get the node numbers for this element
+                n1 = self.conn[i][0]
+                n2 = self.conn[i][1]
+                
+                t = x[self.nblock*i]
+                s += '\\draw[line width=%f, color=%s, opacity=%f]'%(
+                    2.0, 'black', gamma[i]/max(gamma))
+                s += '(%f,%f) -- (%f,%f);\n'%(
+                    self.xpos[2*n1], self.xpos[2*n1+1] + yoffset, 
+                    self.xpos[2*n2], self.xpos[2*n2+1] + yoffset)
 
         s += '\\end{tikzpicture}'
         s += '\\end{figure}'

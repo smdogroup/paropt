@@ -83,7 +83,7 @@ def get_ground_structure(N=4, M=4, L=2.5, P=10.0, n=10):
     return conn, xpos, loads, bcs
 
 def setup_ground_struct(N, M, L=2.5, E=70e9, 
-                        t_min=1e-2, sigma=100.0,
+                        x_lb=0.0, sigma=100.0,
                         use_mass_constraint=False):
     '''
     Create a ground structure with a given number of nodes and
@@ -92,7 +92,7 @@ def setup_ground_struct(N, M, L=2.5, E=70e9,
 
     # Set the values for the
     Avals = [ 0.01, 0.02, 0.05 ]
-    rho = [ 25.0, 54.0, 150.0 ]
+    rho = [ 0.25,  0.55, 1.5 ]
 
     # Create the ground structure
     conn, xpos, loads, bcs = get_ground_structure(N=N, M=M, 
@@ -108,7 +108,7 @@ def setup_ground_struct(N, M, L=2.5, E=70e9,
     # Create the truss topology optimization object
     truss = TrussAnalysis(conn, xpos, loads, bcs, 
                           E, rho, Avals, m_fixed, 
-                          t_min=t_min, sigma=sigma, 
+                          sigma=sigma, x_lb=x_lb, 
                           use_mass_constraint=use_mass_constraint)
 
     # Set the options
@@ -153,7 +153,7 @@ def paropt_truss(truss, use_hessian=False,
 
 def optimize_truss(N, M, heuristic, root_dir='results',
                    use_mass_constraint=False, sigma=100.0,
-                   t_min_init=0.125, max_d=1e-5, theta=1e-2):
+                   max_d=1e-5, theta=1e-2):
     # Optimize the structure
     prefix = os.path.join(root_dir, '%dx%d'%(N, M), heuristic)
 
@@ -162,9 +162,10 @@ def optimize_truss(N, M, heuristic, root_dir='results',
         os.makedirs(prefix)
    
     # Create the ground structure and optimization
+    x_lb = 0.0
     truss = setup_ground_struct(N, M, sigma=sigma,
                                 use_mass_constraint=use_mass_constraint,
-                                t_min=t_min_init)
+                                x_lb=x_lb)
     
     # Set up the optimization problem in ParOpt
     opt = paropt_truss(truss, use_hessian=use_hessian,
@@ -178,7 +179,7 @@ def optimize_truss(N, M, heuristic, root_dir='results',
     
     # Keep track of the fixed mass
     m_fixed_init = 1.0*truss.m_fixed
-    truss.m_fixed = m_fixed_init + truss.t_min*m_add
+    truss.m_fixed = m_fixed_init + truss.x_lb*m_add
 
     # Log the optimization file
     log_filename = os.path.join(prefix, 'log_file.dat')
@@ -199,19 +200,17 @@ def optimize_truss(N, M, heuristic, root_dir='results',
     gamma_init = 1e-4
     gamma = np.zeros(truss.nelems)
 
-    # Set the heuristic parameters
-    alpha = 1.25
-    beta = 0.25
-    print 'Heuristic: %s  alpha = %8.4f beta = %8.4f'%(
-        heuristic, alpha, beta)
+    # # Set the heuristic parameters
+    # alpha = 2.0
+    # beta = 0.0
+    # print 'Heuristic: %s  alpha = %8.4f beta = %8.4f'%(
+    #     heuristic, alpha, beta)
 
     # Previous value of the objective function
     fobj_prev = 0.0
 
-    # Keep track of the objective/tau the last time
-    # the penalty parameters were incremented
-    fobj_iter = 0.0
-    tau_iter = 0.0
+    # Keep track of the number of bars
+    max_bars = len(truss.conn)-1
 
     # Keep track of the number of iterations
     niters = 0
@@ -252,7 +251,7 @@ def optimize_truss(N, M, heuristic, root_dir='results',
         print 'Min/max d:     %15.5e %15.5e  Total: %15.5e'%(
             np.min(d), np.max(d), np.sum(d))
         print 'Mass infeas:   %15.5e'%(m_infeas)
-        print 'min(t):        %15.5e'%(truss.t_min)
+        print 'min(x):        %15.5e'%(truss.x_lb)
 
         s = '%d %e %e %e %e %e %e %e %e %e %e '%(
             k, np.min(Ue), np.max(Ue), np.sum(Ue),
@@ -272,37 +271,57 @@ def optimize_truss(N, M, heuristic, root_dir='results',
         # Print the output
         filename = 'opt_truss_iter%d.tex'%(k)
         output = os.path.join(prefix, filename)
-        truss.printTruss(x, filename=output)
+        truss.printTruss(x, filename=output, gamma=gamma)
 
         if k == 0:
-            tau_iter = 1.0*tau
-            fobj_iter = 1.0*fobj
             gamma[:] = gamma_init
-        elif abs((fobj - fobj_prev)/fobj < 0.001):
-            # Normalize the coefficients
-            y = Ue/np.max(Ue)
-            z = d/np.max(d)
+        elif abs((fobj - fobj_prev)/fobj < 1e-3):
+            # # Normalize the coefficients
+            # y = Ue/np.max(Ue)
+            # z = d/np.max(d)
+            
+            # Compute the product of the variables with the discrete
+            # infeasibility measure
+            prod = Ue*d
+            prod = prod/max(prod)
+            gamma = 1.1*gamma + 2.0*gamma*prod
 
-            # Compute the new coefficients based on the scheme
-            if heuristic == 'scalar':
-                gamma *= alpha + beta
-            elif heuristic == 'linear':
-                gamma *= alpha + beta*y
-            elif heuristic == 'discrete':
-                gamma *= alpha + beta*z
-            elif heuristic == 'inverse':
-                gamma *= alpha + beta*z*(1.0 - y)/(1.0 + 2*y)
+            # gamma[index[:max_bars]] = gmax*prod + theta*gmax
+            # max_bars -= 2
 
-            # Adjust the coefficients so they satisfy the convergence
-            # property
-            gmax = max(gamma)
-            for i in xrange(len(gamma)):
-                gamma[i] = max(gamma[i], theta*gmax)
+            # # Compute the values of alpha
+            # alpha = 2.0
+            # gamma *= alpha
+            # gmax = max(gamma)
+            # for i in xrange(len(gamma)): 
+            #     gamma[i] = max(gamma[i], theta*gmax)
 
-            # Set the new value of t_min
-            truss.t_min = 0.0 # max(0.0, truss.t_min - 0.1*t_min_init)
-            truss.m_fixed = m_fixed_init + max(0.0, truss.t_min*m_add)
-    
+            # # Sort the arguments
+            # index = np.argsort(Ue)
+
+            # # Only keep the sorted largest bars
+            # gamma[index[:max_bars]] = 0.0
+            # max_bars -= 2
+
+            # # Compute the new coefficients based on the scheme
+            # if heuristic == 'scalar':
+            #     gamma *= alpha + beta
+            # elif heuristic == 'linear':
+            #     gamma *= alpha + beta*y
+            # elif heuristic == 'discrete':
+            #     gamma *= alpha + beta*z
+            # elif heuristic == 'inverse':
+            #     gamma *= alpha + beta*z*(1.0 - y)/(1.0 + 2*y)
+                
+            # # Adjust the coefficients so they satisfy the
+            # # convergence property
+            # gmax = max(gamma)
+            # for i in xrange(len(gamma)):
+            #     gamma[i] = max(gamma[i], theta*gmax)
+                    
+            # if x[i*truss.nblock] < 1e-2: # or d[i] < 1e-3 or y[i] < 1e-3:
+            #     gamma[i] = theta*gmax
+
         # Set the new penalty
         truss.setNewInitPointPenalty(x, gamma)
 
