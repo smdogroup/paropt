@@ -61,16 +61,18 @@ if use_mass_constraint:
     root_dir = 'con-results'
 
 # The heuristics to include in the plot
-heuristics = ['scalar', 'discrete', 'linear', 'inverse']
+# heuristics = ['scalar', 'discrete', 'linear', 'inverse']
+heuristics = ['SIMP2', 'SIMP3', 'SIMP4', 'SIMP5']
 
 # The trusses to include in the plot
 trusses = [ (3, 3), (4, 3), (5, 3), (6, 3),
             (4, 4), (5, 4), (6, 4), (7, 4), (8, 4), (9, 4), (10, 4),
             (5, 5), (6, 5), (7, 5), (8, 5), (9, 5), (10, 5),
-            (6, 6), (7, 6), (8, 6), (9, 6), (10, 6) ]
+            (6, 6), (7, 6), (8, 6), (9, 6), (10, 6), (11, 6), (12, 6),
+            (7, 7), (8, 7), (9, 7), (10, 7), (11, 7), (12, 7), (13, 7), (14, 7) ]
 
 # The variable names in the file
-variables = ['iteration', 'min SE', 'max SE', 'fobj',
+variables = ['iteration', 'compliance', 'fobj',
              'min gamma', 'max gamma', 'gamma',
              'min d', 'max d', 'tau', 'mass infeas', 
              'feval', 'geval', 'hvec', 'time']
@@ -88,7 +90,7 @@ discrete_infeas = np.ones((len(trusses), len(heuristics)))
 mass_infeas = np.ones((len(trusses), len(heuristics)))
 
 # Set the minimum thickness
-t_min = 1e-3
+min_d = 1e-4
 
 # Read in all the data required for each problem
 iheur = 0
@@ -106,12 +108,14 @@ for heuristic in heuristics:
             # Get the list of last names
             last = last_line.split()
             
-            if float(last[infeas_index]) < 3*(t_min - t_min**2):
+            if use_mass_constraint:
+                perform[itruss, iheur] = float(last[imerit])
+            elif float(last[infeas_index]) < min_d:
                 perform[itruss, iheur] = float(last[imerit])
 
             # Set the values of the discrete infeasibility
             discrete_infeas[itruss, iheur] = float(last[infeas_index])
-            mass_infeas[itruss, iheur] = float(last[mass_index])            
+            mass_infeas[itruss, iheur] = max(0.0, float(last[mass_index]))
 
         # Keep track of the number of trusses
         itruss += 1
@@ -168,16 +172,16 @@ else:
     colors = ['Red', 'NavyBlue', 'black', 'ForestGreen', 'Gray']
     symbols = ['circle', 'square', 'triangle', 'delta', None ]
 
-    if merit == None: # 'fobj':
-        xscale = 15.0
-        xmin = 0.995
-        xmax = 1.1
+    if merit == 'fobj':
+        xscale = 3.0
+        xmin = 0.99
+        xmax = 1.5
         tick_frac = 0.1
-        xticks = [1, 1.025, 1.05, 1.075, 1.1]
+        xticks = [1, 1.1, 1.2, 1.3, 1.4, 1.5]
 
         ylabel_offset = 0.15
-        length = 0.01
-        xlegend = 1.06
+        length = 0.05
+        xlegend = 1.25
 
     # Get the header info
     s = tikz.get_header()
@@ -217,18 +221,18 @@ else:
 
     # Create a plot of the max/min discrete infeasibility    
     xscale = 0.1
-    yscale = 1.0
+    yscale = 0.75
 
     # Set the bounds on the plot
     xmin = 0.5
     xmax = len(trusses)+0.5
-    ymin = -6
-    ymax = -4 # max(-1, np.max(np.log10(discrete_infeas)))
+    ymin = np.log10(5e-5)
+    ymax = np.log10(5e-4) # max(-1, np.max(np.log10(discrete_infeas)))
     
     # Set the positions of the tick locations
-    yticks = [-6, np.log10(5e-6), -5, np.log10(5e-5), -4]
-    ytick_labels=['$10^{-6}$', '$5 \\times$', 
-                  '$10^{-5}$', '$5 \\times$', '$10^{-4}$']
+    yticks = [np.log10(5e-5), -4, np.log10(5e-4)]
+    ytick_labels=['$5 \\times 10^{-5}$', 
+                  '$10^{-4}$', '$5 \\times 10^{-4}$']
     xticks = range(1, len(trusses)+1, 3)
   
     # Get the header info
@@ -253,13 +257,13 @@ else:
 
         # Add a label to the legend
         length = 1.
-        s += tikz.get_legend_entry(1.5, -2.1 - 0.1*k, length,
+        s += tikz.get_legend_entry(10.5, -3.5 - 0.1*k, length,
                                    xscale=xscale, yscale=yscale,
                                    color=colors[k], line_dim='ultra thick',
                                    symbol=None, label=heuristics[k])
 
     # Keep track of the discrete infeasibility measure
-    yvals = np.array([ 1e-5, 1e-5 ])
+    yvals = np.array([ 1e-4, 1e-4 ])
     xvals = [ 1, len(trusses) ]
     s += tikz.get_2d_plot(xvals, np.log10(yvals), 
                           xscale=xscale, yscale=yscale,
@@ -287,11 +291,11 @@ else:
     xmin = 0.5
     xmax = len(trusses)+0.5
     ymin = 0
-    ymax = 0.1
+    ymax = 0.175
     
     # Set the positions of the tick locations
-    yticks = [0, .025, 0.05, 0.075, 0.1 ]
-    ytick_labels=['0', '2.5\%', '5\%', '7.5\%', '10\%']
+    yticks = [0, .025, 0.05, 0.075, 0.1, 0.125, 0.15, 0.175 ]
+    ytick_labels=['0', '2.5\%', '5\%', '7.5\%', '10\%', '12.5\%', '15\%', '17.5\%']
     xticks = range(1, len(trusses)+1, 3)
   
     # Get the header info
@@ -317,7 +321,7 @@ else:
 
         # Add a label to the legend
         length = 1.
-        s += tikz.get_legend_entry(1.5, 0.1 - 0.015*k, length,
+        s += tikz.get_legend_entry(10.5, 0.175 - 0.015*k, length,
                                    xscale=xscale, yscale=yscale,
                                    color=colors[k], line_dim='ultra thick',
                                    symbol=None, label=heuristics[k])

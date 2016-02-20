@@ -14,7 +14,7 @@ from paropt import ParOpt
 class TrussAnalysis(ParOpt.pyParOptProblem):
     def __init__(self, conn, xpos, loads, bcs, 
                  E, rho, Avals, m_fixed, use_mass_constraint=True,
-                 x_lb=0.0, epsilon=1e-3, sigma=10.0, no_bound=1e30):
+                 x_lb=0.0, epsilon=1e-12, sigma=10.0, no_bound=1e30):
         '''
         Analysis problem for mass-constrained compliance minimization
         '''
@@ -29,7 +29,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         self.E = E
         
         # Set the values of the areas -- all must be non-zero
-        self.Avals = Avals
+        self.Avals = np.array(Avals)
         self.rho = rho
 
         # Fixed mass value
@@ -59,11 +59,13 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Initialize the super class
         ncon = 0
+        ndv = self.nblock*self.nelems
         if self.use_mass_constraint:
             ncon = 1
+            ndv += 2
+
         nwcon = self.nelems
         nwblock = 1
-        ndv = self.nblock*self.nelems
         super(TrussAnalysis, self).__init__(MPI.COMM_SELF,
                                             ndv, ncon, nwcon, nwblock)
 
@@ -71,9 +73,17 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         self.penalty = np.zeros(ndv)
         self.xinit = np.zeros(ndv)
 
+        # Allocate a vector that stores the gradient of the mass
+        self.gmass = np.zeros(ndv)
+
         # Set the initial variable values
         self.xinit[:] = 1.0/self.nmats
-        self.xinit[::self.nblock] = 0.5
+        self.xinit[::self.nblock] = 1.0
+
+        # Set the initial linearization
+        self.SIMP = 1.0
+        self.xconst = np.array(self.xinit)
+        self.xlinear = np.ones(ndv)
 
         # Set the lower bounds on the variables
         self.x_lb = max(x_lb, 0.0)
@@ -93,8 +103,8 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         self.gevals = 0
         self.hevals = 0
 
-        # Allocate a vector that stores the gradient of the mass
-        self.gmass = np.zeros(ndv)
+        # Allocate the matrices
+        self.Ke = np.zeros((len(self.conn), 4, 4))
 
         # Compute the gradient of the mass for each bar in the mesh
         index = 0
@@ -107,7 +117,17 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             xd = self.xpos[2*n2] - self.xpos[2*n1]
             yd = self.xpos[2*n2+1] - self.xpos[2*n1+1]
             Le = np.sqrt(xd**2 + yd**2)
+            C = xd/Le
+            S = yd/Le
 
+            # Compute the element stiffness matrix
+            self.Ke[index,:,:] = (self.E/Le)*np.array(
+                [[C**2, C*S, -C**2, -C*S],
+                 [C*S, S**2, -C*S, -S**2],
+                 [-C**2, -C*S, C**2, C*S],
+                 [-C*S, -S**2, C*S, S**2]])
+
+            # Compute the gradient of the mass
             for j in xrange(self.nmats):
                 self.gmass[self.nblock*index+1+j] += self.rho[j]*Le
 
@@ -115,7 +135,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             
         return
 
-    def setNewInitPointPenalty(self, x, gamma):
+    def setNewInitPointPenalty(self, x, gamma, SIMP=1.0):
         '''
         Set the linearized penalty function, given the design variable
         values from the previous iteration and the penalty parameters
@@ -124,17 +144,14 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         # Set the new initial design variable values
         self.xinit[:] = x[:]
 
-        # Modify the variables to lie within the prescribed bounds
-        bound = 2e-3
-        for i in xrange(self.nelems):
-            # Modify the bounds of the thickness variables
-            if self.xinit[i*self.nblock] > 1.0 - bound:
-                self.xinit[i*self.nblock] = 1.0 - bound
-
-            # Check the bounds of the material selection variables
-            for j in xrange(1, self.nblock):
-                if self.xinit[i*self.nblock+j] - self.x_lb < bound:
-                    self.xinit[i*self.nblock+j] = self.x_lb + bound
+        self.SIMP = SIMP
+        if self.SIMP > 1.0:
+            # Compute the constant and linear terms in
+            self.xconst[:] = self.xinit**(self.SIMP)
+            self.xlinear[:] = self.SIMP*self.xinit**(self.SIMP-1.0)
+        else:
+            self.xconst[:] = x[:]
+            self.xlinear[:] = 1.0
 
         # Set the penalty parameters
         for i in xrange(self.nelems):
@@ -156,14 +173,143 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             
         return d
 
-    def getStrainEnergy(self, x):
+    def computeLimitDesign(self, x):
+        '''
+        Compute the solution as gamma -> infty
+        '''
+        xinfty = np.zeros(x.shape)
+
+        for i in xrange(self.nelems):
+            jmax = np.argmax(x[i*self.nblock+1:(i+1)*self.nblock])+1
+            if 1.0 - x[i*self.nblock] > x[i*self.nblock+jmax]:
+                jmax = 0
+
+            if jmax != 0:
+                xinfty[i*self.nblock] = 1.0
+                xinfty[i*self.nblock+jmax] = 1.0
+
+        return xinfty                
+
+    def getStrainEnergy(self, x, limit=False):
         '''Compute the strain energy in each bar'''
 
         Ue = np.zeros(self.nelems)
 
+        if limit:
+            self.u[:] = self.getLimitDisplacements(x)
+        else:
+            # Set the cross-sectional areas from the design variable
+            # values
+            self.setAreas(x, lb_factor=self.epsilon)
+
+            # Evaluate compliance objective
+            self.assembleMat(self.A, self.K)
+            self.assembleLoadVec(self.f)
+            self.applyBCs(self.K, self.f)
+            
+            # Copy the values
+            self.u[:] = self.f[:]
+            
+            # Perform the Cholesky factorization
+            self.L = linalg.cholesky(self.K, lower=True)
+            
+            # Solve the resulting linear system of equations
+            linalg.solve_triangular(self.L, self.u, lower=True,
+                                    trans='N', overwrite_b=True)
+            linalg.solve_triangular(self.L, self.u, lower=True, 
+                                    trans='T', overwrite_b=True)
+
+        # Add up the contribution to the gradient
+        index = 0
+        for bar, A_bar in zip(self.conn, self.A):
+            # Get the first and second node numbers from the bar
+            n1 = bar[0]
+            n2 = bar[1]
+
+            # Find the element variables
+            ue = np.array([self.u[2*n1], self.u[2*n1+1],
+                           self.u[2*n2], self.u[2*n2+1]])
+            
+            # Compute the inner product with the element stiffness matrix
+            Ue[index] = A_bar*np.dot(ue, np.dot(self.Ke[index,:,:], ue))            
+            index += 1
+
+        return Ue
+
+    def getVarsAndBounds(self, x, lb, ub):
+        '''Get the variable values and bounds'''
+        
+        # Set the variable values
+        x[:] = self.xinit[:]
+
+        # Set the bounds on the material selection variables
+        lb[:] = self.xinit*(self.SIMP - 1.0)/self.SIMP
+        ub[:] = self.no_bound
+
+        # Set the bounds on the thickness variables
+        lb[::self.nblock] = -self.no_bound
+        ub[::self.nblock] = 1.0
+
+        # Add the slack variables from the mass
+        if self.use_mass_constraint:
+            lb[-2:] = 0.0
+            ub[-2:] = self.no_bound
+
+        return
+
+    def setAreas(self, x, lb_factor=0.0):
+        '''Set the areas from the design variable values'''
+        
+        # Zero all the areas
+        self.A[:] = self.Avals[0]*lb_factor
+
+        # Add up the contributions to the areas from each 
+        # discrete variable
+        for i in xrange(len(self.conn)):
+            for j in xrange(1, self.nblock):
+                # Compute the value of the area variable
+                val = (self.xconst[i*self.nblock+j] + 
+                       self.xlinear[i*self.nblock+j]*(x[i*self.nblock+j] - 
+                                                      self.xinit[i*self.nblock+j]))
+                self.A[i] += self.Avals[j-1]*val
+
+        return
+
+    def setAreasLinear(self, px):
+        '''Set the area as a linearization of the area'''
+        
+        self.A[:] = 0.0
+                      
+        # Add up the contributions to the areas from each 
+        # discrete variable
+        for i in xrange(len(self.conn)):
+            for j in xrange(1, self.nblock):
+                # Compute the value of the bar area
+                val = self.xlinear[i*self.nblock+j]*px[i*self.nblock+j]
+                self.A[i] += self.Avals[j-1]*val
+
+        return
+
+    def setSIMPAreas(self, x, lb_factor=0.0):
+        '''Set the areas based on the SIMP penalization directly'''
+        
+        # Zero all the areas
+        self.A[:] = self.Avals[0]*lb_factor
+
+        # Add up the contributions to the areas from each 
+        # discrete variable
+        for i in xrange(len(self.conn)):
+            for j in xrange(1, self.nblock):
+                self.A[i] += self.Avals[j-1]*x[i*self.nblock+j]**(self.SIMP)
+
+        return
+
+    def getL1Objective(self, x, gamma):
+        '''Compute the full objective'''
+
         # Set the cross-sectional areas from the design variable
         # values
-        self.setAreas(x, lb_factor=self.epsilon)
+        self.setSIMPAreas(x, lb_factor=self.epsilon)
 
         # Evaluate compliance objective
         self.assembleMat(self.A, self.K)
@@ -182,72 +328,35 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         linalg.solve_triangular(self.L, self.u, lower=True, 
                                 trans='T', overwrite_b=True)
 
-        # Add up the contribution to the gradient
-        index = 0
-        for bar, A_bar in zip(self.conn, self.A):
-            # Get the first and second node numbers from the bar
-            n1 = bar[0]
-            n2 = bar[1]
+        compliance = np.dot(self.u, self.f)
 
-            # Compute the nodal locations
-            xd = self.xpos[2*n2] - self.xpos[2*n1]
-            yd = self.xpos[2*n2+1] - self.xpos[2*n1+1]
-            Le = np.sqrt(xd**2 + yd**2)
-            C = xd/Le
-            S = yd/Le
+        # Compute the compliance objective
+        fobj = np.dot(self.u, self.f)/self.obj_scale
 
-            # Compute the element stiffness matrix
-            Ke = (self.E*A_bar/Le)*np.array(
-                [[C**2, C*S, -C**2, -C*S],
-                 [C*S, S**2, -C*S, -S**2],
-                 [-C**2, -C*S, C**2, C*S],
-                 [-C*S, -S**2, C*S, S**2]])
-            
-            # Create a list of the element variables for convenience
-            elem_vars = [2*n1, 2*n1+1, 2*n2, 2*n2+1]
-            
-            # Add the product to the derivative of the compliance
-            for i in xrange(4):
-                for j in xrange(4):
-                    Ue[index] += 0.5*self.u[elem_vars[i]]*self.u[elem_vars[j]]*Ke[i, j]
+        # Set the penalty parameters
+        penalty = 0.0
+        for i in xrange(self.nelems):
+            penalty += 0.5*gamma[i]*((2.0 - x[self.nblock*i])*x[self.nblock*i])
+            for j in xrange(1, self.nblock):
+                penalty -= 0.5*gamma[i]*x[self.nblock*i+j]**2
 
-            index += 1
+        # Add the full penalty from the objective
+        fobj += penalty
 
-        return Ue
+        # Compute the mass of the entire truss
+        mass = np.dot(self.gmass, x)
 
-    def getVarsAndBounds(self, x, lb, ub):
-        '''Get the variable values and bounds'''
-        
-        # Set the variable values
-        x[:] = self.xinit[:]
+        # Add the mass constraint term
+        if self.use_mass_constraint:
+            fobj += self.sigma*x[-2]
+        else:
+            fobj += 0.5*self.sigma*(mass/self.m_fixed - 1.0)**2
 
-        # Set the bounds on the material selection variables
-        lb[:] = max(0.0, self.x_lb)
-        ub[:] = self.no_bound
-
-        # Set the bounds on the thickness variables
-        lb[::self.nblock] = -self.no_bound
-        ub[::self.nblock] = 1.0
-
-        return
-
-    def setAreas(self, x, lb_factor=0.0):
-        '''Set the areas from the design variable values'''
-        
-        # Zero all the areas
-        self.A[:] = lb_factor*self.Avals[0]
-
-        # Add up the contributions to the areas from each 
-        # discrete variable
-        for i in xrange(len(self.conn)):
-            for j in xrange(self.nmats):
-                self.A[i] += self.Avals[j]*(lb_factor + x[i*self.nblock+1+j])
-
-        return
+        return compliance, fobj
 
     def getMass(self, x):
         '''Return the mass of the truss'''
-        return np.dot(self.gmass, x)    
+        return np.dot(self.gmass, x)
 
     def evalObjCon(self, x):
         '''
@@ -291,7 +400,8 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         if self.use_mass_constraint:            
             # Create the constraint c(x) >= 0.0 for the mass
-            con = np.array([1.0 - mass/self.m_fixed])
+            obj += self.sigma*x[-2]
+            con = np.array([mass/self.m_fixed - 1.0 - x[-2] + x[-1]])
         else:
             # Add the deviation from the fixed mass to the objective function
             obj += 0.5*self.sigma*(mass/self.m_fixed - 1.0)**2
@@ -314,48 +424,25 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         # Zero the objecive and constraint gradients
         gobj[:] = 0.0
 
-        # Allocate a numpy array for the gradient of the mass
-        gmass = np.zeros(gobj.shape)
-
         # Set the number of materials
         nmats = len(self.Avals)+1
         
         # Add up the contribution to the gradient
-        index = 0
-        for bar in self.conn:
+        for i in xrange(len(self.conn)):
             # Get the first and second node numbers from the bar
-            n1 = bar[0]
-            n2 = bar[1]
+            n1 = self.conn[i][0]
+            n2 = self.conn[i][1]
 
-            # Compute the nodal locations
-            xd = self.xpos[2*n2] - self.xpos[2*n1]
-            yd = self.xpos[2*n2+1] - self.xpos[2*n1+1]
-            Le = np.sqrt(xd**2 + yd**2)
-            C = xd/Le
-            S = yd/Le
-
-            # Compute the element stiffness matrix
-            Ke = (self.E/Le)*np.array(
-                [[C**2, C*S, -C**2, -C*S],
-                 [C*S, S**2, -C*S, -S**2],
-                 [-C**2, -C*S, C**2, C*S],
-                 [-C*S, -S**2, C*S, S**2]])
+            # Find the element variables
+            ue = np.array([self.u[2*n1], self.u[2*n1+1],
+                           self.u[2*n2], self.u[2*n2+1]])
             
-            # Create a list of the element variables for convenience
-            elem_vars = [2*n1, 2*n1+1, 2*n2, 2*n2+1]
-            
-            # Add the product to the derivative of the compliance
-            g = 0.0
-            for i in xrange(4):
-                for j in xrange(4):
-                    g -= self.u[elem_vars[i]]*self.u[elem_vars[j]]*Ke[i, j]
+            # Compute the inner product with the element stiffness matrix
+            g = -np.dot(ue, np.dot(self.Ke[i,:,:], ue))  
             
             # Add the contribution to each derivative
-            for j in xrange(self.nmats):
-                gobj[self.nblock*index+1+j] += g*self.Avals[j]
-
-            # Increment the index
-            index += 1
+            gobj[i*self.nblock+1:(i+1)*self.nblock] += g*(
+                self.Avals*self.xlinear[i*self.nblock+1:(i+1)*self.nblock])
 
         # Scale the objective gradient
         gobj /= self.obj_scale
@@ -363,7 +450,13 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Check how to handle the mass constraint
         if self.use_mass_constraint:
-            Acon[0, :] = -self.gmass[:]/self.m_fixed
+            # Add the contribution to the constraint
+            Acon[0,:] = self.gmass[:]/self.m_fixed
+            Acon[0,-2] = -1.0
+            Acon[0,-1] = 1.0
+
+            # Add the contribution to the objective gradient
+            gobj[-2] += self.sigma
         else:
             # Compute the mass of the truss
             mass = np.dot(self.gmass, x)
@@ -387,7 +480,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         hvec[:] = 0.0
 
         # Assemble the stiffness matrix along the px direction
-        self.setAreas(px, lb_factor=0.0)
+        self.setAreasLinear(px)
         self.assembleMat(self.A, self.Kp)
         np.dot(self.Kp, self.u, out=self.phi)
         self.applyBCs(self.Kp, self.phi)
@@ -399,40 +492,23 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
                                 trans='T', overwrite_b=True)
         
         # Add up the contribution to the gradient
-        index = 0
-        for bar in self.conn:
+        for i in xrange(len(self.conn)):
             # Get the first and second node numbers from the bar
-            n1 = bar[0]
-            n2 = bar[1]
+            n1 = self.conn[i][0]
+            n2 = self.conn[i][1]
 
-            # Compute the nodal locations
-            xd = self.xpos[2*n2] - self.xpos[2*n1]
-            yd = self.xpos[2*n2+1] - self.xpos[2*n1+1]
-            Le = np.sqrt(xd**2 + yd**2)
-            C = xd/Le
-            S = yd/Le
-            
-            # Compute the element stiffness matrix
-            Ke = (self.E/Le)*np.array(
-                [[C**2, C*S, -C**2, -C*S],
-                 [C*S, S**2, -C*S, -S**2],
-                 [-C**2, -C*S, C**2, C*S],
-                 [-C*S, -S**2, C*S, S**2]])
-            
-            # Create a list of the element variables for convenience
-            elem_vars = [2*n1, 2*n1+1, 2*n2, 2*n2+1]
+            # Find the element variables
+            ue = np.array([self.u[2*n1], self.u[2*n1+1],
+                           self.u[2*n2], self.u[2*n2+1]])
+            phie = np.array([self.phi[2*n1], self.phi[2*n1+1],
+                             self.phi[2*n2], self.phi[2*n2+1]])
             
             # Add the product to the derivative of the compliance
-            h = 0.0
-            for i in xrange(4):
-                for j in xrange(4):
-                    h += 2.0*self.phi[elem_vars[i]]*self.u[elem_vars[j]]*Ke[i, j]
+            h = 2.0*np.dot(phie, np.dot(self.Ke[i,:,:], ue))
 
             # Add the contribution to each derivative
-            for j in xrange(self.nmats):
-                hvec[self.nblock*index+1+j] += h*self.Avals[j]
-            
-            index += 1
+            hvec[i*self.nblock+1:(i+1)*self.nblock] += h*(
+                self.Avals*self.xlinear[i*self.nblock+1:(i+1)*self.nblock])
 
         # Evaluate the derivative
         hvec /= self.obj_scale
@@ -460,35 +536,86 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         K[:,:] = 0.0
 
         # Loop over each element in the mesh
+        index = 0
         for bar, A_bar in zip(self.conn, A):
             # Get the first and second node numbers from the bar
             n1 = bar[0]
             n2 = bar[1]
 
-            # Compute the nodal locations
-            xd = self.xpos[2*n2] - self.xpos[2*n1]
-            yd = self.xpos[2*n2+1] - self.xpos[2*n1+1]
-            Le = np.sqrt(xd**2 + yd**2)
-            C = xd/Le
-            S = yd/Le
-        
-            # Compute the element stiffness matrix
-            Ke = (self.E*A_bar/Le)*np.array(
-                [[C**2, C*S, -C**2, -C*S],
-                 [C*S, S**2, -C*S, -S**2],
-                 [-C**2, -C*S, C**2, C*S],
-                 [-C*S, -S**2, C*S, S**2]])
-        
             # Create a list of the element variables for convenience
             elem_vars = [2*n1, 2*n1+1, 2*n2, 2*n2+1]
         
             # Add the element stiffness matrix to the global stiffness
             # matrix
-            for i in xrange(4):
-                for j in xrange(4):
-                    K[elem_vars[i], elem_vars[j]] += Ke[i, j]
+            K[np.ix_(elem_vars, elem_vars)] += A_bar*self.Ke[index,:,:]
+
+            index += 1
                     
         return
+
+    def getLimitDisplacements(self, xinfty):
+        '''
+        Given the connectivity, nodal locations and material properties,
+        assemble the stiffness matrix
+        
+        input:
+        xinfty:  the limit design variables
+
+        output:
+        uinfty:  the displacements
+        '''
+
+        # Set the bar areas
+        self.setAreas(xinfty, lb_factor=self.epsilon)
+
+        # Zero the stiffness matrix
+        K = np.zeros((self.nvars, self.nvars))
+        uinfty = np.zeros(self.nvars)
+        f = np.zeros(self.nvars)
+
+        mark = np.zeros(self.nvars, dtype=np.int)
+
+        print 'count = ', sum(xinfty[::self.nblock])
+
+        # Loop over each element in the mesh
+        index = 0
+        for bar, A_bar in zip(self.conn, self.A):
+            # Get the first and second node numbers from the bar
+            n1 = bar[0]
+            n2 = bar[1]
+            
+            # Create a list of the element variables for convenience
+            elem_vars = [2*n1, 2*n1+1, 2*n2, 2*n2+1]
+                
+            # Add the element stiffness matrix to the global stiffness
+            # matrix
+            K[np.ix_(elem_vars, elem_vars)] += A_bar*self.Ke[index,:,:]
+            
+            # Mark variables that are non-zero
+            mark[elem_vars] = 1
+            
+            index += 1
+                
+        # Reorder for the non-zero variable
+        var = []
+        for i in xrange(self.nvars):
+            if mark[i] == 1:
+                var.append(i)
+                    
+        # Assemble the right-hand-side
+        self.assembleLoadVec(f)
+
+        # Apply the boundary conditions
+        self.applyBCs(self.K, self.f)
+
+        # Reduce the DOF to elements/nodes
+        K = K[np.ix_(var, var)]
+        f = f[var]
+
+        # Solve the linear system
+        uinfty[var] = np.linalg.solve(K, f)
+
+        return uinfty
 
     def assembleLoadVec(self, f):
         '''
@@ -528,26 +655,30 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
     def evalSparseCon(self, x, con):
         '''Evaluate the sparse constraints'''
-        con[:] = (2.0*x[::self.nblock] - 
-                  np.sum(x.reshape(-1, self.nblock), axis=1))
+        n = self.nblock*self.nelems
+        con[:] = (2.0*x[:n:self.nblock] - 
+                  np.sum(x[:n].reshape(-1, self.nblock), axis=1))
         return
 
     def addSparseJacobian(self, alpha, x, px, con):
         '''Compute the Jacobian-vector product con = alpha*J(x)*px'''
-        con[:] += alpha*(2.0*px[::self.nblock] - 
-                         np.sum(px.reshape(-1, self.nblock), axis=1))
+        n = self.nblock*self.nelems
+        con[:] += alpha*(2.0*px[:n:self.nblock] - 
+                         np.sum(px[:n].reshape(-1, self.nblock), axis=1))
         return
 
     def addSparseJacobianTranspose(self, alpha, x, pz, out):
         '''Compute the transpose Jacobian-vector product alpha*J^{T}*pz'''
-        out[::self.nblock] += alpha*pz
+        n = self.nblock*self.nelems
+        out[:n:self.nblock] += alpha*pz
         for k in xrange(1,self.nblock):
-            out[k::self.nblock] -= alpha*pz
+            out[k:n:self.nblock] -= alpha*pz
         return
 
     def addSparseInnerProduct(self, alpha, x, c, A):
         '''Add the results from the product J(x)*C*J(x)^{T} to A'''
-        A[:] += alpha*np.sum(c.reshape(-1, self.nblock), axis=1)        
+        n = self.nblock*self.nelems
+        A[:] += alpha*np.sum(c[:n].reshape(-1, self.nblock), axis=1)        
         return
 
     def getTikzPrefix(self):
@@ -569,7 +700,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         return s
 
-    def printTruss(self, x, filename='file.tex', gamma=None):
+    def printTruss(self, x, filename='file.tex', draw_list=[]):
         '''Print the truss to an output file'''
 
         s = self.getTikzPrefix()
@@ -578,7 +709,10 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         # Get the minimum value
         Amin = 1.0*min(self.Avals)
 
-        for i in xrange(self.nelems):
+        if draw_list is None:
+            draw_list = range(self.nelems)
+
+        for i in range(self.nelems):
             # Get the node numbers for this element
             n1 = self.conn[i][0]
             n2 = self.conn[i][1]
@@ -594,25 +728,19 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
                             self.xpos[2*n1], self.xpos[2*n1+1], 
                             self.xpos[2*n2], self.xpos[2*n2+1])
 
-        # Show the discrete infeasibility measure...
-        if gamma is not None:
-            d = self.getDiscreteInfeas(x)
-            U = self.getStrainEnergy(x)
-            
-            ymax = max(self.xpos[1::2])
-            yoffset = -1.05*ymax
+        for i in draw_list:
+            # Get the node numbers for this element
+            n1 = self.conn[i][0]
+            n2 = self.conn[i][1]
 
-            for i in xrange(self.nelems):
-                # Get the node numbers for this element
-                n1 = self.conn[i][0]
-                n2 = self.conn[i][1]
-                
-                t = x[self.nblock*i]
-                s += '\\draw[line width=%f, color=%s, opacity=%f]'%(
-                    2.0, 'black', gamma[i]/max(gamma))
+            j = np.argmax(x[self.nblock*i+1:self.nblock*(i+1)])
+            xj = x[self.nblock*i+1+j]
+            if xj > self.epsilon:
+                s += '\\draw[line width=%f, color=Red, opacity=%f]'%(
+                    2.0*self.Avals[j]/Amin, xj)
                 s += '(%f,%f) -- (%f,%f);\n'%(
-                    self.xpos[2*n1], self.xpos[2*n1+1] + yoffset, 
-                    self.xpos[2*n2], self.xpos[2*n2+1] + yoffset)
+                    self.xpos[2*n1], self.xpos[2*n1+1], 
+                    self.xpos[2*n2], self.xpos[2*n2+1])
 
         s += '\\end{tikzpicture}'
         s += '\\end{figure}'

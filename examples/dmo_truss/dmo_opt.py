@@ -19,7 +19,7 @@ import numpy as np
 # Import the truss analysis problem
 from dmo_truss_analysis import TrussAnalysis
 
-def get_ground_structure(N=4, M=4, L=2.5, P=10.0, n=10):
+def get_ground_structure(N=4, M=4, L=2.5, P=1e4, n=10):
     '''
     Set up the connectivity for a ground structure consisting of a 2D
     mesh of (N x M) nodes of completely connected elements.
@@ -108,11 +108,11 @@ def setup_ground_struct(N, M, L=2.5, E=70e9,
     # Create the truss topology optimization object
     truss = TrussAnalysis(conn, xpos, loads, bcs, 
                           E, rho, Avals, m_fixed, 
-                          sigma=sigma, x_lb=x_lb, 
+                          sigma=sigma, x_lb=x_lb, epsilon=1e-6,
                           use_mass_constraint=use_mass_constraint)
 
     # Set the options
-    truss.setInequalityOptions(dense_ineq=True, 
+    truss.setInequalityOptions(dense_ineq=False, 
                                sparse_ineq=False,
                                use_lower=True,
                                use_upper=True)
@@ -151,10 +151,11 @@ def paropt_truss(truss, use_hessian=False,
 
     return opt
 
-def optimize_truss(N, M, heuristic, root_dir='results',
+def optimize_truss(N, M, root_dir='results',
                    use_mass_constraint=False, sigma=100.0,
-                   max_d=1e-5, theta=1e-2):
+                   max_d=1e-4, theta=1e-3, SIMP=2.0):
     # Optimize the structure
+    heuristic = 'SIMP%.0f'%(SIMP)
     prefix = os.path.join(root_dir, '%dx%d'%(N, M), heuristic)
 
     # Make sure that the directory exists
@@ -162,10 +163,9 @@ def optimize_truss(N, M, heuristic, root_dir='results',
         os.makedirs(prefix)
    
     # Create the ground structure and optimization
-    x_lb = 0.0
     truss = setup_ground_struct(N, M, sigma=sigma,
                                 use_mass_constraint=use_mass_constraint,
-                                x_lb=x_lb)
+                                x_lb=0.0)
     
     # Set up the optimization problem in ParOpt
     opt = paropt_truss(truss, use_hessian=use_hessian,
@@ -186,7 +186,7 @@ def optimize_truss(N, M, heuristic, root_dir='results',
     fp = open(log_filename, 'w')
 
     # Write the header out to the file
-    s = 'Variables = iteration, "min SE", "max SE", "fobj", '
+    s = 'Variables = iteration, "compliance", "fobj", '
     s += '"min gamma", "max gamma", "gamma", '
     s += '"min d", "max d", "tau", "mass infeas", '
     s += 'feval, geval, hvec, time\n'
@@ -197,20 +197,24 @@ def optimize_truss(N, M, heuristic, root_dir='results',
     init_time = MPI.Wtime()
 
     # Initialize the gamma values
-    gamma_init = 1e-4
     gamma = np.zeros(truss.nelems)
-
-    # # Set the heuristic parameters
-    # alpha = 2.0
-    # beta = 0.0
-    # print 'Heuristic: %s  alpha = %8.4f beta = %8.4f'%(
-    #     heuristic, alpha, beta)
 
     # Previous value of the objective function
     fobj_prev = 0.0
 
     # Keep track of the number of bars
     max_bars = len(truss.conn)-1
+
+    # Store the previous values
+    x_prev = None
+    gamma_prev = None
+
+    # Set the tolerances for increasing/decreasing tau
+    delta_tau_target = 1.0
+
+    # Set the target rate of increase in gamma
+    delta_max = 1.0
+    delta_min = 1e-4
 
     # Keep track of the number of iterations
     niters = 0
@@ -230,31 +234,25 @@ def optimize_truss(N, M, heuristic, root_dir='results',
         # Get the discrete infeasibility measure
         d = truss.getDiscreteInfeas(x)
 
-        # Get the strain energy associated with each element
-        Ue = truss.getStrainEnergy(x)
-
         # Compute the infeasibility of the mass constraint
-        m_infeas = max(truss.getMass(x)/truss.m_fixed - 1.0, 0.0)
-
-        # Compute the objective function
-        fobj = np.sum(Ue)
+        m_infeas = truss.getMass(x)/truss.m_fixed - 1.0
 
         # Compute the discrete infeasibility measure
         tau = np.sum(d)
 
+        # Get the compliance and objective values
+        comp, fobj = truss.getL1Objective(x, gamma)
+
         # Print out the iteration information to the screen
         print 'Iteration %d'%(k)
-        print 'Min/max SE:    %15.5e %15.5e  Total: %15.5e'%(
-            np.min(Ue), np.max(Ue), np.sum(Ue))
         print 'Min/max gamma: %15.5e %15.5e  Total: %15.5e'%(
             np.min(gamma), np.max(gamma), np.sum(gamma))
         print 'Min/max d:     %15.5e %15.5e  Total: %15.5e'%(
             np.min(d), np.max(d), np.sum(d))
         print 'Mass infeas:   %15.5e'%(m_infeas)
-        print 'min(x):        %15.5e'%(truss.x_lb)
 
-        s = '%d %e %e %e %e %e %e %e %e %e %e '%(
-            k, np.min(Ue), np.max(Ue), np.sum(Ue),
+        s = '%d %e %e %e %e %e %e %e %e %e '%(
+            k, comp, fobj,
             np.min(gamma), np.max(gamma), np.sum(gamma),
             np.min(d), np.max(d), np.sum(d), m_infeas)
         s += '%d %d %d %e\n'%(
@@ -271,62 +269,44 @@ def optimize_truss(N, M, heuristic, root_dir='results',
         # Print the output
         filename = 'opt_truss_iter%d.tex'%(k)
         output = os.path.join(prefix, filename)
-        truss.printTruss(x, filename=output, gamma=gamma)
+        truss.printTruss(x, filename=output)
 
-        if k == 0:
-            gamma[:] = gamma_init
-        elif abs((fobj - fobj_prev)/fobj < 1e-3):
-            # # Normalize the coefficients
-            # y = Ue/np.max(Ue)
-            # z = d/np.max(d)
-            
-            # Compute the product of the variables with the discrete
+        if k == 0: 
+            # Set the new value of delta
+            gamma[:] = delta_min
+
+            # Keep track of the previous value of the discrete
             # infeasibility measure
-            prod = Ue*d
-            prod = prod/max(prod)
-            gamma = 1.1*gamma + 2.0*gamma*prod
+            tau_iter = 1.0*tau
+            delta_iter = 1.0*delta_min
+        elif (np.fabs((comp - comp_prev)/comp) < 1e-3):
+            # If the objective increased too quickly or the discrete
+            # infeasibility decreased to quickly do not accept the new
+            # point, try to decrease gamma.
+            delta = delta_max
 
-            # gamma[index[:max_bars]] = gmax*prod + theta*gmax
-            # max_bars -= 2
+            # Limit the rate of discrete infeasibility increase
+            tau_rate = (tau_iter - tau)/delta_iter 
+            delta = max(min(delta, delta_tau_target/tau_rate), delta_min)
+            gamma[:] = gamma + delta
 
-            # # Compute the values of alpha
-            # alpha = 2.0
-            # gamma *= alpha
-            # gmax = max(gamma)
-            # for i in xrange(len(gamma)): 
-            #     gamma[i] = max(gamma[i], theta*gmax)
+            # Keep track of the discrete infeasibility measure
+            tau_iter = 1.0*tau
+            delta_iter = 1.0*delta
 
-            # # Sort the arguments
-            # index = np.argsort(Ue)
+        xinfty = truss.computeLimitDesign(x)
 
-            # # Only keep the sorted largest bars
-            # gamma[index[:max_bars]] = 0.0
-            # max_bars -= 2
-
-            # # Compute the new coefficients based on the scheme
-            # if heuristic == 'scalar':
-            #     gamma *= alpha + beta
-            # elif heuristic == 'linear':
-            #     gamma *= alpha + beta*y
-            # elif heuristic == 'discrete':
-            #     gamma *= alpha + beta*z
-            # elif heuristic == 'inverse':
-            #     gamma *= alpha + beta*z*(1.0 - y)/(1.0 + 2*y)
-                
-            # # Adjust the coefficients so they satisfy the
-            # # convergence property
-            # gmax = max(gamma)
-            # for i in xrange(len(gamma)):
-            #     gamma[i] = max(gamma[i], theta*gmax)
-                    
-            # if x[i*truss.nblock] < 1e-2: # or d[i] < 1e-3 or y[i] < 1e-3:
-            #     gamma[i] = theta*gmax
-
+        # Print the output
+        filename = 'opt_limit_truss_iter%d.tex'%(k)
+        output = os.path.join(prefix, filename)
+        truss.printTruss(xinfty, filename=output)
+        
         # Set the new penalty
-        truss.setNewInitPointPenalty(x, gamma)
+        truss.setNewInitPointPenalty(x, gamma, SIMP=SIMP)
 
         # Store the previous value of the objective function
         fobj_prev = 1.0*fobj
+        comp_prev = 1.0*comp
 
         # Increase the iteration counter
         niters += 1
@@ -334,11 +314,11 @@ def optimize_truss(N, M, heuristic, root_dir='results',
     # Close the file
     fp.close()
 
-    # PDFLatex all the output files
-    for k in xrange(niters):
-        filename = 'opt_truss_iter%d.tex'%(k)
-        os.system('cd %s; pdflatex %s > /dev/null ; cd ..;'%(
-            prefix, filename))
+    # # PDFLatex all the output files
+    # for k in xrange(niters):
+    #     filename = 'opt_truss_iter%d.tex'%(k)
+    #     os.system('cd %s; pdflatex %s > /dev/null ; cd ..;'%(
+    #         prefix, filename))
     
     # Print out the last optimized truss
     filename = 'opt_truss.tex'
@@ -356,10 +336,10 @@ parser.add_argument('--M', type=int, default=3,
                     help='Nodes in y-direction')
 parser.add_argument('--profile', action='store_true', 
                     default=False, help='Performance profile')
-parser.add_argument('--heuristic', type=str, default='scalar',
-                    help='Heuristic type')
 parser.add_argument('--use_mass_constraint', action='store_true',
                     default=False, help='Use the mass constraint')
+parser.add_argument('--SIMP', type=float, default=2.0,
+                    help='SIMP penalty parameter')
 parser.add_argument('--sigma', type=float, default=100.0,
                     help='Penalty parameter value')
 args = parser.parse_args()
@@ -368,8 +348,8 @@ args = parser.parse_args()
 N = args.N
 M = args.M
 profile = args.profile
-heuristic = args.heuristic
 use_mass_constraint = args.use_mass_constraint
+SIMP = args.SIMP
 sigma = args.sigma
 
 # Set the root results directory
@@ -384,18 +364,19 @@ use_hessian = True
 trusses = [ (3, 3), (4, 3), (5, 3), (6, 3),
             (4, 4), (5, 4), (6, 4), (7, 4), (8, 4), (9, 4), (10, 4),
             (5, 5), (6, 5), (7, 5), (8, 5), (9, 5), (10, 5),
-            (6, 6), (7, 6), (8, 6), (9, 6), (10, 6) ]
+            (6, 6), (7, 6), (8, 6), (9, 6), (10, 6), (11, 6), (12, 6),
+            (7, 7), (8, 7), (9, 7), (10, 7), (11, 7), (12, 7), (13, 7), (14, 7) ]
 
 # Run either the optimizations or the
 if profile:
     for N, M in trusses:
         try:
-            optimize_truss(N, M, heuristic, root_dir=root_dir,
+            optimize_truss(N, M, root_dir=root_dir,
                            use_mass_constraint=use_mass_constraint,
-                           sigma=sigma)
+                           sigma=sigma, SIMP=SIMP)
         except:
             pass
 else:
-    optimize_truss(N, M, heuristic, root_dir=root_dir,
+    optimize_truss(N, M, root_dir=root_dir,
                    use_mass_constraint=use_mass_constraint,
-                   sigma=sigma)
+                   sigma=sigma, SIMP=SIMP)
