@@ -81,7 +81,9 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         self.xinit[::self.nblock] = 1.0
 
         # Set the initial linearization
+        self.penalization = None
         self.SIMP = 1.0
+        self.RAMP = 0.0
         self.xconst = np.array(self.xinit)
         self.xlinear = np.ones(ndv)
 
@@ -135,7 +137,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             
         return
 
-    def setNewInitPointPenalty(self, x, gamma, SIMP=1.0):
+    def setNewInitPointPenalty(self, x, gamma):
         '''
         Set the linearized penalty function, given the design variable
         values from the previous iteration and the penalty parameters
@@ -144,9 +146,13 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         # Set the new initial design variable values
         self.xinit[:] = x[:]
 
-        self.SIMP = SIMP
-        if self.SIMP > 1.0:
-            # Compute the constant and linear terms in
+        if self.penalization == 'RAMP':
+            # Compute the RAMP linearization terms
+            for i in xrange(len(self.xconst)):
+                self.xconst[i] = x[i]/(1.0 + self.RAMP*(1.0 - x[i]))
+                self.xlinear[i] = (self.RAMP+1.0)/(1.0 + self.RAMP*(1.0 - x[i]))**2
+        elif self.penalization == 'SIMP':
+            # Compute the SIMP linearization terms
             self.xconst[:] = self.xinit**(self.SIMP)
             self.xlinear[:] = self.SIMP*self.xinit**(self.SIMP-1.0)
         else:
@@ -243,7 +249,12 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         x[:] = self.xinit[:]
 
         # Set the bounds on the material selection variables
-        lb[:] = self.xinit*(self.SIMP - 1.0)/self.SIMP
+        if self.penalization == 'SIMP':
+            lb[:] = self.xinit*(self.SIMP - 1.0)/self.SIMP
+        elif self.penalization == 'RAMP':
+            lb[:] = self.RAMP*self.xinit**2/(self.RAMP+1.0)
+        else:
+            lb[:] = 0.0
         ub[:] = self.no_bound
 
         # Set the bounds on the thickness variables
@@ -271,6 +282,9 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
                 val = (self.xconst[i*self.nblock+j] + 
                        self.xlinear[i*self.nblock+j]*(x[i*self.nblock+j] - 
                                                       self.xinit[i*self.nblock+j]))
+                if val <= 0.0:
+                    print 'val = ', val
+
                 self.A[i] += self.Avals[j-1]*val
 
         return
@@ -290,17 +304,28 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         return
 
-    def setSIMPAreas(self, x, lb_factor=0.0):
-        '''Set the areas based on the SIMP penalization directly'''
+    def setPenalizedAreas(self, x, lb_factor=0.0):
+        '''Set the areas based on the penalization directly'''
         
         # Zero all the areas
         self.A[:] = self.Avals[0]*lb_factor
 
         # Add up the contributions to the areas from each 
         # discrete variable
-        for i in xrange(len(self.conn)):
-            for j in xrange(1, self.nblock):
-                self.A[i] += self.Avals[j-1]*x[i*self.nblock+j]**(self.SIMP)
+        if self.penalization == 'SIMP':
+            for i in xrange(len(self.conn)):
+                for j in xrange(1, self.nblock):
+                    val = x[i*self.nblock+j]**(self.SIMP)
+                    self.A[i] += self.Avals[j-1]*val
+        elif self.penalization == 'RAMP':
+            for i in xrange(len(self.conn)):
+                for j in xrange(1, self.nblock):
+                    val = x[i*self.nblock+j]/(1.0 + self.RAMP*(1.0 - x[i*self.nblock+j]))
+                    self.A[i] += self.Avals[j-1]*val
+        else:
+            for i in xrange(len(self.conn)):
+                for j in xrange(1, self.nblock):
+                    self.A[i] += self.Avals[j-1]*x[i*self.nblock+j]
 
         return
 
@@ -309,7 +334,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Set the cross-sectional areas from the design variable
         # values
-        self.setSIMPAreas(x, lb_factor=self.epsilon)
+        self.setPenalizedAreas(x, lb_factor=self.epsilon)
 
         # Evaluate compliance objective
         self.assembleMat(self.A, self.K)
@@ -736,8 +761,8 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             j = np.argmax(x[self.nblock*i+1:self.nblock*(i+1)])
             xj = x[self.nblock*i+1+j]
             if xj > self.epsilon:
-                s += '\\draw[line width=%f, color=Red, opacity=%f]'%(
-                    2.0*self.Avals[j]/Amin, xj)
+                s += '\\draw[line width=%f, color=Red]'%(
+                    2.0*self.Avals[j]/Amin)
                 s += '(%f,%f) -- (%f,%f);\n'%(
                     self.xpos[2*n1], self.xpos[2*n1+1], 
                     self.xpos[2*n2], self.xpos[2*n2+1])

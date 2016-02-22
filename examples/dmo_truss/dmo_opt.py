@@ -153,11 +153,12 @@ def paropt_truss(truss, use_hessian=False,
 
 def optimize_truss(N, M, root_dir='results',
                    use_mass_constraint=False, sigma=100.0,
-                   max_d=1e-4, theta=1e-3, SIMP=2.0):
+                   max_d=1e-4, theta=1e-3, penalization='SIMP',
+                   parameter=2.0, max_iters=50):
     # Optimize the structure
-    heuristic = 'SIMP%.0f'%(SIMP)
+    heuristic = '%s%.0f'%(penalization ,parameter)
     prefix = os.path.join(root_dir, '%dx%d'%(N, M), heuristic)
-
+    
     # Make sure that the directory exists
     if not os.path.exists(prefix):
         os.makedirs(prefix)
@@ -205,20 +206,22 @@ def optimize_truss(N, M, root_dir='results',
     # Keep track of the number of bars
     max_bars = len(truss.conn)-1
 
-    # Store the previous values
-    x_prev = None
-    gamma_prev = None
+    # Set the first time
+    first_time = True
+
+    # Set the initial compliance value
+    comp_prev = 0.0
 
     # Set the tolerances for increasing/decreasing tau
     delta_tau_target = 1.0
 
     # Set the target rate of increase in gamma
-    delta_max = 1.0
+    delta_max = 10.0
     delta_min = 1e-4
 
     # Keep track of the number of iterations
     niters = 0
-    for k in xrange(150):
+    for k in xrange(max_iters):
         # Set the output file to use
         fname = os.path.join(prefix, 'truss_paropt_iter%d.out'%(k)) 
         opt.setOutputFile(fname)
@@ -263,36 +266,46 @@ def optimize_truss(N, M, root_dir='results',
 
         # Terminate if the maximum discrete infeasibility measure is
         # sufficiently low
-        if np.max(d) < max_d:
+        if np.max(d) <= max_d:
             break
+
+        draw_list = []
+        for i in xrange(len(d)):
+            if d[i] > max_d:
+                draw_list.append(i)
 
         # Print the output
         filename = 'opt_truss_iter%d.tex'%(k)
         output = os.path.join(prefix, filename)
-        truss.printTruss(x, filename=output)
+        truss.printTruss(x, filename=output, draw_list=draw_list)
 
-        if k == 0: 
-            # Set the new value of delta
-            gamma[:] = delta_min
+        if (np.fabs((comp - comp_prev)/comp) < 1e-3):
+            if first_time:
+                # Set the new value of delta
+                gamma[:] = delta_min
 
-            # Keep track of the previous value of the discrete
-            # infeasibility measure
-            tau_iter = 1.0*tau
-            delta_iter = 1.0*delta_min
-        elif (np.fabs((comp - comp_prev)/comp) < 1e-3):
-            # If the objective increased too quickly or the discrete
-            # infeasibility decreased to quickly do not accept the new
-            # point, try to decrease gamma.
-            delta = delta_max
+                # Keep track of the previous value of the discrete
+                # infeasibility measure
+                tau_iter = 1.0*tau
+                delta_iter = 1.0*delta_min
 
-            # Limit the rate of discrete infeasibility increase
-            tau_rate = (tau_iter - tau)/delta_iter 
-            delta = max(min(delta, delta_tau_target/tau_rate), delta_min)
-            gamma[:] = gamma + delta
+                # Set the first time flag to false
+                first_time = False
+            else:
+                # Set the maximum delta initially
+                delta = 1.0*delta_max
 
-            # Keep track of the discrete infeasibility measure
-            tau_iter = 1.0*tau
-            delta_iter = 1.0*delta
+                # Limit the rate of discrete infeasibility increase
+                tau_rate = (tau_iter - tau)/delta_iter 
+                delta = max(min(delta, delta_tau_target/tau_rate), delta_min)
+                gamma[:] = gamma + delta
+
+                # Print out the chosen scaling for the design variables
+                print 'Delta:         %15.5e'%(delta)
+
+                # Keep track of the discrete infeasibility measure
+                tau_iter = 1.0*tau
+                delta_iter = 1.0*delta
 
         xinfty = truss.computeLimitDesign(x)
 
@@ -302,7 +315,10 @@ def optimize_truss(N, M, root_dir='results',
         truss.printTruss(xinfty, filename=output)
         
         # Set the new penalty
-        truss.setNewInitPointPenalty(x, gamma, SIMP=SIMP)
+        truss.SIMP = parameter
+        truss.RAMP = parameter
+        truss.penalization = penalization
+        truss.setNewInitPointPenalty(x, gamma)
 
         # Store the previous value of the objective function
         fobj_prev = 1.0*fobj
@@ -311,14 +327,8 @@ def optimize_truss(N, M, root_dir='results',
         # Increase the iteration counter
         niters += 1
 
-    # Close the file
+    # Close the log file
     fp.close()
-
-    # # PDFLatex all the output files
-    # for k in xrange(niters):
-    #     filename = 'opt_truss_iter%d.tex'%(k)
-    #     os.system('cd %s; pdflatex %s > /dev/null ; cd ..;'%(
-    #         prefix, filename))
     
     # Print out the last optimized truss
     filename = 'opt_truss.tex'
@@ -338,9 +348,11 @@ parser.add_argument('--profile', action='store_true',
                     default=False, help='Performance profile')
 parser.add_argument('--use_mass_constraint', action='store_true',
                     default=False, help='Use the mass constraint')
-parser.add_argument('--SIMP', type=float, default=2.0,
-                    help='SIMP penalty parameter')
-parser.add_argument('--sigma', type=float, default=100.0,
+parser.add_argument('--parameter', type=float, default=3.0,
+                    help='Penalization parameter')
+parser.add_argument('--penalization', type=str, 
+                    default='SIMP', help='Penalization type')
+parser.add_argument('--sigma', type=float, default=20.0,
                     help='Penalty parameter value')
 args = parser.parse_args()
 
@@ -349,7 +361,8 @@ N = args.N
 M = args.M
 profile = args.profile
 use_mass_constraint = args.use_mass_constraint
-SIMP = args.SIMP
+penalization = args.penalization
+parameter = args.parameter
 sigma = args.sigma
 
 # Set the root results directory
@@ -373,10 +386,11 @@ if profile:
         try:
             optimize_truss(N, M, root_dir=root_dir,
                            use_mass_constraint=use_mass_constraint,
-                           sigma=sigma, SIMP=SIMP)
+                           sigma=sigma, penalization=penalization, 
+                           parameter=parameter)
         except:
             pass
 else:
     optimize_truss(N, M, root_dir=root_dir,
                    use_mass_constraint=use_mass_constraint,
-                   sigma=sigma, SIMP=SIMP)
+                   sigma=sigma, penalization=penalization, parameter=parameter)
