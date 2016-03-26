@@ -42,6 +42,10 @@
 */
 class ParOptProblem {
  public:
+  ParOptProblem( MPI_Comm _comm ){ 
+    comm = _comm; 
+    nvars = ncon = nwcon = nwblock = 0;
+  }
   ParOptProblem( MPI_Comm _comm,
 		 int _nvars, int _ncon,
 		 int _nwcon, int _nwblock ){
@@ -57,6 +61,16 @@ class ParOptProblem {
   // ------------------------------------
   MPI_Comm getMPIComm(){
     return comm;
+  }
+
+  // Set the problem sizes
+  // ---------------------
+  void setProblemSizes( int _nvars, int _ncon,
+                        int _nwcon, int _nwblock ){
+    nvars = _nvars;
+    ncon = _ncon;
+    nwcon = _nwcon;
+    nwblock = _nwblock; 
   }
     
   // Get the problem dimensions
