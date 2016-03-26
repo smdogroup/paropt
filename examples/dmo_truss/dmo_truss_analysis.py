@@ -359,14 +359,11 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         fobj = np.dot(self.u, self.f)/self.obj_scale
 
         # Set the penalty parameters
-        penalty = 0.0
+        fpenalty = 0.0
         for i in xrange(self.nelems):
-            penalty += 0.5*gamma[i]*((2.0 - x[self.nblock*i])*x[self.nblock*i])
+            fpenalty += 0.5*gamma[i]*((2.0 - x[self.nblock*i])*x[self.nblock*i])
             for j in xrange(1, self.nblock):
-                penalty -= 0.5*gamma[i]*x[self.nblock*i+j]**2
-
-        # Add the full penalty from the objective
-        fobj += penalty
+                fpenalty -= 0.5*gamma[i]*x[self.nblock*i+j]**2
 
         # Compute the mass of the entire truss
         mass = np.dot(self.gmass, x)
@@ -377,7 +374,10 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         else:
             fobj += 0.5*self.sigma*(mass/self.m_fixed - 1.0)**2
 
-        return compliance, fobj
+        # Add the full penalty from the objective
+        fpenalty += fobj
+
+        return compliance, fobj, fpenalty
 
     def getMass(self, x):
         '''Return the mass of the truss'''

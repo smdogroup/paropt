@@ -119,6 +119,10 @@ class ParOpt {
 	  double _max_bound_val = 1e20 );
   ~ParOpt();
 
+  // Reset the problem instance - problem sizes must remain the same
+  // ---------------------------------------------------------------
+  void resetProblemInstance( ParOptProblem *_prob );
+
   // Perform the optimization
   // ------------------------
   int optimize( const char * checkpoint = NULL );
@@ -290,7 +294,7 @@ class ParOpt {
   void checkStep();
 
   // The parallel optimizer problem and constraints
-  ParOptProblem * prob;
+  ParOptProblem *prob;
 
   // Communicator info
   MPI_Comm comm;

@@ -47,7 +47,7 @@ def get_ground_structure(N=4, M=4, L=2.5, P=1e4, n=10):
             if gcd(x, y) == 1:
                 grid.append((x,y))
 
-    # Reflect the ge
+    # Reflect the grid
     reflect = []
     for d in grid:
         reflect.append((-d[0], d[1]))
@@ -187,9 +187,9 @@ def optimize_truss(N, M, root_dir='results',
     fp = open(log_filename, 'w')
 
     # Write the header out to the file
-    s = 'Variables = iteration, "compliance", "fobj", '
+    s = 'Variables = iteration, "compliance", "fobj", "fpenalty", '
     s += '"min gamma", "max gamma", "gamma", '
-    s += '"min d", "max d", "tau", "mass infeas", '
+    s += '"min d", "max d", "tau", "ninfeas", "mass infeas", '
     s += 'feval, geval, hvec, time\n'
     s += 'Zone T = %s\n'%(heuristic)
     fp.write(s)
@@ -203,9 +203,6 @@ def optimize_truss(N, M, root_dir='results',
     # Previous value of the objective function
     fobj_prev = 0.0
 
-    # Keep track of the number of bars
-    max_bars = len(truss.conn)-1
-
     # Set the first time
     first_time = True
 
@@ -217,7 +214,7 @@ def optimize_truss(N, M, root_dir='results',
 
     # Set the target rate of increase in gamma
     delta_max = 10.0
-    delta_min = 1e-4
+    delta_min = 1e-3
 
     # Keep track of the number of iterations
     niters = 0
@@ -244,7 +241,13 @@ def optimize_truss(N, M, root_dir='results',
         tau = np.sum(d)
 
         # Get the compliance and objective values
-        comp, fobj = truss.getL1Objective(x, gamma)
+        comp, fobj, fpenalty = truss.getL1Objective(x, gamma)
+
+        # Keep track of how many bars are discrete infeasible
+        draw_list = []
+        for i in xrange(len(d)):
+            if d[i] > max_d:
+                draw_list.append(i)
 
         # Print out the iteration information to the screen
         print 'Iteration %d'%(k)
@@ -254,10 +257,10 @@ def optimize_truss(N, M, root_dir='results',
             np.min(d), np.max(d), np.sum(d))
         print 'Mass infeas:   %15.5e'%(m_infeas)
 
-        s = '%d %e %e %e %e %e %e %e %e %e '%(
-            k, comp, fobj,
+        s = '%d %e %e %e %e %e %e %e %e %e %2d %e '%(
+            k, comp, fobj, fpenalty,
             np.min(gamma), np.max(gamma), np.sum(gamma),
-            np.min(d), np.max(d), np.sum(d), m_infeas)
+            np.min(d), np.max(d), np.sum(d), len(draw_list), m_infeas)
         s += '%d %d %d %e\n'%(
             truss.fevals, truss.gevals, truss.hevals, 
             MPI.Wtime() - init_time)
@@ -268,11 +271,6 @@ def optimize_truss(N, M, root_dir='results',
         # sufficiently low
         if np.max(d) <= max_d:
             break
-
-        draw_list = []
-        for i in xrange(len(d)):
-            if d[i] > max_d:
-                draw_list.append(i)
 
         # Print the output
         filename = 'opt_truss_iter%d.tex'%(k)
@@ -336,6 +334,16 @@ def optimize_truss(N, M, root_dir='results',
     truss.printTruss(x, filename=output)
     os.system('cd %s; pdflatex %s > /dev/null ; cd ..;'%(prefix, filename))
 
+    # Save the final optimized point
+    fname = os.path.join(prefix, 'x_opt.dat')
+    x = opt.getOptimizedPoint()
+    np.savetxt(fname, x)
+
+    # Get the rounded design
+    xinfty = truss.computeLimitDesign(x)
+    fname = os.path.join(prefix, 'x_opt_infty.dat')
+    np.savetxt(fname, xinfty)
+
     return
 
 # Parse the command line arguments 
@@ -374,11 +382,10 @@ if use_mass_constraint:
 use_hessian = True
 
 # The trusses used in this instance
-trusses = [ (3, 3), (4, 3), (5, 3), (6, 3),
-            (4, 4), (5, 4), (6, 4), (7, 4), (8, 4), (9, 4), (10, 4),
-            (5, 5), (6, 5), (7, 5), (8, 5), (9, 5), (10, 5),
-            (6, 6), (7, 6), (8, 6), (9, 6), (10, 6), (11, 6), (12, 6),
-            (7, 7), (8, 7), (9, 7), (10, 7), (11, 7), (12, 7), (13, 7), (14, 7) ]
+trusses = []
+for j in range(3, 7):
+   for i in range(j, 3*j+1):
+       trusses.append((i, j))
 
 # Run either the optimizations or the
 if profile:
@@ -387,10 +394,11 @@ if profile:
             optimize_truss(N, M, root_dir=root_dir,
                            use_mass_constraint=use_mass_constraint,
                            sigma=sigma, penalization=penalization, 
-                           parameter=parameter)
+                           parameter=parameter, max_iters=80)
         except:
             pass
 else:
     optimize_truss(N, M, root_dir=root_dir,
                    use_mass_constraint=use_mass_constraint,
-                   sigma=sigma, penalization=penalization, parameter=parameter)
+                   sigma=sigma, penalization=penalization, 
+                   parameter=parameter, max_iters=80)

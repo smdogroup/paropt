@@ -371,6 +371,26 @@ ParOpt::~ParOpt(){
 }
 
 /*
+  Reset the problem instance
+*/
+void ParOpt::resetProblemInstance( ParOptProblem *problem ){
+  // Check to see if the new problem instance is congruent with 
+  // the previous problem instance - it has to be otherwise
+  // we can't use it.
+  int _nvars, _ncon, _nwcon, _nwblock;
+  problem->getProblemSizes(&_nvars, &_ncon, &_nwcon, &_nwblock);
+
+  if (_nvars != nvars || _ncon != ncon || 
+      _nwcon != nwcon || _nwblock != nwblock){
+    fprintf(stderr, "ParOpt: Incompatible problem instance\n");
+    problem = NULL;
+  }
+  else {
+    prob = problem;
+  }
+}
+
+/*
   Retrieve the problem sizes from the underlying problem class
 */
 void ParOpt::getProblemSizes( int *_nvars, int *_ncon, 
