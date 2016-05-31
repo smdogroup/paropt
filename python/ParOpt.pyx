@@ -22,49 +22,42 @@ from cpython cimport PyObject, Py_INCREF
 cdef extern from "mpi-compat.h":
    pass
 
-# This class wraps a C++ array with a numpy array for later useage
-cdef class NpArrayWrap:
-   cdef int nptype
-   cdef int dim1, dim2
-   cdef void *data_ptr
+# This wraps a C++ array with a numpy array for later useage
+cdef inplace_array_1d(int nptype, int dim1, void *data_ptr):
+   '''Return a numpy version of the array'''
+   # Set the shape of the array
+   cdef int size = 1
+   cdef np.npy_intp shape[1]
+   cdef np.ndarray ndarray
 
-   cdef set_data1d(self, int nptype, int dim1, void *data_ptr):
-      '''Set data in the array'''
-      self.nptype = nptype
-      self.dim1 = dim1
-      self.dim2 = -1
-      self.data_ptr = data_ptr
-      return
-
-   cdef set_data2d(self, int nptype, int dim1, int dim2, void *data_ptr):
-      '''Set data in the array'''
-      self.nptype = nptype
-      self.dim1 = dim1
-      self.dim2 = dim2
-      self.data_ptr = data_ptr
-      return
-
-   cdef as_ndarray(self):
-      '''Return a numpy version of the array'''
-      # Set the shape of the array
-      cdef int size = 1
-      cdef np.npy_intp shape[2]
-      cdef np.ndarray ndarray
-
-      shape[0] = <np.npy_intp> self.dim1
-      if (self.dim2 > 0):
-         size = 2
-         shape[1] = <np.npy_intp> self.dim2
+   # Set the first entry of the shape array
+   shape[0] = <np.npy_intp>dim1
       
-      # Create the array itself
-      ndarray = np.PyArray_SimpleNewFromData(size, shape,
-                                             self.nptype, self.data_ptr)
+   # Create the array itself - Note that this function will not
+   # delete the data once the ndarray goes out of scope
+   ndarray = np.PyArray_SimpleNewFromData(size, shape,
+                                          nptype, data_ptr)
+   
+   return ndarray
+
+# This wraps a C++ array with a numpy array for later useage
+cdef inplace_array_2d(int nptype, int dim1, int dim2, void *data_ptr):
+   '''Return a numpy version of the array'''
+   # Set the shape of the array
+   cdef int size = 2
+   cdef np.npy_intp shape[2]
+   cdef np.ndarray ndarray
+
+   # Set the first entry of the shape array
+   shape[0] = <np.npy_intp>dim1
+   shape[1] = <np.npy_intp>dim2
       
-      # Set the base class who owns the memory
-      ndarray.base = <PyObject*>self
-      Py_INCREF(self)
-      
-      return ndarray
+   # Create the array itself - Note that this function will not
+   # delete the data once the ndarray goes out of scope
+   ndarray = np.PyArray_SimpleNewFromData(size, shape,
+                                          nptype, data_ptr)
+   
+   return ndarray
 
 cdef void _getvarsandbounds(void *_self, int nvars,
                             double *x, double *lb, double *ub):
@@ -72,17 +65,9 @@ cdef void _getvarsandbounds(void *_self, int nvars,
    cdef np.ndarray xnp, lbnp, ubnp
 
    # Create the array wrappers 
-   xwrap = NpArrayWrap()
-   lbwrap = NpArrayWrap()
-   ubwrap = NpArrayWrap()
-   xwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>x)
-   lbwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>lb)
-   ubwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>ub)
-
-   # Get the numpy version of the array
-   xnp = xwrap.as_ndarray()
-   lbnp = lbwrap.as_ndarray()
-   ubnp = ubwrap.as_ndarray()
+   xnp = inplace_array_1d(np.NPY_DOUBLE, nvars, <void*>x)
+   lbnp = inplace_array_1d(np.NPY_DOUBLE, nvars, <void*>lb)
+   ubnp = inplace_array_1d(np.NPY_DOUBLE, nvars, <void*>ub)
 
    # Retrieve the initial variables and their bounds 
    (<object>_self).getVarsAndBounds(xnp, lbnp, ubnp)
@@ -96,12 +81,8 @@ cdef int _evalobjcon(void *_self, int nvars, int ncon,
    cdef int i
    
    # Create the array wrapper
-   xwrap = NpArrayWrap()
-   xwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>x)
-
-   # Get the resulting numpy array
-   xnp = xwrap.as_ndarray()
-
+   xnp = inplace_array_1d(np.NPY_DOUBLE, nvars, <void*>x)
+   
    # Call the objective function
    fail, _fobj, _cons = (<object>_self).evalObjCon(xnp)
 
@@ -120,18 +101,10 @@ cdef int _evalobjcongradient(void *_self, int nvars, int ncon,
    cdef np.ndarray xnp, gnp, Anp
    
    # Create the array wrapper
-   xwrap = NpArrayWrap()
-   gwrap = NpArrayWrap()
-   Awrap = NpArrayWrap()
-   xwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>x)
-   gwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>g)
-   Awrap.set_data2d(np.NPY_DOUBLE, ncon, nvars, <void*>A)
-
-   # Ge tthe resulting numpy array
-   xnp = xwrap.as_ndarray()
-   gnp = gwrap.as_ndarray()
-   Anp = Awrap.as_ndarray()
-
+   xnp = inplace_array_1d(np.NPY_DOUBLE, nvars, <void*>x)
+   gnp = inplace_array_1d(np.NPY_DOUBLE, nvars, <void*>g)
+   Anp = inplace_array_2d(np.NPY_DOUBLE, ncon, nvars, <void*>A)
+   
    # Call the objective function
    fail = (<object>_self).evalObjConGradient(xnp, gnp, Anp)
 
@@ -144,28 +117,14 @@ cdef int _evalhvecproduct(void *_self, int nvars, int ncon, int nwcon,
    cdef np.ndarray xnp, znp, pxnp, hnp
    cdef np.ndarray zwnp = None
    
-   # Create the wrapper objects
-   xwrap = NpArrayWrap()
-   zwrap = NpArrayWrap()
-   pxwrap = NpArrayWrap()
-   hwrap = NpArrayWrap()
-
-   # Set the arrays
-   xwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>x)
-   zwrap.set_data1d(np.NPY_DOUBLE, ncon, <void*>z)
-   pxwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>px)
-   hwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>hvec)
-
-   # Get the resulting numpy arrays
-   xnp = xwrap.as_ndarray()
-   znp = zwrap.as_ndarray()
-   pxnp = pxwrap.as_ndarray()
-   hnp = hwrap.as_ndarray()
-
+   # Create the array wrapper
+   xnp = inplace_array_1d(np.NPY_DOUBLE, nvars, <void*>x)
+   znp = inplace_array_1d(np.NPY_DOUBLE, nvars, <void*>z)
+   pxnp = inplace_array_1d(np.NPY_DOUBLE, nvars, <void*>px)
+   hnp = inplace_array_1d(np.NPY_DOUBLE, nvars, <void*>hvec)
+   
    if nwcon > 0:
-      zwwrap = NpArrayWrap()
-      zwwrap.set_data1d(np.NPY_DOUBLE, nwcon, <void*>zw)
-      zwnp = zwwrap.as_ndarray()
+      zwnp = inplace_array_1d(np.NPY_DOUBLE, nwcon, <void*>zw)
 
    # Call the objective function
    fail = (<object>_self).evalHvecProduct(xnp, znp, zwnp,
@@ -177,17 +136,9 @@ cdef void _evalsparsecon(void *_self, int nvars, int nwcon,
    # The numpy arrays
    cdef np.ndarray xnp, cnp
    
-   # Create the wrapper
-   xwrap = NpArrayWrap()
-   cwrap = NpArrayWrap()
-
-   # Set the arrays
-   xwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>x)
-   cwrap.set_data1d(np.NPY_DOUBLE, nwcon, <void*>con)
-
-   # Get the resulting arrays
-   xnp = xwrap.as_ndarray()
-   cnp = cwrap.as_ndarray()
+   # Create the array wrapper
+   xnp = inplace_array_1d(np.NPY_DOUBLE, nvars, <void*>x)
+   cnp = inplace_array_1d(np.NPY_DOUBLE, nwcon, <void*>con)
 
    (<object>_self).evalSparseCon(xnp, cnp)
    
@@ -200,19 +151,9 @@ cdef void _addsparsejacobian(void *_self, int nvars,
    cdef np.ndarray xnp, pxnp, cnp
    
    # Create the wrapper
-   xwrap = NpArrayWrap()
-   pxwrap = NpArrayWrap()
-   cwrap = NpArrayWrap()
-
-   # Set the arrays
-   xwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>x)
-   pxwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>px)
-   cwrap.set_data1d(np.NPY_DOUBLE, nwcon, <void*>con)
-
-   # Get the resulting arrays
-   xnp = xwrap.as_ndarray()
-   pxnp = pxwrap.as_ndarray()
-   cnp = cwrap.as_ndarray()
+   xnp = inplace_array_1d(np.NPY_DOUBLE, nvars, <void*>x)
+   pxnp = inplace_array_1d(np.NPY_DOUBLE, nvars, <void*>px)
+   cnp = inplace_array_1d(np.NPY_DOUBLE, nwcon, <void*>con)
 
    (<object>_self).addSparseJacobian(alpha, xnp, pxnp, cnp)
 
@@ -223,21 +164,11 @@ cdef void _addsparsejacobiantranspose(void *_self, int nvars,
                                       double *x, double *pzw, double *out):
    # The numpy arrays
    cdef np.ndarray xnp, pzwnp, outnp
-   
+
    # Create the wrapper
-   xwrap = NpArrayWrap()
-   pzwwrap = NpArrayWrap()
-   outwrap = NpArrayWrap()
-
-   # Set the arrays
-   xwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>x)
-   pzwwrap.set_data1d(np.NPY_DOUBLE, nwcon, <void*>pzw)
-   outwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>out)
-
-   # Get the resulting arrays
-   xnp = xwrap.as_ndarray()
-   pzwnp = pzwwrap.as_ndarray()
-   outnp = outwrap.as_ndarray()
+   xnp = inplace_array_1d(np.NPY_DOUBLE, nvars, <void*>x)
+   pzwnp = inplace_array_1d(np.NPY_DOUBLE, nwcon, <void*>pzw)
+   outnp = inplace_array_1d(np.NPY_DOUBLE, nvars, <void*>out)
 
    (<object>_self).addSparseJacobianTranspose(alpha, xnp, pzwnp, outnp)
 
@@ -248,21 +179,11 @@ cdef void _addsparseinnerproduct(void *_self, int nvars,
                                  double *x, double *c, double *A):
    # The numpy arrays
    cdef np.ndarray xnp, cnp, Anp
-   
+
    # Create the wrapper
-   xwrap = NpArrayWrap()
-   cwrap = NpArrayWrap()
-   Awrap = NpArrayWrap()
-
-   # Set the arrays
-   xwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>x)
-   cwrap.set_data1d(np.NPY_DOUBLE, nvars, <void*>c)
-   Awrap.set_data1d(np.NPY_DOUBLE, nwcon*nwblock*nwblock, <void*>A)
-
-   # Get the resulting arrays
-   xnp = xwrap.as_ndarray()
-   cnp = cwrap.as_ndarray()
-   Anp = Awrap.as_ndarray()
+   xnp = inplace_array_1d(np.NPY_DOUBLE, nvars, <void*>x)
+   cnp = inplace_array_1d(np.NPY_DOUBLE, nwcon, <void*>c)
+   Anp = inplace_array_1d(np.NPY_DOUBLE, nwcon*nwblock*nwblock, <void*>A)
 
    (<object>_self).addSparseInnerProduct(alpha, xnp, cnp, Anp)
 
