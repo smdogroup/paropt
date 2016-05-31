@@ -156,7 +156,7 @@ def optimize_truss(N, M, root_dir='results',
                    max_d=1e-4, theta=1e-3, penalization='SIMP',
                    parameter=2.0, max_iters=50):
     # Optimize the structure
-    heuristic = '%s%.0f'%(penalization ,parameter)
+    heuristic = '%s%.0f'%(penalization, parameter)
     prefix = os.path.join(root_dir, '%dx%d'%(N, M), heuristic)
     
     # Make sure that the directory exists
