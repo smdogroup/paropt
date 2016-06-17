@@ -219,8 +219,6 @@ creator.setElements(elems)
 # Create the tacs assembler object
 tacs = creator.createTACS()
 
-
-
 # Set/get the design variable values
 xvals = np.zeros(num_design_vars)
 tacs.getDesignVars(xvals)
