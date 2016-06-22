@@ -3,7 +3,6 @@ from mpi4py.libmpi cimport *
 cimport mpi4py.MPI as MPI
 
 # Import numpy 
-import numpy as np
 cimport numpy as np
 
 # Ensure that numpy is initialized
@@ -15,12 +14,9 @@ from libc.string cimport const_char
 # Import C methods for python
 from cpython cimport PyObject, Py_INCREF
 
-# Import the definitions
-from tacs import constitutive
-from constitutive import PlaneStress
-
-from TACS cimport *
-from constitutive cimport *
+# Import the TACS module
+from tacs.python.TACS cimport *
+from tacs.python.constitutive cimport *
 
 cdef extern from "mpi-compat.h":
     pass
@@ -29,6 +25,7 @@ cdef extern from "PSMultiTopo.h":
     cdef cppclass PSMultiTopo(PlaneStressStiffness):
         PSMultiTopo(TacsScalar*, TacsScalar*, TacsScalar*,
                     int, int, TacsScalar)
+        void setLinearization(TacsScalar, const TacsScalar*, int)
 
 cdef class MultiTopo(PlaneStress):
     def __cinit__(self,
@@ -46,8 +43,12 @@ cdef class MultiTopo(PlaneStress):
         self.ptr.incref()
         return
 
+    def setLinearization(self, double q,
+                         np.ndarray[TacsScalar, ndim=1, mode='c'] dvs):
+        self.ptr.setLinearization(q, <TacsScalar*>dvs.data, len(dvs))
+        return
+
     def __dealloc__(self):
         self.ptr.decref()
         return
-                                   
-        
+    

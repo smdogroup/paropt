@@ -15,7 +15,7 @@ debug: TACS_CC_FLAGS=${TACS_DEBUG_CC_FLAGS}
 debug: default
 
 %.cpp:%.pyx
-	${CYTHON} -I${TACS_DIR}/python/ --cplus $*.pyx
+	${CYTHON} -I${TACS_DIR}/python/ --cplus $*.pyx --include-dir ${TACS_DIR}/python/
 
 %.o:%.cpp
 	${CXX} -I${TACS_DIR}/python/ ${TACS_CC_FLAGS} ${PY_INCLUDE} -c $< -o $@
