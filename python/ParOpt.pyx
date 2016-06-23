@@ -182,7 +182,7 @@ cdef void _addsparseinnerproduct(void *_self, int nvars,
 
    # Create the wrapper
    xnp = inplace_array_1d(np.NPY_DOUBLE, nvars, <void*>x)
-   cnp = inplace_array_1d(np.NPY_DOUBLE, nwcon, <void*>c)
+   cnp = inplace_array_1d(np.NPY_DOUBLE, nvars, <void*>c)
    Anp = inplace_array_1d(np.NPY_DOUBLE, nwcon*nwblock*nwblock, <void*>A)
 
    (<object>_self).addSparseInnerProduct(alpha, xnp, cnp, Anp)

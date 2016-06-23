@@ -28,6 +28,7 @@ cdef extern from "PSMultiTopo.h":
         void setLinearization(TacsScalar, const TacsScalar*, int)
 
 cdef class MultiTopo(PlaneStress):
+    cdef PSMultiTopo* self_ptr
     def __cinit__(self,
                   np.ndarray[TacsScalar, ndim=1, mode='c'] rho,
                   np.ndarray[TacsScalar, ndim=1, mode='c'] E,
@@ -36,16 +37,17 @@ cdef class MultiTopo(PlaneStress):
         '''Multimaterial topology optimization'''
         assert((len(rho) == len(E)) and (len(rho) == len(nu)))
 
-        self.ptr = new PSMultiTopo(<TacsScalar*>rho.data,
-                                   <TacsScalar*>E.data,
-                                   <TacsScalar*>nu.data,
-                                   len(rho), dv_off, eps)
+        self.self_ptr = new PSMultiTopo(<TacsScalar*>rho.data,
+                                        <TacsScalar*>E.data,
+                                        <TacsScalar*>nu.data,
+                                        len(rho), dv_off, eps)
+        self.ptr = self.self_ptr
         self.ptr.incref()
         return
 
     def setLinearization(self, double q,
                          np.ndarray[TacsScalar, ndim=1, mode='c'] dvs):
-        self.ptr.setLinearization(q, <TacsScalar*>dvs.data, len(dvs))
+        self.self_ptr.setLinearization(q, <TacsScalar*>dvs.data, len(dvs))
         return
 
     def __dealloc__(self):

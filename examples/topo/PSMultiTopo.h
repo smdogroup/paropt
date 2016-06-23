@@ -36,29 +36,34 @@ class PSMultiTopo : public PlaneStressStiffness {
                          const TacsScalar dvs[], int numDVs ){ 
     q = _q;
 
+    // Record the design variable values
+    for ( int k = 0; k < num_mats+1; k++ ){
+      x0[k] = dvs[dv_offset + k];
+    }
+
+    // Set the linearization for the material weights
     for ( int k = 0; k < num_mats; k++ ){
-      x0[k] = dvs[dv_offset + 1+k];
-      xconst[k] = x0[k]/(1.0 + q*(1.0 - x0[k]));
-      xlin[k] = (q + 1.0)/((1.0 + q*(1.0 - x0[k]))*(1.0 + q*(1.0 - x0[k])));
+      xconst[k] = x0[k+1]/(1.0 + q*(1.0 - x0[k+1])) + eps;
+      xlin[k] = (q + 1.0)/((1.0 + q*(1.0 - x0[k+1]))*(1.0 + q*(1.0 - x0[k+1])));
     }
   }
   void setDesignVars( const TacsScalar dvs[], int numDVs ){
-    for ( int k = 0; k < num_mats; k++ ){
-      x[k] = dvs[dv_offset + 1+k];
+    for ( int k = 0; k < num_mats+1; k++ ){
+      x[k] = dvs[dv_offset + k];
     }
   }
   void getDesignVars( TacsScalar dvs[], int numDVs ){
-    for ( int k = 0; k < num_mats; k++ ){
-      dvs[dv_offset + 1+k] = x[k];
+    for ( int k = 0; k < num_mats+1; k++ ){
+      dvs[dv_offset + k] = x[k];
     }
   }
   void getDesignVarRange( TacsScalar lb[], TacsScalar ub[],
                           int numDVs ){
     lb[dv_offset] = 0.0;
     ub[dv_offset] = 1.0;
-    for ( int k = 0; k < num_mats; k++ ){
-      lb[dv_offset + 1+k] = q*x0[k]*x0[k]/(1.0 + q);
-      ub[dv_offset + 1+k] = 1e30;
+    for ( int k = 1; k < num_mats+1; k++ ){
+      lb[dv_offset + k] = q*x0[k]*x0[k]/(1.0 + q);
+      ub[dv_offset + k] = 1e30;
     }
   }
 
@@ -66,10 +71,8 @@ class PSMultiTopo : public PlaneStressStiffness {
                         TacsScalar s[] ){
     s[0] = s[1] = s[2] = 0.0;
     for ( int k = 0; k < num_mats; k++ ){
-      TacsScalar Dx = D[k]*(xconst[k] + xlin[k]*(x[k] - x0[k]) + eps);
-      TacsScalar Gx = G[k]*(xconst[k] + xlin[k]*(x[k] - x0[k]) + eps);
-
-      // Add the design variables
+      TacsScalar Dx = D[k]*(xconst[k] + xlin[k]*(x[k+1] - x0[k+1]));
+      TacsScalar Gx = G[k]*(xconst[k] + xlin[k]*(x[k+1] - x0[k+1]));
       s[0] += Dx*(e[0] + nu[k]*e[1]);
       s[1] += Dx*(e[1] + nu[k]*e[0]);
       s[2] += Gx*e[2];
@@ -89,7 +92,7 @@ class PSMultiTopo : public PlaneStressStiffness {
   void getPointwiseMass( const double pt[], TacsScalar mass[] ){
     mass[0] = 0.0;
     for ( int k = 0; k < num_mats; k++ ){
-      mass[0] += x[k]*rho[k];
+      mass[0] += x[k+1]*rho[k];
     }
   }
   void addPointwiseMassDVSens( const double pt[],
@@ -101,7 +104,7 @@ class PSMultiTopo : public PlaneStressStiffness {
   }
 
  public:
-  // Set the 
+  // Set the lower bound on the stiffness
   TacsScalar eps;
 
   // The RAMP parameter value
@@ -118,9 +121,11 @@ class PSMultiTopo : public PlaneStressStiffness {
   TacsScalar D[MAX_NUM_MATERIALS];
   TacsScalar G[MAX_NUM_MATERIALS];
 
-  // Material variables
-  TacsScalar x[MAX_NUM_MATERIALS];
-  TacsScalar x0[MAX_NUM_MATERIALS];
+  // Design variable values
+  TacsScalar x[MAX_NUM_MATERIALS+1];
+  TacsScalar x0[MAX_NUM_MATERIALS+1];
+
+  // Linearization terms for the penalty function
   TacsScalar xconst[MAX_NUM_MATERIALS];
   TacsScalar xlin[MAX_NUM_MATERIALS];
 };
