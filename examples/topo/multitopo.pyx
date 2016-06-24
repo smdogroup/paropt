@@ -27,6 +27,9 @@ cdef extern from "PSMultiTopo.h":
                     int, int, TacsScalar)
         void setLinearization(TacsScalar, const TacsScalar*, int)
 
+    cdef void assembleResProjectDVSens(TACSAssembler*,
+                                       const TacsScalar*, int, BVec*)
+    
 cdef class MultiTopo(PlaneStress):
     cdef PSMultiTopo* self_ptr
     def __cinit__(self,
@@ -54,3 +57,10 @@ cdef class MultiTopo(PlaneStress):
         self.ptr.decref()
         return
     
+def assembleProjectDVSens(Assembler assembler,
+                          np.ndarray[TacsScalar, ndim=1, mode='c'] px,
+                          Vec residual):
+    assembleResProjectDVSens(assembler.ptr,
+                             <TacsScalar*>px.data, len(px),
+                             residual.ptr)
+    return

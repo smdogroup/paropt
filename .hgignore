@@ -13,3 +13,5 @@ syntax: glob
 *.pdf
 *.lay
 *.phy
+*.f5
+*.plt

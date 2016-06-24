@@ -1,8 +1,8 @@
 #ifndef PLANE_STRESS_MULTI_TOPO_H
 #define PLANE_STRESS_MULTI_TOPO_H
 
-
 #include "PlaneStressStiffness.h"
+#include "TACS2DElement.h"
 
 class PSMultiTopo : public PlaneStressStiffness {
  public:
@@ -17,6 +17,9 @@ class PSMultiTopo : public PlaneStressStiffness {
     num_mats = _num_mats;
     eps = _eps;
 
+    x0[0] = 0.0;
+    x[0] = 0.5;
+
     for ( int k = 0; k < num_mats; k++ ){
       rho[k] = _rho[k];
       E[k] = _E[k];
@@ -25,8 +28,8 @@ class PSMultiTopo : public PlaneStressStiffness {
       G[k] = 0.5*E[k]/(1.0 + nu[k]);
 
       // Set the initial values of the bounds
-      x0[k] = 0.0;
-      x[k] = 0.5;
+      x0[k+1] = 0.0;
+      x[k+1] = 0.5;
       xconst[k] = 0.0;
       xlin[k] = 1.0;
     }
@@ -67,7 +70,8 @@ class PSMultiTopo : public PlaneStressStiffness {
     }
   }
 
-  void calculateStress( const double pt[], const TacsScalar e[], 
+  void calculateStress( const double pt[], 
+                        const TacsScalar e[], 
                         TacsScalar s[] ){
     s[0] = s[1] = s[2] = 0.0;
     for ( int k = 0; k < num_mats; k++ ){
@@ -86,6 +90,23 @@ class PSMultiTopo : public PlaneStressStiffness {
         alpha*xlin[k]*(psi[0]*(D[k]*(e[0] + nu[k]*e[1])) +
                        psi[1]*(D[k]*(e[1] + nu[k]*e[0])) +
                        psi[2]*G[k]*e[2]);
+    }
+  }
+
+  // Calculate the derivative of the stress projected onto the
+  // design variable values. This is required for second derivative
+  // computations
+  void calcStressDVProject( const double pt[],
+                            const TacsScalar e[],
+                            const TacsScalar px[],
+                            int dvLen, TacsScalar s[] ){
+    s[0] = s[1] = s[2] = 0.0;
+    for ( int k = 0; k < num_mats; k++ ){
+      TacsScalar Dx = D[k]*xlin[k]*px[dv_offset + k+1];
+      TacsScalar Gx = G[k]*xlin[k]*px[dv_offset + k+1];
+      s[0] += Dx*(e[0] + nu[k]*e[1]);
+      s[1] += Dx*(e[1] + nu[k]*e[0]);
+      s[2] += Gx*e[2];
     }
   }
 
@@ -129,5 +150,116 @@ class PSMultiTopo : public PlaneStressStiffness {
   TacsScalar xconst[MAX_NUM_MATERIALS];
   TacsScalar xlin[MAX_NUM_MATERIALS];
 };
+
+/*
+  The following function computes the product requried for the second
+  derivative computation. This is not standard and so is implemented
+  in a different manner.
+*/
+void assembleResProjectDVSens( TACSAssembler *tacs,
+                               const TacsScalar *px,
+                               int dvLen,
+                               BVec *residual ){
+  residual->zeroEntries();
+  static const int NUM_NODES = 9;
+  
+  // Get the number of dependent nodes
+  const int varsPerNode = tacs->getVarsPerNode();
+  const int numNodes = tacs->getNumNodes();
+  const int numDependentNodes = tacs->getNumDependentNodes();
+  int size = varsPerNode*(numNodes + numDependentNodes);
+  TacsScalar *localRes;
+  tacs->getLocalArrays(NULL, &localRes, NULL, NULL, NULL);
+  memset(localRes, 0, size*sizeof(TacsScalar));
+
+  // Get the residual vector
+  int num_elements = tacs->getNumElements();
+  for ( int k = 0; k < num_elements; k++ ){
+    TacsScalar Xpts[3*NUM_NODES];
+    TacsScalar vars[2*NUM_NODES], dvars[2*NUM_NODES];
+    TacsScalar ddvars[2*NUM_NODES];
+
+    TACSElement *element = tacs->getElement(k, Xpts, 
+                                            vars, dvars, ddvars);
+
+    // Dynamically cast the element to the 2D element type
+    TACS2DElement<NUM_NODES> *elem = 
+      dynamic_cast<TACS2DElement<NUM_NODES>*>(element);
+    if (elem){
+      TACSConstitutive *constitutive = 
+        elem->getConstitutive();
+      
+      PSMultiTopo *con = dynamic_cast<PSMultiTopo*>(constitutive);
+      if (con){
+        TacsScalar res[2*NUM_NODES];
+        memset(res, 0, 2*NUM_NODES*sizeof(TacsScalar));
+
+        static const int NUM_STRESSES = 3;
+        static const int NUM_VARIABLES = 2*NUM_NODES;
+
+        // The shape functions associated with the element
+        double N[NUM_NODES];
+        double Na[NUM_NODES], Nb[NUM_NODES];
+  
+        // The derivative of the stress with respect to the strain
+        TacsScalar B[NUM_STRESSES*NUM_VARIABLES];
+        
+        // Get the number of quadrature points
+        int numGauss = elem->getNumGaussPts();
+
+        for ( int n = 0; n < numGauss; n++ ){
+          // Retrieve the quadrature points and weight
+          double pt[3];
+          double weight = elem->getGaussWtsPts(n, pt);
+
+          // Compute the element shape functions
+          elem->getShapeFunctions(pt, N, Na, Nb);
+
+          // Compute the derivative of X with respect to the
+          // coordinate directions
+          TacsScalar X[3], Xa[9];
+          elem->planeJacobian(X, Xa, N, Na, Nb, Xpts);
+
+          // Compute the determinant of Xa and the transformation
+          TacsScalar J[4];
+          TacsScalar h = FElibrary::jacobian2d(Xa, J);
+          h = h*weight;
+
+          // Compute the strain
+          TacsScalar strain[NUM_STRESSES];
+          elem->evalStrain(strain, J, Na, Nb, vars);
+ 
+          // Compute the corresponding stress
+          TacsScalar stress[NUM_STRESSES];
+          con->calcStressDVProject(pt, strain, px, dvLen, stress);
+       
+          // Get the derivative of the strain with respect to the nodal
+          // displacements
+          elem->getBmat(B, J, Na, Nb, vars);
+
+          TacsScalar *b = B;
+          for ( int i = 0; i < NUM_VARIABLES; i++ ){
+            res[i] += h*(b[0]*stress[0] + b[1]*stress[1] + b[2]*stress[2]);
+            b += NUM_STRESSES;
+          }
+        }
+
+        // Add the residual values
+        tacs->addValues(varsPerNode, k, res, localRes);
+      }
+    }    
+  }
+
+  // Add the dependent-variable residual from the dependent nodes
+  tacs->addDependentResidual(varsPerNode, localRes);
+
+  // Assemble the full residual
+  BVecDistribute *vecDist = tacs->getBVecDistribute();
+  vecDist->beginReverse(localRes, residual, BVecDistribute::ADD);
+  vecDist->endReverse(localRes, residual, BVecDistribute::ADD);
+
+  // Set the boundary conditions
+  residual->applyBCs();
+}
 
 #endif // PLANE_STRESS_MULTI_TOPO_H
