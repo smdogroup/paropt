@@ -159,7 +159,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
 
         # Set bounds for the mass penalty function
         lb[-2:] = 0.0
-        ub[-2:] = 1e30
+        ub[-2:] = 1e20
         return
         
     def evalSparseCon(self, x, con):
@@ -495,6 +495,99 @@ def create_paropt(analysis, use_hessian=False,
 
     return opt
 
+def create_pyopt(analysis, optimizer='snopt', options={}):
+    '''
+    Take the given problem and optimize it with the given optimizer
+    from the pyOptSparse library of optimizers.
+    '''
+    # Import the optimization problem
+    from pyoptsparse import Optimization, OPT
+    from scipy import sparse
+
+    optimizer = 'ipopt'
+
+    class pyOptWrapper:
+        optimizer = 'snopt'
+        options = {}
+        opt = None
+        prob = None
+        def __init__(self, analysis):
+            self.analysis = analysis
+        def objcon(self, x):
+            fail, obj, con = self.analysis.evalObjCon(x['x'])
+            funcs = {'objective': obj, 'con': con}
+            return funcs, fail
+        def gobjcon(self, x, funcs):
+            g = np.zeros(x['x'].shape)
+            A = np.zeros((1, x['x'].shape[0]))
+            fail = self.analysis.evalObjConGradient(x['x'], g, A)
+            sens = {'objective': {'x': g}, 'con': {'x': A}}
+            return sens, fail
+
+        # Thin wrapper methods to make this look somewhat like ParOpt
+        def optimize(self):
+            self.opt = OPT(self.optimizer, options=self.options)
+            self.sol = self.opt(self.prob, sens=self.gobjcon)
+            return
+
+        def setOutputFile(self, fname):
+            if self.optimizer == 'snopt':
+                self.options['Print file'] = fname                
+            return
+
+        def setInitBarrierParameter(self, *args):
+            return
+
+        def getOptimizedPoint(self):
+            x = np.zeros(self.analysis.num_design_vars)
+            self.analysis.tacs.getDesignVars(x)
+            return x
+        
+    # Set the design variables
+    wrap = pyOptWrapper(analysis)
+    prob = Optimization('topo', wrap.objcon)
+
+    # Add the linear constraint
+    n = analysis.num_design_vars
+
+    # Create the sparse matrix for the design variable weights
+    Asparse = sparse.lil_matrix((analysis.num_elements, n))
+    for i in xrange(analysis.num_elements):
+        nblock = analysis.num_materials+1
+
+        Asparse[i, i*nblock] = 1.0
+        for j in xrange(i*nblock+1, (i+1)*nblock):
+            Asparse[i, j] = -1.0
+
+    lower = np.zeros(analysis.num_elements)
+    upper = np.zeros(analysis.num_elements)
+    prob.addConGroup('lincon', analysis.num_elements,
+                     lower=lower, upper=upper,
+                     linear=True, wrt=['x'], jac={'x': Asparse})
+
+    # Determine the initial variable values and their lower/upper
+    # bounds in the design problem
+    x0 = np.zeros(n)
+    lb = np.zeros(n)
+    ub = np.zeros(n)
+    analysis.getVarsAndBounds(x0, lb, ub)
+
+    # Set the variable bounds and initial values
+    prob.addVarGroup('x', n, value=x0, lower=lb, upper=ub)
+    
+    # Set the constraints
+    prob.addConGroup('con', 1, lower=0.0, upper=0.0)
+        
+    # Add the objective
+    prob.addObj('objective')
+
+    # Set the values into the wrapper
+    wrap.optimizer = optimizer
+    wrap.options = options
+    wrap.prob = prob
+
+    return wrap
+
 def write_tikz_file(x, nx, ny, nmats, filename):
     '''Write a tikz file'''
     
@@ -547,7 +640,7 @@ def write_tikz_file(x, nx, ny, nmats, filename):
 
 def optimize_plane_stress(comm, nx, ny, root_dir='results',
                           sigma=100.0, max_d=1e-4, theta=1e-3,
-                          parameter=5.0, max_iters=50):
+                          parameter=5.0, max_iters=50, use_paropt=True):
     # Optimize the structure
     penalization='RAMP'
     heuristic = '%s%.0f'%(penalization, parameter)
@@ -561,10 +654,13 @@ def optimize_plane_stress(comm, nx, ny, root_dir='results',
     analysis = create_structure(comm, nx, ny, sigma=sigma)
     
     # Set up the optimization problem in ParOpt
-    opt = create_paropt(analysis,
-                        use_hessian=use_hessian,
-                        qn_type=ParOpt.BFGS)
-    
+    if use_paropt:
+        opt = create_paropt(analysis,
+                            use_hessian=use_hessian,
+                            qn_type=ParOpt.BFGS)
+    else:
+        opt = create_pyopt(analysis)
+        
     # Log the optimization file
     log_filename = os.path.join(prefix, 'log_file.dat')
     fp = open(log_filename, 'w')
@@ -752,4 +848,5 @@ use_hessian = True
 
 comm = MPI.COMM_WORLD
 optimize_plane_stress(comm, nx, ny, root_dir=root_dir,
-                      sigma=sigma, parameter=parameter, max_iters=80)
+                      sigma=sigma, parameter=parameter,
+                      max_iters=80, use_paropt=False)

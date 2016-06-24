@@ -28,8 +28,8 @@ class PSMultiTopo : public PlaneStressStiffness {
       G[k] = 0.5*E[k]/(1.0 + nu[k]);
 
       // Set the initial values of the bounds
-      x0[k+1] = 0.0;
-      x[k+1] = 0.5;
+      x0[k+1] = eps;
+      x[k+1] = 1.0/num_mats;
       xconst[k] = 0.0;
       xlin[k] = 1.0;
     }
@@ -162,6 +162,8 @@ void assembleResProjectDVSens( TACSAssembler *tacs,
                                BVec *residual ){
   residual->zeroEntries();
   static const int NUM_NODES = 9;
+  static const int NUM_STRESSES = 3;
+  static const int NUM_VARIABLES = 2*NUM_NODES;
   
   // Get the number of dependent nodes
   const int varsPerNode = tacs->getVarsPerNode();
@@ -175,17 +177,19 @@ void assembleResProjectDVSens( TACSAssembler *tacs,
   // Get the residual vector
   int num_elements = tacs->getNumElements();
   for ( int k = 0; k < num_elements; k++ ){
-    TacsScalar Xpts[3*NUM_NODES];
-    TacsScalar vars[2*NUM_NODES], dvars[2*NUM_NODES];
-    TacsScalar ddvars[2*NUM_NODES];
-
-    TACSElement *element = tacs->getElement(k, Xpts, 
-                                            vars, dvars, ddvars);
+    TACSElement *element = tacs->getElement(k, NULL, NULL, 
+                                            NULL, NULL);
 
     // Dynamically cast the element to the 2D element type
     TACS2DElement<NUM_NODES> *elem = 
       dynamic_cast<TACS2DElement<NUM_NODES>*>(element);
+
     if (elem){
+      TacsScalar Xpts[3*NUM_NODES];
+      TacsScalar vars[2*NUM_NODES], dvars[2*NUM_NODES];
+      TacsScalar ddvars[2*NUM_NODES];
+      tacs->getElement(k, Xpts, vars, dvars, ddvars);
+
       TACSConstitutive *constitutive = 
         elem->getConstitutive();
       
@@ -193,9 +197,6 @@ void assembleResProjectDVSens( TACSAssembler *tacs,
       if (con){
         TacsScalar res[2*NUM_NODES];
         memset(res, 0, 2*NUM_NODES*sizeof(TacsScalar));
-
-        static const int NUM_STRESSES = 3;
-        static const int NUM_VARIABLES = 2*NUM_NODES;
 
         // The shape functions associated with the element
         double N[NUM_NODES];
