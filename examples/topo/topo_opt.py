@@ -482,7 +482,7 @@ def create_paropt(analysis, use_hessian=False,
         opt.setGMRESSubspaceSize(100)
         opt.setNKSwitchTolerance(1.0)
         opt.setEisenstatWalkerParameters(0.5, 0.0)
-        opt.setGMRESTolerances(1.0, 1e-30)
+        opt.setGMRESTolerances(1e4, 1e-30)
     else:
         opt.setUseHvecProduct(0)
 
@@ -504,10 +504,8 @@ def create_pyopt(analysis, optimizer='snopt', options={}):
     from pyoptsparse import Optimization, OPT
     from scipy import sparse
 
-    optimizer = 'ipopt'
-
     class pyOptWrapper:
-        optimizer = 'snopt'
+        optimizer = None
         options = {}
         opt = None
         prob = None
@@ -532,7 +530,10 @@ def create_pyopt(analysis, optimizer='snopt', options={}):
 
         def setOutputFile(self, fname):
             if self.optimizer == 'snopt':
-                self.options['Print file'] = fname                
+                self.options['Print file'] = fname
+            elif self.optimizer == 'ipopt':
+                self.options['output_file'] = fname
+                self.options['max_iter'] = 2500
             return
 
         def setInitBarrierParameter(self, *args):
@@ -640,10 +641,10 @@ def write_tikz_file(x, nx, ny, nmats, filename):
 
 def optimize_plane_stress(comm, nx, ny, root_dir='results',
                           sigma=100.0, max_d=1e-4, theta=1e-3,
-                          parameter=5.0, max_iters=50, use_paropt=True):
+                          parameter=5.0, max_iters=50, optimizer='paropt'):
     # Optimize the structure
     penalization='RAMP'
-    heuristic = '%s%.0f'%(penalization, parameter)
+    heuristic = '%s%.0f_%s'%(penalization, parameter, optimizer)
     prefix = os.path.join(root_dir, '%dx%d'%(nx, ny), heuristic)
     
     # Make sure that the directory exists
@@ -654,12 +655,12 @@ def optimize_plane_stress(comm, nx, ny, root_dir='results',
     analysis = create_structure(comm, nx, ny, sigma=sigma)
     
     # Set up the optimization problem in ParOpt
-    if use_paropt:
+    if optimizer == 'paropt':
         opt = create_paropt(analysis,
                             use_hessian=use_hessian,
                             qn_type=ParOpt.BFGS)
     else:
-        opt = create_pyopt(analysis)
+        opt = create_pyopt(analysis, optimizer=optimizer)
         
     # Log the optimization file
     log_filename = os.path.join(prefix, 'log_file.dat')
@@ -699,7 +700,7 @@ def optimize_plane_stress(comm, nx, ny, root_dir='results',
     niters = 0
     for k in xrange(max_iters):
         # Set the output file to use
-        fname = os.path.join(prefix, 'paropt_history_iter%d.out'%(k)) 
+        fname = os.path.join(prefix, 'history_iter%d.out'%(k)) 
         opt.setOutputFile(fname)
 
         # Optimize the truss
@@ -832,6 +833,8 @@ parser.add_argument('--parameter', type=float, default=5.0,
                     help='Penalization parameter')
 parser.add_argument('--sigma', type=float, default=100.0,
                     help='Mass penalty parameter value')
+parser.add_argument('--optimizer', type=str, default='paropt',
+                    help='Optimizer name')
 args = parser.parse_args()
 
 # Get the arguments
@@ -839,6 +842,7 @@ nx = args.nx
 ny = args.ny
 parameter = args.parameter
 sigma = args.sigma
+optimizer = args.optimizer
 
 # Set the root results directory
 root_dir = 'results'
@@ -849,4 +853,4 @@ use_hessian = True
 comm = MPI.COMM_WORLD
 optimize_plane_stress(comm, nx, ny, root_dir=root_dir,
                       sigma=sigma, parameter=parameter,
-                      max_iters=80, use_paropt=False)
+                      max_iters=80, optimizer=optimizer)
