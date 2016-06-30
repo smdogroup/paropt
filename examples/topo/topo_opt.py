@@ -335,15 +335,15 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         return
     
 def create_structure(comm, nx=8, ny=8, Lx=100.0, Ly=100.0,
-                     sigma=20, eps=1e-4):
+                     sigma=20, eps=1e-3):
     '''
     Create a structure with the speicified number of nodes along the
     x/y directions, respectively.
     '''
 
     # Set the material properties
-    rho =    np.array([0.4,  1.0, 1.5])
-    E = 70e3*np.array([0.5,  1.0, 2.0])
+    rho =    np.array([0.7,   1.0, 1.15])
+    E = 70e3*np.array([0.725, 1.0, 1.125])
     nu =     np.array([0.3,  0.3, 0.3])
 
     # Compute the fixed mass fraction
@@ -479,10 +479,10 @@ def create_paropt(analysis, use_hessian=False,
     if use_hessian:
         opt.setUseLineSearch(0)
         opt.setUseHvecProduct(1)
-        opt.setGMRESSubspaceSize(100)
+        opt.setGMRESSubspaceSize(50)
         opt.setNKSwitchTolerance(1.0)
         opt.setEisenstatWalkerParameters(0.5, 0.0)
-        opt.setGMRESTolerances(1e4, 1e-30)
+        opt.setGMRESTolerances(1.0, 1e-30)
     else:
         opt.setUseHvecProduct(0)
 
@@ -531,7 +531,10 @@ def create_pyopt(analysis, optimizer='snopt', options={}):
         def setOutputFile(self, fname):
             if self.optimizer == 'snopt':
                 self.options['Print file'] = fname
+                self.options['Summary file'] = fname + '_summary'
             elif self.optimizer == 'ipopt':
+                self.options['bound_relax_factor'] = 0.0
+                self.options['linear_solver'] = 'ma27'
                 self.options['output_file'] = fname
                 self.options['max_iter'] = 2500
             return
@@ -552,13 +555,22 @@ def create_pyopt(analysis, optimizer='snopt', options={}):
     n = analysis.num_design_vars
 
     # Create the sparse matrix for the design variable weights
-    Asparse = sparse.lil_matrix((analysis.num_elements, n))
-    for i in xrange(analysis.num_elements):
-        nblock = analysis.num_materials+1
+    rowp = [0]
+    cols = []
+    data = []
+    nrows = analysis.num_elements
+    ncols = analysis.num_design_vars
 
-        Asparse[i, i*nblock] = 1.0
+    nblock = analysis.num_materials+1
+    for i in xrange(analysis.num_elements):
+        data.append(1.0)
+        cols.append(i*nblock)
         for j in xrange(i*nblock+1, (i+1)*nblock):
-            Asparse[i, j] = -1.0
+            data.append(-1.0)
+            cols.append(j)
+        rowp.append(len(cols))
+
+    Asparse = {'csr':[rowp, cols, data], 'shape':[nrows, ncols]}
 
     lower = np.zeros(analysis.num_elements)
     upper = np.zeros(analysis.num_elements)
@@ -575,7 +587,7 @@ def create_pyopt(analysis, optimizer='snopt', options={}):
 
     # Set the variable bounds and initial values
     prob.addVarGroup('x', n, value=x0, lower=lb, upper=ub)
-    
+
     # Set the constraints
     prob.addConGroup('con', 1, lower=0.0, upper=0.0)
         
@@ -612,8 +624,8 @@ def write_tikz_file(x, nx, ny, nmats, filename):
 
     # , (214, 39, 40)]
 
-    X = np.linspace(0, 5, nx+1)
-    Y = np.linspace(0, 5, ny+1)
+    X = np.linspace(0, 50, nx+1)
+    Y = np.linspace(0, 50, ny+1)
 
     for j in xrange(ny):
         for i in xrange(nx):
@@ -659,8 +671,6 @@ def optimize_plane_stress(comm, nx, ny, root_dir='results',
         opt = create_paropt(analysis,
                             use_hessian=use_hessian,
                             qn_type=ParOpt.BFGS)
-    else:
-        opt = create_pyopt(analysis, optimizer=optimizer)
         
     # Log the optimization file
     log_filename = os.path.join(prefix, 'log_file.dat')
@@ -699,6 +709,9 @@ def optimize_plane_stress(comm, nx, ny, root_dir='results',
     # Keep track of the number of iterations
     niters = 0
     for k in xrange(max_iters):
+        if optimizer != 'paropt':
+            opt = create_pyopt(analysis, optimizer=optimizer)
+        
         # Set the output file to use
         fname = os.path.join(prefix, 'history_iter%d.out'%(k)) 
         opt.setOutputFile(fname)
@@ -835,6 +848,9 @@ parser.add_argument('--sigma', type=float, default=100.0,
                     help='Mass penalty parameter value')
 parser.add_argument('--optimizer', type=str, default='paropt',
                     help='Optimizer name')
+parser.add_argument('--use_hessian', default=False,
+                    action='store_true',
+                    help='Use hessian-vector products')
 args = parser.parse_args()
 
 # Get the arguments
@@ -843,14 +859,12 @@ ny = args.ny
 parameter = args.parameter
 sigma = args.sigma
 optimizer = args.optimizer
+use_hessian = args.use_hessian
 
 # Set the root results directory
 root_dir = 'results'
 
-# Always use the Hessian-vector product implementation
-use_hessian = True
-
 comm = MPI.COMM_WORLD
 optimize_plane_stress(comm, nx, ny, root_dir=root_dir,
                       sigma=sigma, parameter=parameter,
-                      max_iters=80, optimizer=optimizer)
+                      max_iters=50, optimizer=optimizer)

@@ -28,9 +28,9 @@ class PSMultiTopo : public PlaneStressStiffness {
       G[k] = 0.5*E[k]/(1.0 + nu[k]);
 
       // Set the initial values of the bounds
-      x0[k+1] = eps;
+      x0[k+1] = 0.0;
       x[k+1] = 1.0/num_mats;
-      xconst[k] = 0.0;
+      xconst[k] = eps;
       xlin[k] = 1.0;
     }
   }

@@ -203,6 +203,9 @@ LBFGS::LBFGS( MPI_Comm _comm, int _nvars,
 
   b0 = 1.0;
 
+  // Set the default Hessian update
+  hessian_update_type = SKIP_NEGATIVE_CURVATURE;
+
   // Allocate space for the vectors
   S = new ParOptVec*[ msub_max ];
   Y = new ParOptVec*[ msub_max ];
@@ -275,6 +278,13 @@ LBFGS::~LBFGS(){
 }
 
 /*
+  Set the Hessian update type
+*/
+void LBFGS::setBFGSUpdateType( BFGSUpdateType _hessian_update_type ){
+  hessian_update_type = _hessian_update_type;
+}
+
+/*
   Get the maximum size of the limited-memory BFGS update
 */
 int LBFGS::getMaxLimitedMemorySize(){
@@ -311,61 +321,86 @@ void LBFGS::reset(){
 
   input:
   s:  the step in the design variable values
-  y:  the difference in the gradient
+  y:  the difference in the gradient of the Lagrangian
 
   returns:
-  update type: 0 = normal, 1 = damped update
+  update type: 0 = normal, 1 = damped update, 2 = skipped update
 */
-int LBFGS::update( ParOptVec * s, ParOptVec * y ){
+int LBFGS::update( ParOptVec *s, ParOptVec *y ){
   int update_type = 0;
 
-  // Set the diagonal entries of the matrix
-  ParOptScalar gamma = y->dot(y);
-  ParOptScalar alpha = y->dot(s);
+  // Set the pointer for the new value of y
+  ParOptVec *new_y = NULL;
+  ParOptScalar yTy = y->dot(y);
+  ParOptScalar sTy = s->dot(y);
 
-  // Set the diagonal components on the first time through
-  if (msub == 0){
-    b0 = gamma/alpha;
-    if (b0 <= 0.0){
-      b0 = 1.0;
+  if (hessian_update_type == SKIP_NEGATIVE_CURVATURE){
+    // Compute dot products that are required for the matrix
+    // updating scheme
+    ParOptScalar sTs = s->dot(s);
+
+    double epsilon = 1e-12;
+    
+    // Skip the update
+    if (sTy <= epsilon*sqrt(sTs*yTy)){
+      update_type = 2;
+      return update_type;
     }
+
+    // Compute the scalar parameter
+    b0 = sTy/sTs;
+
+    // Set the pointer to the new y value
+    new_y = y;
   }
- 
-  // Compute the step times the old Hessian approximation
-  mult(s, r);
-  ParOptScalar beta = r->dot(s);
+  else if (hessian_update_type == DAMPED_UPDATE){
+    // If the Hessian approximation has not been initialized, 
+    // guess an initial value for the b0 value
+    if (msub == 0){
+      b0 = yTy/sTy;
+      if (b0 <= 0.0){ 
+        b0 = 0.0; 
+      }
+    }
 
-  ParOptVec *new_vec = y;
+    // Compute the step times the old Hessian approximation
+    // and store the result in the r vector
+    mult(s, r);
 
-  // Compute the damped update if the curvature condition is violated
-  if (alpha <= 0.2*beta){
-    // Damped update return
-    update_type = 1;
+    // Set the new value of 
+    new_y = y;
 
-    // Compute r = theta*y + (1.0 - theta)*B*s
-    ParOptScalar theta = 0.8*beta/(beta - alpha);
-    r->scale(1.0 - theta);
-    r->axpy(theta, y);
-    new_vec = r;
+    ParOptScalar sTBs = r->dot(s);
+    if (sTy <= 0.2*sTBs){
+      update_type = 1;
 
-    gamma = r->dot(r);
-    alpha = r->dot(s);
+      // Compute the value of theta
+      ParOptScalar theta = 0.8*sTBs/(sTBs - sTy);
+
+      // Compute r = theta*y + (1 - theta)*B*s
+      r->scale(1.0 - theta);
+      r->axpy(theta, y);
+
+      new_y = r;
+      yTy = new_y->dot(new_y); 
+      sTy = s->dot(new_y);
+    }
+    
+    // Set the new value of b0
+    b0 = yTy/sTy;
   }
-
-  // Update the diagonal component of the BFGS matrix
-  b0 = gamma/alpha;
 
   // Set up the new values
   if (msub < msub_max){
     S[msub]->copyValues(s);
-    Y[msub]->copyValues(new_vec);
+    Y[msub]->copyValues(new_y);
     msub++;
   }
   else { // msub == msub_max
     // Shift the pointers to the vectors so that everything
     // will work out
     S[0]->copyValues(s);
-    Y[0]->copyValues(new_vec);
+    Y[0]->copyValues(new_y);
 
     // Shift the pointers
     ParOptVec *stemp = S[0];
@@ -538,10 +573,10 @@ void LBFGS::multAdd( ParOptScalar alpha, ParOptVec * x, ParOptVec * y ){
   Retrieve the internal data for the limited-memory BFGS
   representation
 */
-int LBFGS::getCompactMat( ParOptScalar * _b0,
-			  const ParOptScalar ** _d,
-			  const ParOptScalar ** _M,
-			  ParOptVec *** _Z ){
+int LBFGS::getCompactMat( ParOptScalar *_b0,
+			  const ParOptScalar **_d,
+			  const ParOptScalar **_M,
+			  ParOptVec ***_Z ){
   if (_b0){ *_b0 = b0; }
   if (_d){ *_d = d0; }
   if (_M){ *_M = M; }
@@ -684,16 +719,16 @@ void LSR1::reset(){
   returns:
   update type: 0 = normal, 1 = damped update
 */
-int LSR1::update( ParOptVec * s, ParOptVec * y ){
+int LSR1::update( ParOptVec *s, ParOptVec *y ){
   int update_type = 0;
 
   // Set the diagonal entries of the matrix
-  ParOptScalar gamma = y->dot(y);
-  ParOptScalar alpha = y->dot(s);
+  ParOptScalar yTy = y->dot(y);
+  ParOptScalar sTy = s->dot(y);
 
   // Set the diagonal components on the first time through
   if (msub == 0){
-    b0 = gamma/alpha;
+    b0 = yTy/sTy;
   }
  
   // Set up the new values

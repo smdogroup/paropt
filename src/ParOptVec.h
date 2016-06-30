@@ -106,8 +106,14 @@ class CompactQuasiNewton {
 */
 class LBFGS : public CompactQuasiNewton {
  public:
+  enum BFGSUpdateType { SKIP_NEGATIVE_CURVATURE, DAMPED_UPDATE };
+
   LBFGS( MPI_Comm _comm, int _nvars, int _subspace_size );
   ~LBFGS();
+
+  // Set the curvature update type
+  // -----------------------------
+  void setBFGSUpdateType( BFGSUpdateType _hessian_update_type );
 
   // Reset the internal data
   // -----------------------
@@ -132,6 +138,9 @@ class LBFGS : public CompactQuasiNewton {
   int getMaxLimitedMemorySize();
 
  private:
+  // Store the type of curvature handling update
+  BFGSUpdateType hessian_update_type;
+
   // Information about the parallel decomposition
   MPI_Comm comm;
   int nvars;

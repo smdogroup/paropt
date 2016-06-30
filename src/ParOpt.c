@@ -3307,7 +3307,7 @@ int ParOpt::lineSearch( double * _alpha,
   x->axpy(alpha, px);
 
   // Evaluate the derivative
-  int fail_gobj = prob->evalObjConGradient(rx, g, Ac);
+  int fail_gobj = prob->evalObjConGradient(x, g, Ac);
   ngeval++;
   if (fail_gobj){
     fprintf(stderr, 
@@ -3779,7 +3779,7 @@ int ParOpt::optimize( const char * checkpoint ){
     else {
       int use_qn = 1;
       if (sequential_linear_method){
-	use_qn  = 0;
+	use_qn = 0;
       }
       
       // Set up the KKT diagonal system
@@ -4130,6 +4130,10 @@ int ParOpt::optimize( const char * checkpoint ){
       if (up_type == 1){ 
 	// Damped BFGS update
 	sprintf(info, "%s%s ", info, "dH");
+      }
+      else if (up_type == 2){
+        // Skipped update
+        sprintf(info, "%s%s ", info, "sH");
       }
       if (line_fail){
 	// Line search failure

@@ -176,7 +176,7 @@ def plot_it_all(problem):
         problem.x_hist = []
         opt.resetQuasiNewtonHessian()
         opt.setInitBarrierParameter(0.1)
-        opt.setUseLineSearch(0)
+        opt.setUseLineSearch(1)
         opt.optimize()
 
         # Copy out the steepest descent points
