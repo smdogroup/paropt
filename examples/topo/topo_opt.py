@@ -62,6 +62,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         # Set the l1 penalty function
         self.penalty = np.zeros(self.num_design_vars)
         self.xinit = np.zeros(self.num_design_vars)
+        self.xcurr = np.zeros(self.num_design_vars)
 
         # Allocate a vector that stores the gradient of the mass
         self.gmass = np.zeros(self.num_design_vars)
@@ -86,7 +87,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         self.f5 = TACS.ToFH5(self.tacs, TACS.PY_PLANE_STRESS, flag)
 
         # Set the scaling for the objective value
-        self.obj_scale = 1.0
+        self.obj_scale = None
 
         # Set the sigma value for the mass constraint
         self.sigma = sigma
@@ -236,7 +237,9 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         '''
         Evaluate the objective (compliance) and constraint (mass)
         '''
-        
+        # Copy the design variable values
+        self.xcurr[:] = x[:]    
+
         # Add the number of function evaluations
         self.fevals += 1
 
@@ -347,7 +350,7 @@ def create_structure(comm, nx=8, ny=8, Lx=100.0, Ly=100.0,
     nu =     np.array([0.3,  0.3, 0.3])
 
     # Compute the fixed mass fraction
-    m_fixed = 0.1*Lx*Ly*rho[1]
+    m_fixed = 0.3*Lx*Ly*rho[1]
     
     # Set the number of design variables
     num_design_vars = (len(E) + 1)*nx*ny
@@ -473,7 +476,7 @@ def create_paropt(analysis, use_hessian=False,
     opt = ParOpt.pyParOpt(analysis, max_qn_subspace, qn_type)
 
     # Set the optimality tolerance
-    opt.setAbsOptimalityTol(1e-5)
+    opt.setAbsOptimalityTol(1e-6)
 
     # Set the Hessian-vector product iterations
     if use_hessian:
@@ -543,8 +546,7 @@ def create_pyopt(analysis, optimizer='snopt', options={}):
             return
 
         def getOptimizedPoint(self):
-            x = np.zeros(self.analysis.num_design_vars)
-            self.analysis.tacs.getDesignVars(x)
+            x = np.array(self.analysis.xcurr)                         
             return x
         
     # Set the design variables
