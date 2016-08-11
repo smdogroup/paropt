@@ -3383,7 +3383,6 @@ void ParOpt::initAndCheckDesignAndBounds( int init_multipliers ){
       if (lbvals[i] > -max_bound_val && ubvals[i] < max_bound_val){
 	if (lbvals[i] >= ubvals[i]){
 	  check_flag = (check_flag | 1);
-	  
 	  // Make up bounds
 	  lbvals[i] = 0.5*(lbvals[i] + ubvals[i]) - 0.5*rel_bound;
 	  ubvals[i] = lbvals[i] + rel_bound;
@@ -3456,6 +3455,9 @@ void ParOpt::initAndCheckDesignAndBounds( int init_multipliers ){
   development.
 */
 int ParOpt::optimize( const char * checkpoint ){
+  if (gradient_check_frequency){
+    checkGradients(gradient_check_step);
+  }
   // Zero out the number of function/gradient evaluations
   neval = ngeval = nhvec = 0;
 
@@ -3577,13 +3579,13 @@ int ParOpt::optimize( const char * checkpoint ){
       }
       prob->writeOutput(k, x);      
     }
-
     // Print to screen the gradient check results at 
     // iteration k 
-    if ((gradient_check_frequency > 0) && (k % gradient_check_frequency == 0)){
+    if ((gradient_check_frequency > 0) && 
+        (k % gradient_check_frequency == 0) && 
+        k > 0){
       checkGradients(gradient_check_step);
     }
-
     // Compute the complementarity
     ParOptScalar comp = computeComp();
     
