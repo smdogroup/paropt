@@ -3455,7 +3455,7 @@ void ParOpt::initAndCheckDesignAndBounds( int init_multipliers ){
   development.
 */
 int ParOpt::optimize( const char * checkpoint ){
-  if (gradient_check_frequency){
+  if (gradient_check_frequency > 0){
     checkGradients(gradient_check_step);
   }
   // Zero out the number of function/gradient evaluations
