@@ -342,7 +342,7 @@ int LBFGS::update( ParOptVec *s, ParOptVec *y ){
     double epsilon = 1e-12;
     
     // Skip the update
-    if (sTy <= epsilon*sqrt(sTs*yTy)){
+    if (RealPart(sTy) <= epsilon*sqrt(RealPart(sTs*yTy))){
       update_type = 2;
       return update_type;
     }
@@ -358,7 +358,7 @@ int LBFGS::update( ParOptVec *s, ParOptVec *y ){
     // guess an initial value for the b0 value
     if (msub == 0){
       b0 = yTy/sTy;
-      if (b0 <= 0.0){ 
+      if (RealPart(b0) <= 0.0){ 
         b0 = 0.0; 
       }
     }
@@ -371,7 +371,7 @@ int LBFGS::update( ParOptVec *s, ParOptVec *y ){
     new_y = y;
 
     ParOptScalar sTBs = r->dot(s);
-    if (sTy <= 0.2*sTBs){
+    if (RealPart(sTy) <= 0.2*RealPart(sTBs)){
       update_type = 1;
 
       // Compute the value of theta

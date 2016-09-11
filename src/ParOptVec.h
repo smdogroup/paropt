@@ -10,16 +10,43 @@
   classes used by the parallel optimizer.
 */
 
+#include <complex>
 #include "mpi.h"
-#include "complexify.h"
 
+// Define the complex ParOpt type
+typedef std::complex<double> ParOptComplex;
+
+// Set the type of the ParOptScalar
 #ifdef PAROPT_USE_COMPLEX
 #define PAROPT_MPI_TYPE MPI_DOUBLE_COMPLEX
-typedef cplx ParOptScalar;
+typedef std::complex<double> ParOptScalar;
 #else
 #define PAROPT_MPI_TYPE MPI_DOUBLE
 typedef double ParOptScalar;
 #endif // PAROPT_USE_COMPLEX
+
+// Define the real part function for the complex data type
+inline double RealPart( const ParOptComplex& c ){
+  return real(c);
+}
+
+// Define the imaginary part function for the complex data type
+inline double ImagPart( const ParOptComplex& c ){
+  return imag(c);
+}
+
+// Dummy function for real part
+inline double RealPart( const double& r ){
+  return r;
+}
+
+// Compute the absolute value
+inline ParOptComplex fabs( const ParOptComplex& c ){
+  if (real(c) < 0.0){
+    return -c;
+  }
+  return c;
+}
 
 /*
   This vector class implements basic linear algebra operations

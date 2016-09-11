@@ -624,8 +624,6 @@ def write_tikz_file(x, nx, ny, nmats, filename):
                (255, 127, 14),
                (31, 119, 180)]
 
-    # , (214, 39, 40)]
-
     X = np.linspace(0, 50, nx+1)
     Y = np.linspace(0, 50, ny+1)
 
@@ -850,6 +848,8 @@ parser.add_argument('--sigma', type=float, default=100.0,
                     help='Mass penalty parameter value')
 parser.add_argument('--optimizer', type=str, default='paropt',
                     help='Optimizer name')
+parser.add_argument('--x_infty', type=str, default=None,
+                    help='Infinity solution for analysis')
 parser.add_argument('--use_hessian', default=False,
                     action='store_true',
                     help='Use hessian-vector products')
@@ -862,11 +862,26 @@ parameter = args.parameter
 sigma = args.sigma
 optimizer = args.optimizer
 use_hessian = args.use_hessian
+x_infty = args.x_infty
 
 # Set the root results directory
 root_dir = 'results'
 
 comm = MPI.COMM_WORLD
-optimize_plane_stress(comm, nx, ny, root_dir=root_dir,
-                      sigma=sigma, parameter=parameter,
-                      max_iters=50, optimizer=optimizer)
+if x_infty is not None:
+    # Load in the input file
+    x = np.loadtxt(x_infty)
+
+    # Create the analysis object
+    analysis = create_structure(comm, nx, ny, sigma=sigma)
+    analysis.evalObjCon(x)
+
+    # Perform the analysis about the infinity design point
+    gamma = np.zeros(analysis.num_elements)
+    comp, fobj, fpenalty = analysis.getL1Objective(x, gamma)
+
+    print 'Compliance = %15.8e'%(comp)
+else:
+    optimize_plane_stress(comm, nx, ny, root_dir=root_dir,
+                          sigma=sigma, parameter=parameter,
+                          max_iters=50, optimizer=optimizer)

@@ -6,30 +6,37 @@ cimport mpi4py.MPI as MPI
 import numpy as np
 cimport numpy as np
 
+# Typdefs required for either real or complex mode
+include "ParOptTypedefs.pxi"
+
 cdef extern from "CyParOptProblem.h":
    # Define the callback types
    ctypedef void (*getvarsandbounds)(void *_self, int nvars,
-                                     double *x, double *lb, double *ub)
+                                     ParOptScalar *x,
+                                     ParOptScalar *lb, ParOptScalar *ub)
    ctypedef int (*evalobjcon)(void *_self, int nvars, int ncon,
-                              double *x, double *fobj, double *cons)
+                              ParOptScalar *x, ParOptScalar *fobj,
+                              ParOptScalar *cons)
    ctypedef int (*evalobjcongradient)(void *_self, int nvars, int ncon,
-                                      double *x, double *gobj, double *A)
+                                      ParOptScalar *x, ParOptScalar *gobj,
+                                      ParOptScalar *A)
    ctypedef int (*evalhvecproduct)(void *_self, int nvars, int ncon, 
-                                   int nwcon, double *x, double *z,
-                                   double *zw, double *px, double *hvec)
+                                   int nwcon, ParOptScalar *x, ParOptScalar *z,
+                                   ParOptScalar *zw, ParOptScalar *px,
+                                   ParOptScalar *hvec)
    ctypedef void (*evalsparsecon)(void *_self, int nvars, int nwcon,
-                                  double *x, double *out)
+                                  ParOptScalar *x, ParOptScalar *out)
    ctypedef void (*addsparsejacobian)(void *_self, int nvars, int nwcon,
-                                      double alpha, double *x, 
-                                      double *px, double *out)
+                                      ParOptScalar alpha, ParOptScalar *x, 
+                                      ParOptScalar *px, ParOptScalar *out)
    ctypedef void (*addsparsejacobiantranspose)(void *_self, 
                                                int nvars, int nwcon,
-                                               double alpha, double *x, 
-                                               double *px, double *out)
+                                               ParOptScalar alpha, ParOptScalar *x, 
+                                               ParOptScalar *px, ParOptScalar *out)
    ctypedef void (*addsparseinnerproduct)(void *_self, int nvars, 
                                           int nwcon, int nwblock,
-                                          double alpha, double *x, 
-                                          double *c, double *A)
+                                          ParOptScalar alpha, ParOptScalar *x, 
+                                          ParOptScalar *c, ParOptScalar *A)
 
    cppclass CyParOptProblem:
       CyParOptProblem(MPI_Comm _comm, int _nvars, int _ncon,
@@ -56,7 +63,7 @@ cdef extern from "ParOptVec.h":
       ParOptVec(MPI_Comm comm, int n)
       
       # Retrieve the values from the array
-      int getArray(double **array)
+      int getArray(ParOptScalar **array)
 
 cdef extern from "ParOpt.h":
    # Set the quasi-Newton type to use
@@ -77,7 +84,7 @@ cdef extern from "ParOpt.h":
 
       # Retrieve the optimized point
       void getOptimizedPoint(ParOptVec **_x,
-                             const double **_z, ParOptVec **_zw,
+                             const ParOptScalar **_z, ParOptVec **_zw,
                              ParOptVec **_zl, ParOptVec **_zu)
 
       # Check objective and constraint gradients
