@@ -1,7 +1,8 @@
 include ../Makefile.in
 
 OBJS = ParOpt.o \
-	ParOptVec.o
+	ParOptVec.o \
+	ParOptQuasiNewton.o
 
 default: ${OBJS}
 

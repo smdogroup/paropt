@@ -38,7 +38,7 @@ class Rosenbrock : public ParOptProblem {
     // Set the design variable bounds
     for ( int i = 0; i < nvars; i++ ){
       x[i] = -1.0 + i*0.01;
-      lb[i] = -1.0;
+      lb[i] = -1.5;
 
       ub[i] = 1e20;
       if (i % 2 == 0){
@@ -219,11 +219,10 @@ int main( int argc, char* argv[] ){
   opt->setGMRESSubspaceSize(30);
   opt->setNKSwitchTolerance(1e3);
   opt->setGMRESTolerances(1.0, 1e-30);
-  opt->setUseHvecProduct(1);
-  opt->setMajorIterStepCheck(20);
+  opt->setUseHvecProduct(0);
+  opt->setMajorIterStepCheck(-1);
   opt->setMaxMajorIterations(1500);
-  opt->setGradientCheckFrequency(5, 1e-6);
-  opt->setQNDiagonalFactor(1.0);
+  opt->setGradientCheckFrequency(-1, 1e-6);
   
   double start = MPI_Wtime();
   opt->optimize();

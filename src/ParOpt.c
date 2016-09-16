@@ -14,7 +14,7 @@
 */
 
 static const int NUM_PAROPT_PARAMETERS = 26;
-static const char * paropt_parameter_help[][2] = {
+static const char *paropt_parameter_help[][2] = {
   {"max_qn_size", 
    "Integer: The maximum dimension of the quasi-Newton approximation"},
   
@@ -139,56 +139,56 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
 
   // Allocate the quasi-Newton approximation
   if (qn_type == BFGS){
-    qn = new LBFGS(comm, nvars, max_qn_subspace);
+    qn = new LBFGS(prob, max_qn_subspace);
   }
   else {
-    qn = new LSR1(comm, nvars, max_qn_subspace);
+    qn = new LSR1(prob, max_qn_subspace);
   }
 
   // Set the default maximum variable bound
   max_bound_val = _max_bound_val;
 
   // Set the values of the variables/bounds
-  x = new ParOptVec(comm, nvars);
-  lb = new ParOptVec(comm, nvars);
-  ub = new ParOptVec(comm, nvars);
+  x = prob->createDesignVec();
+  lb = prob->createDesignVec();
+  ub = prob->createDesignVec();
   
   // Allocate storage space for the variables etc.
-  zl = new ParOptVec(comm, nvars);
-  zu = new ParOptVec(comm, nvars);
+  zl = prob->createDesignVec();
+  zu = prob->createDesignVec();
 
   // Allocate space for the sparse constraints
-  zw = new ParOptVec(comm, nwcon);
-  sw = new ParOptVec(comm, nwcon);
+  zw = prob->createConstraintVec();
+  sw = prob->createConstraintVec();
 
   // Set the initial values of the Lagrange multipliers
   z = new ParOptScalar[ ncon ];
   s = new ParOptScalar[ ncon ];
 
   // Allocate space for the steps
-  px = new ParOptVec(comm, nvars);
-  pzl = new ParOptVec(comm, nvars);
-  pzu = new ParOptVec(comm, nvars);
+  px = prob->createDesignVec();
+  pzl = prob->createDesignVec();
+  pzu = prob->createDesignVec();
   pz = new ParOptScalar[ ncon ];
   ps = new ParOptScalar[ ncon ];
-  pzw = new ParOptVec(comm, nwcon);
-  psw = new ParOptVec(comm, nwcon);
+  pzw = prob->createConstraintVec();
+  psw = prob->createConstraintVec();
 
   // Allocate space for the residuals
-  rx = new ParOptVec(comm, nvars);
-  rzl = new ParOptVec(comm, nvars);
-  rzu = new ParOptVec(comm, nvars);
+  rx = prob->createDesignVec();
+  rzl = prob->createDesignVec();
+  rzu = prob->createDesignVec();
   rc = new ParOptScalar[ ncon ];
   rs = new ParOptScalar[ ncon ];
-  rcw = new ParOptVec(comm, nwcon);
-  rsw = new ParOptVec(comm, nwcon);
+  rcw = prob->createConstraintVec();
+  rsw = prob->createConstraintVec();
 
   // Allocate space for the Quasi-Newton updates
-  y_qn = new ParOptVec(comm, nvars);
-  s_qn = new ParOptVec(comm, nvars);
+  y_qn = prob->createDesignVec();
+  s_qn = prob->createDesignVec();
 
   // Allocate vectors for the weighting constraints
-  wtemp = new ParOptVec(comm, nwcon);
+  wtemp = prob->createConstraintVec();
 
   // Allocate space for the block-diagonal matrix
   Cw = new ParOptScalar[ nwcon*(nwblock+1)/2 ];
@@ -196,7 +196,7 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   // Allocate space for off-diagonal entries
   Ew = new ParOptVec*[ ncon ];
   for ( int i = 0; i < ncon; i++ ){
-    Ew[i] = new ParOptVec(comm, nwcon);
+    Ew[i] = prob->createConstraintVec();
   }
 
   // Allocate storage for bfgs/constraint sized things
@@ -215,7 +215,7 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   cpiv = new int[ 2*max_qn_subspace ];
 
   // Allocate space for the diagonal matrix components
-  Cvec = new ParOptVec(comm, nvars);
+  Cvec = prob->createDesignVec();
 
   // Set the value of the objective
   fobj = 0.0;
@@ -225,10 +225,10 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   memset(c, 0, ncon*sizeof(ParOptScalar));
   
   // Set the objective and constraint gradients 
-  g = new ParOptVec(comm, nvars);
+  g = prob->createDesignVec();
   Ac = new ParOptVec*[ ncon ];
   for ( int i = 0; i < ncon; i++ ){
-    Ac[i] = new ParOptVec(comm, nvars);
+    Ac[i] = prob->createDesignVec();
   }
 
   // Initialize the design variables and bounds
@@ -508,8 +508,8 @@ void ParOpt::printOptionSummary( FILE *fp ){
   Write out all of the design variables, Lagrange multipliers and
   slack variables to a binary file.
 */
-int ParOpt::writeSolutionFile( const char * filename ){
-  char * fname = new char[ strlen(filename)+1 ];
+int ParOpt::writeSolutionFile( const char *filename ){
+  char *fname = new char[ strlen(filename)+1 ];
   strcpy(fname, filename);
 
   int fail = 1;
@@ -618,8 +618,8 @@ int ParOpt::writeSolutionFile( const char * filename ){
   Read in the design variables, lagrange multipliers and slack
   variables from a binary file
 */
-int ParOpt::readSolutionFile( const char * filename ){
-  char * fname = new char[ strlen(filename)+1 ];
+int ParOpt::readSolutionFile( const char *filename ){
+  char *fname = new char[ strlen(filename)+1 ];
   strcpy(fname, filename);
 
   int fail = 1;
@@ -963,7 +963,7 @@ void ParOpt::setGMRESSubspaceSize( int m ){
     
     gmres_W = new ParOptVec*[ m+1 ];
     for ( int i = 0; i < m+1; i++ ){
-      gmres_W[i] = new ParOptVec(comm, nvars);
+      gmres_W[i] = prob->createDesignVec();
     }
   }
   else {
@@ -976,7 +976,7 @@ void ParOpt::setGMRESSubspaceSize( int m ){
 
   The file is only opened on the root processor
 */
-void ParOpt::setOutputFile( const char * filename ){
+void ParOpt::setOutputFile( const char *filename ){
   if (outfp && outfp != stdout){
     fclose(outfp);
   }
@@ -1012,9 +1012,9 @@ void ParOpt::setOutputFile( const char * filename ){
   rzu = -((x - xl)*zl - mu*e)
   rzl = -((ub - x)*zu - mu*e)
 */
-void ParOpt::computeKKTRes( double * max_prime,
-			    double * max_dual, 
-			    double * max_infeas ){
+void ParOpt::computeKKTRes( double *max_prime,
+			    double *max_dual, 
+			    double *max_infeas ){
   // Zero the values of the maximum residuals 
   *max_prime = 0.0;
   *max_dual = 0.0;
@@ -1243,8 +1243,8 @@ int ParOpt::applyCwFactor( ParOptVec *vec ){
 
   which is required to compute the solution of the KKT step.
 */
-void ParOpt::setUpKKTDiagSystem( ParOptVec * xt,
-				 ParOptVec * wt, 
+void ParOpt::setUpKKTDiagSystem( ParOptVec *xt,
+				 ParOptVec *wt, 
 				 int use_qn ){
   // Retrive the diagonal entry for the BFGS update
   ParOptScalar b0 = 0.0;
@@ -3196,7 +3196,7 @@ void ParOpt::evalMeritInitDeriv( double max_x,
   returns: 
   fail:   did the line search find an acceptable point
 */
-int ParOpt::lineSearch( double * _alpha, 
+int ParOpt::lineSearch( double *_alpha, 
 			ParOptScalar m0, ParOptScalar dm0 ){
   // Perform a backtracking line search until the sufficient decrease
   // conditions are satisfied 
@@ -3457,7 +3457,7 @@ void ParOpt::initAndCheckDesignAndBounds( int init_multipliers ){
   constraints are nearly orthogonal. This capability is still under
   development.
 */
-int ParOpt::optimize( const char * checkpoint ){
+int ParOpt::optimize( const char *checkpoint ){
   if (gradient_check_frequency > 0){
     checkGradients(gradient_check_step);
   }
@@ -4519,7 +4519,7 @@ void ParOpt::checkGradients( double dh ){
     }
 
     // Evaluate the Hessian-vector product
-    hvec = new ParOptVec(comm, nvars);
+    hvec = prob->createDesignVec();
     prob->evalHvecProduct(x, ztemp, pzw, px, hvec);
   
     // Check that multiple calls to the Hvec code
@@ -4584,10 +4584,10 @@ void ParOpt::checkGradients( double dh ){
 
   if (use_hvec_product){
     // Evaluate the objective/constraints
-    ParOptVec *g2 = new ParOptVec(comm, nvars);
+    ParOptVec *g2 = prob->createDesignVec();
     ParOptVec **Ac2 = new ParOptVec*[ ncon ];
     for ( int i = 0; i < ncon; i++ ){
-      Ac2[i] = new ParOptVec(comm, nvars);
+      Ac2[i] = prob->createDesignVec();
     }
     
     // Evaluate the gradient at the perturbed point

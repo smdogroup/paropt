@@ -5,6 +5,8 @@
   Copyright (c) 2014-2015 Graeme Kennedy. All rights reserved
 */
 
+#include "ParOptVec.h"
+
 // The following are the definitions required for BLAS/LAPACK
 #ifdef PAROPT_USE_COMPLEX
 #define BLASddot     zdotu_

@@ -2,11 +2,12 @@
 #define PAR_OPT_OPTIMIZER_H
 
 /*
-  Copyright (c) 2014-2015 Graeme Kennedy. All rights reserved
+  Copyright (c) 2014-2016 Graeme Kennedy. All rights reserved
 */
 
 #include <stdio.h>
 #include "ParOptVec.h"
+#include "ParOptQuasiNewton.h"
 #include "ParOptProblem.h"
 
 /*
@@ -125,7 +126,7 @@ class ParOpt {
 
   // Perform the optimization
   // ------------------------
-  int optimize( const char * checkpoint = NULL );
+  int optimize( const char *checkpoint = NULL );
 
   // Get the problem sizes from the underlying problem class
   // -------------------------------------------------------
@@ -187,13 +188,13 @@ class ParOpt {
   // --------------------
   void setOutputFrequency( int freq );
   void setMajorIterStepCheck( int step );
-  void setOutputFile( const char * filename );
+  void setOutputFile( const char *filename );
   void setGradientCheckFrequency( int freq, double step_size );
 
   // Write out the design variables to a binary format (fast MPI/IO)
   // ---------------------------------------------------------------
-  int writeSolutionFile( const char * filename );
-  int readSolutionFile( const char * filename );
+  int writeSolutionFile( const char *filename );
+  int readSolutionFile( const char *filename );
 
  private:
   // Print out the optimizer options to a file
@@ -208,9 +209,9 @@ class ParOpt {
 
   // Compute the negative of the KKT residuals - return
   // the maximum primal, dual residuals and the max infeasibility
-  void computeKKTRes( double * max_prime,
-		      double * max_dual, 
-		      double * max_infeas );
+  void computeKKTRes( double *max_prime,
+		      double *max_dual, 
+		      double *max_infeas );
 
   // Set up the diagonal KKT system
   void setUpKKTDiagSystem( ParOptVec *xt, ParOptVec *wt, int use_bfgs );

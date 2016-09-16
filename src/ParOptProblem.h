@@ -57,6 +57,15 @@ class ParOptProblem {
   }
   virtual ~ParOptProblem(){}
 
+  // Create the distributed vectors required for optimization
+  // --------------------------------------------------------
+  virtual ParOptVec *createDesignVec(){
+    return new ParOptBasicVec(comm, nvars);
+  }
+  virtual ParOptVec *createConstraintVec(){
+    return new ParOptBasicVec(comm, nwcon);
+  }
+  
   // Get the communicator for the problem
   // ------------------------------------
   MPI_Comm getMPIComm(){
