@@ -18,8 +18,10 @@ np.import_array()
 # Import C methods for python
 from cpython cimport PyObject, Py_INCREF
 
+# Include the definitions
 include "ParOptDefs.pxi"
 
+# Include the mpi4py header
 cdef extern from "mpi-compat.h":
    pass
 

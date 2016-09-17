@@ -5,6 +5,12 @@ import mpi4py.MPI as MPI
 # Import ParOpt
 from paropt import ParOpt
 
+# Import argparse
+import argparse
+
+# Import matplotlib
+import matplotlib.pylab as plt
+
 # Create the rosenbrock function class
 class Quadratic(ParOpt.pyParOptProblem):
     def __init__(self, A, b, Acon, bcon):
@@ -18,9 +24,6 @@ class Quadratic(ParOpt.pyParOptProblem):
         self.b = b
         self.Acon = Acon
         self.bcon = bcon
-
-        # The design history file
-        self.x_hist = []
 
         # Initialize the base class
         super(Quadratic, self).__init__(self.comm, self.nvars, self.ncon)
@@ -37,7 +40,6 @@ class Quadratic(ParOpt.pyParOptProblem):
     def evalObjCon(self, x):
         '''Evaluate the objective and constraint'''
         # Append the point to the solution history
-        self.x_hist.append(np.array(x))
 
         # Evaluate the objective and constraints
         fail = 0
@@ -79,7 +81,7 @@ def create_random_problem(eigs):
 
     return A
 
-def solve_problem(eigs):
+def solve_problem(eigs, filename=None):
     # Get the A matrix
     A = create_random_problem(eigs)
 
@@ -93,14 +95,36 @@ def solve_problem(eigs):
     # Set up the optimization problem
     max_lbfgs = 20
     opt = ParOpt.pyParOpt(problem, max_lbfgs, ParOpt.BFGS)
+    if filename is not None:
+        opt.setOutputFile(filename)
+        # Set optimization parameters
+    opt.setArmijioParam(1e-5)
+    opt.setMaxMajorIterations(5000)
+    opt.setBarrierPower(2.0)
+    opt.setBarrierFraction(0.1)
     opt.optimize()
 
     return
 
+# Parse the arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('--n', type=int, default=100,
+                    help='Dimension of the problem')
+parser.add_argument('--eig_min', type=float, default=1.0,
+                    help='Minimum eigenvalue')
+parser.add_argument('--eig_max', type=float, default=1e5,
+                    help='Minimum eigenvalue')
+args = parser.parse_args()
+
 # Set the eigenvalues for the matrix
-n = 5
-eig_min = 1.0
-eig_max = 1e5
+n = args.n
+eig_min = args.eig_min
+eig_max = args.eig_max
+
+print 'n = ', n
+print 'eig_min = %g'%(eig_min)
+print 'eig_max = %g'%(eig_max)
+print 'cond = %g'%(eig_max/eig_min)
 
 # Solve the problem with linear spacing of eigenvalues
 eigs_linear = np.linspace(eig_min, eig_max, n)
@@ -109,11 +133,15 @@ eigs_linear = np.linspace(eig_min, eig_max, n)
 eigs_clustered = np.zeros(n)
 for i in xrange(1,n+1):
     u = (1.0*n)/(n-1)*(1.0/(n + 1 - i) - 1.0/n)
-    eigs_clustered[i-1] = eig_min + (eig_max - eig_min)*u
+    eigs_clustered[i-1] = eig_min + (eig_max - eig_min)*u**0.9
 
 # Solve the two problem types
-print 'Linear spectrum of eigenvalue\n\n'
-solve_problem(eigs_linear)
+solve_problem(eigs_linear, filename='opt_linear_eigs.out')
+solve_problem(eigs_clustered, filename='opt_cluster_eigs.out')
 
-print '\n\nClustered eigenvalue spectrum\n\n'
-solve_problem(eigs_clustered)
+plt.plot(range(1,n+1), eigs_linear, '-o', linewidth=2, label='linear')
+plt.plot(range(1,n+1), eigs_clustered, '-s', linewidth=2, label='clustered')
+plt.xlabel('Index', fontsize=17)
+plt.ylabel('Eigenvalue', fontsize=17)
+plt.legend()
+plt.show()

@@ -813,7 +813,7 @@ void ParOpt::setBarrierFraction( double frac ){
 }
 
 void ParOpt::setBarrierPower( double power ){
-  if (power > 1.0 && power < 2.0){
+  if (power > 1.0 && power < 10.0){
     monotone_barrier_power = power;
   }
 }
