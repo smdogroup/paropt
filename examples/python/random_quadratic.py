@@ -98,7 +98,7 @@ def solve_problem(eigs):
     return
 
 # Set the eigenvalues for the matrix
-n = 5
+n = 150
 eig_min = 1.0
 eig_max = 1e5
 
