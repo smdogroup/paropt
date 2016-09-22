@@ -32,7 +32,6 @@ class ConvexProblem(ParOpt.pyParOptProblem):
         # Set the inequality options for this problem
         self.setInequalityOptions(dense_ineq=True, sparse_ineq=True,
                                   use_lower=True, use_upper=True)
-
         return
 
     def getVarsAndBounds(self, x, lb, ub):
@@ -59,6 +58,7 @@ class ConvexProblem(ParOpt.pyParOptProblem):
 
         # Compute the linear constraint
         con[0] = self.bcon - np.dot(self.Acon, x)
+
         return fail, fobj, con
 
     def evalObjConGradient(self, x, g, A):
@@ -73,13 +73,12 @@ class ConvexProblem(ParOpt.pyParOptProblem):
 
         return fail
 
-def create_random_spd(n, filename=None):
+def create_random_spd(n):
     '''
     Create a random positive definite matrix with the given
     eigenvalues
     '''
-
-    # The dimension of the matrix
+    # Create the eigenvalues for the matrix
     eigs = np.random.uniform(size=n)
 
     # Create a random square (n x n) matrix
@@ -105,8 +104,10 @@ def solve_problem(eigs, filename=None, data_type='orthogonal'):
         Q = np.random.uniform(size=(n, n))
         Affine = np.diag(1e-3*np.ones(n))
 
-    # Create the other problem data
+    # Create the random right-hand-side
     b = np.random.uniform(size=n)
+
+    # Create the constraint data
     Acon = np.random.uniform(size=n)
     bcon = 0.25*np.sum(Acon)
 
@@ -119,6 +120,7 @@ def solve_problem(eigs, filename=None, data_type='orthogonal'):
     if filename is not None:
         opt.setOutputFile(filename)
 
+    # Set optimization parameters
     opt.checkGradients(1e-6)
 
     # Set optimization parameters
@@ -129,9 +131,8 @@ def solve_problem(eigs, filename=None, data_type='orthogonal'):
     opt.optimize()
 
     x = opt.getOptimizedPoint()
-    print 'Discrete infeasibility norm: ', np.sqrt(np.dot(x*(1.0 - x), x*(1.0 - x)))
 
-    return
+    return x
 
 # Parse the arguments
 parser = argparse.ArgumentParser()
@@ -143,5 +144,8 @@ args = parser.parse_args()
 n = args.n
 print 'n = ', n
 
-# Solve the two problem types
-solve_problem(n, filename='opt_convex.out')
+# Solve the problem
+x = solve_problem(n, filename='opt_convex.out')
+
+print 'Discrete infeasibility: ', np.sqrt(np.dot(x*(1.0 - x), x*(1.0 - x)))
+

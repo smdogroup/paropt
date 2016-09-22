@@ -13,6 +13,9 @@ default: real_defs ${CYTHON_SO}
 complex: CCFLAGS+=-DPAROPT_USE_COMPLEX
 complex: complex_defs ${CYTHON_SO}
 
+debug: PAROPT_CC_FLAGS=${PAROPT_DEBUG_CC_FLAGS}
+debug: default
+
 complex_defs:
 	@echo "ctypedef complex ParOptScalar" > ParOptTypedefs.pxi;
 	@echo "PAROPT_NPY_SCALAR = np.NPY_CDOUBLE" > ParOptDefs.pxi;
@@ -22,9 +25,6 @@ real_defs:
 	@echo "ctypedef double ParOptScalar" > ParOptTypedefs.pxi;
 	@echo "PAROPT_NPY_SCALAR = np.NPY_DOUBLE" > ParOptDefs.pxi;
 	@echo "dtype = np.double" >> ParOptDefs.pxi;
-
-debug: PAROPT_CC_FLAGS=${PAROPT_DEBUG_CC_FLAGS}
-debug: default
 
 %.cpp:%.pyx
 	${CYTHON} --cplus $*.pyx
