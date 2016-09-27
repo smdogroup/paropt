@@ -2,7 +2,7 @@
 #distuils: sources = ParOpt.c
 
 # For the use of MPI
-from mpi4py.libmpi cimport *
+from mpi4py.MPI cimport *
 cimport mpi4py.MPI as MPI
 
 # Import the declarations required from the pxd file

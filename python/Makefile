@@ -27,7 +27,7 @@ real_defs:
 	@echo "dtype = np.double" >> ParOptDefs.pxi;
 
 %.cpp:%.pyx
-	${CYTHON} --cplus $*.pyx
+	${CYTHON} ${CYTHON_INCLUDE} --cplus $*.pyx
 
 %.o:%.cpp
 	${CXX} ${PAROPT_CC_FLAGS} ${PY_INCLUDE} -c $< -o $@

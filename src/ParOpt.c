@@ -135,7 +135,27 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   }
 
   // Calculate the total number of variable across all processors
-  MPI_Allreduce(&nvars, &nvars_total, 1, MPI_INT, MPI_SUM, comm);
+  int size, rank;
+  MPI_Comm_rank(comm, &rank);
+  MPI_Comm_size(comm, &size);
+
+  // Allocate space to store the variable ranges
+  var_range = new int[ size+1 ];
+  wcon_range = new int[ size+1 ];
+  var_range[0] = 0;
+  wcon_range[0] = 0;
+  
+  // Count up the displacements/variable ranges
+  MPI_Allgather(&nvars, 1, MPI_INT, &var_range[1], 1, MPI_INT, comm);
+  MPI_Allgather(&nwcon, 1, MPI_INT, &wcon_range[1], 1, MPI_INT, comm);
+  
+  for ( int k = 0; k < size; k++ ){
+    var_range[k+1] += var_range[k];
+    wcon_range[k+1] += wcon_range[k];
+  }
+
+  // Set the total number of variables
+  nvars_total = var_range[size];
 
   // Allocate the quasi-Newton approximation
   if (qn_type == BFGS){
@@ -342,6 +362,10 @@ ParOpt::~ParOpt(){
   // Delete the diagonal matrix
   delete Cvec;
 
+  // Free the variable ranges
+  delete [] var_range;
+  delete [] wcon_range;
+
   // Delete the constraint/gradient information
   delete [] c;
   delete g;
@@ -518,34 +542,19 @@ int ParOpt::writeSolutionFile( const char *filename ){
                 MPI_INFO_NULL, &fp);
 
   if (fp){
-    // Successfull opened the file
-    fail = 0;
-
+    // Calculate the total number of variable across all processors
     int size, rank;
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &size);
 
-    // Allocate space to store the variable ranges
-    int *var_range = new int[ size+1 ];
-    var_range[0] = 0;
+    // Successfull opened the file
+    fail = 0;
 
-    int *nwcon_range = new int[ size+1 ];
-    nwcon_range[0] = 0;
-    
-    // Count up the displacements/variable ranges
-    MPI_Allgather(&nvars, 1, MPI_INT, &var_range[1], 1, MPI_INT, comm);
-    MPI_Allgather(&nwcon, 1, MPI_INT, &nwcon_range[1], 1, MPI_INT, comm);
-
-    for ( int k = 0; k < size; k++ ){
-      var_range[k+1] += var_range[k];
-      nwcon_range[k+1] += nwcon_range[k];
-    }
-
-    // Print out the problem sizes on the root processor
+    // Write the problem sizes on the root processor
     if (rank == opt_root){
       int var_sizes[3];
       var_sizes[0] = var_range[size];
-      var_sizes[1] = nwcon_range[size];
+      var_sizes[1] = wcon_range[size];
       var_sizes[2] = ncon;
 
       MPI_File_write(fp, var_sizes, 3, MPI_INT, MPI_STATUS_IGNORE);
@@ -587,26 +596,23 @@ int ParOpt::writeSolutionFile( const char *filename ){
     offset += var_range[size]*sizeof(ParOptScalar);
     
     // Write out the extra constraint bounds
-    if (nwcon_range[size] > 0){
+    if (wcon_range[size] > 0){
       ParOptScalar *zwvals, *swvals;
       int nwsize = zw->getArray(&zwvals);
       sw->getArray(&swvals);
       MPI_File_set_view(fp, offset, PAROPT_MPI_TYPE, PAROPT_MPI_TYPE,
 			datarep, MPI_INFO_NULL);
-      MPI_File_write_at_all(fp, nwcon_range[rank], zwvals, nwsize, 
+      MPI_File_write_at_all(fp, wcon_range[rank], zwvals, nwsize, 
 			    PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
-      offset += nwcon_range[size]*sizeof(ParOptScalar);
+      offset += wcon_range[size]*sizeof(ParOptScalar);
 
       MPI_File_set_view(fp, offset, PAROPT_MPI_TYPE, PAROPT_MPI_TYPE,
 			datarep, MPI_INFO_NULL);
-      MPI_File_write_at_all(fp, nwcon_range[rank], swvals, nwsize, 
+      MPI_File_write_at_all(fp, wcon_range[rank], swvals, nwsize, 
 			    PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
     }
 
     MPI_File_close(&fp);
-
-    delete [] var_range;
-    delete [] nwcon_range;
   }
 
   delete [] fname;
@@ -628,29 +634,16 @@ int ParOpt::readSolutionFile( const char *filename ){
   delete [] fname;
 
   if (fp){
-    // Successfully opened the file for reading
-    fail = 0;
-
+    // Calculate the total number of variable across all processors
     int size, rank;
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &size);
 
-    // Allocate space to store the variable ranges
-    int *var_range = new int[ size+1 ];
-    var_range[0] = 0;
+    // Successfully opened the file for reading
+    fail = 0;
 
-    int *nwcon_range = new int[ size+1 ];
-    nwcon_range[0] = 0;
-    
-    // Count up the displacements/variable ranges
-    MPI_Allgather(&nvars, 1, MPI_INT, &var_range[1], 1, MPI_INT, comm);
-    MPI_Allgather(&nwcon, 1, MPI_INT, &nwcon_range[1], 1, MPI_INT, comm);
-
-    for ( int k = 0; k < size; k++ ){
-      var_range[k+1] += var_range[k];
-      nwcon_range[k+1] += nwcon_range[k];
-    }
-
+    // Keep track of whether the failure to load is due to a problem
+    // size failure
     int size_fail = 0;
 
     // Read in the sizes
@@ -659,7 +652,7 @@ int ParOpt::readSolutionFile( const char *filename ){
       MPI_File_read(fp, var_sizes, 3, MPI_INT, MPI_STATUS_IGNORE);
 
       if (var_sizes[0] != var_range[size] ||
-	  var_sizes[1] != nwcon_range[size] ||
+	  var_sizes[1] != wcon_range[size] ||
 	  var_sizes[2] != ncon){
 	size_fail = 1;
       }
@@ -680,9 +673,6 @@ int ParOpt::readSolutionFile( const char *filename ){
 	fprintf(stderr, 
 		"ParOpt: Problem size incompatible with solution file\n");
       }
-
-      delete [] var_range;
-      delete [] nwcon_range;
 
       MPI_File_close(&fp);
       return fail;
@@ -721,26 +711,23 @@ int ParOpt::readSolutionFile( const char *filename ){
     offset += var_range[size]*sizeof(ParOptScalar);
     
     // Read in the extra constraint Lagrange multipliers
-    if (nwcon_range[size] > 0){
+    if (wcon_range[size] > 0){
       ParOptScalar *zwvals, *swvals;
       int nwsize = zw->getArray(&zwvals);
       sw->getArray(&swvals);
       MPI_File_set_view(fp, offset, PAROPT_MPI_TYPE, PAROPT_MPI_TYPE,
 			datarep, MPI_INFO_NULL);
-      MPI_File_read_at_all(fp, nwcon_range[rank], zwvals, nwsize, 
+      MPI_File_read_at_all(fp, wcon_range[rank], zwvals, nwsize, 
 			   PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
-      offset += nwcon_range[size]*sizeof(ParOptScalar);
+      offset += wcon_range[size]*sizeof(ParOptScalar);
 
       MPI_File_set_view(fp, offset, PAROPT_MPI_TYPE, PAROPT_MPI_TYPE,
 			datarep, MPI_INFO_NULL);
-      MPI_File_read_at_all(fp, nwcon_range[rank], swvals, nwsize, 
+      MPI_File_read_at_all(fp, wcon_range[rank], swvals, nwsize, 
 			   PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
     }
 
     MPI_File_close(&fp);
-
-    delete [] var_range;
-    delete [] nwcon_range;
   }
 
   return fail;

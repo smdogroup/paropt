@@ -306,10 +306,13 @@ class ParOpt {
 
   // The number of variables and constraints in the problem
   int nvars; // The number of local (on-processor) variables
-  int nvars_total; // The total number of variables
   int ncon; // The number of inequality constraints in the problem
   int nwcon; // The number of specially constructed weighting constraints
   int nwblock; // The nuber of constraints per block
+  int nvars_total; // The total number of variables
+
+  // Distributed variable/constriant ranges
+  int *var_range, *wcon_range;
 
   // Temporary vectors for internal usage
   ParOptVec *wtemp;

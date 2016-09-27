@@ -1,5 +1,5 @@
 # For MPI capabilities
-from mpi4py.libmpi cimport *
+from mpi4py.MPI cimport *
 cimport mpi4py.MPI as MPI
 
 # Import numpy
