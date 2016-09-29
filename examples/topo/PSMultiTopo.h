@@ -159,21 +159,12 @@ class PSMultiTopo : public PlaneStressStiffness {
 void assembleResProjectDVSens( TACSAssembler *tacs,
                                const TacsScalar *px,
                                int dvLen,
-                               BVec *residual ){
+                               TACSBVec *residual ){
   residual->zeroEntries();
   static const int NUM_NODES = 9;
   static const int NUM_STRESSES = 3;
   static const int NUM_VARIABLES = 2*NUM_NODES;
   
-  // Get the number of dependent nodes
-  const int varsPerNode = tacs->getVarsPerNode();
-  const int numNodes = tacs->getNumNodes();
-  const int numDependentNodes = tacs->getNumDependentNodes();
-  int size = varsPerNode*(numNodes + numDependentNodes);
-  TacsScalar *localRes;
-  tacs->getLocalArrays(NULL, &localRes, NULL, NULL, NULL);
-  memset(localRes, 0, size*sizeof(TacsScalar));
-
   // Get the residual vector
   int num_elements = tacs->getNumElements();
   for ( int k = 0; k < num_elements; k++ ){
@@ -234,8 +225,8 @@ void assembleResProjectDVSens( TACSAssembler *tacs,
           TacsScalar stress[NUM_STRESSES];
           con->calcStressDVProject(pt, strain, px, dvLen, stress);
        
-          // Get the derivative of the strain with respect to the nodal
-          // displacements
+          // Get the derivative of the strain with respect to the
+	  // nodal displacements
           elem->getBmat(B, J, Na, Nb, vars);
 
           TacsScalar *b = B;
@@ -245,19 +236,20 @@ void assembleResProjectDVSens( TACSAssembler *tacs,
           }
         }
 
+	// Get the local element ordering
+	int len;
+	const int *nodes;
+	tacs->getElement(k, &nodes, &len);
+
         // Add the residual values
-        tacs->addValues(varsPerNode, k, res, localRes);
+        residual->setValues(len, nodes, res, ADD_VALUES);
       }
     }    
   }
 
-  // Add the dependent-variable residual from the dependent nodes
-  tacs->addDependentResidual(varsPerNode, localRes);
-
-  // Assemble the full residual
-  BVecDistribute *vecDist = tacs->getBVecDistribute();
-  vecDist->beginReverse(localRes, residual, BVecDistribute::ADD);
-  vecDist->endReverse(localRes, residual, BVecDistribute::ADD);
+  // Add the residual values
+  residual->beginSetValues(ADD_VALUES);
+  residual->endSetValues(ADD_VALUES);
 
   // Set the boundary conditions
   residual->applyBCs();

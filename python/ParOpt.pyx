@@ -25,6 +25,45 @@ include "ParOptDefs.pxi"
 cdef extern from "mpi-compat.h":
    pass
 
+# Read in a ParOpt checkpoint file and produce python variables
+def unpack_checkpoint(str filename):
+   '''Convert the checkpoint file to usable python objects'''
+
+   # Open the file in read-only binary mode
+   fp = open(filename, 'rb')
+   sfp = fp.read()
+   
+   # Get the sizes of c integers and doubles
+   ib = np.dtype(np.intc).itemsize
+   fb = np.dtype(np.double).itemsize
+
+   # Convert the sizes stored in the checkpoint file
+   sizes = np.fromstring(sfp[:3*ib], dtype=np.intc)
+   nvars = sizes[0]
+   nwcon = sizes[1]
+   ncon = sizes[2]
+
+   # Skip first three integers and the barrier parameter value
+   offset = 3*ib
+   barrier = np.fromstring(sfp[offset:offset+fb], dtype=np.double)[0]   
+   offset += fb
+
+   # Convert the slack variables and multipliers
+   s = np.fromstring(sfp[offset:offset+fb*ncon], dtype=np.double)
+   offset += fb*ncon
+   z = np.fromstring(sfp[offset:offset+fb*ncon], dtype=np.double)
+   offset += fb*ncon
+
+   # Convert the variables and multipliers
+   x = np.fromstring(sfp[offset:offset+fb*nvars], dtype=np.double)
+   offset += fb*nvars
+   zl = np.fromstring(sfp[offset:offset+fb*nvars], dtype=np.double)
+   offset += fb*nvars
+   zu = np.fromstring(sfp[offset:offset+fb*nvars], dtype=np.double)
+   offset += fb*nvars
+
+   return barrier, s, z, x, zl, zu
+
 # This wraps a C++ array with a numpy array for later useage
 cdef inplace_array_1d(int nptype, int dim1, void *data_ptr):
    '''Return a numpy version of the array'''

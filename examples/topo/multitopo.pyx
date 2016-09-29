@@ -28,7 +28,7 @@ cdef extern from "PSMultiTopo.h":
         void setLinearization(TacsScalar, const TacsScalar*, int)
 
     cdef void assembleResProjectDVSens(TACSAssembler*,
-                                       const TacsScalar*, int, BVec*)
+                                       const TacsScalar*, int, TACSBVec*)
     
 cdef class MultiTopo(PlaneStress):
     cdef PSMultiTopo* self_ptr

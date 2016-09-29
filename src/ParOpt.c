@@ -611,7 +611,6 @@ int ParOpt::writeSolutionFile( const char *filename ){
       MPI_File_write_at_all(fp, wcon_range[rank], swvals, nwsize, 
 			    PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
     }
-
     MPI_File_close(&fp);
   }
 
@@ -3809,7 +3808,7 @@ int ParOpt::optimize( const char *checkpoint ){
       // First, bound the difference between the step lengths. This
       // code cuts off the difference between the step lengths if the
       // difference is greater that 100.
-      double max_bnd = 1e2;
+      double max_bnd = 100.0;
       if (max_x > max_z){
 	if (max_x > max_bnd*max_z){
 	  max_x = max_bnd*max_z;
@@ -3832,7 +3831,7 @@ int ParOpt::optimize( const char *checkpoint ){
       // use equal step lengths.
       ParOptScalar comp_new = computeCompStep(max_x, max_z);
 
-      if (RealPart(comp_new) > RealPart(comp)){
+      if (RealPart(comp_new) > 10.0*RealPart(comp)){
 	ceq_step = 1;
 	if (max_x > max_z){
 	  max_x = max_z;
