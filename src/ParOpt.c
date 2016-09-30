@@ -848,6 +848,13 @@ void ParOpt::setPenaltyDescentFraction( double frac ){
   }
 }
 
+void ParOpt::setBFGSUpdateType( LBFGS::BFGSUpdateType update ){
+  LBFGS *lbfgs = dynamic_cast<LBFGS*>(qn);
+  if (lbfgs){
+    lbfgs->setBFGSUpdateType(update);
+  }  
+}
+
 void ParOpt::setSequentialLinearMethod( int truth ){
   sequential_linear_method = truth;
 }

@@ -183,13 +183,15 @@ int LBFGS::update( ParOptVec *s, ParOptVec *y ){
       }
     }
 
+    // Set the new value of y (this pointer may be reset to r if a
+    // damped update is required)
+    new_y = y;
+
     // Compute the step times the old Hessian approximation
     // and store the result in the r vector
     mult(s, r);
 
-    // Set the new value of 
-    new_y = y;
-
+    // Compute s^{T}*B*s
     ParOptScalar sTBs = r->dot(s);
     if (RealPart(sTy) <= 0.2*RealPart(sTBs)){
       update_type = 1;

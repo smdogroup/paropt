@@ -116,8 +116,8 @@ class ParOpt {
 
   ParOpt( ParOptProblem *_prob,
 	  int _max_qn_subspace,
-	  enum QuasiNewtonType qn_type = BFGS,
-	  double _max_bound_val = 1e20 );
+	  QuasiNewtonType qn_type=BFGS,
+	  double _max_bound_val=1e20 );
   ~ParOpt();
 
   // Reset the problem instance - problem sizes must remain the same
@@ -126,7 +126,7 @@ class ParOpt {
 
   // Perform the optimization
   // ------------------------
-  int optimize( const char *checkpoint = NULL );
+  int optimize( const char *checkpoint=NULL );
 
   // Get the problem sizes from the underlying problem class
   // -------------------------------------------------------
@@ -156,6 +156,7 @@ class ParOpt {
   void setBarrierPower( double power );
   void setHessianResetFreq( int freq );
   void setQNDiagonalFactor( double sigma );
+  void setBFGSUpdateType( LBFGS::BFGSUpdateType bfgs_update );	  
   void setSequentialLinearMethod( int truth );
 
   // Set/get the barrier parameter
