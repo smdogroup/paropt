@@ -26,6 +26,8 @@ class ConvexProblem(ParOpt.pyParOptProblem):
         self.Acon = Acon
         self.bcon = bcon
 
+        self.obj_scale = -1.0
+
         # Initialize the base class
         super(ConvexProblem, self).__init__(self.comm, self.nvars, self.ncon)
 
@@ -55,6 +57,9 @@ class ConvexProblem(ParOpt.pyParOptProblem):
 
         # Compute the artifical compliance
         fobj = np.dot(self.u, self.b)
+
+        if self.obj_scale < 0.0:
+            self.obj_scale = 1.0/fobj
 
         # Compute the linear constraint
         con[0] = self.bcon - np.dot(self.Acon, x)
@@ -115,7 +120,7 @@ def solve_problem(eigs, filename=None, data_type='orthogonal'):
     problem = ConvexProblem(Q, Affine, b, Acon, bcon)
 
     # Set up the optimization problem
-    max_lbfgs = 20
+    max_lbfgs = 50
     opt = ParOpt.pyParOpt(problem, max_lbfgs, ParOpt.BFGS)
     if filename is not None:
         opt.setOutputFile(filename)
@@ -145,7 +150,7 @@ n = args.n
 print 'n = ', n
 
 # Solve the problem
-x = solve_problem(n, filename='opt_convex.out')
+x = solve_problem(n, filename=None) #'opt_convex.out')
 
 print 'Discrete infeasibility: ', np.sqrt(np.dot(x*(1.0 - x), x*(1.0 - x)))
 

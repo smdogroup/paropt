@@ -4118,6 +4118,11 @@ int ParOpt::optimize( const char *checkpoint ){
       up_type = qn->update(s_qn, y_qn);
     }
 
+    // Reset the quasi-Newton Hessian if there is a line search failure
+    if (line_fail){
+      qn->reset();
+    }
+
     // Create a string to print to the screen
     if (rank == opt_root){
       // The string of unforseen events

@@ -81,7 +81,7 @@ def create_random_problem(eigs):
 
     return A
 
-def solve_problem(eigs, filename=None):
+def solve_problem(eigs, filename=None, use_stdout=False):
     # Get the A matrix
     A = create_random_problem(eigs)
 
@@ -93,11 +93,12 @@ def solve_problem(eigs, filename=None):
     problem = Quadratic(A, b, Acon, bcon)
 
     # Set up the optimization problem
-    max_lbfgs = 20
+    max_lbfgs = 40
     opt = ParOpt.pyParOpt(problem, max_lbfgs, ParOpt.BFGS)
-    if filename is not None:
+    if filename is not None and use_stdout is False:
         opt.setOutputFile(filename)
-        # Set optimization parameters
+
+    # Set optimization parameters
     opt.setArmijioParam(1e-5)
     opt.setMaxMajorIterations(5000)
     opt.setBarrierPower(2.0)
@@ -114,12 +115,16 @@ parser.add_argument('--eig_min', type=float, default=1.0,
                     help='Minimum eigenvalue')
 parser.add_argument('--eig_max', type=float, default=1e5,
                     help='Minimum eigenvalue')
+parser.add_argument('--use_stdout', dest='use_stdout',
+                    action='store_true')
+parser.set_defaults(use_stdout=False)
 args = parser.parse_args()
 
 # Set the eigenvalues for the matrix
 n = args.n
 eig_min = args.eig_min
 eig_max = args.eig_max
+use_stdout = args.use_stdout
 
 print 'n = ', n
 print 'eig_min = %g'%(eig_min)
@@ -136,8 +141,10 @@ for i in xrange(1,n+1):
     eigs_clustered[i-1] = eig_min + (eig_max - eig_min)*u**0.9
 
 # Solve the two problem types
-solve_problem(eigs_linear, filename='opt_linear_eigs.out')
-solve_problem(eigs_clustered, filename='opt_cluster_eigs.out')
+solve_problem(eigs_linear, filename='opt_linear_eigs.out',
+              use_stdout=use_stdout)
+solve_problem(eigs_clustered, filename='opt_cluster_eigs.out',
+              use_stdout=use_stdout)
 
 plt.plot(range(1,n+1), eigs_linear, '-o', linewidth=2, label='linear')
 plt.plot(range(1,n+1), eigs_clustered, '-s', linewidth=2, label='clustered')
