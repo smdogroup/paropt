@@ -13,7 +13,7 @@
   each parameter and how you should set it. 
 */
 
-static const int NUM_PAROPT_PARAMETERS = 26;
+static const int NUM_PAROPT_PARAMETERS = 27;
 static const char *paropt_parameter_help[][2] = {
   {"max_qn_size", 
    "Integer: The maximum dimension of the quasi-Newton approximation"},
@@ -29,6 +29,9 @@ static const char *paropt_parameter_help[][2] = {
   
   {"abs_res_tol",
    "Float: Absolute stopping criterion"},
+
+  {"rel_func_tol",
+   "Float: Relative function value stopping criterion"},
   
   {"use_line_search",
    "Boolean: Perform or skip the line search"},
@@ -263,6 +266,7 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   init_starting_point = 1;
   barrier_param = 0.1;
   abs_res_tol = 1e-5;
+  rel_func_tol = 0.0;
   use_line_search = 1;
   use_backtracking_alpha = 0;
   max_line_iters = 10;
@@ -486,6 +490,7 @@ void ParOpt::printOptionSummary( FILE *fp ){
 	    init_starting_point);
     fprintf(fp, "%-30s %15g\n", "barrier_param", barrier_param);
     fprintf(fp, "%-30s %15g\n", "abs_res_tol", abs_res_tol);
+    fprintf(fp, "%-30s %15g\n", "rel_func_tol", rel_func_tol);
     fprintf(fp, "%-30s %15d\n", "use_line_search", use_line_search);
     fprintf(fp, "%-30s %15d\n", "use_backtracking_alpha", 
 	    use_backtracking_alpha);
@@ -770,9 +775,21 @@ void ParOpt::setMaxMajorIterations( int iters ){
   }
 }
 
+/*
+  Set the absolute KKT tolerance
+*/
 void ParOpt::setAbsOptimalityTol( double tol ){
-  if (tol < 1e-2 && tol > 0.0){
+  if (tol < 1e-2 && tol >= 0.0){
     abs_res_tol = tol;
+  }
+}
+
+/*
+  Set the relative function tolerance
+*/
+void ParOpt::setRelFunctionTol( double tol ){
+  if (tol < 1e-2 && tol >= 0.0){
+    rel_func_tol = tol;
   }
 }
 
@@ -799,7 +816,7 @@ void ParOpt::setBarrierFraction( double frac ){
 }
 
 void ParOpt::setBarrierPower( double power ){
-  if (power > 1.0 && power < 10.0){
+  if (power >= 1.0 && power < 10.0){
     monotone_barrier_power = power;
   }
 }
@@ -3541,8 +3558,11 @@ int ParOpt::optimize( const char *checkpoint ){
   // Keep track of whether the algorithm has converged
   int converged = 0;  
 
-  // Store the previous steps in the x/z directions for
-  // the purposes of printing them out on the screen
+  // The previous value of the objective function
+  ParOptScalar fobj_prev = 0.0;
+
+  // Store the previous steps in the x/z directions for the purposes
+  // of printing them out on the screen and modified convergence check
   double alpha_xprev = 0.0;
   double alpha_zprev = 0.0;
 
@@ -3576,7 +3596,8 @@ int ParOpt::optimize( const char *checkpoint ){
       }
       prob->writeOutput(k, x);      
     }
-    // Print to screen the gradient check results at 
+
+    // Print to screen the gradient check results at
     // iteration k 
     if ((gradient_check_frequency > 0) && 
         (k % gradient_check_frequency == 0) && 
@@ -3601,7 +3622,10 @@ int ParOpt::optimize( const char *checkpoint ){
     // Determine if the residual norm has been reduced
     // sufficiently in order to switch to a new barrier
     // problem
-    if (res_norm < 10.0*barrier_param){
+    if (k > 0 && 
+	((res_norm < 10.0*barrier_param) || 
+	 (alpha_xprev == 1.0 && alpha_zprev == 1.0 &&
+	  fabs(fobj - fobj_prev) < rel_func_tol*fabs(fobj_prev)))){
       // Record the value of the old barrier function
       double mu_old = barrier_param;
 
@@ -3729,9 +3753,13 @@ int ParOpt::optimize( const char *checkpoint ){
       fflush(outfp);
     }
 
-    // Check for convergence
-    if (res_norm < abs_res_tol && 
-	barrier_param < 0.1*abs_res_tol){
+    // Check for convergence, depending on the convergence criteria
+    if (k > 0 && 
+	((barrier_param < 0.1*abs_res_tol && 
+	  res_norm < abs_res_tol) ||
+	 (barrier_param < 0.1*abs_res_tol && 
+	  alpha_xprev == 1.0 && alpha_zprev == 1.0 &&
+	  fabs(fobj - fobj_prev) < rel_func_tol*fabs(fobj_prev)))){
       converged = 1;
       break;
     }
@@ -3741,7 +3769,8 @@ int ParOpt::optimize( const char *checkpoint ){
       eisenstat_walker_gamma*pow((res_norm/res_norm_prev),
 				 eisenstat_walker_alpha);
     
-    // Assign the previous norm for next time through
+    // Assign the previous objective/norm for next time through
+    fobj_prev = fobj;
     res_norm_prev = res_norm;
 
     // Check if we should compute a Newton step or a quasi-Newton
@@ -3750,11 +3779,14 @@ int ParOpt::optimize( const char *checkpoint ){
     // the KKT step is computed, we use them to store the
     // change in variables/gradient for the BFGS update.
     gmres_iters = 0;
+
     if (use_hvec_product && 
 	(max_prime < nk_switch_tol &&
 	 max_dual < nk_switch_tol && 
 	 max_infeas < nk_switch_tol) && 
-	gmres_rtol < max_gmres_rtol){      
+	gmres_rtol < max_gmres_rtol){
+      // Set the flag which determines whether or not to use
+      // the quasi-Newton method as a preconditioner
       int use_qn = 1;
       if (sequential_linear_method || 
 	  !use_qn_gmres_precon){
@@ -4144,14 +4176,14 @@ int ParOpt::optimize( const char *checkpoint ){
 	sprintf(info, "%s%s ", info, "LF");
       }
       if (RealPart(dm0_prev) > -abs_res_tol*abs_res_tol){
-	// Skip the line search b/c descent direction is not 
+	// Skip the line search b/c descent direction is not
 	// sufficiently descent-y
-	sprintf(info, "%s%s ", info, "sk");
+	sprintf(info, "%s%s ", info, "Lskp");
       }
       if (ceq_step){
 	// The step lengths are equal due to an increase in the
 	// the complementarity at the new step
-	sprintf(info, "%s%s ", info, "ceq");
+	sprintf(info, "%s%s ", info, "CmpEq");
       }
     }
   }

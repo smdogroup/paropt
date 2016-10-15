@@ -152,6 +152,7 @@ class ParOpt {
   void setInitStartingPoint( int init );
   void setMaxMajorIterations( int iters );
   void setAbsOptimalityTol( double tol );
+  void setRelFunctionTol( double tol );
   void setBarrierFraction( double frac );
   void setBarrierPower( double power );
   void setHessianResetFreq( int freq );
@@ -378,8 +379,9 @@ class ParOpt {
   // The barrier parameter
   double barrier_param;
 
-  // Stopping criteria tolerance
+  // Stopping criteria tolerances
   double abs_res_tol;
+  double rel_func_tol;
 
   // Parameter for controlling the Hessian reset
   int hessian_reset_freq;

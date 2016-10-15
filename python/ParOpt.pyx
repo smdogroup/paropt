@@ -387,6 +387,9 @@ cdef class pyParOpt:
       
    def setAbsOptimalityTol(self, double tol):
       self.this_ptr.setAbsOptimalityTol(tol)
+
+   def setRelFunctionTol(self, double tol):
+      self.this_ptr.setRelFunctionTol(tol)
       
    def setBarrierFraction(self, double frac):
       self.this_ptr.setBarrierFraction(frac)

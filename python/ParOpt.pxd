@@ -94,6 +94,7 @@ cdef extern from "ParOpt.h":
       void setInitStartingPoint(int init)
       void setMaxMajorIterations(int iters)
       void setAbsOptimalityTol(double tol)
+      void setRelFunctionTol(double tol)
       void setBarrierFraction(double frac)
       void setBarrierPower(double power)
       void setHessianResetFreq(int freq)
