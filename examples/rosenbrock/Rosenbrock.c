@@ -205,11 +205,37 @@ class Rosenbrock : public ParOptProblem {
 int main( int argc, char* argv[] ){
   MPI_Init(&argc, &argv);
 
-  // Allocate the Rosenbrock function
+  // Set the MPI communicator
+  MPI_Comm comm = MPI_COMM_WORLD;
+
+  // Get the rank
+  int mpi_rank = 0;
+  MPI_Comm_rank(comm, &mpi_rank);
+
+  // Get the prefix from the input arguments
   int nvars = 100;
+  const char *prefix = NULL;
+  char buff[512];
+  for ( int k = 0; k < argc; k++ ){
+    if (sscanf(argv[k], "prefix=%s", &buff) == 1){
+      prefix = buff;
+    }
+    if (sscanf(argv[k], "nvars=%d", &nvars) == 1){
+      if (nvars < 100){
+	nvars = 100;
+      }
+    }
+  }
+
+  if (mpi_rank == 0){
+    printf("prefix = %s\n", prefix);
+    fflush(stdout);
+  }
+
+  // Allocate the Rosenbrock function
   int nwcon = 5, nw = 5;
   int nwstart = 1, nwskip = 1;  
-  Rosenbrock * rosen = new Rosenbrock(MPI_COMM_WORLD, nvars-1, 
+  Rosenbrock * rosen = new Rosenbrock(comm, nvars-1,
 				      nwcon, nwstart, nw, nwskip);
   
   // Allocate the optimizer
@@ -223,11 +249,23 @@ int main( int argc, char* argv[] ){
   opt->setMajorIterStepCheck(-1);
   opt->setMaxMajorIterations(1500);
   opt->setGradientCheckFrequency(-1, 1e-6);
+  opt->setOutputFrequency(1);
   
+  // Set the checkpoint file
   double start = MPI_Wtime();
-  opt->optimize();
+  if (prefix){
+    char output[512];
+    sprintf(output, "%s/rosenbrock_output.bin", prefix);
+    opt->optimize(output);
+  }
+  else {
+    opt->optimize();
+  }
   double diff = MPI_Wtime() - start;
-  printf("Time taken: %f seconds \n", diff);
+
+  if (mpi_rank == 0){
+    printf("Time taken: %f seconds \n", diff);
+  }
 
   delete rosen;
   delete opt;

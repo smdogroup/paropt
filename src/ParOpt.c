@@ -134,7 +134,7 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
 
   // Assign the values from the sparsity constraints
   if (nwcon > 0 && nwcon % nwblock != 0){
-    fprintf(stderr, "Weighted block size inconsistent\n");
+    fprintf(stderr, "ParOpt: Weighted block size inconsistent\n");
   }
 
   // Calculate the total number of variable across all processors
@@ -3237,7 +3237,7 @@ int ParOpt::lineSearch( double *_alpha,
 
     if (fail_obj){
       fprintf(stderr, 
-	      "Evaluation failed during line search, trying new point\n");
+	      "ParOpt: Evaluation failed during line search, trying new point\n");
 
       // Multiply alpha by 1/10 like SNOPT
       alpha *= 0.1;
@@ -3323,7 +3323,7 @@ int ParOpt::lineSearch( double *_alpha,
   ngeval++;
   if (fail_gobj){
     fprintf(stderr, 
-	    "Gradient evaluation failed at final line search\n");
+	    "ParOpt: Gradient evaluation failed at final line search\n");
   }
 
   // Add the new gradient of the Lagrangian with the new
@@ -3420,15 +3420,15 @@ void ParOpt::initAndCheckDesignAndBounds( int init_multipliers ){
 
   // Print the results of the warnings
   if (check_flag & 1){
-    fprintf(stderr, "Warning: Variable bounds are inconsistent\n");
+    fprintf(stderr, "ParOpt Warning: Variable bounds are inconsistent\n");
   }
   if (check_flag & 2){
     fprintf(stderr, 
-	    "Warning: Modification of variables; too close to lower bound\n");
+	    "ParOpt Warning: Modification of variables; too close to lower bound\n");
   }
   if (check_flag & 4){
     fprintf(stderr, 
-	    "Warning: Modification of variables; too close to upper bound\n");
+	    "ParOpt Warning: Modification of variables; too close to upper bound\n");
   }
 
   // Set the largrange multipliers with bounds outside the
@@ -3486,13 +3486,13 @@ int ParOpt::optimize( const char *checkpoint ){
   neval++;
   if (fail_obj){
     fprintf(stderr, 
-	    "Initial function and constraint evaluation failed\n");
+	    "ParOpt: Initial function and constraint evaluation failed\n");
     return fail_obj;
   }
   int fail_gobj = prob->evalObjConGradient(x, g, Ac);
   ngeval++;
   if (fail_gobj){
-    fprintf(stderr, "Initial gradient evaluation failed\n");
+    fprintf(stderr, "ParOpt: Initial gradient evaluation failed\n");
     return fail_obj;
   }
 
@@ -3555,14 +3555,12 @@ int ParOpt::optimize( const char *checkpoint ){
     }
   }
 
-  // Keep track of whether the algorithm has converged
-  int converged = 0;  
-
   // The previous value of the objective function
   ParOptScalar fobj_prev = 0.0;
 
   // Store the previous steps in the x/z directions for the purposes
   // of printing them out on the screen and modified convergence check
+  double alpha_prev = 0.0;
   double alpha_xprev = 0.0;
   double alpha_zprev = 0.0;
 
@@ -3580,7 +3578,11 @@ int ParOpt::optimize( const char *checkpoint ){
   for ( int k = 0; k < max_major_iters; k++ ){
     if (!sequential_linear_method){
       if (k > 0 && k % hessian_reset_freq == 0){
+	// Reset the quasi-Newton Hessian approximation
 	qn->reset();
+
+	// Add a reset flag to the output
+	sprintf(info, "%s%s ", info, "resetH");
       }
     }
 
@@ -3591,6 +3593,8 @@ int ParOpt::optimize( const char *checkpoint ){
 	// Write the checkpoint file, if it fails once, set
 	// the file pointer to null so it won't print again
 	if (writeSolutionFile(checkpoint)){
+	  fprintf(stderr, "ParOpt: Checkpoint file %s creation failed\n",
+		  checkpoint);
 	  checkpoint = NULL;
 	}
       }
@@ -3599,11 +3603,12 @@ int ParOpt::optimize( const char *checkpoint ){
 
     // Print to screen the gradient check results at
     // iteration k 
-    if ((gradient_check_frequency > 0) && 
-        (k % gradient_check_frequency == 0) && 
-        k > 0){
+    if (k > 0 &&
+	(gradient_check_frequency > 0) && 
+        (k % gradient_check_frequency == 0)){
       checkGradients(gradient_check_step);
     }
+
     // Compute the complementarity
     ParOptScalar comp = computeComp();
     
@@ -3622,10 +3627,18 @@ int ParOpt::optimize( const char *checkpoint ){
     // Determine if the residual norm has been reduced
     // sufficiently in order to switch to a new barrier
     // problem
+    int barrier_converged = 0;
     if (k > 0 && 
 	((res_norm < 10.0*barrier_param) || 
 	 (alpha_xprev == 1.0 && alpha_zprev == 1.0 &&
 	  fabs(fobj - fobj_prev) < rel_func_tol*fabs(fobj_prev)))){
+      barrier_converged = 1;
+    }
+
+    // Broadcast the result of the test from the root processor
+    MPI_Bcast(&barrier_converged, 1, MPI_INT, opt_root, comm);
+
+    if (barrier_converged){
       // Record the value of the old barrier function
       double mu_old = barrier_param;
 
@@ -3726,24 +3739,24 @@ int ParOpt::optimize( const char *checkpoint ){
     MPI_Comm_rank(comm, &rank);
     if (outfp && rank == opt_root){
       if (k % 10 == 0 || gmres_iters > 0){
-	fprintf(outfp, "\n%4s %4s %4s %4s %7s %7s %12s \
+	fprintf(outfp, "\n%4s %4s %4s %4s %7s %7s %7s %12s \
 %7s %7s %7s %7s %7s %8s %7s info\n",
-		"iter", "nobj", "ngrd", "nhvc", "alphx", "alphz", 
+		"iter", "nobj", "ngrd", "nhvc", "alpha", "alphx", "alphz", 
 		"fobj", "|opt|", "|infes|", "|dual|", "mu", 
 		"comp", "dmerit", "rho");
       }
 
       if (k == 0){
-	fprintf(outfp, "%4d %4d %4d %4d %7s %7s %12.5e \
+	fprintf(outfp, "%4d %4d %4d %4d %7s %7s %7s %12.5e \
 %7.1e %7.1e %7.1e %7.1e %7.1e %8s %7s %s\n",
-		k, neval, ngeval, nhvec, " ", " ",
+		k, neval, ngeval, nhvec, " ", " ", " ",
 		RealPart(fobj), max_prime, max_infeas, max_dual, 
 		barrier_param, RealPart(comp), " ", " ", info);
       }
       else {
-	fprintf(outfp, "%4d %4d %4d %4d %7.1e %7.1e %12.5e \
+	fprintf(outfp, "%4d %4d %4d %4d %7.1e %7.1e %7.1e %12.5e \
 %7.1e %7.1e %7.1e %7.1e %7.1e %8.1e %7.1e %s\n",
-		k, neval, ngeval, nhvec, alpha_xprev, alpha_zprev,
+		k, neval, ngeval, nhvec, alpha_prev, alpha_xprev, alpha_zprev,
 		RealPart(fobj), max_prime, max_infeas, max_dual, 
 		barrier_param, RealPart(comp), RealPart(dm0_prev), 
 		rho_penalty_search, info);
@@ -3754,6 +3767,7 @@ int ParOpt::optimize( const char *checkpoint ){
     }
 
     // Check for convergence, depending on the convergence criteria
+    int converged = 0;
     if (k > 0 && 
 	((barrier_param < 0.1*abs_res_tol && 
 	  res_norm < abs_res_tol) ||
@@ -3761,6 +3775,14 @@ int ParOpt::optimize( const char *checkpoint ){
 	  alpha_xprev == 1.0 && alpha_zprev == 1.0 &&
 	  fabs(fobj - fobj_prev) < rel_func_tol*fabs(fobj_prev)))){
       converged = 1;
+    }
+
+    // Broadcast the convergence result from the root processor. This avoids
+    // comparing values that might be different on different procs.
+    MPI_Bcast(&converged, 1, MPI_INT, opt_root, comm);
+
+    // Everybody quit altogether if we've converged
+    if (converged){
       break;
     }
 
@@ -3835,8 +3857,8 @@ int ParOpt::optimize( const char *checkpoint ){
       tau = tau_mu;
     } 
 
-    double max_x = 1.0, max_z = 1.0;
-    computeMaxStep(tau, &max_x, &max_z);
+    double alpha_x = 1.0, alpha_z = 1.0;
+    computeMaxStep(tau, &alpha_x, &alpha_z);
 
     // Keep track of whether we set both the design and Lagrange
     // multiplier steps equal to one another
@@ -3848,70 +3870,70 @@ int ParOpt::optimize( const char *checkpoint ){
       // code cuts off the difference between the step lengths if the
       // difference is greater that 100.
       double max_bnd = 100.0;
-      if (max_x > max_z){
-	if (max_x > max_bnd*max_z){
-	  max_x = max_bnd*max_z;
+      if (alpha_x > alpha_z){
+	if (alpha_x > max_bnd*alpha_z){
+	  alpha_x = max_bnd*alpha_z;
 	}
-	else if (max_x < max_z/max_bnd){
-	  max_x = max_z/max_bnd;
+	else if (alpha_x < alpha_z/max_bnd){
+	  alpha_x = alpha_z/max_bnd;
 	}
       }
       else {
-	if (max_z > max_bnd*max_x){
-	  max_z = max_bnd*max_x;
+	if (alpha_z > max_bnd*alpha_x){
+	  alpha_z = max_bnd*alpha_x;
 	}
-	else if (max_z < max_x/max_bnd){
-	  max_z = max_x/max_bnd;
+	else if (alpha_z < alpha_x/max_bnd){
+	  alpha_z = alpha_x/max_bnd;
 	}
       }
     
       // As a last check, compute the complementarity at
       // the full step length. If the complementarity increases,
       // use equal step lengths.
-      ParOptScalar comp_new = computeCompStep(max_x, max_z);
+      ParOptScalar comp_new = computeCompStep(alpha_x, alpha_z);
 
       if (RealPart(comp_new) > 10.0*RealPart(comp)){
 	ceq_step = 1;
-	if (max_x > max_z){
-	  max_x = max_z;
+	if (alpha_x > alpha_z){
+	  alpha_x = alpha_z;
 	}
 	else {
-	  max_z = max_x;
+	  alpha_z = alpha_x;
 	}
       }
     }
     else if (gmres_iters > 0){
       // If we're using a Newton method, use the same step
       // size for both the multipliers and variables
-      if (max_x > max_z){
-	max_x = max_z;
+      if (alpha_x > alpha_z){
+	alpha_x = alpha_z;
       }
       else {
-	max_z = max_x;
+	alpha_z = alpha_x;
       }
     }
 
     // Scale the steps by the maximum permissible step lengths
-    px->scale(max_x);
+    px->scale(alpha_x);
     if (nwcon > 0){ 
-      pzw->scale(max_z);
+      pzw->scale(alpha_z);
       if (sparse_inequality){
-	psw->scale(max_x);
+	psw->scale(alpha_x);
       }
     }
     if (use_lower){
-      pzl->scale(max_z);
+      pzl->scale(alpha_z);
     }
     if (use_upper){
-      pzu->scale(max_z);
+      pzu->scale(alpha_z);
     }
 
     for ( int i = 0; i < ncon; i++ ){
-      pz[i] *= max_z;
+      pz[i] *= alpha_z;
     }
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
-	ps[i] *= max_x;
+	ps[i] *= alpha_x;
       }
     }
 
@@ -3933,7 +3955,7 @@ int ParOpt::optimize( const char *checkpoint ){
       // Compute the initial value of the merit function and its
       // derivative and a new value for the penalty parameter
       ParOptScalar m0, dm0;
-      evalMeritInitDeriv(max_x, &m0, &dm0, (gmres_iters > 0),
+      evalMeritInitDeriv(alpha_x, &m0, &dm0, (gmres_iters > 0),
 			 wtemp, rcw);
 
       // Check that the merit function derivative is
@@ -3959,7 +3981,8 @@ int ParOpt::optimize( const char *checkpoint ){
 	int fail_obj = prob->evalObjCon(rx, &fobj, c);
 	neval++;
 	if (fail_obj){
-	  fprintf(stderr, "Function and constraint evaluation failed\n");
+	  fprintf(stderr, 
+		  "ParOpt: Function and constraint evaluation failed\n");
 	  return fail_obj;
 	}
 	ParOptScalar m1 = evalMeritFunc(rx, rs, rsw);
@@ -4028,13 +4051,15 @@ int ParOpt::optimize( const char *checkpoint ){
 	int fail_obj = prob->evalObjCon(x, &fobj, c);
 	neval++;
 	if (fail_obj){
-	  fprintf(stderr, "Function and constraint evaluation failed\n");
+	  fprintf(stderr, 
+		  "ParOpt: Function and constraint evaluation failed\n");
 	  return fail_obj;
 	}
 	int fail_gobj = prob->evalObjConGradient(x, g, Ac);
 	ngeval++;
 	if (fail_gobj){
-	  fprintf(stderr, "Gradient evaluation failed\n");
+	  fprintf(stderr, 
+		  "ParOpt: Gradient evaluation failed\n");
 	  return fail_obj;
 	}
 
@@ -4110,13 +4135,14 @@ int ParOpt::optimize( const char *checkpoint ){
       int fail_obj = prob->evalObjCon(x, &fobj, c);
       neval++;
       if (fail_obj){
-	fprintf(stderr, "Function and constraint evaluation failed\n");
+	fprintf(stderr, 
+		"ParOpt: Function and constraint evaluation failed\n");
 	return fail_obj;
       }
       int fail_gobj = prob->evalObjConGradient(x, g, Ac);
       ngeval++;
       if (fail_gobj){
-	fprintf(stderr, "Gradient evaluation failed\n");
+	fprintf(stderr, "ParOpt: Gradient evaluation failed\n");
 	return fail_obj;
       }
 
@@ -4141,8 +4167,9 @@ int ParOpt::optimize( const char *checkpoint ){
     }
 
     // Store the steps in x/z for printing later
-    alpha_xprev = alpha*max_x;
-    alpha_zprev = alpha*max_z;
+    alpha_prev = alpha;
+    alpha_xprev = alpha_x;
+    alpha_zprev = alpha_z;
 
     // Compute the Quasi-Newton update
     int up_type = 0;
@@ -4165,11 +4192,11 @@ int ParOpt::optimize( const char *checkpoint ){
       }
       if (up_type == 1){ 
 	// Damped BFGS update
-	sprintf(info, "%s%s ", info, "dH");
+	sprintf(info, "%s%s ", info, "dampH");
       }
       else if (up_type == 2){
         // Skipped update
-        sprintf(info, "%s%s ", info, "sH");
+        sprintf(info, "%s%s ", info, "skipH");
       }
       if (line_fail){
 	// Line search failure
@@ -4183,7 +4210,7 @@ int ParOpt::optimize( const char *checkpoint ){
       if (ceq_step){
 	// The step lengths are equal due to an increase in the
 	// the complementarity at the new step
-	sprintf(info, "%s%s ", info, "CmpEq");
+	sprintf(info, "%s%s ", info, "cmpEq");
       }
     }
   }
