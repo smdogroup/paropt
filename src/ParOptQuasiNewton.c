@@ -1,3 +1,4 @@
+#include <string.h>
 #include "ParOptBlasLapack.h"
 #include "ParOptQuasiNewton.h"
 
