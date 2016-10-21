@@ -1,5 +1,6 @@
 #include <math.h>
 #include <string.h>
+#include "ComplexStep.h"
 #include "ParOptVec.h"
 #include "ParOptBlasLapack.h"
 

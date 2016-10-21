@@ -1,5 +1,6 @@
 #include <math.h>
 #include <string.h>
+#include "ComplexStep.h"
 #include "ParOpt.h"
 #include "ParOptBlasLapack.h"
 
@@ -3631,7 +3632,8 @@ int ParOpt::optimize( const char *checkpoint ){
     if (k > 0 && 
 	((res_norm < 10.0*barrier_param) || 
 	 (alpha_xprev == 1.0 && alpha_zprev == 1.0 &&
-	  fabs(fobj - fobj_prev) < rel_func_tol*fabs(fobj_prev)))){
+	  (fabs(RealPart(fobj - fobj_prev)) < 
+	   rel_func_tol*fabs(RealPart(fobj_prev)))))){
       barrier_converged = 1;
     }
 
@@ -3773,7 +3775,8 @@ int ParOpt::optimize( const char *checkpoint ){
 	  res_norm < abs_res_tol) ||
 	 (barrier_param < 0.1*abs_res_tol && 
 	  alpha_xprev == 1.0 && alpha_zprev == 1.0 &&
-	  fabs(fobj - fobj_prev) < rel_func_tol*fabs(fobj_prev)))){
+	  (fabs(RealPart(fobj - fobj_prev)) < 
+	   rel_func_tol*fabs(RealPart(fobj_prev)))))){
       converged = 1;
     }
 

@@ -11,7 +11,7 @@
 */
 
 #include "mpi.h"
-#include "ComplexStep.h"
+#include <complex>
 
 // Define the complex ParOpt type
 typedef std::complex<double> ParOptComplex;

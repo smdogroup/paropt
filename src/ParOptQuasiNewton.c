@@ -1,4 +1,5 @@
 #include <string.h>
+#include "ComplexStep.h"
 #include "ParOptBlasLapack.h"
 #include "ParOptQuasiNewton.h"
 
