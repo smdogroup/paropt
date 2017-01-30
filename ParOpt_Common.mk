@@ -11,7 +11,7 @@ PAROPT_DEBUG_CC_FLAGS = ${CCFLAGS_DEBUG} ${PAROPT_INCLUDE}
 PAROPT_CC_FLAGS = ${PAROPT_OPT_CC_FLAGS}
 
 # Set the linking flags
-PAROPT_LD_FLAGS = -L${PAROPT_DIR}/lib/ -Wl,-rpath,${PAROPT_DIR}/lib -lparopt ${LAPACK_LIBS}
+PAROPT_LD_FLAGS = ${PAROPT_LD_CMD} ${LAPACK_LIBS}
 
 # This is the one rule that is used to compile all the
 # source code in TACS

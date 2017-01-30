@@ -13,12 +13,20 @@ CYTHON = cython
 CCFLAGS = -fPIC -O3
 CCFLAGS_DEBUG = -fPIC -g
 
+# ParOpt linking command
+PAROPT_LD_CMD=-L${PAROPT_DIR}/lib/ -Wl,-rpath,${PAROPT_DIR}/lib -lparopt
+# PAROPT_LD_CMD=${PAROPT_DIR}/lib/paropt.a
+
 # The lapack libraries to use
 LAPACK_LIBS = -L/usr/lib -llapack -lblas
 
 # For linux systems, use the following settings:
 SO_EXT=so
 SO_LINK_FLAGS=-fPIC -shared
+
+# For MAC OS X, use the following settings:
+# SO_EXT=so
+# SO_LINK_FLAGS=-fPIC -dynamiclib -single_module -undefined dynamic_lookup -multiply_defined suppress
 
 # If using the python interface you'll need to include python and numpy 
 PYTHON_INCLUDE = ${shell python-config --includes}

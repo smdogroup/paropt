@@ -1,10 +1,12 @@
 include ../Makefile.in
+include ../ParOpt_Common.mk
 
 OBJS = ParOpt.o \
 	ParOptVec.o \
 	ParOptQuasiNewton.o
 
 default: ${OBJS}
+	${AR} ${AR_FLAGS} ${PAROPT_LIB} ${OBJS}
 
 %.o: %.c
 	${CXX} ${CCFLAGS} -c $< -o $@
