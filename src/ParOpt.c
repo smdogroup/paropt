@@ -116,8 +116,8 @@ the quasi-Newton approximation is used"},
   qn_type:     the type of quasi-Newton method to use
 */
 ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
-		enum QuasiNewtonType qn_type,
-		double _max_bound_val ){
+                enum QuasiNewtonType qn_type,
+                double _max_bound_val ){
   prob = _prob;
 
   // Record the communicator
@@ -423,7 +423,7 @@ void ParOpt::resetProblemInstance( ParOptProblem *problem ){
   Retrieve the problem sizes from the underlying problem class
 */
 void ParOpt::getProblemSizes( int *_nvars, int *_ncon, 
-			      int *_nwcon, int *_nwblock ){
+                              int *_nwcon, int *_nwblock ){
   prob->getProblemSizes(_nvars, _ncon, _nwcon, _nwblock);
 }
 
@@ -437,10 +437,10 @@ void ParOpt::getProblemSizes( int *_nvars, int *_ncon,
   use_lower == False, then NULL is assigned to the output.
 */
 void ParOpt::getOptimizedPoint( ParOptVec **_x, 
-				const ParOptScalar **_z, 
-				ParOptVec **_zw,
-				ParOptVec **_zl, 
-				ParOptVec **_zu ){
+                                const ParOptScalar **_z, 
+                                ParOptVec **_zw,
+                                ParOptVec **_zl, 
+                                ParOptVec **_zu ){
   if (_x){ *_x = x; }
   if (_z){
     *_z = NULL;
@@ -488,47 +488,47 @@ void ParOpt::printOptionSummary( FILE *fp ){
     fprintf(fp, "%-30s %15d\n", "max_qn_size", qn_size);
     fprintf(fp, "%-30s %15d\n", "max_major_iters", max_major_iters);
     fprintf(fp, "%-30s %15d\n", "init_starting_point", 
-	    init_starting_point);
+            init_starting_point);
     fprintf(fp, "%-30s %15g\n", "barrier_param", barrier_param);
     fprintf(fp, "%-30s %15g\n", "abs_res_tol", abs_res_tol);
     fprintf(fp, "%-30s %15g\n", "rel_func_tol", rel_func_tol);
     fprintf(fp, "%-30s %15d\n", "use_line_search", use_line_search);
     fprintf(fp, "%-30s %15d\n", "use_backtracking_alpha", 
-	    use_backtracking_alpha);
+            use_backtracking_alpha);
     fprintf(fp, "%-30s %15d\n", "max_line_iters", max_line_iters);
     fprintf(fp, "%-30s %15g\n", "penalty_descent_fraction", 
-	    penalty_descent_fraction);
+            penalty_descent_fraction);
     fprintf(fp, "%-30s %15g\n", "armijio_constant", armijio_constant);
     fprintf(fp, "%-30s %15g\n", "monotone_barrier_fraction", 
-	    monotone_barrier_fraction);
+            monotone_barrier_fraction);
     fprintf(fp, "%-30s %15g\n", "monotone_barrier_power", 
-	    monotone_barrier_power);
+            monotone_barrier_power);
     fprintf(fp, "%-30s %15g\n", "min_fraction_to_boundary", 
-	    min_fraction_to_boundary);
+            min_fraction_to_boundary);
     fprintf(fp, "%-30s %15d\n", "major_iter_step_check", 
-	    major_iter_step_check);
+            major_iter_step_check);
     fprintf(fp, "%-30s %15d\n", "write_output_frequency", 
-	    write_output_frequency);
+            write_output_frequency);
     fprintf(fp, "%-30s %15d\n", "gradient_check_frequency", 
-	    gradient_check_frequency);
+            gradient_check_frequency);
     fprintf(fp, "%-30s %15g\n", "gradient_check_step", 
-	    gradient_check_step);
+            gradient_check_step);
     fprintf(fp, "%-30s %15d\n", "sequential_linear_method",
-	    sequential_linear_method);
+            sequential_linear_method);
     fprintf(fp, "%-30s %15d\n", "hessian_reset_freq",
-	    hessian_reset_freq);
+            hessian_reset_freq);
     fprintf(fp, "%-30s %15g\n", "qn_sigma", qn_sigma);
     fprintf(fp, "%-30s %15d\n", "use_hvec_product",
-	    use_hvec_product);
+            use_hvec_product);
     fprintf(fp, "%-30s %15d\n", "use_qn_gmres_precon",
-	    use_qn_gmres_precon);
+            use_qn_gmres_precon);
     fprintf(fp, "%-30s %15g\n", "nk_switch_tol", nk_switch_tol);
     fprintf(fp, "%-30s %15g\n", "eisenstat_walker_alpha", 
-	    eisenstat_walker_alpha);
+            eisenstat_walker_alpha);
     fprintf(fp, "%-30s %15g\n", "eisenstat_walker_gamma", 
-	    eisenstat_walker_gamma);
+            eisenstat_walker_gamma);
     fprintf(fp, "%-30s %15d\n", "gmres_subspace_size",
-	    gmres_subspace_size);
+            gmres_subspace_size);
     fprintf(fp, "%-30s %15g\n", "max_gmres_rtol", max_gmres_rtol);
     fprintf(fp, "%-30s %15g\n", "gmres_atol", gmres_atol);
   }
@@ -565,7 +565,7 @@ int ParOpt::writeSolutionFile( const char *filename ){
 
       MPI_File_write(fp, var_sizes, 3, MPI_INT, MPI_STATUS_IGNORE);
       MPI_File_write(fp, &barrier_param, 1, 
-		     PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
+                     PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
       MPI_File_write(fp, z, ncon, PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
       MPI_File_write(fp, s, ncon, PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
     }
@@ -581,7 +581,7 @@ int ParOpt::writeSolutionFile( const char *filename ){
     MPI_File_set_view(fp, offset, PAROPT_MPI_TYPE, PAROPT_MPI_TYPE,
                       datarep, MPI_INFO_NULL);
     MPI_File_write_at_all(fp, var_range[rank], xvals, xsize, 
-			  PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
+                          PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
     offset += var_range[size]*sizeof(ParOptScalar);
 
     // Extract the lower Lagrange multipliers
@@ -591,14 +591,14 @@ int ParOpt::writeSolutionFile( const char *filename ){
     MPI_File_set_view(fp, offset, PAROPT_MPI_TYPE, PAROPT_MPI_TYPE,
                       datarep, MPI_INFO_NULL);
     MPI_File_write_at_all(fp, var_range[rank], zlvals, xsize, 
-			  PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
+                          PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
     offset += var_range[size]*sizeof(ParOptScalar);
 
     // Write out the upper Lagrange multipliers
     MPI_File_set_view(fp, offset, PAROPT_MPI_TYPE, PAROPT_MPI_TYPE,
                       datarep, MPI_INFO_NULL);
     MPI_File_write_at_all(fp, var_range[rank], zuvals, xsize, 
-			  PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
+                          PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
     offset += var_range[size]*sizeof(ParOptScalar);
     
     // Write out the extra constraint bounds
@@ -607,15 +607,15 @@ int ParOpt::writeSolutionFile( const char *filename ){
       int nwsize = zw->getArray(&zwvals);
       sw->getArray(&swvals);
       MPI_File_set_view(fp, offset, PAROPT_MPI_TYPE, PAROPT_MPI_TYPE,
-			datarep, MPI_INFO_NULL);
+                        datarep, MPI_INFO_NULL);
       MPI_File_write_at_all(fp, wcon_range[rank], zwvals, nwsize, 
-			    PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
+                            PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
       offset += wcon_range[size]*sizeof(ParOptScalar);
 
       MPI_File_set_view(fp, offset, PAROPT_MPI_TYPE, PAROPT_MPI_TYPE,
-			datarep, MPI_INFO_NULL);
+                        datarep, MPI_INFO_NULL);
       MPI_File_write_at_all(fp, wcon_range[rank], swvals, nwsize, 
-			    PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
+                            PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
     }
     MPI_File_close(&fp);
   }
@@ -657,16 +657,16 @@ int ParOpt::readSolutionFile( const char *filename ){
       MPI_File_read(fp, var_sizes, 3, MPI_INT, MPI_STATUS_IGNORE);
 
       if (var_sizes[0] != var_range[size] ||
-	  var_sizes[1] != wcon_range[size] ||
-	  var_sizes[2] != ncon){
-	size_fail = 1;
+          var_sizes[1] != wcon_range[size] ||
+          var_sizes[2] != ncon){
+        size_fail = 1;
       }
 
       if (!size_fail){
-	MPI_File_read(fp, &barrier_param, 1, 
-		      PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
-	MPI_File_read(fp, z, ncon, PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
-	MPI_File_read(fp, s, ncon, PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
+        MPI_File_read(fp, &barrier_param, 1, 
+                      PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
+        MPI_File_read(fp, z, ncon, PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
+        MPI_File_read(fp, s, ncon, PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
       }
     }
     MPI_Bcast(&size_fail, 1, MPI_INT, opt_root, comm);
@@ -675,8 +675,8 @@ int ParOpt::readSolutionFile( const char *filename ){
     if (size_fail){
       fail = 1;
       if (rank == opt_root){
-	fprintf(stderr, 
-		"ParOpt: Problem size incompatible with solution file\n");
+        fprintf(stderr, 
+                "ParOpt: Problem size incompatible with solution file\n");
       }
 
       MPI_File_close(&fp);
@@ -695,7 +695,7 @@ int ParOpt::readSolutionFile( const char *filename ){
     MPI_File_set_view(fp, offset, PAROPT_MPI_TYPE, PAROPT_MPI_TYPE,
                       datarep, MPI_INFO_NULL);
     MPI_File_read_at_all(fp, var_range[rank], xvals, xsize, 
-			 PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
+                         PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
     offset += var_range[size]*sizeof(ParOptScalar);
 
     // Extract the lower Lagrange multipliers
@@ -705,14 +705,14 @@ int ParOpt::readSolutionFile( const char *filename ){
     MPI_File_set_view(fp, offset, PAROPT_MPI_TYPE, PAROPT_MPI_TYPE,
                       datarep, MPI_INFO_NULL);
     MPI_File_read_at_all(fp, var_range[rank], zlvals, xsize, 
-			 PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
+                         PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
     offset += var_range[size]*sizeof(ParOptScalar);
 
     // Read in the upper Lagrange multipliers
     MPI_File_set_view(fp, offset, PAROPT_MPI_TYPE, PAROPT_MPI_TYPE,
                       datarep, MPI_INFO_NULL);
     MPI_File_read_at_all(fp, var_range[rank], zuvals, xsize, 
-			 PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
+                         PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
     offset += var_range[size]*sizeof(ParOptScalar);
     
     // Read in the extra constraint Lagrange multipliers
@@ -721,15 +721,15 @@ int ParOpt::readSolutionFile( const char *filename ){
       int nwsize = zw->getArray(&zwvals);
       sw->getArray(&swvals);
       MPI_File_set_view(fp, offset, PAROPT_MPI_TYPE, PAROPT_MPI_TYPE,
-			datarep, MPI_INFO_NULL);
+                        datarep, MPI_INFO_NULL);
       MPI_File_read_at_all(fp, wcon_range[rank], zwvals, nwsize, 
-			   PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
+                           PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
       offset += wcon_range[size]*sizeof(ParOptScalar);
 
       MPI_File_set_view(fp, offset, PAROPT_MPI_TYPE, PAROPT_MPI_TYPE,
-			datarep, MPI_INFO_NULL);
+                        datarep, MPI_INFO_NULL);
       MPI_File_read_at_all(fp, wcon_range[rank], swvals, nwsize, 
-			   PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
+                           PAROPT_MPI_TYPE, MPI_STATUS_IGNORE);
     }
 
     MPI_File_close(&fp);
@@ -1002,9 +1002,9 @@ void ParOpt::setOutputFile( const char *filename ){
     if (outfp){
       fprintf(outfp, "ParOpt: Parameter summary\n");
       for ( int i = 0; i < NUM_PAROPT_PARAMETERS; i++ ){
-	fprintf(outfp, "%s\n%s\n\n",
-		paropt_parameter_help[i][0],
-		paropt_parameter_help[i][1]);
+        fprintf(outfp, "%s\n%s\n\n",
+                paropt_parameter_help[i][0],
+                paropt_parameter_help[i][1]);
       }
     }
   }
@@ -1024,8 +1024,8 @@ void ParOpt::setOutputFile( const char *filename ){
   rzl = -((ub - x)*zu - mu*e)
 */
 void ParOpt::computeKKTRes( double *max_prime,
-			    double *max_dual, 
-			    double *max_infeas ){
+                            double *max_dual, 
+                            double *max_infeas ){
   // Zero the values of the maximum residuals 
   *max_prime = 0.0;
   *max_dual = 0.0;
@@ -1074,10 +1074,10 @@ void ParOpt::computeKKTRes( double *max_prime,
       rs[i] = -(s[i]*z[i] - barrier_param);
 
       if (fabs(RealPart(rc[i])) > *max_infeas){
-	*max_infeas = fabs(RealPart(rc[i]));
+        *max_infeas = fabs(RealPart(rc[i]));
       }
       if (fabs(RealPart(rs[i])) > *max_dual){
-	*max_dual = fabs(RealPart(rs[i]));
+        *max_dual = fabs(RealPart(rs[i]));
       }
     }
   }
@@ -1086,7 +1086,7 @@ void ParOpt::computeKKTRes( double *max_prime,
       rc[i] = -c[i];
 
       if (fabs(RealPart(rc[i])) > *max_infeas){
-	*max_infeas = fabs(RealPart(rc[i]));
+        *max_infeas = fabs(RealPart(rc[i]));
       }
     }
   }
@@ -1106,10 +1106,10 @@ void ParOpt::computeKKTRes( double *max_prime,
 
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(lbvals[i]) > -max_bound_val){
-	rzlvals[i] = -((xvals[i] - lbvals[i])*zlvals[i] - barrier_param);
+        rzlvals[i] = -((xvals[i] - lbvals[i])*zlvals[i] - barrier_param);
       }
       else {
-	rzlvals[i] = 0.0;
+        rzlvals[i] = 0.0;
       }
     }
   
@@ -1125,10 +1125,10 @@ void ParOpt::computeKKTRes( double *max_prime,
 
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(ubvals[i]) < max_bound_val){
-	rzuvals[i] = -((ubvals[i] - xvals[i])*zuvals[i] - barrier_param);
+        rzuvals[i] = -((ubvals[i] - xvals[i])*zuvals[i] - barrier_param);
       }
       else {
-	rzuvals[i] = 0.0;
+        rzuvals[i] = 0.0;
       }
     }
 
@@ -1165,10 +1165,10 @@ int ParOpt::factorCw(){
     for ( int i = 0; i < nwcon; i++ ){
       // Compute and store Cw^{-1}
       if (Cw[i] == 0.0){
-	return 1;
+        return 1;
       }
       else {
-	Cw[i] = 1.0/Cw[i];
+        Cw[i] = 1.0/Cw[i];
       }
     }
   }
@@ -1182,7 +1182,7 @@ int ParOpt::factorCw(){
       LAPACKdpptrf("U", &nwblock, cw, &info);
 
       if (info){
-	return i + info;
+        return i + info;
       }
       cw += incr;
     }
@@ -1214,7 +1214,7 @@ int ParOpt::applyCwFactor( ParOptVec *vec ){
       LAPACKdpptrs("U", &nwblock, &one, cw, rhs, &nwblock, &info);
 
       if (info){
-	return i + info;
+        return i + info;
       }
 
       // Increment the pointers to the next block
@@ -1255,8 +1255,8 @@ int ParOpt::applyCwFactor( ParOptVec *vec ){
   which is required to compute the solution of the KKT step.
 */
 void ParOpt::setUpKKTDiagSystem( ParOptVec *xt,
-				 ParOptVec *wt, 
-				 int use_qn ){
+                                 ParOptVec *wt, 
+                                 int use_qn ){
   // Retrive the diagonal entry for the BFGS update
   ParOptScalar b0 = 0.0;
   if (use_qn){
@@ -1284,18 +1284,18 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec *xt,
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(lbvals[i]) > -max_bound_val && 
           RealPart(ubvals[i]) < max_bound_val){
-	cvals[i] = 1.0/(b0 + qn_sigma +
-			zlvals[i]/(xvals[i] - lbvals[i]) + 
-			zuvals[i]/(ubvals[i] - xvals[i]));
+        cvals[i] = 1.0/(b0 + qn_sigma +
+                        zlvals[i]/(xvals[i] - lbvals[i]) + 
+                        zuvals[i]/(ubvals[i] - xvals[i]));
       }
       else if (RealPart(lbvals[i]) > -max_bound_val){
-	cvals[i] = 1.0/(b0 + qn_sigma + zlvals[i]/(xvals[i] - lbvals[i]));
+        cvals[i] = 1.0/(b0 + qn_sigma + zlvals[i]/(xvals[i] - lbvals[i]));
       }
       else if (RealPart(ubvals[i]) < max_bound_val){
-	cvals[i] = 1.0/(b0 + qn_sigma + zuvals[i]/(ubvals[i] - xvals[i]));
+        cvals[i] = 1.0/(b0 + qn_sigma + zuvals[i]/(ubvals[i] - xvals[i]));
       }
       else {
-	cvals[i] = diag_no_bound;
+        cvals[i] = diag_no_bound;
       }
     }
   }
@@ -1303,10 +1303,10 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec *xt,
     ParOptScalar diag_no_bound = 1.0/(b0 + qn_sigma);
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(lbvals[i]) > -max_bound_val){
-	cvals[i] = 1.0/(b0 + qn_sigma + zlvals[i]/(xvals[i] - lbvals[i]));
+        cvals[i] = 1.0/(b0 + qn_sigma + zlvals[i]/(xvals[i] - lbvals[i]));
       }
       else {
-	cvals[i] = diag_no_bound;
+        cvals[i] = diag_no_bound;
       }
     }
   }
@@ -1314,10 +1314,10 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec *xt,
     ParOptScalar diag_no_bound = 1.0/(b0 + qn_sigma);
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(ubvals[i]) < max_bound_val){
-	cvals[i] = 1.0/(b0 + qn_sigma + zuvals[i]/(ubvals[i] - xvals[i]));
+        cvals[i] = 1.0/(b0 + qn_sigma + zuvals[i]/(ubvals[i] - xvals[i]));
       }
       else {
-	cvals[i] = diag_no_bound;
+        cvals[i] = diag_no_bound;
       }
     }
   }
@@ -1340,26 +1340,26 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec *xt,
       sw->getArray(&swvals);
 
       if (nwblock == 1){
-	for ( int i = 0; i < nwcon; i++ ){
-	  Cw[i] = swvals[i]/zwvals[i];
-	}
+        for ( int i = 0; i < nwcon; i++ ){
+          Cw[i] = swvals[i]/zwvals[i];
+        }
       }
       else {
-	// Set the pointer and the increment for the
-	// block-diagonal matrix
-	ParOptScalar *cw = Cw;
-	const int incr = ((nwblock+1)*nwblock)/2;
+        // Set the pointer and the increment for the
+        // block-diagonal matrix
+        ParOptScalar *cw = Cw;
+        const int incr = ((nwblock+1)*nwblock)/2;
 
-	// Iterate over each block matrix
-	for ( int i = 0; i < nwcon; i += nwblock ){
-	  // Index into each block
-	  for ( int j = 0, k = 0; j < nwblock; j++, k += j+1 ){
-	    cw[k] = swvals[i+j]/zwvals[i+j];
-	  }
+        // Iterate over each block matrix
+        for ( int i = 0; i < nwcon; i += nwblock ){
+          // Index into each block
+          for ( int j = 0, k = 0; j < nwblock; j++, k += j+1 ){
+            cw[k] = swvals[i+j]/zwvals[i+j];
+          }
 
-	  // Increment the pointer to the next block
-	  cw += incr;
-	}
+          // Increment the pointer to the next block
+          cw += incr;
+        }
       }
     }
 
@@ -1379,7 +1379,7 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec *xt,
       Ac[k]->getArray(&avals);
 
       for ( int i = 0; i < nvars; i++ ){
-	xvals[i] = cvals[i]*avals[i];
+        xvals[i] = cvals[i]*avals[i];
       }
 
       Ew[k]->zeroEntries();
@@ -1399,26 +1399,26 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec *xt,
       applyCwFactor(wt);
 
       for ( int i = j; i < ncon; i++ ){
-	// Get the vectors required
-	ParOptScalar *wvals, *ewivals;
-	Ew[i]->getArray(&ewivals);
-	wt->getArray(&wvals);
+        // Get the vectors required
+        ParOptScalar *wvals, *ewivals;
+        Ew[i]->getArray(&ewivals);
+        wt->getArray(&wvals);
 
-	ParOptScalar dmat = 0.0;
-	int k = 0;
-	int remainder = nwcon % 4;
-	for ( ; k < remainder; k++ ){
-	  dmat += ewivals[0]*wvals[0];
-	  ewivals++; wvals++;
-	}
-	
-	for ( int k = remainder; k < nwcon; k += 4 ){
-	  dmat += (ewivals[0]*wvals[0] + ewivals[1]*wvals[1] +
-		   ewivals[2]*wvals[2] + ewivals[3]*wvals[3]);
-	  ewivals += 4; wvals += 4;
-	}
-	
-	Dmat[i + ncon*j] -= dmat;
+        ParOptScalar dmat = 0.0;
+        int k = 0;
+        int remainder = nwcon % 4;
+        for ( ; k < remainder; k++ ){
+          dmat += ewivals[0]*wvals[0];
+          ewivals++; wvals++;
+        }
+        
+        for ( int k = remainder; k < nwcon; k += 4 ){
+          dmat += (ewivals[0]*wvals[0] + ewivals[1]*wvals[1] +
+                   ewivals[2]*wvals[2] + ewivals[3]*wvals[3]);
+          ewivals += 4; wvals += 4;
+        }
+        
+        Dmat[i + ncon*j] -= dmat;
       }
     }
   }
@@ -1437,16 +1437,16 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec *xt,
       ParOptScalar dmat = 0.0;
       int k = 0, remainder = nvars % 4;
       for ( ; k < remainder; k++ ){
-	dmat += aivals[0]*ajvals[0]*cvals[0];
-	aivals++; ajvals++; cvals++;
+        dmat += aivals[0]*ajvals[0]*cvals[0];
+        aivals++; ajvals++; cvals++;
       }
       
       for ( int k = remainder; k < nvars; k += 4 ){
-	dmat += (aivals[0]*ajvals[0]*cvals[0] +
-		 aivals[1]*ajvals[1]*cvals[1] +
-		 aivals[2]*ajvals[2]*cvals[2] +
-		 aivals[3]*ajvals[3]*cvals[3]);
-	aivals += 4; ajvals += 4; cvals += 4;
+        dmat += (aivals[0]*ajvals[0]*cvals[0] +
+                 aivals[1]*ajvals[1]*cvals[1] +
+                 aivals[2]*ajvals[2]*cvals[2] +
+                 aivals[3]*ajvals[3]*cvals[3]);
+        aivals += 4; ajvals += 4; cvals += 4;
       }
 
       Dmat[i + ncon*j] += dmat;
@@ -1468,19 +1468,19 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec *xt,
     // Reduce the result to the root processor
     if (rank == opt_root){
       MPI_Reduce(MPI_IN_PLACE, Dmat, ncon*ncon, 
-		 PAROPT_MPI_TYPE, MPI_SUM, opt_root, comm);
+                 PAROPT_MPI_TYPE, MPI_SUM, opt_root, comm);
     }
     else {
       MPI_Reduce(Dmat, NULL, ncon*ncon, PAROPT_MPI_TYPE, MPI_SUM, 
-		 opt_root, comm);
+                 opt_root, comm);
     }
     
     // Add the diagonal component to the matrix
     if (rank == opt_root){
       if (dense_inequality){
-	for ( int i = 0; i < ncon; i++ ){
-	  Dmat[i*(ncon + 1)] += s[i]/z[i];
-	}
+        for ( int i = 0; i < ncon; i++ ){
+          Dmat[i*(ncon + 1)] += s[i]/z[i];
+        }
       }
     }
     
@@ -1558,14 +1558,14 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec *xt,
   behavior will occur.
 */
 void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bc, 
-				 ParOptVec *bcw, ParOptScalar *bs,
-				 ParOptVec *bsw,
-				 ParOptVec *bzl, ParOptVec *bzu,
-				 ParOptVec *yx, ParOptScalar *yz, 
-				 ParOptVec *yzw, ParOptScalar *ys,
-				 ParOptVec *ysw,
-				 ParOptVec *yzl, ParOptVec *yzu,
-				 ParOptVec *xt, ParOptVec *wt ){
+                                 ParOptVec *bcw, ParOptScalar *bs,
+                                 ParOptVec *bsw,
+                                 ParOptVec *bzl, ParOptVec *bzu,
+                                 ParOptVec *yx, ParOptScalar *yz, 
+                                 ParOptVec *yzw, ParOptScalar *ys,
+                                 ParOptVec *ysw,
+                                 ParOptVec *yzl, ParOptVec *yzu,
+                                 ParOptVec *xt, ParOptVec *wt ){
   // Get the arrays for the variables and upper/lower bounds
   ParOptScalar *xvals, *lbvals, *ubvals;
   x->getArray(&xvals);
@@ -1589,14 +1589,14 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bc,
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(lbvals[i]) > -max_bound_val){
-	dvals[i] += cvals[i]*(bzlvals[i]/(xvals[i] - lbvals[i]));
+        dvals[i] += cvals[i]*(bzlvals[i]/(xvals[i] - lbvals[i]));
       }
     }
   }
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(ubvals[i]) < max_bound_val){
-	dvals[i] -= cvals[i]*(bzuvals[i]/(ubvals[i] - xvals[i]));
+        dvals[i] -= cvals[i]*(bzuvals[i]/(ubvals[i] - xvals[i]));
       }
     }
   }
@@ -1614,7 +1614,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bc,
       bsw->getArray(&bswvals);
       
       for ( int i = 0; i < nwcon; i++ ){
-	wvals[i] += bswvals[i]/zwvals[i];
+        wvals[i] += bswvals[i]/zwvals[i];
       }
     }
 
@@ -1656,7 +1656,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bc,
 
     for ( int k = remainder; k < nvars; k += 4 ){
       ydot += (avals[0]*dvals[0] + avals[1]*dvals[1] +
-	       avals[2]*dvals[2] + avals[3]*dvals[3]);
+               avals[2]*dvals[2] + avals[3]*dvals[3]);
       avals += 4; dvals += 4;
     }
 
@@ -1672,11 +1672,11 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bc,
     if (rank == opt_root){
       // Reduce the result to the root processor
       MPI_Reduce(MPI_IN_PLACE, yz, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
-		 opt_root, comm);
+                 opt_root, comm);
     }
     else {
       MPI_Reduce(yz, NULL, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
-		 opt_root, comm);
+                 opt_root, comm);
     }
     
     // Compute the full right-hand-side
@@ -1684,19 +1684,19 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bc,
       // Compute the full right-hand-side on the root processor
       // and solve for the Lagrange multipliers
       if (dense_inequality){
-	for ( int i = 0; i < ncon; i++ ){
-	  yz[i] = bc[i] + bs[i]/z[i] - yz[i];
-	}
+        for ( int i = 0; i < ncon; i++ ){
+          yz[i] = bc[i] + bs[i]/z[i] - yz[i];
+        }
       }
       else {
-	for ( int i = 0; i < ncon; i++ ){
-	  yz[i] = bc[i] - yz[i];
-	}
+        for ( int i = 0; i < ncon; i++ ){
+          yz[i] = bc[i] - yz[i];
+        }
       }
       
       int one = 1, info = 0;
       LAPACKdgetrs("N", &ncon, &one, 
-		   Dmat, &ncon, dpiv, yz, &ncon, &info);
+                   Dmat, &ncon, dpiv, yz, &ncon, &info);
     }
 
     MPI_Bcast(yz, ncon, PAROPT_MPI_TYPE, opt_root, comm);
@@ -1704,7 +1704,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bc,
     // Compute the step in the slack variables 
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
-	ys[i] = (bs[i] - s[i]*yz[i])/z[i];
+        ys[i] = (bs[i] - s[i]*yz[i])/z[i];
       }
     }
   }
@@ -1726,7 +1726,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bc,
       bsw->getArray(&bswvals);
 
       for ( int i = 0; i < nwcon; i++ ){
-	yzwvals[i] += bswvals[i]/zwvals[i];
+        yzwvals[i] += bswvals[i]/zwvals[i];
       }
     }
 
@@ -1747,7 +1747,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bc,
 
       // Compute ysw = Zw^{-1}*(bsw - Sw*yzw)
       for ( int i = 0; i < nwcon; i++ ){
-	yswvals[i] = (bswvals[i] - swvals[i]*yzwvals[i])/zwvals[i];
+        yswvals[i] = (bswvals[i] - swvals[i]*yzwvals[i])/zwvals[i];
       }
     }
   }
@@ -1789,10 +1789,10 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bc,
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(lbvals[i]) > -max_bound_val){
-	yzlvals[i] = (bzlvals[i] - zlvals[i]*yxvals[i])/(xvals[i] - lbvals[i]);
+        yzlvals[i] = (bzlvals[i] - zlvals[i]*yxvals[i])/(xvals[i] - lbvals[i]);
       }
       else {
-	yzlvals[i] = 0.0;
+        yzlvals[i] = 0.0;
       }
     }
   }
@@ -1800,10 +1800,10 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bc,
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(ubvals[i]) < max_bound_val){
-	yzuvals[i] = (bzuvals[i] + zuvals[i]*yxvals[i])/(ubvals[i] - xvals[i]);
+        yzuvals[i] = (bzuvals[i] + zuvals[i]*yxvals[i])/(ubvals[i] - xvals[i]);
       }
       else {
-	yzuvals[i] = 0.0;
+        yzuvals[i] = 0.0;
       }
     }
   }
@@ -1823,11 +1823,11 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bc,
   approximation.  
 */
 void ParOpt::solveKKTDiagSystem( ParOptVec *bx, 
-				 ParOptVec *yx, ParOptScalar *yz, 
-				 ParOptVec *yzw, ParOptScalar *ys,
-				 ParOptVec *ysw,
-				 ParOptVec *yzl, ParOptVec *yzu,
-				 ParOptVec *xt, ParOptVec *wt ){
+                                 ParOptVec *yx, ParOptScalar *yz, 
+                                 ParOptVec *yzw, ParOptScalar *ys,
+                                 ParOptVec *ysw,
+                                 ParOptVec *yzl, ParOptVec *yzu,
+                                 ParOptVec *xt, ParOptVec *wt ){
   // Compute the terms from the weighting constraints
   // Compute xt = C^{-1}*bx
   ParOptScalar *bxvals, *dvals, *cvals;
@@ -1879,7 +1879,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
 
     for ( int k = remainder; k < nvars; k += 4 ){
       ydot += (avals[0]*dvals[0] + avals[1]*dvals[1] +
-	       avals[2]*dvals[2] + avals[3]*dvals[3]);
+               avals[2]*dvals[2] + avals[3]*dvals[3]);
       avals += 4; dvals += 4;
     }
 
@@ -1893,22 +1893,22 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
     
     if (rank == opt_root){
       MPI_Reduce(MPI_IN_PLACE, yz, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
-		 opt_root, comm);
+                 opt_root, comm);
     }
     else {
       MPI_Reduce(yz, NULL, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
-		 opt_root, comm);
+                 opt_root, comm);
     }
     
     // Compute the full right-hand-side
     if (rank == opt_root){
       for ( int i = 0; i < ncon; i++ ){
-	yz[i] *= -1.0;
+        yz[i] *= -1.0;
       }
       
       int one = 1, info = 0;
       LAPACKdgetrs("N", &ncon, &one, 
-		   Dmat, &ncon, dpiv, yz, &ncon, &info);
+                   Dmat, &ncon, dpiv, yz, &ncon, &info);
     }
 
     MPI_Bcast(yz, ncon, PAROPT_MPI_TYPE, opt_root, comm);
@@ -1916,7 +1916,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
     // Compute the step in the slack variables 
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
-	ys[i] = -(s[i]*yz[i])/z[i];
+        ys[i] = -(s[i]*yz[i])/z[i];
       }
     }
   }
@@ -1945,7 +1945,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
 
       // Compute yzw = Zw^{-1}*(bsw - Sw*yzw)
       for ( int i = 0; i < nwcon; i++ ){
-	yswvals[i] = -(swvals[i]*yzwvals[i])/zwvals[i];
+        yswvals[i] = -(swvals[i]*yzwvals[i])/zwvals[i];
       }
     }
   }
@@ -1991,10 +1991,10 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(lbvals[i]) > -max_bound_val){
-	yzlvals[i] = -(zlvals[i]*yxvals[i])/(xvals[i] - lbvals[i]);
+        yzlvals[i] = -(zlvals[i]*yxvals[i])/(xvals[i] - lbvals[i]);
       }
       else {
-	yzlvals[i] = 0.0;
+        yzlvals[i] = 0.0;
       }
     }
   }
@@ -2002,10 +2002,10 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(ubvals[i]) < max_bound_val){
-	yzuvals[i] =  (zuvals[i]*yxvals[i])/(ubvals[i] - xvals[i]);
+        yzuvals[i] =  (zuvals[i]*yxvals[i])/(ubvals[i] - xvals[i]);
       }
       else {
-	yzuvals[i] = 0.0;
+        yzuvals[i] = 0.0;
       }
     }
   }
@@ -2024,8 +2024,8 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   case when solving systems used w
 */
 void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
-				 ParOptScalar *zt, 
-				 ParOptVec *xt, ParOptVec *wt ){
+                                 ParOptScalar *zt, 
+                                 ParOptVec *xt, ParOptVec *wt ){
   // Compute the terms from the weighting constraints
   // Compute xt = C^{-1}*bx
   ParOptScalar *bxvals, *dvals, *cvals;
@@ -2077,7 +2077,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
 
     for ( int k = remainder; k < nvars; k += 4 ){
       ydot += (avals[0]*dvals[0] + avals[1]*dvals[1] +
-	       avals[2]*dvals[2] + avals[3]*dvals[3]);
+               avals[2]*dvals[2] + avals[3]*dvals[3]);
       avals += 4; dvals += 4;
     }
 
@@ -2091,21 +2091,21 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
     
     if (rank == opt_root){
       MPI_Reduce(MPI_IN_PLACE, zt, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
-		 opt_root, comm);
+                 opt_root, comm);
     }
     else {
       MPI_Reduce(zt, NULL, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
-		 opt_root, comm);
+                 opt_root, comm);
     }
     
     if (rank == opt_root){
       for ( int i = 0; i < ncon; i++ ){
-	zt[i] *= -1.0;
+        zt[i] *= -1.0;
       }
       
       int one = 1, info = 0;
       LAPACKdgetrs("N", &ncon, &one, 
-		   Dmat, &ncon, dpiv, zt, &ncon, &info);
+                   Dmat, &ncon, dpiv, zt, &ncon, &info);
     }
     
     MPI_Bcast(zt, ncon, PAROPT_MPI_TYPE, opt_root, comm);
@@ -2160,12 +2160,12 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
   includes components that are scaled by a given alpha-parameter.
 */
 void ParOpt::solveKKTDiagSystem( ParOptVec *bx, 
-				 ParOptScalar alpha, ParOptScalar *bc, 
-				 ParOptVec *bcw, ParOptScalar *bs,
-				 ParOptVec *bsw,
-				 ParOptVec *bzl, ParOptVec *bzu,
-				 ParOptVec *yx, ParOptScalar *yz,
-				 ParOptVec *xt, ParOptVec *wt ){
+                                 ParOptScalar alpha, ParOptScalar *bc, 
+                                 ParOptVec *bcw, ParOptScalar *bs,
+                                 ParOptVec *bsw,
+                                 ParOptVec *bzl, ParOptVec *bzu,
+                                 ParOptVec *yx, ParOptScalar *yz,
+                                 ParOptVec *xt, ParOptVec *wt ){
   // Get the arrays for the variables and upper/lower bounds
   ParOptScalar *xvals, *lbvals, *ubvals;
   x->getArray(&xvals);
@@ -2190,14 +2190,14 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(lbvals[i]) > -max_bound_val){
-	dvals[i] += alpha*cvals[i]*(bzlvals[i]/(xvals[i] - lbvals[i]));
+        dvals[i] += alpha*cvals[i]*(bzlvals[i]/(xvals[i] - lbvals[i]));
       }
     }
   }
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(ubvals[i]) < max_bound_val){
-	dvals[i] -= alpha*cvals[i]*(bzuvals[i]/(ubvals[i] - xvals[i]));
+        dvals[i] -= alpha*cvals[i]*(bzuvals[i]/(ubvals[i] - xvals[i]));
       }
     }
   }
@@ -2216,7 +2216,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
       bsw->getArray(&bswvals);
       
       for ( int i = 0; i < nwcon; i++ ){
-	wvals[i] += alpha*bswvals[i]/zwvals[i];
+        wvals[i] += alpha*bswvals[i]/zwvals[i];
       }
     }
 
@@ -2258,7 +2258,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
 
     for ( int k = remainder; k < nvars; k += 4 ){
       ydot += (avals[0]*dvals[0] + avals[1]*dvals[1] +
-	       avals[2]*dvals[2] + avals[3]*dvals[3]);
+               avals[2]*dvals[2] + avals[3]*dvals[3]);
       avals += 4; dvals += 4;
     }
 
@@ -2274,11 +2274,11 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
     if (rank == opt_root){
       // Reduce the result to the root processor
       MPI_Reduce(MPI_IN_PLACE, yz, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
-		 opt_root, comm);
+                 opt_root, comm);
     }
     else {
       MPI_Reduce(yz, NULL, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
-		 opt_root, comm);
+                 opt_root, comm);
     }
     
     // Compute the full right-hand-side
@@ -2286,19 +2286,19 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
       // Compute the full right-hand-side on the root processor
       // and solve for the Lagrange multipliers
       if (dense_inequality){
-	for ( int i = 0; i < ncon; i++ ){
-	  yz[i] = alpha*(bc[i] + bs[i]/z[i]) - yz[i];
-	}
+        for ( int i = 0; i < ncon; i++ ){
+          yz[i] = alpha*(bc[i] + bs[i]/z[i]) - yz[i];
+        }
       }
       else {
-	for ( int i = 0; i < ncon; i++ ){
-	  yz[i] = alpha*bc[i] - yz[i];
-	}
+        for ( int i = 0; i < ncon; i++ ){
+          yz[i] = alpha*bc[i] - yz[i];
+        }
       }
       
       int one = 1, info = 0;
       LAPACKdgetrs("N", &ncon, &one, 
-		   Dmat, &ncon, dpiv, yz, &ncon, &info);
+                   Dmat, &ncon, dpiv, yz, &ncon, &info);
     }
     
     MPI_Bcast(yz, ncon, PAROPT_MPI_TYPE, opt_root, comm);
@@ -2322,7 +2322,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
       bsw->getArray(&bswvals);
 
       for ( int i = 0; i < nwcon; i++ ){
-	yzwvals[i] += alpha*bswvals[i]/zwvals[i];
+        yzwvals[i] += alpha*bswvals[i]/zwvals[i];
       }
     }
 
@@ -2374,10 +2374,10 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   the design variables.  
 */
 void ParOpt::setUpKKTSystem( ParOptScalar *zt,
-			     ParOptVec *xt1,
-			     ParOptVec *xt2, 
-			     ParOptVec *wt,
-			     int use_qn ){
+                             ParOptVec *xt1,
+                             ParOptVec *xt2, 
+                             ParOptVec *wt,
+                             int use_qn ){
   if (use_qn){
     // Get the size of the limited-memory BFGS subspace
     ParOptScalar b0;
@@ -2390,19 +2390,19 @@ void ParOpt::setUpKKTSystem( ParOptScalar *zt,
       
       // Solve the KKT system 
       for ( int i = 0; i < size; i++ ){
-	// Compute K^{-1}*Z[i]
-	solveKKTDiagSystem(Z[i], xt1, 
-			   zt, xt2, wt);
-	
-	// Compute the dot products Z^{T}*K^{-1}*Z[i]
-	xt1->mdot(Z, size, &Ce[i*size]);
+        // Compute K^{-1}*Z[i]
+        solveKKTDiagSystem(Z[i], xt1, 
+                           zt, xt2, wt);
+        
+        // Compute the dot products Z^{T}*K^{-1}*Z[i]
+        xt1->mdot(Z, size, &Ce[i*size]);
       }
       
       // Compute the Schur complement
       for ( int j = 0; j < size; j++ ){
-	for ( int i = 0; i < size; i++ ){
-	  Ce[i + j*size] -= M[i + j*size]/(d0[i]*d0[j]);
-	}
+        for ( int i = 0; i < size; i++ ){
+          Ce[i + j*size] -= M[i + j*size]/(d0[i]*d0[j]);
+        }
       }
       
       int info = 0;
@@ -2443,8 +2443,8 @@ void ParOpt::setUpKKTSystem( ParOptScalar *zt,
   5. p -= K^{-1}*rx
 */
 void ParOpt::computeKKTStep( ParOptScalar *zt,
-			     ParOptVec *xt1, ParOptVec *xt2, 
-			     ParOptVec *wt, int use_qn ){
+                             ParOptVec *xt1, ParOptVec *xt2, 
+                             ParOptVec *wt, int use_qn ){
   // Get the size of the limited-memory BFGS subspace
   ParOptScalar b0;
   const ParOptScalar *d, *M;
@@ -2456,8 +2456,8 @@ void ParOpt::computeKKTStep( ParOptScalar *zt,
 
   // At this point the residuals are no longer required.
   solveKKTDiagSystem(rx, rc, rcw, rs, rsw, rzl, rzu,
-		     px, pz, pzw, ps, psw, pzl, pzu,
-		     xt1, wt);
+                     px, pz, pzw, ps, psw, pzl, pzu,
+                     xt1, wt);
 
   if (size > 0){
     // dz = Z^{T}*px
@@ -2466,7 +2466,7 @@ void ParOpt::computeKKTStep( ParOptScalar *zt,
     // Compute dz <- Ce^{-1}*dz
     int one = 1, info = 0;
     LAPACKdgetrs("N", &size, &one, 
-		 Ce, &size, cpiv, zt, &size, &info);
+                 Ce, &size, cpiv, zt, &size, &info);
     
     // Compute rx = Z^{T}*dz
     xt1->zeroEntries();
@@ -2477,7 +2477,7 @@ void ParOpt::computeKKTStep( ParOptScalar *zt,
     // Solve the digaonal system again, this time simplifying
     // the result due to the structure of the right-hand-side
     solveKKTDiagSystem(xt1, rx, rc, rcw, rs, rsw, rzl, rzu,
-		       xt2, wt);
+                       xt2, wt);
 
     // Add the final contributions 
     px->axpy(-1.0, rx);
@@ -2513,8 +2513,8 @@ ParOptScalar ParOpt::computeComp(){
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(lbvals[i]) > -max_bound_val){
-	product += zlvals[i]*(xvals[i] - lbvals[i]);
-	sum += 1.0;
+        product += zlvals[i]*(xvals[i] - lbvals[i]);
+        sum += 1.0;
       }
     }
   }
@@ -2522,8 +2522,8 @@ ParOptScalar ParOpt::computeComp(){
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(ubvals[i]) < max_bound_val){
-	product += zuvals[i]*(ubvals[i] - xvals[i]);
-	sum += 1.0;
+        product += zuvals[i]*(ubvals[i] - xvals[i]);
+        sum += 1.0;
       }
     }
   }
@@ -2544,8 +2544,8 @@ ParOptScalar ParOpt::computeComp(){
   if (rank == opt_root){
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
-	product += s[i]*z[i];
-	sum += 1.0;
+        product += s[i]*z[i];
+        sum += 1.0;
       }
     }
 
@@ -2584,9 +2584,9 @@ ParOptScalar ParOpt::computeCompStep( double alpha_x, double alpha_z ){
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(lbvals[i]) > -max_bound_val){
-	ParOptScalar xnew = xvals[i] + alpha_x*pxvals[i];
-	product += (zlvals[i] + alpha_z*pzlvals[i])*(xnew - lbvals[i]);
-	sum += 1.0;
+        ParOptScalar xnew = xvals[i] + alpha_x*pxvals[i];
+        product += (zlvals[i] + alpha_z*pzlvals[i])*(xnew - lbvals[i]);
+        sum += 1.0;
       }
     }
   }
@@ -2594,9 +2594,9 @@ ParOptScalar ParOpt::computeCompStep( double alpha_x, double alpha_z ){
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(ubvals[i]) < max_bound_val){
-	ParOptScalar xnew = xvals[i] + alpha_x*pxvals[i];
-	product += (zuvals[i] + alpha_z*pzuvals[i])*(ubvals[i] - xnew);
-	sum += 1.0;
+        ParOptScalar xnew = xvals[i] + alpha_x*pxvals[i];
+        product += (zuvals[i] + alpha_z*pzuvals[i])*(ubvals[i] - xnew);
+        sum += 1.0;
       }
     }
   }
@@ -2617,8 +2617,8 @@ ParOptScalar ParOpt::computeCompStep( double alpha_x, double alpha_z ){
   if (rank == opt_root){
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
-	product += (s[i] + alpha_x*ps[i])*(z[i] + alpha_z*pz[i]);
-	sum += 1.0;
+        product += (s[i] + alpha_x*ps[i])*(z[i] + alpha_z*pz[i]);
+        sum += 1.0;
       }
     }
     
@@ -2651,7 +2651,7 @@ ParOptScalar ParOpt::computeCompStep( double alpha_x, double alpha_z ){
   max_z: the maximum step in the lagrange multipliers
 */
 void ParOpt::computeMaxStep( double tau, 
-			     double *_max_x, double *_max_z ){
+                             double *_max_x, double *_max_z ){
   // Set the initial step length along the design and multiplier
   // directions
   double max_x = 1.0, max_z = 1.0; 
@@ -2668,11 +2668,11 @@ void ParOpt::computeMaxStep( double tau,
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(pxvals[i]) < 0.0){
-	double alpha = 
-	  -tau*RealPart(xvals[i] - lbvals[i])/RealPart(pxvals[i]);
-	if (alpha < max_x){
-	  max_x = alpha;
-	}
+        double alpha = 
+          -tau*RealPart(xvals[i] - lbvals[i])/RealPart(pxvals[i]);
+        if (alpha < max_x){
+          max_x = alpha;
+        }
       }
     }
   }
@@ -2680,11 +2680,11 @@ void ParOpt::computeMaxStep( double tau,
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(pxvals[i]) > 0.0){
-	double alpha = 
-	  tau*RealPart(ubvals[i] - xvals[i])/RealPart(pxvals[i]);
-	if (alpha < max_x){
-	  max_x = alpha;
-	}
+        double alpha = 
+          tau*RealPart(ubvals[i] - xvals[i])/RealPart(pxvals[i]);
+        if (alpha < max_x){
+          max_x = alpha;
+        }
       }
     }
   }
@@ -2693,20 +2693,20 @@ void ParOpt::computeMaxStep( double tau,
     // Check the slack variable step
     for ( int i = 0; i < ncon; i++ ){
       if (RealPart(ps[i]) < 0.0){
-	double alpha = -tau*RealPart(s[i])/RealPart(ps[i]);
-	if (alpha < max_x){
-	  max_x = alpha;
-	}
+        double alpha = -tau*RealPart(s[i])/RealPart(ps[i]);
+        if (alpha < max_x){
+          max_x = alpha;
+        }
       }
     }
     
     // Check the step for the Lagrange multipliers
     for ( int i = 0; i < ncon; i++ ){
       if (RealPart(pz[i]) < 0.0){
-	double alpha = -tau*RealPart(z[i])/RealPart(pz[i]);
-	if (alpha < max_z){
-	  max_z = alpha;
-	}
+        double alpha = -tau*RealPart(z[i])/RealPart(pz[i]);
+        if (alpha < max_z){
+          max_z = alpha;
+        }
       }
     }
   }
@@ -2719,11 +2719,11 @@ void ParOpt::computeMaxStep( double tau,
     pzw->getArray(&pzwvals);
     for ( int i = 0; i < nwcon; i++ ){
       if (RealPart(pzwvals[i]) < 0.0){
-	double alpha = 
-	  -tau*RealPart(zwvals[i])/RealPart(pzwvals[i]);
-	if (alpha < max_z){
-	  max_z = alpha;
-	}
+        double alpha = 
+          -tau*RealPart(zwvals[i])/RealPart(pzwvals[i]);
+        if (alpha < max_z){
+          max_z = alpha;
+        }
       }
     }
 
@@ -2732,11 +2732,11 @@ void ParOpt::computeMaxStep( double tau,
     psw->getArray(&pswvals);
     for ( int i = 0; i < nwcon; i++ ){
       if (RealPart(pswvals[i]) < 0.0){
-	double alpha = 
-	  -tau*RealPart(swvals[i])/RealPart(pswvals[i]);
-	if (alpha < max_x){
-	  max_x = alpha;
-	}
+        double alpha = 
+          -tau*RealPart(swvals[i])/RealPart(pswvals[i]);
+        if (alpha < max_x){
+          max_x = alpha;
+        }
       }
     }
   }
@@ -2752,22 +2752,22 @@ void ParOpt::computeMaxStep( double tau,
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(pzlvals[i]) < 0.0){
-	double alpha = 
-	  -tau*RealPart(zlvals[i])/RealPart(pzlvals[i]);
-	if (alpha < max_z){
-	  max_z = alpha;
-	}
+        double alpha = 
+          -tau*RealPart(zlvals[i])/RealPart(pzlvals[i]);
+        if (alpha < max_z){
+          max_z = alpha;
+        }
       }
     }
   }
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(pzuvals[i]) < 0.0){
-	double alpha = 
-	  -tau*RealPart(zuvals[i])/RealPart(pzuvals[i]);
-	if (alpha < max_z){
-	  max_z = alpha;
-	}
+        double alpha = 
+          -tau*RealPart(zuvals[i])/RealPart(pzuvals[i]);
+        if (alpha < max_z){
+          max_z = alpha;
+        }
       }
     }
   }
@@ -2798,7 +2798,7 @@ void ParOpt::computeMaxStep( double tau,
   output: The value of the merit function
 */
 ParOptScalar ParOpt::evalMeritFunc( ParOptVec *xk, ParOptScalar *sk,
-				    ParOptVec *swk ){
+                                    ParOptVec *swk ){
   // Get the value of the lower/upper bounds and variables
   ParOptScalar *xvals, *lbvals, *ubvals;
   xk->getArray(&xvals);
@@ -2814,12 +2814,12 @@ ParOptScalar ParOpt::evalMeritFunc( ParOptVec *xk, ParOptScalar *sk,
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(lbvals[i]) > -max_bound_val){
-	if (RealPart(xvals[i] - lbvals[i]) > 1.0){
-	  pos_result += log(xvals[i] - lbvals[i]);
-	}
-	else {
-	  neg_result += log(xvals[i] - lbvals[i]);
-	}
+        if (RealPart(xvals[i] - lbvals[i]) > 1.0){
+          pos_result += log(xvals[i] - lbvals[i]);
+        }
+        else {
+          neg_result += log(xvals[i] - lbvals[i]);
+        }
       }
     }
   }
@@ -2827,12 +2827,12 @@ ParOptScalar ParOpt::evalMeritFunc( ParOptVec *xk, ParOptScalar *sk,
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(ubvals[i]) < max_bound_val){
-	if (RealPart(ubvals[i] - xvals[i]) > 1.0){
-	  pos_result += log(ubvals[i] - xvals[i]);
-	}
-	else {
-	  neg_result += log(ubvals[i] - xvals[i]);
-	}
+        if (RealPart(ubvals[i] - xvals[i]) > 1.0){
+          pos_result += log(ubvals[i] - xvals[i]);
+        }
+        else {
+          neg_result += log(ubvals[i] - xvals[i]);
+        }
       }
     }
   }
@@ -2845,10 +2845,10 @@ ParOptScalar ParOpt::evalMeritFunc( ParOptVec *xk, ParOptScalar *sk,
 
     for ( int i = 0; i < nwcon; i++ ){
       if (RealPart(swvals[i]) > 1.0){
-	pos_result += log(swvals[i]);
+        pos_result += log(swvals[i]);
       }
       else {
-	neg_result += log(swvals[i]);
+        neg_result += log(swvals[i]);
       }
     }
   }
@@ -2883,12 +2883,12 @@ ParOptScalar ParOpt::evalMeritFunc( ParOptVec *xk, ParOptScalar *sk,
     // Add the contribution from the slack variables
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
-	if (RealPart(s[i]) > 1.0){
-	  pos_result += log(sk[i]);
-	}
-	else {
-	  neg_result += log(sk[i]);
-	}
+        if (RealPart(s[i]) > 1.0){
+          pos_result += log(sk[i]);
+        }
+        else {
+          neg_result += log(sk[i]);
+        }
       }
     }
     
@@ -2896,19 +2896,19 @@ ParOptScalar ParOpt::evalMeritFunc( ParOptVec *xk, ParOptScalar *sk,
     ParOptScalar infeas = 0.0;
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
-	infeas += (c[i] - sk[i])*(c[i] - sk[i]);
+        infeas += (c[i] - sk[i])*(c[i] - sk[i]);
       }
     }
     else {
       for ( int i = 0; i < ncon; i++ ){
-	infeas += c[i]*c[i];
+        infeas += c[i]*c[i];
       }
     }
     infeas = sqrt(infeas) + weight_infeas;
     
     // Add the contribution from the constraints
     merit = (fobj - barrier_param*(pos_result + neg_result) +
-	     rho_penalty_search*infeas);
+             rho_penalty_search*infeas);
   }
 
   // Broadcast the result to all processors
@@ -2932,10 +2932,10 @@ ParOptScalar ParOpt::evalMeritFunc( ParOptVec *xk, ParOptScalar *sk,
   pmerit:    the value of the derivative of the merit function
 */
 void ParOpt::evalMeritInitDeriv( double max_x, 
-				 ParOptScalar *_merit, 
-				 ParOptScalar *_pmerit,
-				 int inexact_step,
-				 ParOptVec *wt1, ParOptVec *wt2 ){
+                                 ParOptScalar *_merit, 
+                                 ParOptScalar *_pmerit,
+                                 int inexact_step,
+                                 ParOptVec *wt1, ParOptVec *wt2 ){
   // Retrieve the values of the design variables, the design
   // variable step, and the lower/upper bounds
   ParOptScalar *xvals, *pxvals, *lbvals, *ubvals;
@@ -2954,19 +2954,19 @@ void ParOpt::evalMeritInitDeriv( double max_x,
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(lbvals[i]) > -max_bound_val){
-	if (RealPart(xvals[i] - lbvals[i]) > 1.0){ 
-	  pos_result += log(xvals[i] - lbvals[i]);
-	}
-	else {
-	  neg_result += log(xvals[i] - lbvals[i]);
-	}
-	
-	if (RealPart(pxvals[i]) > 0.0){
-	  pos_presult += pxvals[i]/(xvals[i] - lbvals[i]);
-	}
-	else {
-	  neg_presult += pxvals[i]/(xvals[i] - lbvals[i]);
-	}
+        if (RealPart(xvals[i] - lbvals[i]) > 1.0){ 
+          pos_result += log(xvals[i] - lbvals[i]);
+        }
+        else {
+          neg_result += log(xvals[i] - lbvals[i]);
+        }
+        
+        if (RealPart(pxvals[i]) > 0.0){
+          pos_presult += pxvals[i]/(xvals[i] - lbvals[i]);
+        }
+        else {
+          neg_presult += pxvals[i]/(xvals[i] - lbvals[i]);
+        }
       }
     }
   }
@@ -2974,19 +2974,19 @@ void ParOpt::evalMeritInitDeriv( double max_x,
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(ubvals[i]) < max_bound_val){
-	if (RealPart(ubvals[i] - xvals[i]) > 1.0){
-	  pos_result += log(ubvals[i] - xvals[i]);
-	}
-	else {
-	  neg_result += log(ubvals[i] - xvals[i]);
-	}
-	
-	if (RealPart(pxvals[i]) > 0.0){
-	  neg_presult -= pxvals[i]/(ubvals[i] - xvals[i]);
-	}
-	else {
-	  pos_presult -= pxvals[i]/(ubvals[i] - xvals[i]);
-	}
+        if (RealPart(ubvals[i] - xvals[i]) > 1.0){
+          pos_result += log(ubvals[i] - xvals[i]);
+        }
+        else {
+          neg_result += log(ubvals[i] - xvals[i]);
+        }
+        
+        if (RealPart(pxvals[i]) > 0.0){
+          neg_presult -= pxvals[i]/(ubvals[i] - xvals[i]);
+        }
+        else {
+          pos_presult -= pxvals[i]/(ubvals[i] - xvals[i]);
+        }
       }
     }
   }
@@ -3000,17 +3000,17 @@ void ParOpt::evalMeritInitDeriv( double max_x,
 
     for ( int i = 0; i < nwcon; i++ ){
       if (RealPart(swvals[i]) > 1.0){
-	pos_result += log(swvals[i]);
+        pos_result += log(swvals[i]);
       }
       else {
-	neg_result += log(swvals[i]);
+        neg_result += log(swvals[i]);
       }
 
       if (RealPart(pswvals[i]) > 0.0){
-	pos_presult += pswvals[i]/swvals[i]; 
+        pos_presult += pswvals[i]/swvals[i]; 
       }
       else {
-	neg_presult += pswvals[i]/swvals[i];
+        neg_presult += pswvals[i]/swvals[i];
       }
     }
   }
@@ -3032,18 +3032,18 @@ void ParOpt::evalMeritInitDeriv( double max_x,
       prob->addSparseJacobian(1.0, x, px, wt2);
 
       if (sparse_inequality){
-	weight_proj = wt1->dot(wt2) - wt1->dot(psw);
+        weight_proj = wt1->dot(wt2) - wt1->dot(psw);
       }
       else {
-	weight_proj = wt1->dot(wt2);
+        weight_proj = wt1->dot(wt2);
       }
 
       // Complete the weight projection computation
       if (RealPart(weight_infeas) > 0.0){
-	weight_proj = weight_proj/weight_infeas;
+        weight_proj = weight_proj/weight_infeas;
       }
       else {
-	weight_proj = 0.0;
+        weight_proj = 0.0;
       }
     }
     else {
@@ -3097,12 +3097,12 @@ void ParOpt::evalMeritInitDeriv( double max_x,
   if (inexact_step){
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
-	dense_proj += (c[i] - s[i])*(Ac[i]->dot(px) - ps[i]);
+        dense_proj += (c[i] - s[i])*(Ac[i]->dot(px) - ps[i]);
       }
     }
     else {
       for ( int i = 0; i < ncon; i++ ){
-	dense_proj += c[i]*Ac[i]->dot(px);
+        dense_proj += c[i]*Ac[i]->dot(px);
       }
     }
 
@@ -3120,17 +3120,17 @@ void ParOpt::evalMeritInitDeriv( double max_x,
   if (dense_inequality){
     for ( int i = 0; i < ncon; i++ ){
       if (RealPart(s[i]) > 1.0){
-	pos_result += log(s[i]);
+        pos_result += log(s[i]);
       }
       else {
-	neg_result += log(s[i]);
+        neg_result += log(s[i]);
       }
       
       if (RealPart(ps[i]) > 0.0){
-	pos_presult += ps[i]/s[i];
+        pos_presult += ps[i]/s[i];
       }
       else {
-	neg_presult += ps[i]/s[i];
+        neg_presult += ps[i]/s[i];
       }
     }
   }
@@ -3157,7 +3157,7 @@ void ParOpt::evalMeritInitDeriv( double max_x,
     double rho_hat = 0.0;
     if (RealPart(infeas) > 0.0){
       rho_hat = -RealPart(numer)/
-	RealPart(infeas_proj + penalty_descent_fraction*max_x*infeas);
+        RealPart(infeas_proj + penalty_descent_fraction*max_x*infeas);
     }
 
     // Set the penalty parameter to the smallest value
@@ -3169,14 +3169,14 @@ void ParOpt::evalMeritInitDeriv( double max_x,
       // Damp the value of the penalty parameter
       rho_penalty_search *= 0.5;
       if (rho_penalty_search < rho_hat){
-	rho_penalty_search = rho_hat;
+        rho_penalty_search = rho_hat;
       }
     }
     
     // Now, evaluate the merit function and its derivative
     // based on the new value of the penalty parameter
     merit = (fobj - barrier_param*(pos_result + neg_result) + 
-	     rho_penalty_search*infeas);
+             rho_penalty_search*infeas);
     pmerit = numer + rho_penalty_search*infeas_proj;
   }
 
@@ -3208,7 +3208,7 @@ void ParOpt::evalMeritInitDeriv( double max_x,
   fail:   did the line search find an acceptable point
 */
 int ParOpt::lineSearch( double *_alpha, 
-			ParOptScalar m0, ParOptScalar dm0 ){
+                        ParOptScalar m0, ParOptScalar dm0 ){
   // Perform a backtracking line search until the sufficient decrease
   // conditions are satisfied 
   double alpha = *_alpha;
@@ -3228,7 +3228,7 @@ int ParOpt::lineSearch( double *_alpha,
     // Set rs = s + alpha*ps
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
-	rs[i] = s[i] + alpha*ps[i];
+        rs[i] = s[i] + alpha*ps[i];
       }
     }
 
@@ -3238,7 +3238,7 @@ int ParOpt::lineSearch( double *_alpha,
 
     if (fail_obj){
       fprintf(stderr, 
-	      "ParOpt: Evaluation failed during line search, trying new point\n");
+              "ParOpt: Evaluation failed during line search, trying new point\n");
 
       // Multiply alpha by 1/10 like SNOPT
       alpha *= 0.1;
@@ -3259,19 +3259,19 @@ int ParOpt::lineSearch( double *_alpha,
     // Update the new value of alpha
     if (j < max_line_iters-1){
       if (use_backtracking_alpha){
-	alpha = 0.5*alpha;
+        alpha = 0.5*alpha;
       }
       else {
-	double alpha_new = -0.5*RealPart(dm0)*(alpha*alpha)/
-	  RealPart(merit - m0 - dm0*alpha);
+        double alpha_new = -0.5*RealPart(dm0)*(alpha*alpha)/
+          RealPart(merit - m0 - dm0*alpha);
 
-	// Bound the new step length from below by 0.01
-	if (alpha_new < 0.01*alpha){
-	  alpha = 0.01*alpha;
-	}
-	else {
-	  alpha = alpha_new;
-	}
+        // Bound the new step length from below by 0.01
+        if (alpha_new < 0.01*alpha){
+          alpha = 0.01*alpha;
+        }
+        else {
+          alpha = alpha_new;
+        }
       }
     }
   }
@@ -3324,7 +3324,7 @@ int ParOpt::lineSearch( double *_alpha,
   ngeval++;
   if (fail_gobj){
     fprintf(stderr, 
-	    "ParOpt: Gradient evaluation failed at final line search\n");
+            "ParOpt: Gradient evaluation failed at final line search\n");
   }
 
   // Add the new gradient of the Lagrangian with the new
@@ -3334,7 +3334,7 @@ int ParOpt::lineSearch( double *_alpha,
     for ( int i = 0; i < ncon; i++ ){
       y_qn->axpy(-z[i], Ac[i]);
     }
-	 
+         
     // Add the term: -Aw^{T}*zw
     if (nwcon > 0){
       prob->addSparseJacobianTranspose(-1.0, x, zw, y_qn);
@@ -3395,26 +3395,26 @@ void ParOpt::initAndCheckDesignAndBounds( int init_multipliers ){
       ParOptScalar delta = 1.0;
       if (RealPart(lbvals[i]) > -max_bound_val && 
           RealPart(ubvals[i]) < max_bound_val){
-	if (RealPart(lbvals[i]) >= RealPart(ubvals[i])){
-	  check_flag = (check_flag | 1);
-	  // Make up bounds
-	  lbvals[i] = 0.5*(lbvals[i] + ubvals[i]) - 0.5*rel_bound;
-	  ubvals[i] = lbvals[i] + rel_bound;
-	}
+        if (RealPart(lbvals[i]) >= RealPart(ubvals[i])){
+          check_flag = (check_flag | 1);
+          // Make up bounds
+          lbvals[i] = 0.5*(lbvals[i] + ubvals[i]) - 0.5*rel_bound;
+          ubvals[i] = lbvals[i] + rel_bound;
+        }
 
-	delta = ubvals[i] - lbvals[i];
+        delta = ubvals[i] - lbvals[i];
       }
 
       // Check if x is too close the boundary
       if (RealPart(lbvals[i]) > -max_bound_val &&
-	  RealPart(xvals[i]) < RealPart(lbvals[i] + rel_bound*delta)){
-	check_flag = (check_flag | 2);
-	xvals[i] = lbvals[i] + rel_bound*delta;
+          RealPart(xvals[i]) < RealPart(lbvals[i] + rel_bound*delta)){
+        check_flag = (check_flag | 2);
+        xvals[i] = lbvals[i] + rel_bound*delta;
       }
       if (RealPart(ubvals[i]) < max_bound_val &&
-	  RealPart(xvals[i]) > RealPart(ubvals[i] - rel_bound*delta)){
-	check_flag = (check_flag | 4);
-	xvals[i] = ubvals[i] - rel_bound*delta;
+          RealPart(xvals[i]) > RealPart(ubvals[i] - rel_bound*delta)){
+        check_flag = (check_flag | 4);
+        xvals[i] = ubvals[i] - rel_bound*delta;
       }
     }
   }
@@ -3425,11 +3425,11 @@ void ParOpt::initAndCheckDesignAndBounds( int init_multipliers ){
   }
   if (check_flag & 2){
     fprintf(stderr, 
-	    "ParOpt Warning: Modification of variables; too close to lower bound\n");
+            "ParOpt Warning: Modification of variables; too close to lower bound\n");
   }
   if (check_flag & 4){
     fprintf(stderr, 
-	    "ParOpt Warning: Modification of variables; too close to upper bound\n");
+            "ParOpt Warning: Modification of variables; too close to upper bound\n");
   }
 
   // Set the largrange multipliers with bounds outside the
@@ -3487,7 +3487,7 @@ int ParOpt::optimize( const char *checkpoint ){
   neval++;
   if (fail_obj){
     fprintf(stderr, 
-	    "ParOpt: Initial function and constraint evaluation failed\n");
+            "ParOpt: Initial function and constraint evaluation failed\n");
     return fail_obj;
   }
   int fail_gobj = prob->evalObjConGradient(x, g, Ac);
@@ -3540,18 +3540,18 @@ int ParOpt::optimize( const char *checkpoint ){
     
       // Solve the linear system
       if (!info){
-	int one = 1;
-	LAPACKdgetrs("N", &ncon, &one, Dmat, &ncon, dpiv,
-		     z, &ncon, &info);
+        int one = 1;
+        LAPACKdgetrs("N", &ncon, &one, Dmat, &ncon, dpiv,
+                     z, &ncon, &info);
 
-	// Keep the Lagrange multipliers if they are within 
-	// a reasonable range and they are positive.
-	for ( int i = 0; i < ncon; i++ ){
-	  if (RealPart(z[i]) < 0.01 || 
+        // Keep the Lagrange multipliers if they are within 
+        // a reasonable range and they are positive.
+        for ( int i = 0; i < ncon; i++ ){
+          if (RealPart(z[i]) < 0.01 || 
               RealPart(z[i]) > 1000.0){
-	    z[i] = 1.0;
-	  }
-	}
+            z[i] = 1.0;
+          }
+        }
       }
     }
   }
@@ -3579,11 +3579,11 @@ int ParOpt::optimize( const char *checkpoint ){
   for ( int k = 0; k < max_major_iters; k++ ){
     if (!sequential_linear_method){
       if (k > 0 && k % hessian_reset_freq == 0){
-	// Reset the quasi-Newton Hessian approximation
-	qn->reset();
+        // Reset the quasi-Newton Hessian approximation
+        qn->reset();
 
-	// Add a reset flag to the output
-	sprintf(info, "%s%s ", info, "resetH");
+        // Add a reset flag to the output
+        sprintf(info, "%s%s ", info, "resetH");
       }
     }
 
@@ -3591,13 +3591,13 @@ int ParOpt::optimize( const char *checkpoint ){
     // hook in the problem definition
     if (k % write_output_frequency == 0){
       if (checkpoint){
-	// Write the checkpoint file, if it fails once, set
-	// the file pointer to null so it won't print again
-	if (writeSolutionFile(checkpoint)){
-	  fprintf(stderr, "ParOpt: Checkpoint file %s creation failed\n",
-		  checkpoint);
-	  checkpoint = NULL;
-	}
+        // Write the checkpoint file, if it fails once, set
+        // the file pointer to null so it won't print again
+        if (writeSolutionFile(checkpoint)){
+          fprintf(stderr, "ParOpt: Checkpoint file %s creation failed\n",
+                  checkpoint);
+          checkpoint = NULL;
+        }
       }
       prob->writeOutput(k, x);      
     }
@@ -3605,7 +3605,7 @@ int ParOpt::optimize( const char *checkpoint ){
     // Print to screen the gradient check results at
     // iteration k 
     if (k > 0 &&
-	(gradient_check_frequency > 0) && 
+        (gradient_check_frequency > 0) && 
         (k % gradient_check_frequency == 0)){
       checkGradients(gradient_check_step);
     }
@@ -3630,10 +3630,10 @@ int ParOpt::optimize( const char *checkpoint ){
     // problem
     int barrier_converged = 0;
     if (k > 0 && 
-	((res_norm < 10.0*barrier_param) || 
-	 (alpha_xprev == 1.0 && alpha_zprev == 1.0 &&
-	  (fabs(RealPart(fobj - fobj_prev)) < 
-	   rel_func_tol*fabs(RealPart(fobj_prev)))))){
+        ((res_norm < 10.0*barrier_param) || 
+         (alpha_xprev == 1.0 && alpha_zprev == 1.0 &&
+          (fabs(RealPart(fobj - fobj_prev)) < 
+           rel_func_tol*fabs(RealPart(fobj_prev)))))){
       barrier_converged = 1;
     }
 
@@ -3653,78 +3653,78 @@ int ParOpt::optimize( const char *checkpoint ){
 
       barrier_param = mu_frac;
       if (mu_pow < mu_frac){
-	barrier_param = mu_pow;
+        barrier_param = mu_pow;
       }
 
       // Now, that we have adjusted the barrier parameter, we have
       // to modify the residuals to match
       max_dual = 0.0;
       if (dense_inequality){
-	for ( int i = 0; i < ncon; i++ ){
-	  rs[i] -= (mu_old - barrier_param);
-	
-	  if (fabs(RealPart(rs[i])) > max_dual){
-	    max_dual = fabs(RealPart(rs[i]));
-	  }
-	}
+        for ( int i = 0; i < ncon; i++ ){
+          rs[i] -= (mu_old - barrier_param);
+        
+          if (fabs(RealPart(rs[i])) > max_dual){
+            max_dual = fabs(RealPart(rs[i]));
+          }
+        }
       }
 
       if (nwcon > 0 && sparse_inequality){
-	// Set the values of the perturbed complementarity
-	// constraints for the sparse slack variables
-	ParOptScalar  *rswvals;
-	rsw->getArray(&rswvals);
+        // Set the values of the perturbed complementarity
+        // constraints for the sparse slack variables
+        ParOptScalar  *rswvals;
+        rsw->getArray(&rswvals);
     
-	for ( int i = 0; i < nwcon; i++ ){
-	  rswvals[i] -= (mu_old - barrier_param);
-	}
+        for ( int i = 0; i < nwcon; i++ ){
+          rswvals[i] -= (mu_old - barrier_param);
+        }
     
-	double dual_zw = rsw->maxabs();
-	if (dual_zw > max_dual){
-	  max_dual = dual_zw;
-	}
+        double dual_zw = rsw->maxabs();
+        if (dual_zw > max_dual){
+          max_dual = dual_zw;
+        }
       }
 
       // Adjust the lower-bound residuals if required
       if (use_lower){
-	ParOptScalar *lbvals, *rzlvals;
-	lb->getArray(&lbvals);
-	rzl->getArray(&rzlvals);
+        ParOptScalar *lbvals, *rzlvals;
+        lb->getArray(&lbvals);
+        rzl->getArray(&rzlvals);
 
-	for ( int i = 0; i < nvars; i++ ){
-	  if (RealPart(lbvals[i]) > -max_bound_val){
-	    rzlvals[i] -= (mu_old - barrier_param);
-	  }
-	  else {
-	    rzlvals[i] = 0.0;
-	  }
-	}
+        for ( int i = 0; i < nvars; i++ ){
+          if (RealPart(lbvals[i]) > -max_bound_val){
+            rzlvals[i] -= (mu_old - barrier_param);
+          }
+          else {
+            rzlvals[i] = 0.0;
+          }
+        }
 
-	double dual_zl = rzl->maxabs();
-	if (RealPart(dual_zl) > RealPart(max_dual)){
-	  max_dual = dual_zl;
-	}
+        double dual_zl = rzl->maxabs();
+        if (RealPart(dual_zl) > RealPart(max_dual)){
+          max_dual = dual_zl;
+        }
       }
 
       // Adjust the upper-bound residuals if required
       if (use_upper){
-	ParOptScalar *ubvals, *rzuvals;
-	lb->getArray(&ubvals);
-	rzu->getArray(&rzuvals);
+        ParOptScalar *ubvals, *rzuvals;
+        lb->getArray(&ubvals);
+        rzu->getArray(&rzuvals);
 
-	for ( int i = 0; i < nvars; i++ ){
-	  if (RealPart(ubvals[i]) < max_bound_val){
-	    rzuvals[i] -= (mu_old - barrier_param);
-	  }
-	  else {
-	    rzuvals[i] = 0.0;
-	  }
-	}
+        for ( int i = 0; i < nvars; i++ ){
+          if (RealPart(ubvals[i]) < max_bound_val){
+            rzuvals[i] -= (mu_old - barrier_param);
+          }
+          else {
+            rzuvals[i] = 0.0;
+          }
+        }
 
-	double dual_zu = rzu->maxabs();
-	if (dual_zu > max_dual){
-	  max_dual = dual_zu;
-	}
+        double dual_zu = rzu->maxabs();
+        if (dual_zu > max_dual){
+          max_dual = dual_zu;
+        }
       }
 
       // Reset the penalty parameter to zero
@@ -3741,27 +3741,27 @@ int ParOpt::optimize( const char *checkpoint ){
     MPI_Comm_rank(comm, &rank);
     if (outfp && rank == opt_root){
       if (k % 10 == 0 || gmres_iters > 0){
-	fprintf(outfp, "\n%4s %4s %4s %4s %7s %7s %7s %12s \
+        fprintf(outfp, "\n%4s %4s %4s %4s %7s %7s %7s %12s \
 %7s %7s %7s %7s %7s %8s %7s info\n",
-		"iter", "nobj", "ngrd", "nhvc", "alpha", "alphx", "alphz", 
-		"fobj", "|opt|", "|infes|", "|dual|", "mu", 
-		"comp", "dmerit", "rho");
+                "iter", "nobj", "ngrd", "nhvc", "alpha", "alphx", "alphz", 
+                "fobj", "|opt|", "|infes|", "|dual|", "mu", 
+                "comp", "dmerit", "rho");
       }
 
       if (k == 0){
-	fprintf(outfp, "%4d %4d %4d %4d %7s %7s %7s %12.5e \
+        fprintf(outfp, "%4d %4d %4d %4d %7s %7s %7s %12.5e \
 %7.1e %7.1e %7.1e %7.1e %7.1e %8s %7s %s\n",
-		k, neval, ngeval, nhvec, " ", " ", " ",
-		RealPart(fobj), max_prime, max_infeas, max_dual, 
-		barrier_param, RealPart(comp), " ", " ", info);
+                k, neval, ngeval, nhvec, " ", " ", " ",
+                RealPart(fobj), max_prime, max_infeas, max_dual, 
+                barrier_param, RealPart(comp), " ", " ", info);
       }
       else {
-	fprintf(outfp, "%4d %4d %4d %4d %7.1e %7.1e %7.1e %12.5e \
+        fprintf(outfp, "%4d %4d %4d %4d %7.1e %7.1e %7.1e %12.5e \
 %7.1e %7.1e %7.1e %7.1e %7.1e %8.1e %7.1e %s\n",
-		k, neval, ngeval, nhvec, alpha_prev, alpha_xprev, alpha_zprev,
-		RealPart(fobj), max_prime, max_infeas, max_dual, 
-		barrier_param, RealPart(comp), RealPart(dm0_prev), 
-		rho_penalty_search, info);
+                k, neval, ngeval, nhvec, alpha_prev, alpha_xprev, alpha_zprev,
+                RealPart(fobj), max_prime, max_infeas, max_dual, 
+                barrier_param, RealPart(comp), RealPart(dm0_prev), 
+                rho_penalty_search, info);
       }
       
       // Flush the buffer so that we can see things immediately
@@ -3771,12 +3771,12 @@ int ParOpt::optimize( const char *checkpoint ){
     // Check for convergence, depending on the convergence criteria
     int converged = 0;
     if (k > 0 && 
-	((barrier_param < 0.1*abs_res_tol && 
-	  res_norm < abs_res_tol) ||
-	 (barrier_param < 0.1*abs_res_tol && 
-	  alpha_xprev == 1.0 && alpha_zprev == 1.0 &&
-	  (fabs(RealPart(fobj - fobj_prev)) < 
-	   rel_func_tol*fabs(RealPart(fobj_prev)))))){
+        ((barrier_param < 0.1*abs_res_tol && 
+          res_norm < abs_res_tol) ||
+         (barrier_param < 0.1*abs_res_tol && 
+          alpha_xprev == 1.0 && alpha_zprev == 1.0 &&
+          (fabs(RealPart(fobj - fobj_prev)) < 
+           rel_func_tol*fabs(RealPart(fobj_prev)))))){
       converged = 1;
     }
 
@@ -3792,7 +3792,7 @@ int ParOpt::optimize( const char *checkpoint ){
     // Compute the relative GMRES tolerance given the residuals
     double gmres_rtol = 
       eisenstat_walker_gamma*pow((res_norm/res_norm_prev),
-				 eisenstat_walker_alpha);
+                                 eisenstat_walker_alpha);
     
     // Assign the previous objective/norm for next time through
     fobj_prev = fobj;
@@ -3806,16 +3806,16 @@ int ParOpt::optimize( const char *checkpoint ){
     gmres_iters = 0;
 
     if (use_hvec_product && 
-	(max_prime < nk_switch_tol &&
-	 max_dual < nk_switch_tol && 
-	 max_infeas < nk_switch_tol) && 
-	gmres_rtol < max_gmres_rtol){
+        (max_prime < nk_switch_tol &&
+         max_dual < nk_switch_tol && 
+         max_infeas < nk_switch_tol) && 
+        gmres_rtol < max_gmres_rtol){
       // Set the flag which determines whether or not to use
       // the quasi-Newton method as a preconditioner
       int use_qn = 1;
       if (sequential_linear_method || 
-	  !use_qn_gmres_precon){
-	use_qn = 0;
+          !use_qn_gmres_precon){
+        use_qn = 0;
       }
       
       // Set up the KKT diagonal system
@@ -3828,14 +3828,14 @@ int ParOpt::optimize( const char *checkpoint ){
       // uses a fixed tolerance -- this may lead to over-solving
       // if rtol is too tight
       gmres_iters = 
-	computeKKTInexactNewtonStep(ztemp, y_qn, s_qn, wtemp,
-				    gmres_rtol, gmres_atol,
-				    use_qn);
+        computeKKTInexactNewtonStep(ztemp, y_qn, s_qn, wtemp,
+                                    gmres_rtol, gmres_atol,
+                                    use_qn);
     }
     else {
       int use_qn = 1;
       if (sequential_linear_method){
-	use_qn = 0;
+        use_qn = 0;
       }
       
       // Set up the KKT diagonal system
@@ -3874,20 +3874,20 @@ int ParOpt::optimize( const char *checkpoint ){
       // difference is greater that 100.
       double max_bnd = 100.0;
       if (alpha_x > alpha_z){
-	if (alpha_x > max_bnd*alpha_z){
-	  alpha_x = max_bnd*alpha_z;
-	}
-	else if (alpha_x < alpha_z/max_bnd){
-	  alpha_x = alpha_z/max_bnd;
-	}
+        if (alpha_x > max_bnd*alpha_z){
+          alpha_x = max_bnd*alpha_z;
+        }
+        else if (alpha_x < alpha_z/max_bnd){
+          alpha_x = alpha_z/max_bnd;
+        }
       }
       else {
-	if (alpha_z > max_bnd*alpha_x){
-	  alpha_z = max_bnd*alpha_x;
-	}
-	else if (alpha_z < alpha_x/max_bnd){
-	  alpha_z = alpha_x/max_bnd;
-	}
+        if (alpha_z > max_bnd*alpha_x){
+          alpha_z = max_bnd*alpha_x;
+        }
+        else if (alpha_z < alpha_x/max_bnd){
+          alpha_z = alpha_x/max_bnd;
+        }
       }
     
       // As a last check, compute the complementarity at
@@ -3896,23 +3896,23 @@ int ParOpt::optimize( const char *checkpoint ){
       ParOptScalar comp_new = computeCompStep(alpha_x, alpha_z);
 
       if (RealPart(comp_new) > 10.0*RealPart(comp)){
-	ceq_step = 1;
-	if (alpha_x > alpha_z){
-	  alpha_x = alpha_z;
-	}
-	else {
-	  alpha_z = alpha_x;
-	}
+        ceq_step = 1;
+        if (alpha_x > alpha_z){
+          alpha_x = alpha_z;
+        }
+        else {
+          alpha_z = alpha_x;
+        }
       }
     }
     else if (gmres_iters > 0){
       // If we're using a Newton method, use the same step
       // size for both the multipliers and variables
       if (alpha_x > alpha_z){
-	alpha_x = alpha_z;
+        alpha_x = alpha_z;
       }
       else {
-	alpha_z = alpha_x;
+        alpha_z = alpha_x;
       }
     }
 
@@ -3921,7 +3921,7 @@ int ParOpt::optimize( const char *checkpoint ){
     if (nwcon > 0){ 
       pzw->scale(alpha_z);
       if (sparse_inequality){
-	psw->scale(alpha_x);
+        psw->scale(alpha_x);
       }
     }
     if (use_lower){
@@ -3936,7 +3936,7 @@ int ParOpt::optimize( const char *checkpoint ){
     }
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
-	ps[i] *= alpha_x;
+        ps[i] *= alpha_x;
       }
     }
 
@@ -3959,44 +3959,44 @@ int ParOpt::optimize( const char *checkpoint ){
       // derivative and a new value for the penalty parameter
       ParOptScalar m0, dm0;
       evalMeritInitDeriv(alpha_x, &m0, &dm0, (gmres_iters > 0),
-			 wtemp, rcw);
+                         wtemp, rcw);
 
       // Check that the merit function derivative is
       // correct and print the derivative to the screen on the
       // optimization-root processor
       if (k == major_iter_step_check){
-	double dh = merit_func_check_epsilon;
-	rx->copyValues(x);
-	rx->axpy(dh, px);
-	
-	if (dense_inequality){
-	  for ( int i = 0; i < ncon; i++ ){
-	    rs[i] = s[i] + dh*ps[i];
-	  }
-	}
+        double dh = merit_func_check_epsilon;
+        rx->copyValues(x);
+        rx->axpy(dh, px);
+        
+        if (dense_inequality){
+          for ( int i = 0; i < ncon; i++ ){
+            rs[i] = s[i] + dh*ps[i];
+          }
+        }
 
-	if (nwcon > 0 && sparse_inequality){
-	  rsw->copyValues(sw);
-	  rsw->axpy(dh, psw);
-	}
+        if (nwcon > 0 && sparse_inequality){
+          rsw->copyValues(sw);
+          rsw->axpy(dh, psw);
+        }
 
-	// Evaluate the objective
-	int fail_obj = prob->evalObjCon(rx, &fobj, c);
-	neval++;
-	if (fail_obj){
-	  fprintf(stderr, 
-		  "ParOpt: Function and constraint evaluation failed\n");
-	  return fail_obj;
-	}
-	ParOptScalar m1 = evalMeritFunc(rx, rs, rsw);
+        // Evaluate the objective
+        int fail_obj = prob->evalObjCon(rx, &fobj, c);
+        neval++;
+        if (fail_obj){
+          fprintf(stderr, 
+                  "ParOpt: Function and constraint evaluation failed\n");
+          return fail_obj;
+        }
+        ParOptScalar m1 = evalMeritFunc(rx, rs, rsw);
 
-	if (rank == opt_root){
-	  ParOptScalar fd = (m1 - m0)/dh;
-	  printf("Merit function test\n");
-	  printf("dm FD: %15.8e  Actual: %15.8e  Err: %8.2e  Rel err: %8.2e\n",
-		 RealPart(fd), RealPart(dm0), 
-		 fabs(RealPart(fd - dm0)), fabs(RealPart((fd - dm0)/fd)));
-	}
+        if (rank == opt_root){
+          ParOptScalar fd = (m1 - m0)/dh;
+          printf("Merit function test\n");
+          printf("dm FD: %15.8e  Actual: %15.8e  Err: %8.2e  Rel err: %8.2e\n",
+                 RealPart(fd), RealPart(dm0), 
+                 fabs(RealPart(fd - dm0)), fabs(RealPart((fd - dm0)/fd)));
+        }
       }
       
       // If the directional derivative is negative, take the full
@@ -4004,85 +4004,85 @@ int ParOpt::optimize( const char *checkpoint ){
       // step is used. Also, if the directional derivative is too small
       // we also apply the full step.
       if (RealPart(dm0) > 0.0 ||
-	  RealPart(dm0) > -abs_res_tol*abs_res_tol){
-	// Apply the full step to the Lagrange multipliers and
-	// slack variables
-	alpha = 1.0;
-	if (nwcon > 0){
-	  zw->axpy(alpha, pzw);
-	  if (sparse_inequality){
-	    sw->axpy(alpha, psw);
-	  }
-	}
-	if (use_lower){
-	  zl->axpy(alpha, pzl);
-	}
-	if (use_upper){
-	  zu->axpy(alpha, pzu);
-	}
+          RealPart(dm0) > -abs_res_tol*abs_res_tol){
+        // Apply the full step to the Lagrange multipliers and
+        // slack variables
+        alpha = 1.0;
+        if (nwcon > 0){
+          zw->axpy(alpha, pzw);
+          if (sparse_inequality){
+            sw->axpy(alpha, psw);
+          }
+        }
+        if (use_lower){
+          zl->axpy(alpha, pzl);
+        }
+        if (use_upper){
+          zu->axpy(alpha, pzu);
+        }
 
-	for ( int i = 0; i < ncon; i++ ){
-	  z[i] += alpha*pz[i];
-	}
-	if (dense_inequality){
-	  for ( int i = 0; i < ncon; i++ ){
-	    s[i] += alpha*ps[i];
-	  }
-	}
-	
-	// Compute the negative gradient of the Lagrangian using the
-	// old gradient information with the new multiplier estimates
-	if (!sequential_linear_method){
-	  y_qn->copyValues(g);
-	  y_qn->scale(-1.0);
-	  for ( int i = 0; i < ncon; i++ ){
-	    y_qn->axpy(z[i], Ac[i]);
-	  }
+        for ( int i = 0; i < ncon; i++ ){
+          z[i] += alpha*pz[i];
+        }
+        if (dense_inequality){
+          for ( int i = 0; i < ncon; i++ ){
+            s[i] += alpha*ps[i];
+          }
+        }
+        
+        // Compute the negative gradient of the Lagrangian using the
+        // old gradient information with the new multiplier estimates
+        if (!sequential_linear_method){
+          y_qn->copyValues(g);
+          y_qn->scale(-1.0);
+          for ( int i = 0; i < ncon; i++ ){
+            y_qn->axpy(z[i], Ac[i]);
+          }
 
-	  // Add the term: Aw^{T}*zw
-	  if (nwcon > 0){
-	    prob->addSparseJacobianTranspose(1.0, x, zw, y_qn);
-	  }
-	}
+          // Add the term: Aw^{T}*zw
+          if (nwcon > 0){
+            prob->addSparseJacobianTranspose(1.0, x, zw, y_qn);
+          }
+        }
 
-	// Update x here so that we don't impact
-	// the design variables when computing Aw(x)^{T}*zw
-	x->axpy(alpha, px);
+        // Update x here so that we don't impact
+        // the design variables when computing Aw(x)^{T}*zw
+        x->axpy(alpha, px);
 
-	// Evaluate the objective, constraint and their gradients at the
-	// current values of the design variables
-	int fail_obj = prob->evalObjCon(x, &fobj, c);
-	neval++;
-	if (fail_obj){
-	  fprintf(stderr, 
-		  "ParOpt: Function and constraint evaluation failed\n");
-	  return fail_obj;
-	}
-	int fail_gobj = prob->evalObjConGradient(x, g, Ac);
-	ngeval++;
-	if (fail_gobj){
-	  fprintf(stderr, 
-		  "ParOpt: Gradient evaluation failed\n");
-	  return fail_obj;
-	}
+        // Evaluate the objective, constraint and their gradients at the
+        // current values of the design variables
+        int fail_obj = prob->evalObjCon(x, &fobj, c);
+        neval++;
+        if (fail_obj){
+          fprintf(stderr, 
+                  "ParOpt: Function and constraint evaluation failed\n");
+          return fail_obj;
+        }
+        int fail_gobj = prob->evalObjConGradient(x, g, Ac);
+        ngeval++;
+        if (fail_gobj){
+          fprintf(stderr, 
+                  "ParOpt: Gradient evaluation failed\n");
+          return fail_obj;
+        }
 
-	// Add the new gradient of the Lagrangian with the new
-	// multiplier estimates	
-	if (!sequential_linear_method){
-	  y_qn->axpy(1.0, g);
-	  for ( int i = 0; i < ncon; i++ ){
-	    y_qn->axpy(-z[i], Ac[i]);
-	  }
+        // Add the new gradient of the Lagrangian with the new
+        // multiplier estimates 
+        if (!sequential_linear_method){
+          y_qn->axpy(1.0, g);
+          for ( int i = 0; i < ncon; i++ ){
+            y_qn->axpy(-z[i], Ac[i]);
+          }
 
-	  // Add the term: -Aw^{T}*zw
-	  if (nwcon > 0){
-	    prob->addSparseJacobianTranspose(-1.0, x, zw, y_qn);
-	  }
-	}
+          // Add the term: -Aw^{T}*zw
+          if (nwcon > 0){
+            prob->addSparseJacobianTranspose(-1.0, x, zw, y_qn);
+          }
+        }
       }
       else {
-	// Perform the line search
-	line_fail = lineSearch(&alpha, m0, dm0);
+        // Perform the line search
+        line_fail = lineSearch(&alpha, m0, dm0);
       }
 
       // Store the previous merit function derivative
@@ -4092,40 +4092,40 @@ int ParOpt::optimize( const char *checkpoint ){
       // Apply the full step to the Lagrange multipliers and
       // slack varaibles
       if (nwcon > 0){
-	zw->axpy(alpha, pzw);
-	if (sparse_inequality){
-	  sw->axpy(alpha, psw);
-	}
+        zw->axpy(alpha, pzw);
+        if (sparse_inequality){
+          sw->axpy(alpha, psw);
+        }
       }
       if (use_lower){
-	zl->axpy(alpha, pzl);
+        zl->axpy(alpha, pzl);
       }
       if (use_upper){
-	zu->axpy(alpha, pzu);
+        zu->axpy(alpha, pzu);
       }
 
       for ( int i = 0; i < ncon; i++ ){
-	z[i] += alpha*pz[i];
+        z[i] += alpha*pz[i];
       }
       if (dense_inequality){
-	for ( int i = 0; i < ncon; i++ ){
-	  s[i] += alpha*ps[i];
-	}
+        for ( int i = 0; i < ncon; i++ ){
+          s[i] += alpha*ps[i];
+        }
       }
  
       // Compute the negative gradient of the Lagrangian using the
       // old gradient information with the new multiplier estimates
       if (!sequential_linear_method){
-	y_qn->copyValues(g);
-	y_qn->scale(-1.0);
-	for ( int i = 0; i < ncon; i++ ){
-	  y_qn->axpy(z[i], Ac[i]);
-	}
+        y_qn->copyValues(g);
+        y_qn->scale(-1.0);
+        for ( int i = 0; i < ncon; i++ ){
+          y_qn->axpy(z[i], Ac[i]);
+        }
 
-	// Add the term: Aw^{T}*zw
-	if (nwcon > 0){
-	  prob->addSparseJacobianTranspose(1.0, x, zw, y_qn);
-	}
+        // Add the term: Aw^{T}*zw
+        if (nwcon > 0){
+          prob->addSparseJacobianTranspose(1.0, x, zw, y_qn);
+        }
       }
 
       // Apply the step to the design variables only
@@ -4138,29 +4138,29 @@ int ParOpt::optimize( const char *checkpoint ){
       int fail_obj = prob->evalObjCon(x, &fobj, c);
       neval++;
       if (fail_obj){
-	fprintf(stderr, 
-		"ParOpt: Function and constraint evaluation failed\n");
-	return fail_obj;
+        fprintf(stderr, 
+                "ParOpt: Function and constraint evaluation failed\n");
+        return fail_obj;
       }
       int fail_gobj = prob->evalObjConGradient(x, g, Ac);
       ngeval++;
       if (fail_gobj){
-	fprintf(stderr, "ParOpt: Gradient evaluation failed\n");
-	return fail_obj;
+        fprintf(stderr, "ParOpt: Gradient evaluation failed\n");
+        return fail_obj;
       }
 
       // Add the new gradient of the Lagrangian with the new
       // multiplier estimates to complete the y-update step  
       if (!sequential_linear_method){
-	y_qn->axpy(1.0, g);
-	for ( int i = 0; i < ncon; i++ ){
-	  y_qn->axpy(-z[i], Ac[i]);
-	}
-	 
-	// Add the term: -Aw^{T}*zw
-	if (nwcon > 0){
-	  prob->addSparseJacobianTranspose(-1.0, x, zw, y_qn);
-	}
+        y_qn->axpy(1.0, g);
+        for ( int i = 0; i < ncon; i++ ){
+          y_qn->axpy(-z[i], Ac[i]);
+        }
+         
+        // Add the term: -Aw^{T}*zw
+        if (nwcon > 0){
+          prob->addSparseJacobianTranspose(-1.0, x, zw, y_qn);
+        }
       }
     }
 
@@ -4190,30 +4190,30 @@ int ParOpt::optimize( const char *checkpoint ){
       // The string of unforseen events
       info[0] = '\0';
       if (gmres_iters > 0){
-	// Print how well GMRES is doing
-	sprintf(info, "%s%s%d ", info, "iNK", gmres_iters);
+        // Print how well GMRES is doing
+        sprintf(info, "%s%s%d ", info, "iNK", gmres_iters);
       }
       if (up_type == 1){ 
-	// Damped BFGS update
-	sprintf(info, "%s%s ", info, "dampH");
+        // Damped BFGS update
+        sprintf(info, "%s%s ", info, "dampH");
       }
       else if (up_type == 2){
         // Skipped update
         sprintf(info, "%s%s ", info, "skipH");
       }
       if (line_fail){
-	// Line search failure
-	sprintf(info, "%s%s ", info, "LF");
+        // Line search failure
+        sprintf(info, "%s%s ", info, "LF");
       }
       if (RealPart(dm0_prev) > -abs_res_tol*abs_res_tol){
-	// Skip the line search b/c descent direction is not
-	// sufficiently descent-y
-	sprintf(info, "%s%s ", info, "Lskp");
+        // Skip the line search b/c descent direction is not
+        // sufficiently descent-y
+        sprintf(info, "%s%s ", info, "Lskp");
       }
       if (ceq_step){
-	// The step lengths are equal due to an increase in the
-	// the complementarity at the new step
-	sprintf(info, "%s%s ", info, "cmpEq");
+        // The step lengths are equal due to an increase in the
+        // the complementarity at the new step
+        sprintf(info, "%s%s ", info, "cmpEq");
       }
     }
   }
@@ -4247,10 +4247,10 @@ int ParOpt::optimize( const char *checkpoint ){
   {[ 0; I ] + [ 0; 0 ]       }[ uy ]   [ by ]
 */
 int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt, 
-					 ParOptVec *xt1, ParOptVec *xt2,
-					 ParOptVec *wt,
-					 double rtol, double atol,
-					 int use_qn ){
+                                         ParOptVec *xt1, ParOptVec *xt2,
+                                         ParOptVec *wt,
+                                         double rtol, double atol,
+                                         int use_qn ){
   // Initialize the data from the gmres object
   ParOptScalar *H = gmres_H;
   ParOptScalar *alpha = gmres_alpha;
@@ -4315,9 +4315,9 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
 
   if (rank == opt_root && outfp){
     fprintf(outfp, "%5s %4s %4s %7s %7s %7.1e\n", 
-	    "gmres", "nhvc", "iter", "res", "rel", rtol);
+            "gmres", "nhvc", "iter", "res", "rel", rtol);
     fprintf(outfp, "      %4d %4d %7.1e %7.1e\n", 
-	    nhvec, 0, fabs(RealPart(res[0])), 1.0);
+            nhvec, 0, fabs(RealPart(res[0])), 1.0);
   }
 
   for ( int i = 0; i < gmres_subspace_size; i++ ){
@@ -4333,8 +4333,8 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
 
     // At this point the residuals are no longer required.
     solveKKTDiagSystem(W[i], alpha[i]/bnorm, 
-		       rc, rcw, rs, rsw, rzl, rzu,
-		       xt1, zt, xt2, wt);
+                       rc, rcw, rs, rsw, rzl, rzu,
+                       xt1, zt, xt2, wt);
 
     if (size > 0){
       // dz = Z^{T}*xt1
@@ -4343,19 +4343,19 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
       // Compute dz <- Ce^{-1}*dz
       int one = 1, info = 0;
       LAPACKdgetrs("N", &size, &one, 
-		   Ce, &size, cpiv, zt, &size, &info);
+                   Ce, &size, cpiv, zt, &size, &info);
     
       // Compute rx = Z^{T}*dz
       xt2->zeroEntries();
       for ( int k = 0; k < size; k++ ){
-	xt2->axpy(zt[k], Z[k]);
+        xt2->axpy(zt[k], Z[k]);
       }
     
       // Solve the digaonal system again, this time simplifying
       // the result due to the structure of the right-hand-side.
       // Note that this call uses W[i+1] as a temporary vector. 
       solveKKTDiagSystem(xt2, px,
-			 zt, W[i+1], wt);
+                         zt, W[i+1], wt);
 
       // Add the final contributions 
       xt1->axpy(-1.0, px);
@@ -4388,7 +4388,7 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
 
     // Compute the norm of the combined vector
     H[i+1 + hptr] = sqrt(W[i+1]->dot(W[i+1]) + 
-			 beta*alpha[i+1]*alpha[i+1]);
+                         beta*alpha[i+1]*alpha[i+1]);
 
     // Normalize the combined vector
     W[i+1]->scale(1.0/H[i+1 + hptr]);
@@ -4422,14 +4422,14 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
     
     if (rank == opt_root){
       fprintf(outfp, "      %4d %4d %7.1e %7.1e\n", 
-	      nhvec, i+1, fabs(RealPart(res[i+1])), 
-	      fabs(RealPart(res[i+1]/bnorm)));
+              nhvec, i+1, fabs(RealPart(res[i+1])), 
+              fabs(RealPart(res[i+1]/bnorm)));
       fflush(outfp);
     }
    
     // Check for convergence
     if (fabs(RealPart(res[i+1])) < atol ||
-	fabs(RealPart(res[i+1])) < rtol*RealPart(bnorm)){
+        fabs(RealPart(res[i+1])) < rtol*RealPart(bnorm)){
       solve_flag = 1;
       break;
     }
@@ -4478,8 +4478,8 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
   // Apply M^{-1} to the result to obtain the final
   // answer
   solveKKTDiagSystem(W[0], rc, rcw, rs, rsw, rzl, rzu, 
-		     px, pz, pzw, ps, psw, pzl, pzu,
-		     xt1, wt);
+                     px, pz, pzw, ps, psw, pzl, pzu,
+                     xt1, wt);
 
   // Get the size of the limited-memory BFGS subspace
   ParOptScalar b0;
@@ -4497,7 +4497,7 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
     // Compute dz <- Ce^{-1}*dz
     int one = 1, info = 0;
     LAPACKdgetrs("N", &size, &one, 
-		 Ce, &size, cpiv, zt, &size, &info);
+                 Ce, &size, cpiv, zt, &size, &info);
     
     // Compute rx = Z^{T}*dz
     xt1->zeroEntries();
@@ -4508,7 +4508,7 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
     // Solve the digaonal system again, this time simplifying
     // the result due to the structure of the right-hand-side
     solveKKTDiagSystem(xt1, rx, rc, rcw, rs, rsw, rzl, rzu,
-		       xt2, wt);
+                       xt2, wt);
 
     // Add the final contributions 
     px->axpy(-1.0, rx);
@@ -4625,8 +4625,8 @@ void ParOpt::checkGradients( double dh ){
   if (rank == opt_root){
     printf("Objective gradient test\n");
     printf("Objective FD: %15.8e  Actual: %15.8e  Err: %8.2e  Rel err: %8.2e\n",
-	   RealPart(pfd), RealPart(pobj), 
-	   fabs(RealPart(pobj - pfd)), fabs(RealPart((pobj - pfd)/pfd)));
+           RealPart(pfd), RealPart(pobj), 
+           fabs(RealPart(pobj - pfd)), fabs(RealPart((pobj - pfd)/pfd)));
 
     printf("\nConstraint gradient test\n");
     for ( int i = 0; i < ncon; i++ ){
@@ -4637,8 +4637,8 @@ void ParOpt::checkGradients( double dh ){
 #endif // PAROPT_USE_COMPLEX
 
       printf("Con[%3d]  FD: %15.8e  Actual: %15.8e  Err: %8.2e  Rel err: %8.2e\n",
-	     i, RealPart(fd), RealPart(rs[i]), 
-	     fabs(RealPart(fd - rs[i])), fabs(RealPart((fd - rs[i])/fd)));
+             i, RealPart(fd), RealPart(rs[i]), 
+             fabs(RealPart(fd - rs[i])), fabs(RealPart((fd - rs[i])/fd)));
     }
   }
 
@@ -4687,7 +4687,7 @@ void ParOpt::checkGradients( double dh ){
     if (rank == opt_root){
       printf("\nHessian product test\n");
       printf("Objective FD: %15.8e  Actual: %15.8e  Err: %8.2e  Rel err: %8.2e\n",
-	     fdnorm, hnorm, herr, herr/hnorm);
+             fdnorm, hnorm, herr, herr/hnorm);
     }
 
     // Clean up the allocated data
@@ -4743,8 +4743,8 @@ void ParOpt::checkGradients( double dh ){
     if (rank == opt_root){
       printf("\nTranspose-equivalence\n");
       printf("x^{T}*(J(x)*p): %8.2e  p*(J(x)^{T}*x): %8.2e  Err: %8.2e  Rel Err: %8.2e\n",
-	     RealPart(d1), RealPart(d2), 
-	     fabs(RealPart(d1 - d2)), fabs(RealPart((d1 - d2)/d2)));
+             RealPart(d1), RealPart(d2), 
+             fabs(RealPart(d1 - d2)), fabs(RealPart((d1 - d2)/d2)));
     }
 
     // Set Cvec to something more-or-less random
@@ -4783,13 +4783,13 @@ void ParOpt::checkGradients( double dh ){
     for ( int i = 0; i < nwcon; i += nwblock ){
       // Index into each block
       for ( int j = 0; j < nwblock; j++ ){
-	for ( int k = 0; k < j; k++ ){
-	  d2 += 2.0*cw[0]*pzwvals[i+j]*pzwvals[i+k];
-	  cw++;
-	}
+        for ( int k = 0; k < j; k++ ){
+          d2 += 2.0*cw[0]*pzwvals[i+j]*pzwvals[i+k];
+          cw++;
+        }
 
-	d2 += cw[0]*pzwvals[i+j]*pzwvals[i+j];
-	cw++;
+        d2 += cw[0]*pzwvals[i+j]*pzwvals[i+j];
+        cw++;
       }
     }
 
@@ -4800,8 +4800,8 @@ void ParOpt::checkGradients( double dh ){
     if (rank == opt_root){
       printf("\nJ(x)*C^{-1}*J(x)^{T} test: \n");
       printf("Product: %8.2e  Matrix: %8.2e  Err: %8.2e  Rel Err: %8.2e\n",
-	     RealPart(d1), RealPart(d2), 
-	     fabs(RealPart(d1 - d2)), fabs(RealPart((d1 - d2)/d2)));
+             RealPart(d1), RealPart(d2), 
+             fabs(RealPart(d1 - d2)), fabs(RealPart((d1 - d2)/d2)));
     }
   }
 }
@@ -4916,7 +4916,7 @@ void ParOpt::checkKKTStep( int is_newton ){
     for ( int i = 0; i < ncon; i++ ){
       ParOptScalar val = z[i]*ps[i] + s[i]*pz[i] + (z[i]*s[i] - barrier_param);
       if (fabs(RealPart(val)) > max_val){
-	max_val = fabs(RealPart(val));
+        max_val = fabs(RealPart(val));
       }
     }
     if (rank == opt_root){
@@ -4930,12 +4930,12 @@ void ParOpt::checkKKTStep( int is_newton ){
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(lbvals[i]) > -max_bound_val){
-	ParOptScalar val = 
-	  (zlvals[i]*pxvals[i] + (xvals[i] - lbvals[i])*pzlvals[i] +
-	   (zlvals[i]*(xvals[i] - lbvals[i]) - barrier_param));
-	if (fabs(RealPart(val)) > max_val){
-	  max_val = fabs(RealPart(val));
-	}
+        ParOptScalar val = 
+          (zlvals[i]*pxvals[i] + (xvals[i] - lbvals[i])*pzlvals[i] +
+           (zlvals[i]*(xvals[i] - lbvals[i]) - barrier_param));
+        if (fabs(RealPart(val)) > max_val){
+          max_val = fabs(RealPart(val));
+        }
       }
     }
   }
@@ -4944,7 +4944,7 @@ void ParOpt::checkKKTStep( int is_newton ){
   
   if (rank == opt_root && use_lower){
     printf("max |Zl*px + (X - LB)*pzl + (Zl*(x - lb) - mu)|: %10.4e\n", 
-	   max_val);
+           max_val);
   }
 
   // Find the maximum value of the residual equations for the
@@ -4953,12 +4953,12 @@ void ParOpt::checkKKTStep( int is_newton ){
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(ubvals[i]) < max_bound_val){
-	ParOptScalar val = 
-	  (-zuvals[i]*pxvals[i] + (ubvals[i] - xvals[i])*pzuvals[i] +
-	   (zuvals[i]*(ubvals[i] - xvals[i]) - barrier_param));
-	if (fabs(RealPart(val)) > max_val){
-	  max_val = fabs(RealPart(val));
-	}
+        ParOptScalar val = 
+          (-zuvals[i]*pxvals[i] + (ubvals[i] - xvals[i])*pzuvals[i] +
+           (zuvals[i]*(ubvals[i] - xvals[i]) - barrier_param));
+        if (fabs(RealPart(val)) > max_val){
+          max_val = fabs(RealPart(val));
+        }
       }
     }
   }
@@ -4967,6 +4967,6 @@ void ParOpt::checkKKTStep( int is_newton ){
 
   if (rank == opt_root && use_upper){
     printf("max |-Zu*px + (UB - X)*pzu + (Zu*(ub - x) - mu)|: %10.4e\n", 
-	   max_val);
+           max_val);
   }
 }

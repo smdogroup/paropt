@@ -115,9 +115,9 @@ class ParOpt {
   enum QuasiNewtonType { BFGS, SR1 };
 
   ParOpt( ParOptProblem *_prob,
-	  int _max_qn_subspace,
-	  QuasiNewtonType qn_type=BFGS,
-	  double _max_bound_val=1e20 );
+          int _max_qn_subspace,
+          QuasiNewtonType qn_type=BFGS,
+          double _max_bound_val=1e20 );
   ~ParOpt();
 
   // Reset the problem instance - problem sizes must remain the same
@@ -131,13 +131,13 @@ class ParOpt {
   // Get the problem sizes from the underlying problem class
   // -------------------------------------------------------
   void getProblemSizes( int *_nvars, int *_ncon, 
-			int *_nwcon, int *_nwblock );
+                        int *_nwcon, int *_nwblock );
 
   // Retrieve the values of the design variables and multipliers
   // -----------------------------------------------------------
   void getOptimizedPoint( ParOptVec **_x, 
-			  const ParOptScalar **_z, ParOptVec **_zw,
-			  ParOptVec **_zl, ParOptVec **_zu );
+                          const ParOptScalar **_z, ParOptVec **_zw,
+                          ParOptVec **_zl, ParOptVec **_zu );
 
   // Check the objective and constraint gradients
   // --------------------------------------------
@@ -157,7 +157,7 @@ class ParOpt {
   void setBarrierPower( double power );
   void setHessianResetFreq( int freq );
   void setQNDiagonalFactor( double sigma );
-  void setBFGSUpdateType( LBFGS::BFGSUpdateType bfgs_update );	  
+  void setBFGSUpdateType( LBFGS::BFGSUpdateType bfgs_update );    
   void setSequentialLinearMethod( int truth );
 
   // Set/get the barrier parameter
@@ -212,59 +212,59 @@ class ParOpt {
   // Compute the negative of the KKT residuals - return
   // the maximum primal, dual residuals and the max infeasibility
   void computeKKTRes( double *max_prime,
-		      double *max_dual, 
-		      double *max_infeas );
+                      double *max_dual, 
+                      double *max_infeas );
 
   // Set up the diagonal KKT system
   void setUpKKTDiagSystem( ParOptVec *xt, ParOptVec *wt, int use_bfgs );
 
   // Solve the diagonal KKT system
   void solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bc, 
-			   ParOptVec *bcw, ParOptScalar *bs,
-			   ParOptVec *bsw,
-			   ParOptVec *bzl, ParOptVec *bzu,
-			   ParOptVec *yx, ParOptScalar *yz, 
-			   ParOptVec *yzw, ParOptScalar *ys,
-			   ParOptVec *ysw,
-			   ParOptVec *yzl, ParOptVec *yzu,
-			   ParOptVec *xt, ParOptVec *wt );
+                           ParOptVec *bcw, ParOptScalar *bs,
+                           ParOptVec *bsw,
+                           ParOptVec *bzl, ParOptVec *bzu,
+                           ParOptVec *yx, ParOptScalar *yz, 
+                           ParOptVec *yzw, ParOptScalar *ys,
+                           ParOptVec *ysw,
+                           ParOptVec *yzl, ParOptVec *yzu,
+                           ParOptVec *xt, ParOptVec *wt );
   
   // Solve the diagonal KKT system with a specific RHS structure
   void solveKKTDiagSystem( ParOptVec *bx, 
-			   ParOptVec *yx, ParOptScalar *yz, 
-			   ParOptVec *yzw, ParOptScalar *ys,
-			   ParOptVec *ysw,
-			   ParOptVec *yzl, ParOptVec *yzu,
-			   ParOptVec *xt, ParOptVec *wt );
+                           ParOptVec *yx, ParOptScalar *yz, 
+                           ParOptVec *yzw, ParOptScalar *ys,
+                           ParOptVec *ysw,
+                           ParOptVec *yzl, ParOptVec *yzu,
+                           ParOptVec *xt, ParOptVec *wt );
 
   // Solve the diagonal KKT system but only return the components
   // corresponding to the design variables
   void solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
-			   ParOptScalar *zt,
-			   ParOptVec *xt, ParOptVec *wt );
+                           ParOptScalar *zt,
+                           ParOptVec *xt, ParOptVec *wt );
 
   // Solve the diagonal system
   void solveKKTDiagSystem( ParOptVec *bx, 
-			   ParOptScalar alpha, ParOptScalar *bc, 
-			   ParOptVec *bcw, ParOptScalar *bs,
-			   ParOptVec *bsw,
-			   ParOptVec *bzl, ParOptVec *bzu,
-			   ParOptVec *yx, ParOptScalar *yz,
-			   ParOptVec *xt, ParOptVec *wt );
+                           ParOptScalar alpha, ParOptScalar *bc, 
+                           ParOptVec *bcw, ParOptScalar *bs,
+                           ParOptVec *bsw,
+                           ParOptVec *bzl, ParOptVec *bzu,
+                           ParOptVec *yx, ParOptScalar *yz,
+                           ParOptVec *xt, ParOptVec *wt );
 
   // Set up the full KKT system
   void setUpKKTSystem( ParOptScalar *zt, 
-		       ParOptVec *xt1, ParOptVec *xt2,
-		       ParOptVec *wt, int use_bfgs );
+                       ParOptVec *xt1, ParOptVec *xt2,
+                       ParOptVec *wt, int use_bfgs );
 
   // Solve for the KKT step
   void computeKKTStep( ParOptScalar *zt, ParOptVec *xt1, 
-		       ParOptVec *xt2, ParOptVec *wt, int use_bfgs );
+                       ParOptVec *xt2, ParOptVec *wt, int use_bfgs );
   
   // Compute the full KKT step
   int computeKKTInexactNewtonStep( ParOptScalar *zt, ParOptVec *xt1, 
-				   ParOptVec *xt2, ParOptVec *wt,
-				   double rtol, double atol, int use_bfgs );
+                                   ParOptVec *xt2, ParOptVec *wt,
+                                   double rtol, double atol, int use_bfgs );
 
   // Check that the KKT step is computed correctly
   void checkKKTStep( int is_newton );
@@ -272,26 +272,26 @@ class ParOpt {
   // Compute the maximum step length to maintain positivity of 
   // all components of the design variables 
   void computeMaxStep( double tau, 
-		       double *_max_x, double *_max_z );
+                       double *_max_x, double *_max_z );
 
   // Perform the line search
   int lineSearch( double *_alpha, 
-		  ParOptScalar m0, ParOptScalar dm0 );
+                  ParOptScalar m0, ParOptScalar dm0 );
 
   // Evaluate the merit function
   ParOptScalar evalMeritFunc( ParOptVec *xk, ParOptScalar *sk, 
-			      ParOptVec *swk );
+                              ParOptVec *swk );
 
   // Evaluate the merit function, its derivative and the new penalty
   // parameter
   void evalMeritInitDeriv( double max_x, 
-			   ParOptScalar *_merit, ParOptScalar *_pmerit,
-			   int inexact_step, ParOptVec *wt1, ParOptVec *wt2 );
+                           ParOptScalar *_merit, ParOptScalar *_pmerit,
+                           int inexact_step, ParOptVec *wt1, ParOptVec *wt2 );
   
   // Compute the complementarity
   ParOptScalar computeComp(); // Complementarity at the current point
   ParOptScalar computeCompStep( double alpha_x,
-				double alpha_z ); // Complementarity at (x + p)
+                                double alpha_z ); // Complementarity at (x + p)
 
   // Check the step
   void checkStep();
