@@ -16,3 +16,5 @@ syntax: glob
 *.f5
 *.plt
 *.out_summary
+paropt/*.cpp
+paropt/*.pxi

@@ -3,7 +3,8 @@ include ../ParOpt_Common.mk
 
 OBJS = ParOpt.o \
 	ParOptVec.o \
-	ParOptQuasiNewton.o
+	ParOptQuasiNewton.o \
+	CyParOptProblem.o
 
 default: ${OBJS}
 	${AR} ${AR_FLAGS} ${PAROPT_LIB} ${OBJS}
