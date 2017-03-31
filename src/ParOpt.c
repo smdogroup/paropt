@@ -3583,7 +3583,7 @@ int ParOpt::optimize( const char *checkpoint ){
         qn->reset();
 
         // Add a reset flag to the output
-        sprintf(info, "%s%s ", info, "resetH");
+        sprintf(&info[strlen(info)], "%s ", "resetH");
       }
     }
 
@@ -4191,29 +4191,29 @@ int ParOpt::optimize( const char *checkpoint ){
       info[0] = '\0';
       if (gmres_iters > 0){
         // Print how well GMRES is doing
-        sprintf(info, "%s%s%d ", info, "iNK", gmres_iters);
+        sprintf(&info[strlen(info)], "%s%d ", "iNK", gmres_iters);
       }
       if (up_type == 1){ 
         // Damped BFGS update
-        sprintf(info, "%s%s ", info, "dampH");
+        sprintf(&info[strlen(info)], "%s ", "dampH");
       }
       else if (up_type == 2){
         // Skipped update
-        sprintf(info, "%s%s ", info, "skipH");
+        sprintf(&info[strlen(info)], "%s ", "skipH");
       }
       if (line_fail){
         // Line search failure
-        sprintf(info, "%s%s ", info, "LF");
+        sprintf(&info[strlen(info)], "%s ", "LF");
       }
       if (RealPart(dm0_prev) > -abs_res_tol*abs_res_tol){
         // Skip the line search b/c descent direction is not
         // sufficiently descent-y
-        sprintf(info, "%s%s ", info, "Lskp");
+        sprintf(&info[strlen(info)], "%s ", "Lskp");
       }
       if (ceq_step){
         // The step lengths are equal due to an increase in the
         // the complementarity at the new step
-        sprintf(info, "%s%s ", info, "cmpEq");
+        sprintf(&info[strlen(info)], "%s ", "cmpEq");
       }
     }
   }

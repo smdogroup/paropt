@@ -181,7 +181,7 @@ int LBFGS::update( ParOptVec *s, ParOptVec *y ){
     if (msub == 0){
       b0 = yTy/sTy;
       if (RealPart(b0) <= 0.0){ 
-        b0 = 0.0; 
+        b0 = 1.0; 
       }
     }
 
