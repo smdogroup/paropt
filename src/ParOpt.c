@@ -683,6 +683,10 @@ int ParOpt::readSolutionFile( const char *filename ){
       return fail;
     }
 
+    // Broadcast the multipliers and slack variables for the dense constraints
+    MPI_Bcast(z, ncon, PAROPT_MPI_TYPE, opt_root, comm);
+    MPI_Bcast(s, ncon, PAROPT_MPI_TYPE, opt_root, comm);
+
     // Set the initial offset
     size_t offset = 3*sizeof(int) + (2*ncon+1)*sizeof(ParOptScalar);
 
@@ -3556,6 +3560,10 @@ int ParOpt::optimize( const char *checkpoint ){
     }
   }
 
+  // Retrieve the rank of the processor
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+
   // The previous value of the objective function
   ParOptScalar fobj_prev = 0.0;
 
@@ -3739,8 +3747,6 @@ int ParOpt::optimize( const char *checkpoint ){
     }
 
     // Print all the information we can to the screen...
-    int rank;
-    MPI_Comm_rank(comm, &rank);
     if (outfp && rank == opt_root){
       if (k % 10 == 0 || gmres_iters > 0){
         fprintf(outfp, "\n%4s %4s %4s %4s %7s %7s %7s %12s \
