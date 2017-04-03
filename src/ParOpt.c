@@ -771,7 +771,7 @@ void ParOpt::setInitStartingPoint( int init ){
 }
 
 void ParOpt::setMaxMajorIterations( int iters ){
-  if (iters > 1){ 
+  if (iters >= 1){ 
     max_major_iters = iters; 
   }
 }
@@ -3583,7 +3583,9 @@ int ParOpt::optimize( const char *checkpoint ){
         qn->reset();
 
         // Add a reset flag to the output
-        sprintf(&info[strlen(info)], "%s ", "resetH");
+        if (rank == opt_root){
+          sprintf(&info[strlen(info)], "%s ", "resetH");
+        }
       }
     }
 
@@ -4188,7 +4190,7 @@ int ParOpt::optimize( const char *checkpoint ){
     // Create a string to print to the screen
     if (rank == opt_root){
       // The string of unforseen events
-      info[0] = '\0';
+      info[0] = '\0';     
       if (gmres_iters > 0){
         // Print how well GMRES is doing
         sprintf(&info[strlen(info)], "%s%d ", "iNK", gmres_iters);
