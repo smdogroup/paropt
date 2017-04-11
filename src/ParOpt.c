@@ -428,6 +428,46 @@ void ParOpt::getProblemSizes( int *_nvars, int *_ncon,
 }
 
 /*
+  Get the multiplier variables used internally in ParOpt so that the
+  user can set the initial guess.
+
+  Note that this call automatically call setInitStartingPoint(0) so
+  that ParOpt does not attempt to guess good initial values for the
+  multipliers (since the user probably knows something about the
+  problem if they are calling this function...)
+*/
+void ParOpt::getInitMultipliers( ParOptScalar **_z,
+				 ParOptVec **_zw,
+				 ParOptVec **_zl,
+				 ParOptVec **_zu ){
+  init_starting_point = 0;
+  if (_z){
+    *_z = NULL;
+    if (ncon > 0){
+      *_z = z;
+    }
+  }
+  if (_zw){
+    *_zw = NULL;
+    if (nwcon > 0){
+      *_zw = zw;
+    }
+  }
+  if (_zl){
+    *_zl = NULL;
+    if (use_lower){
+      *_zl = zl;
+    }
+  }
+  if (_zu){
+    *_zu = NULL;
+    if (use_upper){
+      *_zu = NULL;
+    }
+  }
+}
+
+/*
   Retrieve the optimal values of the design variables and multipliers.
  
   This call can be made during the course of an optimization, but
