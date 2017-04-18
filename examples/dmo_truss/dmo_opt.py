@@ -82,9 +82,7 @@ def get_ground_structure(N=4, M=4, L=2.5, P=1e4, n=10):
 
     return conn, xpos, loads, bcs
 
-def setup_ground_struct(N, M, L=2.5, E=70e9, 
-                        x_lb=0.0, sigma=100.0,
-                        use_mass_constraint=False):
+def setup_ground_struct(N, M, L=2.5, E=70e9, x_lb=0.0):
     '''
     Create a ground structure with a given number of nodes and
     material properties.
@@ -107,9 +105,8 @@ def setup_ground_struct(N, M, L=2.5, E=70e9,
 
     # Create the truss topology optimization object
     truss = TrussAnalysis(conn, xpos, loads, bcs, 
-                          E, rho, Avals, m_fixed, 
-                          sigma=sigma, x_lb=x_lb, epsilon=1e-6,
-                          use_mass_constraint=use_mass_constraint)
+                          E, rho, Avals, m_fixed,
+                          x_lb=x_lb, epsilon=1e-6)
 
     # Set the options
     truss.setInequalityOptions(dense_ineq=False, 
@@ -151,9 +148,7 @@ def paropt_truss(truss, use_hessian=False,
 
     return opt
 
-def optimize_truss(N, M, root_dir='results',
-                   use_mass_constraint=False, sigma=100.0,
-                   max_d=1e-4, theta=1e-3, penalization='SIMP',
+def optimize_truss(N, M, root_dir='results', penalization='SIMP',
                    parameter=2.0, max_iters=50):
     # Optimize the structure
     heuristic = '%s%.0f'%(penalization, parameter)
@@ -164,41 +159,31 @@ def optimize_truss(N, M, root_dir='results',
         os.makedirs(prefix)
    
     # Create the ground structure and optimization
-    truss = setup_ground_struct(N, M, sigma=sigma,
-                                use_mass_constraint=use_mass_constraint,
-                                x_lb=0.0)
+    truss = setup_ground_struct(N, M, x_lb=0.0)
     
     # Set up the optimization problem in ParOpt
     opt = paropt_truss(truss, use_hessian=use_hessian,
                        qn_type=ParOpt.BFGS)
-
-    # Create a vector of all ones
-    m_add = 0.0
-    if use_mass_constraint:
-        xones = np.ones(truss.gmass.shape)
-        m_add = truss.getMass(xones)/truss.nmats
     
-    # Keep track of the fixed mass
-    m_fixed_init = 1.0*truss.m_fixed
-    truss.m_fixed = m_fixed_init + truss.x_lb*m_add
-
     # Log the optimization file
     log_filename = os.path.join(prefix, 'log_file.dat')
     fp = open(log_filename, 'w')
 
     # Write the header out to the file
-    s = 'Variables = iteration, "compliance", "fobj", "fpenalty", '
-    s += '"min gamma", "max gamma", "gamma", '
+    s = 'Variables = iteration, compliance '
     s += '"min d", "max d", "tau", "ninfeas", "mass infeas", '
     s += 'feval, geval, hvec, time\n'
     s += 'Zone T = %s\n'%(heuristic)
     fp.write(s)
 
+    # Set the penalty parameter
+    truss.SIMP = parameter
+    truss.RAMP = parameter
+    truss.penalization = penalization
+    truss.setNewInitPointPenalty(truss.xinit)
+
     # Keep track of the ellapsed CPU time
     init_time = MPI.Wtime()
-
-    # Initialize the gamma values
-    gamma = np.zeros(truss.nelems)
 
     # Previous value of the objective function
     fobj_prev = 0.0
@@ -208,14 +193,7 @@ def optimize_truss(N, M, root_dir='results',
 
     # Set the initial compliance value
     comp_prev = 0.0
-
-    # Set the tolerances for increasing/decreasing tau
-    delta_tau_target = 1.0
-
-    # Set the target rate of increase in gamma
-    delta_max = 10.0
-    delta_min = 1e-3
-
+    
     # Keep track of the number of iterations
     niters = 0
     for k in xrange(max_iters):
@@ -225,6 +203,7 @@ def optimize_truss(N, M, root_dir='results',
 
         # Optimize the truss
         if k > 0:
+            opt.setInitStartingPoint(0)
             opt.setInitBarrierParameter(1e-4)
         opt.optimize()
 
@@ -234,92 +213,34 @@ def optimize_truss(N, M, root_dir='results',
         # Get the discrete infeasibility measure
         d = truss.getDiscreteInfeas(x)
 
-        # Compute the infeasibility of the mass constraint
-        m_infeas = truss.getMass(x)/truss.m_fixed - 1.0
-
         # Compute the discrete infeasibility measure
         tau = np.sum(d)
 
-        # Get the compliance and objective values
-        comp, fobj, fpenalty = truss.getL1Objective(x, gamma)
-
-        # Keep track of how many bars are discrete infeasible
-        draw_list = []
-        for i in xrange(len(d)):
-            if d[i] > max_d:
-                draw_list.append(i)
+        # Get the compliance
+        comp = truss.getCompliance(x)
 
         # Print out the iteration information to the screen
         print 'Iteration %d'%(k)
-        print 'Min/max gamma: %15.5e %15.5e  Total: %15.5e'%(
-            np.min(gamma), np.max(gamma), np.sum(gamma))
         print 'Min/max d:     %15.5e %15.5e  Total: %15.5e'%(
             np.min(d), np.max(d), np.sum(d))
-        print 'Mass infeas:   %15.5e'%(m_infeas)
 
-        s = '%d %e %e %e %e %e %e %e %e %e %2d %e '%(
-            k, comp, fobj, fpenalty,
-            np.min(gamma), np.max(gamma), np.sum(gamma),
-            np.min(d), np.max(d), np.sum(d), len(draw_list), m_infeas)
-        s += '%d %d %d %e\n'%(
-            truss.fevals, truss.gevals, truss.hevals, 
-            MPI.Wtime() - init_time)
+        s = '%d %e %e %e %e '%(k, comp, np.min(d), np.max(d), np.sum(d))
+        s += '%d %d %d %e\n'%(truss.fevals, truss.gevals, truss.hevals, 
+                              MPI.Wtime() - init_time)
         fp.write(s)
         fp.flush()
-
-        # Terminate if the maximum discrete infeasibility measure is
-        # sufficiently low
-        if np.max(d) <= max_d:
-            break
 
         # Print the output
         filename = 'opt_truss_iter%d.tex'%(k)
         output = os.path.join(prefix, filename)
-        truss.printTruss(x, filename=output, draw_list=draw_list)
+        truss.printTruss(x, filename=output)
 
-        if (np.fabs((comp - comp_prev)/comp) < 1e-3):
-            if first_time:
-                # Set the new value of delta
-                gamma[:] = delta_min
+        truss.setNewInitPointPenalty(x)
 
-                # Keep track of the previous value of the discrete
-                # infeasibility measure
-                tau_iter = 1.0*tau
-                delta_iter = 1.0*delta_min
-
-                # Set the first time flag to false
-                first_time = False
-            else:
-                # Set the maximum delta initially
-                delta = 1.0*delta_max
-
-                # Limit the rate of discrete infeasibility increase
-                tau_rate = (tau_iter - tau)/delta_iter 
-                delta = max(min(delta, delta_tau_target/tau_rate), delta_min)
-                gamma[:] = gamma + delta
-
-                # Print out the chosen scaling for the design variables
-                print 'Delta:         %15.5e'%(delta)
-
-                # Keep track of the discrete infeasibility measure
-                tau_iter = 1.0*tau
-                delta_iter = 1.0*delta
-
-        xinfty = truss.computeLimitDesign(x)
-
-        # Print the output
-        filename = 'opt_limit_truss_iter%d.tex'%(k)
-        output = os.path.join(prefix, filename)
-        truss.printTruss(xinfty, filename=output)
+        if k > 0 and (np.fabs((comp - comp_prev)/comp) < 1e-3):
+            break
         
-        # Set the new penalty
-        truss.SIMP = parameter
-        truss.RAMP = parameter
-        truss.penalization = penalization
-        truss.setNewInitPointPenalty(x, gamma)
-
-        # Store the previous value of the objective function
-        fobj_prev = 1.0*fobj
+        # Store the previous value of the compliance
         comp_prev = 1.0*comp
 
         # Increase the iteration counter
@@ -354,29 +275,21 @@ parser.add_argument('--M', type=int, default=3,
                     help='Nodes in y-direction')
 parser.add_argument('--profile', action='store_true', 
                     default=False, help='Performance profile')
-parser.add_argument('--use_mass_constraint', action='store_true',
-                    default=False, help='Use the mass constraint')
 parser.add_argument('--parameter', type=float, default=3.0,
                     help='Penalization parameter')
 parser.add_argument('--penalization', type=str, 
                     default='SIMP', help='Penalization type')
-parser.add_argument('--sigma', type=float, default=20.0,
-                    help='Penalty parameter value')
 args = parser.parse_args()
 
 # Get the arguments
 N = args.N
 M = args.M
 profile = args.profile
-use_mass_constraint = args.use_mass_constraint
 penalization = args.penalization
 parameter = args.parameter
-sigma = args.sigma
 
 # Set the root results directory
 root_dir = 'results'
-if use_mass_constraint:
-    root_dir = 'con-results'
 
 # Always use the Hessian-vector product implementation
 use_hessian = True
@@ -392,13 +305,11 @@ if profile:
     for N, M in trusses:
         try:
             optimize_truss(N, M, root_dir=root_dir,
-                           use_mass_constraint=use_mass_constraint,
-                           sigma=sigma, penalization=penalization, 
+                           penalization=penalization, 
                            parameter=parameter, max_iters=80)
         except:
             pass
 else:
     optimize_truss(N, M, root_dir=root_dir,
-                   use_mass_constraint=use_mass_constraint,
-                   sigma=sigma, penalization=penalization, 
+                   penalization=penalization, 
                    parameter=parameter, max_iters=80)

@@ -13,8 +13,8 @@ from paropt import ParOpt
 
 class TrussAnalysis(ParOpt.pyParOptProblem):
     def __init__(self, conn, xpos, loads, bcs, 
-                 E, rho, Avals, m_fixed, use_mass_constraint=True,
-                 x_lb=0.0, epsilon=1e-12, sigma=10.0, no_bound=1e30):
+                 E, rho, Avals, m_fixed,
+                 x_lb=0.0, epsilon=1e-12, no_bound=1e30):
         '''
         Analysis problem for mass-constrained compliance minimization
         '''
@@ -45,50 +45,22 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         # Keep a vector that stores the element areas
         self.A = np.zeros(len(self.conn))
 
-        # Set the value of sigma
-        self.sigma = sigma
-
         # Set the sizes for the problem
         self.nmats = len(self.Avals)
         self.nblock = self.nmats+1
         self.nelems = len(self.conn)
         self.nvars = len(self.xpos)
 
-        # Set the flag for whether to use a mass constraint or not
-        self.use_mass_constraint = use_mass_constraint
-
         # Initialize the super class
-        ncon = 0
+        ncon = 1
         ndv = self.nblock*self.nelems
-        if self.use_mass_constraint:
-            ncon = 1
-            ndv += 2
-
         nwcon = self.nelems
         nwblock = 1
         super(TrussAnalysis, self).__init__(MPI.COMM_SELF,
                                             ndv, ncon, nwcon, nwblock)
 
-        # Set the penalization
-        self.penalty = np.zeros(ndv)
-        self.xinit = np.zeros(ndv)
-
         # Allocate a vector that stores the gradient of the mass
         self.gmass = np.zeros(ndv)
-
-        # Set the initial variable values
-        self.xinit[:] = 1.0/self.nmats
-        self.xinit[::self.nblock] = 1.0
-
-        # Set the initial linearization
-        self.penalization = None
-        self.SIMP = 1.0
-        self.RAMP = 0.0
-        self.xconst = np.array(self.xinit)
-        self.xlinear = np.ones(ndv)
-
-        # Set the lower bounds on the variables
-        self.x_lb = max(x_lb, 0.0)
 
         # Allocate the matrices required
         self.K = np.zeros((self.nvars, self.nvars))
@@ -134,10 +106,30 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
                 self.gmass[self.nblock*index+1+j] += self.rho[j]*Le
 
             index += 1
-            
+
+        # Set the fixed mass
+        self.m_fixed = m_fixed
+        max_mass = np.sum(self.gmass)
+        xi = self.m_fixed/max_mass
+
+        # Set the initial design variable values
+        self.xinit = np.zeros(ndv)
+        self.xinit[:] = xi/self.nmats
+        self.xinit[::self.nblock] = xi
+
+        # Set the initial linearization
+        self.penalization = None
+        self.SIMP = 1.0
+        self.RAMP = 0.0
+        self.xconst = np.array(self.xinit)
+        self.xlinear = np.ones(ndv)
+
+        # Set the lower bounds on the variables
+        self.x_lb = max(x_lb, 0.0)
+
         return
 
-    def setNewInitPointPenalty(self, x, gamma):
+    def setNewInitPointPenalty(self, x):
         '''
         Set the linearized penalty function, given the design variable
         values from the previous iteration and the penalty parameters
@@ -159,12 +151,6 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             self.xconst[:] = x[:]
             self.xlinear[:] = 1.0
 
-        # Set the penalty parameters
-        for i in xrange(self.nelems):
-            self.penalty[self.nblock*i] = gamma[i]*(1.0 - x[self.nblock*i])
-            for j in xrange(1, self.nblock):
-                self.penalty[self.nblock*i+j] = -gamma[i]*x[self.nblock*i+j]
-
         return
 
     def getDiscreteInfeas(self, x):
@@ -181,7 +167,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
     def computeLimitDesign(self, x):
         '''
-        Compute the solution as gamma -> infty
+        Compute the solution as the penalty approaches infinity
         '''
         xinfty = np.zeros(x.shape)
 
@@ -196,10 +182,8 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         return xinfty                
 
-    def getStrainEnergy(self, x, limit=False):
+    def getCompliance(self, x, limit=False):
         '''Compute the strain energy in each bar'''
-
-        Ue = np.zeros(self.nelems)
 
         if limit:
             self.u[:] = self.getLimitDisplacements(x)
@@ -225,22 +209,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             linalg.solve_triangular(self.L, self.u, lower=True, 
                                     trans='T', overwrite_b=True)
 
-        # Add up the contribution to the gradient
-        index = 0
-        for bar, A_bar in zip(self.conn, self.A):
-            # Get the first and second node numbers from the bar
-            n1 = bar[0]
-            n2 = bar[1]
-
-            # Find the element variables
-            ue = np.array([self.u[2*n1], self.u[2*n1+1],
-                           self.u[2*n2], self.u[2*n2+1]])
-            
-            # Compute the inner product with the element stiffness matrix
-            Ue[index] = A_bar*np.dot(ue, np.dot(self.Ke[index,:,:], ue))            
-            index += 1
-
-        return Ue
+        return np.dot(self.u, self.f)
 
     def getVarsAndBounds(self, x, lb, ub):
         '''Get the variable values and bounds'''
@@ -261,11 +230,6 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         lb[::self.nblock] = -self.no_bound
         ub[::self.nblock] = 1.0
 
-        # Add the slack variables from the mass
-        if self.use_mass_constraint:
-            lb[-2:] = 0.0
-            ub[-2:] = self.no_bound
-
         return
 
     def setAreas(self, x, lb_factor=0.0):
@@ -282,9 +246,6 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
                 val = (self.xconst[i*self.nblock+j] + 
                        self.xlinear[i*self.nblock+j]*(x[i*self.nblock+j] - 
                                                       self.xinit[i*self.nblock+j]))
-                if val <= 0.0:
-                    print 'val = ', val
-
                 self.A[i] += self.Avals[j-1]*val
 
         return
@@ -303,81 +264,6 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
                 self.A[i] += self.Avals[j-1]*val
 
         return
-
-    def setPenalizedAreas(self, x, lb_factor=0.0):
-        '''Set the areas based on the penalization directly'''
-        
-        # Zero all the areas
-        self.A[:] = self.Avals[0]*lb_factor
-
-        # Add up the contributions to the areas from each 
-        # discrete variable
-        if self.penalization == 'SIMP':
-            for i in xrange(len(self.conn)):
-                for j in xrange(1, self.nblock):
-                    val = x[i*self.nblock+j]**(self.SIMP)
-                    self.A[i] += self.Avals[j-1]*val
-        elif self.penalization == 'RAMP':
-            for i in xrange(len(self.conn)):
-                for j in xrange(1, self.nblock):
-                    val = x[i*self.nblock+j]/(1.0 + self.RAMP*(1.0 - x[i*self.nblock+j]))
-                    self.A[i] += self.Avals[j-1]*val
-        else:
-            for i in xrange(len(self.conn)):
-                for j in xrange(1, self.nblock):
-                    self.A[i] += self.Avals[j-1]*x[i*self.nblock+j]
-
-        return
-
-    def getL1Objective(self, x, gamma):
-        '''Compute the full objective'''
-
-        # Set the cross-sectional areas from the design variable
-        # values
-        self.setPenalizedAreas(x, lb_factor=self.epsilon)
-
-        # Evaluate compliance objective
-        self.assembleMat(self.A, self.K)
-        self.assembleLoadVec(self.f)
-        self.applyBCs(self.K, self.f)
-
-        # Copy the values
-        self.u[:] = self.f[:]
-
-        # Perform the Cholesky factorization
-        self.L = linalg.cholesky(self.K, lower=True)
-            
-        # Solve the resulting linear system of equations
-        linalg.solve_triangular(self.L, self.u, lower=True,
-                                trans='N', overwrite_b=True)
-        linalg.solve_triangular(self.L, self.u, lower=True, 
-                                trans='T', overwrite_b=True)
-
-        compliance = np.dot(self.u, self.f)
-
-        # Compute the compliance objective
-        fobj = np.dot(self.u, self.f)/self.obj_scale
-
-        # Set the penalty parameters
-        fpenalty = 0.0
-        for i in xrange(self.nelems):
-            fpenalty += 0.5*gamma[i]*((2.0 - x[self.nblock*i])*x[self.nblock*i])
-            for j in xrange(1, self.nblock):
-                fpenalty -= 0.5*gamma[i]*x[self.nblock*i+j]**2
-
-        # Compute the mass of the entire truss
-        mass = np.dot(self.gmass, x)
-
-        # Add the mass constraint term
-        if self.use_mass_constraint:
-            fobj += self.sigma*x[-2]
-        else:
-            fobj += 0.5*self.sigma*(mass/self.m_fixed - 1.0)**2
-
-        # Add the full penalty from the objective
-        fpenalty += fobj
-
-        return compliance, fobj, fpenalty
 
     def getMass(self, x):
         '''Return the mass of the truss'''
@@ -418,19 +304,13 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             self.obj_scale = 1.0*obj
 
         # Scale the compliance objective
-        obj = obj/self.obj_scale + np.dot(self.penalty, x)
+        obj = obj/self.obj_scale
                     
         # Compute the mass of the entire truss
         mass = np.dot(self.gmass, x)
 
-        if self.use_mass_constraint:            
-            # Create the constraint c(x) >= 0.0 for the mass
-            obj += self.sigma*x[-2]
-            con = np.array([mass/self.m_fixed - 1.0 - x[-2] + x[-1]])
-        else:
-            # Add the deviation from the fixed mass to the objective function
-            obj += 0.5*self.sigma*(mass/self.m_fixed - 1.0)**2
-            con = np.array([])
+        # Create the constraint c(x) >= 0.0 for the mass
+        con = np.array([mass/self.m_fixed - 1.0])
 
         fail = 0
         return fail, obj, con
@@ -471,23 +351,9 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Scale the objective gradient
         gobj /= self.obj_scale
-        gobj[:] += self.penalty
 
-        # Check how to handle the mass constraint
-        if self.use_mass_constraint:
-            # Add the contribution to the constraint
-            Acon[0,:] = self.gmass[:]/self.m_fixed
-            Acon[0,-2] = -1.0
-            Acon[0,-1] = 1.0
-
-            # Add the contribution to the objective gradient
-            gobj[-2] += self.sigma
-        else:
-            # Compute the mass of the truss
-            mass = np.dot(self.gmass, x)
-
-            # Add the contribution to the gradient of the mass
-            gobj[:] += (self.sigma/self.m_fixed)*(mass/self.m_fixed - 1.0)*self.gmass
+        # Add the contribution to the constraint
+        Acon[0,:] = self.gmass[:]/self.m_fixed
 
         fail = 0
         return fail
@@ -537,10 +403,6 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Evaluate the derivative
         hvec /= self.obj_scale
-
-        if not self.use_mass_constraint:
-            # Add the contribution from the mass penalty term in the objective function
-            hvec[:] += self.sigma*self.gmass*np.dot(self.gmass, px)/self.m_fixed**2
 
         fail = 0
         return fail
@@ -599,8 +461,6 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         f = np.zeros(self.nvars)
 
         mark = np.zeros(self.nvars, dtype=np.int)
-
-        print 'count = ', sum(xinfty[::self.nblock])
 
         # Loop over each element in the mesh
         index = 0

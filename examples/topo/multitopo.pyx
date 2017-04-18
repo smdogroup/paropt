@@ -15,8 +15,8 @@ from libc.string cimport const_char
 from cpython cimport PyObject, Py_INCREF
 
 # Import the TACS module
-from tacs.python.TACS cimport *
-from tacs.python.constitutive cimport *
+from tacs.TACS cimport *
+from tacs.constitutive cimport *
 
 cdef extern from "mpi-compat.h":
     pass

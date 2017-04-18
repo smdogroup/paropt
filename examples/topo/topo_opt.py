@@ -14,7 +14,7 @@ import multitopo
 
 class TACSAnalysis(ParOpt.pyParOptProblem):
     def __init__(self, tacs, const, num_materials,
-                 sigma=10.0, m_fixed=1.0, eps=1e-4):
+                 m_fixed=1.0, eps=1e-4):
         '''
         Analysis problem
         '''
@@ -30,7 +30,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         # Set the number of design variables
         ncon = 1
         nwblock = 1
-        self.num_design_vars = (self.num_materials+1)*self.num_elements + 2
+        self.num_design_vars = (self.num_materials+1)*self.num_elements
 
         # Initialize the super class
         super(TACSAnalysis, self).__init__(MPI.COMM_SELF,
@@ -59,8 +59,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         # Set the block size
         self.nwblock = self.num_materials+1
 
-        # Set the l1 penalty function
-        self.penalty = np.zeros(self.num_design_vars)
+        # Set the linearization point
         self.xinit = np.zeros(self.num_design_vars)
         self.xcurr = np.zeros(self.num_design_vars)
 
@@ -70,7 +69,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         # Create the mass function and evaluate the gradient of the
         # mass. This is assumed to remain constatnt throughout the
         # optimization.
-        self.mass_func = functions.mass(self.tacs)
+        self.mass_func = functions.StructuralMass(self.tacs)
         self.tacs.evalDVSens(self.mass_func, self.gmass)
 
         # Set the initial variable values
@@ -89,9 +88,6 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         # Set the scaling for the objective value
         self.obj_scale = None
 
-        # Set the sigma value for the mass constraint
-        self.sigma = sigma
-
         # Set the target fixed mass
         self.m_fixed = m_fixed
 
@@ -103,7 +99,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
 
         return
         
-    def setNewInitPointPenalty(self, x, gamma):
+    def setNewInitPointPenalty(self, x):
         '''
         Set the linearized penalty function, given the design variable
         values from the previous iteration and the penalty parameters
@@ -115,20 +111,13 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         # For each constitutive point, set the new linearization point
         for con in self.const:
             con.setLinearization(self.RAMP_penalty, self.xinit)
-
-        # Set the penalty parameters
-        for i in xrange(self.num_elements):
-            self.penalty[self.nblock*i] = gamma[i]*(1.0 - x[self.nblock*i])
-            for j in xrange(1, self.nblock):
-                self.penalty[self.nblock*i+j] = -gamma[i]*x[self.nblock*i+j]
-
+            
         return
 
     def getDiscreteInfeas(self, x):
         '''
         Compute the discrete infeasibility measure at a given design point
         '''
-        
         d = np.zeros(self.num_elements)
         for i in xrange(self.num_elements):
             tnum = self.nblock*i
@@ -136,31 +125,10 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
             
         return d
 
-    def computeLimitDesign(self, x):
-        '''
-        Compute the solution as gamma -> infty
-        '''
-        xinfty = np.zeros(x.shape)
-
-        for i in xrange(self.num_elements):
-            jmax = np.argmax(x[i*self.nblock+1:(i+1)*self.nblock])+1
-            if 1.0 - x[i*self.nblock] > x[i*self.nblock+jmax]:
-                jmax = 0
-
-            if jmax != 0:
-                xinfty[i*self.nblock] = 1.0
-                xinfty[i*self.nblock+jmax] = 1.0
-
-        return xinfty                
-
     def getVarsAndBounds(self, x, lb, ub):
         '''Get the design variable values and the bounds'''
         self.tacs.getDesignVars(x)
         self.tacs.getDesignVarRange(lb, ub)
-
-        # Set bounds for the mass penalty function
-        lb[-2:] = 0.0
-        ub[-2:] = 1e20
         return
         
     def evalSparseCon(self, x, con):
@@ -191,43 +159,23 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         A[:] += alpha*np.sum(c[:n].reshape(-1, self.nblock), axis=1)        
         return
 
-    def getL1Objective(self, x, gamma):
+    def getCompliance(self, x):
         '''Compute the full objective'''
 
         # Set the design variable values
         self.tacs.setDesignVars(x)
-        self.setNewInitPointPenalty(x, gamma)
+        self.setNewInitPointPenalty(x)
 
         # Assemble the Jacobian
         self.tacs.zeroVariables()
-        self.tacs.assembleJacobian(self.res, self.mat,
-                                   1.0, 0.0, 0.0)
+        self.tacs.assembleJacobian(1.0, 0.0, 0.0, self.res, self.mat)
         self.pc.factor()
         self.ksm.solve(self.res, self.u)
 
         # Compute the compliance objective
         compliance = self.u.dot(self.res)
-        fobj = compliance/self.obj_scale
-        
-        # Set the variable values
-        self.u.scale(-1.0)
-        self.tacs.setVariables(self.u)
 
-        # Set the penalty parameters
-        fpenalty = 0.0
-        for i in xrange(self.num_elements):
-            fpenalty += 0.5*gamma[i]*((2.0 - x[self.nblock*i])*x[self.nblock*i])
-            for j in xrange(1, self.nblock):
-                fpenalty -= 0.5*gamma[i]*x[self.nblock*i+j]**2
-
-        # Add the mass constraint term
-        mass = np.dot(self.gmass, x)
-        fobj += self.sigma*x[-2]
-
-        # Add the full penalty from the objective
-        fpenalty += fobj
-
-        return compliance, fobj, fpenalty
+        return compliance
 
     def getMass(self, x):
         '''Return the mass of the truss'''
@@ -248,8 +196,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
 
         # Assemble the Jacobian
         self.tacs.zeroVariables()
-        self.tacs.assembleJacobian(self.res, self.mat,
-                                   1.0, 0.0, 0.0)
+        self.tacs.assembleJacobian(1.0, 0.0, 0.0, self.res, self.mat)
         self.pc.factor()
         self.ksm.solve(self.res, self.u)
 
@@ -261,16 +208,15 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         # Scale the variables and set the state variables
         self.u.scale(-1.0)
         self.tacs.setVariables(self.u)
-
+        
         # Scale the compliance objective
-        obj = obj/self.obj_scale + np.dot(self.penalty, x)
+        obj = obj/self.obj_scale
                     
         # Compute the mass of the entire truss
         mass = np.dot(self.gmass, x)
 
         # Create the constraint c(x) >= 0.0 for the mass
-        obj += self.sigma*x[-2]
-        con = np.array([mass/self.m_fixed - 1.0 - x[-2] + x[-1]])
+        con = np.array([mass/self.m_fixed - 1.0])
 
         fail = 0
         return fail, obj, con
@@ -283,23 +229,14 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         # Add the number of gradient evaluations
         self.gevals += 1
 
-        # Zero the objecive and constraint gradients
-        gobj[:] = 0.0
-
         # Evaluate the derivative
         self.tacs.evalAdjointResProduct(self.u, gobj)
 
         # Scale the objective gradient
         gobj[:] /= -self.obj_scale
-        gobj[:] += self.penalty
 
         # Add the contribution to the constraint
         Acon[0,:] = self.gmass/self.m_fixed
-        Acon[0,-2] = -1.0
-        Acon[0,-1] = 1.0
-        
-        # Add the contribution to the objective gradient
-        gobj[-2] += self.sigma
 
         # Return the 
         fail = 0
@@ -337,8 +274,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         self.f5.writeToFile(filename)
         return
     
-def create_structure(comm, nx=8, ny=8, Lx=100.0, Ly=100.0,
-                     sigma=20, eps=1e-3):
+def create_structure(comm, nx=8, ny=8, Lx=100.0, Ly=100.0, eps=1e-3):
     '''
     Create a structure with the speicified number of nodes along the
     x/y directions, respectively.
@@ -398,7 +334,7 @@ def create_structure(comm, nx=8, ny=8, Lx=100.0, Ly=100.0,
         
         # Set the boundary condition pointers
         bcptr = np.arange(0, nbcs+1, 2, dtype=np.intc)
-        creator.setBoundaryConditions(bcnodes, bcvars, bcptr)
+        creator.setBoundaryConditions(bcnodes, bcptr, bcvars)
         
         # Set the node locations
         Xpts = np.zeros(3*nnodes)
@@ -456,7 +392,7 @@ def create_structure(comm, nx=8, ny=8, Lx=100.0, Ly=100.0,
 
     # Create the analysis object
     analysis = TACSAnalysis(tacs, const, len(E),
-                            sigma=sigma, eps=eps, m_fixed=m_fixed)
+                            eps=eps, m_fixed=m_fixed)
 
     return analysis
 
@@ -652,10 +588,9 @@ def write_tikz_file(x, nx, ny, nmats, filename):
     return
 
 def optimize_plane_stress(comm, nx, ny, root_dir='results',
-                          sigma=100.0, max_d=1e-4, theta=1e-3,
                           parameter=5.0, max_iters=50, optimizer='paropt'):
     # Optimize the structure
-    penalization='RAMP'
+    penalization = 'RAMP'
     heuristic = '%s%.0f_%s'%(penalization, parameter, optimizer)
     prefix = os.path.join(root_dir, '%dx%d'%(nx, ny), heuristic)
     
@@ -664,7 +599,7 @@ def optimize_plane_stress(comm, nx, ny, root_dir='results',
         os.makedirs(prefix)
    
     # Create the ground structure and optimization
-    analysis = create_structure(comm, nx, ny, sigma=sigma)
+    analysis = create_structure(comm, nx, ny)
     
     # Set up the optimization problem in ParOpt
     if optimizer == 'paropt':
@@ -677,34 +612,21 @@ def optimize_plane_stress(comm, nx, ny, root_dir='results',
     fp = open(log_filename, 'w')
 
     # Write the header out to the file
-    s = 'Variables = iteration, "compliance", "fobj", "fpenalty", '
-    s += '"min gamma", "max gamma", "gamma", '
-    s += '"min d", "max d", "tau", "ninfeas", "mass infeas", '
+    s = 'Variables = iteration, "compliance" '
+    s += '"min d", "max d", "tau", '
     s += 'feval, geval, hvec, time\n'
     s += 'Zone T = %s\n'%(heuristic)
     fp.write(s)
 
+    # Set the penalty parameter
+    analysis.RAMP_penalty = parameter
+    analysis.setNewInitPointPenalty(analysis.xinit)
+    
     # Keep track of the ellapsed CPU time
     init_time = MPI.Wtime()
 
-    # Initialize the gamma values
-    gamma = np.zeros(analysis.num_elements)
-
-    # Previous value of the objective function
-    fobj_prev = 0.0
-
-    # Set the first time
-    first_time = True
-
     # Set the initial compliance value
     comp_prev = 0.0
-
-    # Set the tolerances for increasing/decreasing tau
-    delta_tau_target = 1.0
-
-    # Set the target rate of increase in gamma
-    delta_max = 10.0
-    delta_min = 1e-3
 
     # Keep track of the number of iterations
     niters = 0
@@ -718,6 +640,7 @@ def optimize_plane_stress(comm, nx, ny, root_dir='results',
 
         # Optimize the truss
         if k > 0:
+            opt.setInitStartingPoint(0)
             opt.setInitBarrierParameter(1e-4)
         opt.optimize()
 
@@ -727,43 +650,23 @@ def optimize_plane_stress(comm, nx, ny, root_dir='results',
         # Get the discrete infeasibility measure
         d = analysis.getDiscreteInfeas(x)
 
-        # Compute the infeasibility of the mass constraint
-        m_infeas = analysis.getMass(x)/analysis.m_fixed - 1.0
-
         # Compute the discrete infeasibility measure
         tau = np.sum(d)
 
         # Get the compliance and objective values
-        comp, fobj, fpenalty = analysis.getL1Objective(x, gamma)
-
-        # Keep track of how many bars are discrete infeasible
-        draw_list = []
-        for i in xrange(len(d)):
-            if d[i] > max_d:
-                draw_list.append(i)
+        comp = analysis.getCompliance(x)
 
         # Print out the iteration information to the screen
         print 'Iteration %d'%(k)
-        print 'Min/max gamma: %15.5e %15.5e  Total: %15.5e'%(
-            np.min(gamma), np.max(gamma), np.sum(gamma))
         print 'Min/max d:     %15.5e %15.5e  Total: %15.5e'%(
             np.min(d), np.max(d), np.sum(d))
-        print 'Mass infeas:   %15.5e'%(m_infeas)
 
-        s = '%d %e %e %e %e %e %e %e %e %e %2d %e '%(
-            k, comp, fobj, fpenalty,
-            np.min(gamma), np.max(gamma), np.sum(gamma),
-            np.min(d), np.max(d), np.sum(d), len(draw_list), m_infeas)
+        s = '%d %e %e %e %e '%(k, comp, np.min(d), np.max(d), np.sum(d))
         s += '%d %d %d %e\n'%(
             analysis.fevals, analysis.gevals, analysis.hevals, 
             MPI.Wtime() - init_time)
         fp.write(s)
         fp.flush()
-
-        # Terminate if the maximum discrete infeasibility measure is
-        # sufficiently low
-        if np.max(d) <= max_d:
-            break
 
         # Print the output
         filename = 'opt_struct_iter%d.f5'%(k)
@@ -773,44 +676,15 @@ def optimize_plane_stress(comm, nx, ny, root_dir='results',
         # Print out the design variables
         filename = 'opt_struct_iter%d.tex'%(k)
         output = os.path.join(prefix, filename)
-        write_tikz_file(x[:-2], nx, ny, analysis.num_materials, output)
+        write_tikz_file(x, nx, ny, analysis.num_materials, output)
 
-        if (np.fabs((comp - comp_prev)/comp) < 1e-3):
-            if first_time:
-                # Set the new value of delta
-                gamma[:] = delta_min
+        if k > 0 and (np.fabs((comp - comp_prev)/comp) < 1e-3):
+            break
 
-                # Keep track of the previous value of the discrete
-                # infeasibility measure
-                tau_iter = 1.0*tau
-                delta_iter = 1.0*delta_min
-
-                # Set the first time flag to false
-                first_time = False
-            else:
-                # Set the maximum delta initially
-                delta = 1.0*delta_max
-
-                # Limit the rate of discrete infeasibility increase
-                tau_rate = (tau_iter - tau)/delta_iter 
-                delta = max(min(delta, delta_tau_target/tau_rate), delta_min)
-                gamma[:] = gamma + delta
-
-                # Print out the chosen scaling for the design variables
-                print 'Delta:         %15.5e'%(delta)
-
-                # Keep track of the discrete infeasibility measure
-                tau_iter = 1.0*tau
-                delta_iter = 1.0*delta
-
-        xinfty = analysis.computeLimitDesign(x)
-        
         # Set the new penalty
-        analysis.RAMP_penalty = parameter
-        analysis.setNewInitPointPenalty(x, gamma)
+        analysis.setNewInitPointPenalty(x)
 
         # Store the previous value of the objective function
-        fobj_prev = 1.0*fobj
         comp_prev = 1.0*comp
 
         # Increase the iteration counter
@@ -822,17 +696,12 @@ def optimize_plane_stress(comm, nx, ny, root_dir='results',
     # Print out the design variables
     filename = 'final_opt_struct.tex'
     output = os.path.join(prefix, filename)
-    write_tikz_file(x[:-2], nx, ny, analysis.num_materials, output)
+    write_tikz_file(x, nx, ny, analysis.num_materials, output)
 
     # Save the final optimized point
     fname = os.path.join(prefix, 'x_opt.dat')
     x = opt.getOptimizedPoint()
     np.savetxt(fname, x)
-
-    # Get the rounded design
-    xinfty = analysis.computeLimitDesign(x)
-    fname = os.path.join(prefix, 'x_opt_infty.dat')
-    np.savetxt(fname, xinfty)
 
     return
 
@@ -844,12 +713,8 @@ parser.add_argument('--ny', type=int, default=24,
                     help='Nodes in y-direction')
 parser.add_argument('--parameter', type=float, default=5.0,
                     help='Penalization parameter')
-parser.add_argument('--sigma', type=float, default=100.0,
-                    help='Mass penalty parameter value')
 parser.add_argument('--optimizer', type=str, default='paropt',
                     help='Optimizer name')
-parser.add_argument('--x_infty', type=str, default=None,
-                    help='Infinity solution for analysis')
 parser.add_argument('--use_hessian', default=False,
                     action='store_true',
                     help='Use hessian-vector products')
@@ -859,29 +724,13 @@ args = parser.parse_args()
 nx = args.nx
 ny = args.ny
 parameter = args.parameter
-sigma = args.sigma
 optimizer = args.optimizer
 use_hessian = args.use_hessian
-x_infty = args.x_infty
 
 # Set the root results directory
 root_dir = 'results'
 
 comm = MPI.COMM_WORLD
-if x_infty is not None:
-    # Load in the input file
-    x = np.loadtxt(x_infty)
-
-    # Create the analysis object
-    analysis = create_structure(comm, nx, ny, sigma=sigma)
-    analysis.evalObjCon(x)
-
-    # Perform the analysis about the infinity design point
-    gamma = np.zeros(analysis.num_elements)
-    comp, fobj, fpenalty = analysis.getL1Objective(x, gamma)
-
-    print 'Compliance = %15.8e'%(comp)
-else:
-    optimize_plane_stress(comm, nx, ny, root_dir=root_dir,
-                          sigma=sigma, parameter=parameter,
-                          max_iters=50, optimizer=optimizer)
+optimize_plane_stress(comm, nx, ny, root_dir=root_dir,
+                      parameter=parameter,
+                      max_iters=50, optimizer=optimizer)

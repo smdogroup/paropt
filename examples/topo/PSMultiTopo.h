@@ -252,7 +252,7 @@ void assembleResProjectDVSens( TACSAssembler *tacs,
   residual->endSetValues(ADD_VALUES);
 
   // Set the boundary conditions
-  residual->applyBCs();
+  tacs->applyBCs(residual);
 }
 
 #endif // PLANE_STRESS_MULTI_TOPO_H
