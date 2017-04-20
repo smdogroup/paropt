@@ -7,9 +7,9 @@ PY_INCLUDE = ${PYTHON_INCLUDE} -I${NUMPY_DIR} -I${MPI4PY_DIR}
 CYTHON_INCLUDE = -I${NUMPY_DIR} -I${MPI4PY_DIR}
 
 # ParOpt shared objects
-CYTHON_SO = multitopo.${SO_EXT}
+CYTHON_SO = multitopo.so
 
-default: ${CYTHON_SO}
+default: PSMultiTopo.o ${CYTHON_SO}
 
 debug: TACS_CC_FLAGS=${TACS_DEBUG_CC_FLAGS}
 debug: default
@@ -20,10 +20,8 @@ debug: default
 %.o:%.cpp
 	${CXX} -I${TACS_DIR}/tacs/ ${TACS_CC_FLAGS} ${PY_INCLUDE} -c $< -o $@
 
-%.${SO_EXT}:%.o
-	${CXX} ${SO_LINK_FLAGS} $<  ${TACS_LD_FLAGS} -o $@
+multitopo.so: multitopo.o PSMultiTopo.o
+	${CXX} ${SO_LINK_FLAGS} multitopo.o PSMultiTopo.o ${TACS_LD_FLAGS} -o $@
 
 clean:
-	${RM} *.cpp
-	${RM} *.${SO_EXT}
-	${RM} *.o
+	${RM} *.so *.o 

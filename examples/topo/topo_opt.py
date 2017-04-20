@@ -13,11 +13,14 @@ from paropt import ParOpt
 import multitopo
 
 class TACSAnalysis(ParOpt.pyParOptProblem):
-    def __init__(self, tacs, const, num_materials,
-                 m_fixed=1.0, eps=1e-4):
+    def __init__(self, comm, tacs, const, num_materials,
+                 xpts=None, conn=None, m_fixed=1.0):
         '''
         Analysis problem
         '''
+
+        # Keep the communicator
+        self.comm = comm
 
         # Set the TACS object and the constitutive list
         self.tacs = tacs
@@ -27,13 +30,17 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         self.num_materials = num_materials
         self.num_elements = self.tacs.getNumElements()
 
+        # Keep the pointer to the connectivity/positions
+        self.xpts = xpts
+        self.conn = conn
+
         # Set the number of design variables
         ncon = 1
         nwblock = 1
         self.num_design_vars = (self.num_materials+1)*self.num_elements
 
         # Initialize the super class
-        super(TACSAnalysis, self).__init__(MPI.COMM_SELF,
+        super(TACSAnalysis, self).__init__(comm,
                                            self.num_design_vars, ncon,
                                            self.num_elements, nwblock)
 
@@ -73,8 +80,16 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         self.tacs.evalDVSens(self.mass_func, self.gmass)
 
         # Set the initial variable values
-        self.xinit[:] = 1.0/self.num_materials
+        self.xinit[:] = 1.0
         self.xinit[::self.nblock] = 1.0
+
+        # Set the target fixed mass
+        self.m_fixed = m_fixed
+
+        # Set the initial design variable values
+        xi = self.m_fixed/np.dot(self.gmass, self.xinit)
+        self.xinit[:] = xi/self.num_materials
+        self.xinit[::self.nblock] = xi
 
         # Set the initial linearization
         self.RAMP_penalty = 0.0
@@ -87,9 +102,6 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
 
         # Set the scaling for the objective value
         self.obj_scale = None
-
-        # Set the target fixed mass
-        self.m_fixed = m_fixed
 
         # Set the number of function/gradient/hessian-vector
         # evaluations to zero
@@ -110,7 +122,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
 
         # For each constitutive point, set the new linearization point
         for con in self.const:
-            con.setLinearization(self.RAMP_penalty, self.xinit)
+            con.setLinearization(self.xinit)
             
         return
 
@@ -127,8 +139,14 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
 
     def getVarsAndBounds(self, x, lb, ub):
         '''Get the design variable values and the bounds'''
+        q = 5.0
+        
         self.tacs.getDesignVars(x)
         self.tacs.getDesignVarRange(lb, ub)
+        ub[:] = 1e30
+        lb[:] = q/(1.0 + q)*self.xinit[:]
+        ub[::self.nblock] = 1.0
+        lb[::self.nblock] = -1e30
         return
         
     def evalSparseCon(self, x, con):
@@ -274,57 +292,127 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         self.f5.writeToFile(filename)
         return
     
-def create_structure(comm, nx=8, ny=8, Lx=100.0, Ly=100.0, eps=1e-3):
+    def writeTikzFile(self, x, filename):
+        '''Write a tikz file'''
+
+        if (self.comm.rank == 0 and
+            (self.xpts is not None) and (self.conn is not None)):
+            # Create the initial part of the tikz string
+            tikz = '\\documentclass{article}\n'
+            tikz += '\\usepackage[usenames,dvipsnames]{xcolor}\n'
+            tikz += '\\usepackage{tikz}\n'
+            tikz += '\\usepackage[active,tightpage]{preview}\n'
+            tikz += '\\PreviewEnvironment{tikzpicture}\n'
+            tikz += '\\setlength\PreviewBorder{5pt}%\n\\begin{document}\n'
+            tikz += '\\begin{figure}\n\\begin{tikzpicture}[x=0.25cm, y=0.25cm]\n'
+            tikz += '\\sffamily\n'
+               
+            # Write out a tikz file
+            grey = [225, 225, 225]
+            rgbvals = [(44, 160, 44),
+                       (255, 127, 14),
+                       (31, 119, 180)]
+
+            for i in xrange(self.conn.shape[0]):
+                # Determine the color to use
+                kmax = np.argmax(x[self.nblock*i+1:self.nblock*(i+1)])
+            
+                u = x[self.nblock*i]
+                r = (1.0 - u)*grey[0] + u*rgbvals[kmax][0]
+                g = (1.0 - u)*grey[1] + u*rgbvals[kmax][1]
+                b = (1.0 - u)*grey[2] + u*rgbvals[kmax][2]
+
+                tikz += '\\definecolor{mycolor}{RGB}{%d,%d,%d}\n'%(
+                    int(r), int(g), int(b))
+                tikz += '\\fill[mycolor] (%f,%f) -- (%f,%f)'%(
+                    self.xpts[self.conn[i,0],0], self.xpts[self.conn[i,0],1],
+                    self.xpts[self.conn[i,1],0], self.xpts[self.conn[i,1],1])
+                tikz += '-- (%f,%f) -- (%f,%f) -- cycle;\n'%(
+                    self.xpts[self.conn[i,3],0], self.xpts[self.conn[i,3],1],
+                    self.xpts[self.conn[i,2],0], self.xpts[self.conn[i,2],1])
+                        
+            tikz += '\\end{tikzpicture}\\end{figure}\\end{document}\n'
+    
+            # Write the solution file
+            fp = open(filename, 'w')
+            if fp:
+                fp.write(tikz)
+                fp.close()
+
+        return
+
+def rectangular_domain(nx, ny, Lx=100.0):
+
+    # Set the y-dimension based on a unit aspect ratio
+    Ly = (ny*Lx)/nx
+
+    # Compute the total area
+    area = Lx*Ly
+    
+    # Set the number of elements/nodes in the problem
+    nnodes = (nx+1)*(ny+1)
+    nelems = nx*ny
+    nodes = np.arange(nnodes).reshape((nx+1, ny+1))          
+
+    # Set the node locations
+    xpts = np.zeros((nnodes, 3))
+    x = np.linspace(0, Lx, nx+1)
+    y = np.linspace(0, Ly, ny+1)
+    for j in xrange(ny+1):
+        for i in xrange(nx+1):
+            xpts[nodes[i,j],0] = x[i]
+            xpts[nodes[i,j],1] = y[j]
+
+    # Set the connectivity and create the corresponding elements
+    conn = np.zeros((nelems, 4), dtype=np.intc)
+    for j in xrange(ny):
+        for i in xrange(nx):
+            # Append the first set of nodes
+            n = i + nx*j
+            conn[n,0] = nodes[i, j]
+            conn[n,1] = nodes[i+1, j]
+            conn[n,2] = nodes[i, j+1]
+            conn[n,3] = nodes[i+1, j+1]
+
+    bcs = np.array(nodes[0,:], dtype=np.intc)
+            
+    # Create the tractions and add them to the surface
+    surf = 1 # The u=1 positive surface
+    tx = np.zeros(2)
+    ty = -100*np.ones(2)
+    trac = elements.PSQuadTraction(surf, tx, ty)
+
+    # Create the auxiliary element class    
+    aux = TACS.AuxElements()
+    for j in xrange(ny/8):
+        num = nx-1 + nx*j
+        aux.addElement(num, trac)
+        
+    return xpts, conn, bcs, aux, area
+
+def create_structure(comm, props, xpts, conn, bcs, aux, m_fixed, r0=4):
     '''
     Create a structure with the speicified number of nodes along the
     x/y directions, respectively.
     '''
-
-    # Set the material properties
-    rho =    np.array([0.7,   1.0, 1.15])
-    E = 70e3*np.array([0.725, 1.0, 1.125])
-    nu =     np.array([0.3,  0.3, 0.3])
-
-    # Compute the fixed mass fraction
-    m_fixed = 0.3*Lx*Ly*rho[1]
     
     # Set the number of design variables
-    num_design_vars = (len(E) + 1)*nx*ny
+    nnodes = len(xpts)
+    nelems = len(conn)
+    num_design_vars = (len(E) + 1)*nelems
 
     # Create the TACS creator object
     creator = TACS.Creator(comm, 2)
 
     # Set up the mesh on the root processor
-    if comm.rank == 0:
-        # Set the nodes
-        nnodes = (2*nx+1)*(2*ny+1)
-        nelems = nx*ny
-        nodes = np.arange(nnodes).reshape((2*nx+1, 2*ny+1))
-        
-        # Set the connectivity and create the corresponding elements
-        conn = np.zeros((nelems, 9), dtype=np.intc)
-        for j in xrange(ny):
-            for i in xrange(nx):
-                # Append the first set of nodes
-                n = i + nx*j
-                conn[n,0] = nodes[2*i, 2*j]
-                conn[n,1] = nodes[2*i+1, 2*j]
-                conn[n,2] = nodes[2*i+2, 2*j]
-                conn[n,3] = nodes[2*i, 2*j+1]
-                conn[n,4] = nodes[2*i+1, 2*j+1]
-                conn[n,5] = nodes[2*i+2, 2*j+1]
-                conn[n,6] = nodes[2*i, 2*j+2]
-                conn[n,7] = nodes[2*i+1, 2*j+2]
-                conn[n,8] = nodes[2*i+2, 2*j+2]            
-        
+    if comm.rank == 0:        
         # Set the node pointers
-        conn = conn.flatten()
-        ptr = np.arange(0, 9*nelems+1, 9, dtype=np.intc)
+        ptr = np.arange(0, 4*nelems+1, 4, dtype=np.intc)
         elem_ids = np.arange(nelems, dtype=np.intc)
-        creator.setGlobalConnectivity(nnodes, ptr, conn, elem_ids)
+        creator.setGlobalConnectivity(nnodes, ptr, conn.flatten(), elem_ids)
 
         # Set up the boundary conditions
-        bcnodes = np.array(nodes[0,:], dtype=np.intc)
+        bcnodes = np.array(bcs, dtype=np.intc)
         
         # Set the boundary condition variables
         nbcs = 2*bcnodes.shape[0]
@@ -337,28 +425,35 @@ def create_structure(comm, nx=8, ny=8, Lx=100.0, Ly=100.0, eps=1e-3):
         creator.setBoundaryConditions(bcnodes, bcptr, bcvars)
         
         # Set the node locations
-        Xpts = np.zeros(3*nnodes)
-        x = np.linspace(0, Lx, 2*nx+1)
-        y = np.linspace(0, Ly, 2*ny+1)
-        for j in xrange(2*ny+1):
-            for i in xrange(2*nx+1):
-                Xpts[3*nodes[i,j]] = x[i]
-                Xpts[3*nodes[i,j]+1] = y[j]
-                
-        # Set the node locations
-        creator.setNodes(Xpts)  
-    
-    # Create the elements in the 
+        creator.setNodes(xpts.flatten())
+
+    # Create the filter and the elements for each point
     elems = []
     const = []
-    for j in xrange(ny):
-        for i in xrange(nx):
-            # Create the plane stress stiffness
-            n = i + nx*j
-            dv_offset = (1 + len(E))*n
-            ps = multitopo.MultiTopo(rho, E, nu, dv_offset, eps)
-            const.append(ps)
-            elems.append(elements.PlaneQuad(3, ps))
+    xcentroid = np.zeros((nelems, 3))
+    for i in xrange(nelems):
+        xcentroid[i] = 0.25*(xpts[conn[i,0]] + xpts[conn[i,1]] +
+                             xpts[conn[i,2]] + xpts[conn[i,3]])    
+
+    # Find the closest points
+    locator = multitopo.Locator(xcentroid)
+    max_points = 15
+    for i in xrange(nelems):
+        # Get the closest points to the centroid of this element
+        nodes, dist = locator.closest(xcentroid[i], max_points)
+        index = 0
+        while index < max_points and dist[index] < r0:
+            index += 1
+
+        # Create the filter weights
+        nodes = nodes[:index]
+        weights = ((r0 - dist[:index])/r0)**2
+        weights = weights/np.sum(weights)
+
+        # Create the plane stress object
+        ps = multitopo.MultiTopo(props, nodes, weights)
+        const.append(ps)
+        elems.append(elements.PlaneQuad(2, ps))
 
     # Set the elements
     creator.setElements(elems)
@@ -375,24 +470,13 @@ def create_structure(comm, nx=8, ny=8, Lx=100.0, Ly=100.0, eps=1e-3):
     else:
         partition = comm.bcast(root=0)
     
-    # Create the tractions and add them to the surface
-    surf = 1 # The u=1 positive surface
-    tx = np.zeros(3)
-    ty = -100*np.ones(3)
-    trac = elements.PSQuadTraction(surf, tx, ty)
-
-    # Create the auxiliary element class    
-    aux = TACS.AuxElements()
-    for j in xrange(ny/8):
-        num = nx-1 + nx*j
-        aux.addElement(num, trac)
-
     # Add the auxiliary element class to TACS
     tacs.setAuxElements(aux)
 
     # Create the analysis object
-    analysis = TACSAnalysis(tacs, const, len(E),
-                            eps=eps, m_fixed=m_fixed)
+    analysis = TACSAnalysis(comm, tacs, const, len(E),
+                            conn=conn, xpts=xpts,
+                            m_fixed=m_fixed)
 
     return analysis
 
@@ -539,55 +623,7 @@ def create_pyopt(analysis, optimizer='snopt', options={}):
 
     return wrap
 
-def write_tikz_file(x, nx, ny, nmats, filename):
-    '''Write a tikz file'''
-    
-    # Create the initial part of the tikz string
-    tikz = '\\documentclass{article}\n'
-    tikz += '\\usepackage[usenames,dvipsnames]{xcolor}\n'
-    tikz += '\\usepackage{tikz}\n'
-    tikz += '\\usepackage[active,tightpage]{preview}\n'
-    tikz += '\\PreviewEnvironment{tikzpicture}\n'
-    tikz += '\\setlength\PreviewBorder{5pt}%\n\\begin{document}\n'
-    tikz += '\\begin{figure}\n\\begin{tikzpicture}[x=0.25cm, y=0.25cm]\n'
-    tikz += '\\sffamily\n'
-
-    x = x.reshape((ny, nx, nmats+1))
-    
-    # Write out the file so that it looks like a multi-material problem
-    grey = [225, 225, 225]
-    rgbvals = [(44, 160, 44),
-               (255, 127, 14),
-               (31, 119, 180)]
-
-    X = np.linspace(0, 50, nx+1)
-    Y = np.linspace(0, 50, ny+1)
-
-    for j in xrange(ny):
-        for i in xrange(nx):
-            # Determine the color to use
-            kmax = np.argmax(x[j, i, 1:])
-            
-            u = x[j,i,0]
-            r = (1.0 - u)*grey[0] + u*rgbvals[kmax][0]
-            g = (1.0 - u)*grey[1] + u*rgbvals[kmax][1]
-            b = (1.0 - u)*grey[2] + u*rgbvals[kmax][2]
-
-            tikz += '\\definecolor{mycolor}{RGB}{%d,%d,%d}\n'%(
-                int(r), int(g), int(b))
-            tikz += '\\fill[mycolor] (%f, %f) rectangle (%f, %f);\n'%(
-                X[i], Y[j], X[i+1], Y[j+1])
-                        
-    tikz += '\\end{tikzpicture}\\end{figure}\\end{document}\n'
-    # Write the solution file
-    fp = open(filename, 'w')
-    if fp:
-        fp.write(tikz)
-        fp.close()
-
-    return
-
-def optimize_plane_stress(comm, nx, ny, root_dir='results',
+def optimize_plane_stress(comm, analysis, root_dir='results',
                           parameter=5.0, max_iters=50, optimizer='paropt'):
     # Optimize the structure
     penalization = 'RAMP'
@@ -597,10 +633,7 @@ def optimize_plane_stress(comm, nx, ny, root_dir='results',
     # Make sure that the directory exists
     if not os.path.exists(prefix):
         os.makedirs(prefix)
-   
-    # Create the ground structure and optimization
-    analysis = create_structure(comm, nx, ny)
-    
+       
     # Set up the optimization problem in ParOpt
     if optimizer == 'paropt':
         opt = create_paropt(analysis,
@@ -676,7 +709,7 @@ def optimize_plane_stress(comm, nx, ny, root_dir='results',
         # Print out the design variables
         filename = 'opt_struct_iter%d.tex'%(k)
         output = os.path.join(prefix, filename)
-        write_tikz_file(x, nx, ny, analysis.num_materials, output)
+        analysis.writeTikzFile(x, output)
 
         if k > 0 and (np.fabs((comp - comp_prev)/comp) < 1e-3):
             break
@@ -696,7 +729,7 @@ def optimize_plane_stress(comm, nx, ny, root_dir='results',
     # Print out the design variables
     filename = 'final_opt_struct.tex'
     output = os.path.join(prefix, filename)
-    write_tikz_file(x, nx, ny, analysis.num_materials, output)
+    analysis.writeTikzFile(x, output)
 
     # Save the final optimized point
     fname = os.path.join(prefix, 'x_opt.dat')
@@ -707,9 +740,9 @@ def optimize_plane_stress(comm, nx, ny, root_dir='results',
 
 # Parse the command line arguments 
 parser = argparse.ArgumentParser()
-parser.add_argument('--nx', type=int, default=24, 
+parser.add_argument('--nx', type=int, default=48,
                     help='Nodes in x-direction')
-parser.add_argument('--ny', type=int, default=24, 
+parser.add_argument('--ny', type=int, default=48, 
                     help='Nodes in y-direction')
 parser.add_argument('--parameter', type=float, default=5.0,
                     help='Penalization parameter')
@@ -731,6 +764,26 @@ use_hessian = args.use_hessian
 root_dir = 'results'
 
 comm = MPI.COMM_WORLD
-optimize_plane_stress(comm, nx, ny, root_dir=root_dir,
+
+# Create the connectivity data
+xpts, conn, bcs, aux, area = rectangular_domain(nx, ny)
+
+# Set the material properties
+rho =    np.array([0.7,   1.0, 1.15])
+E = 70e3*np.array([0.725, 1.0, 1.125])
+nu =     np.array([0.3,  0.3, 0.3])
+props = multitopo.MultiTopoProperties(rho, E, nu)
+
+# Compute the fixed mass fraction
+m_fixed = 0.3*area*rho[1]
+
+# Create the analysis object
+r0 = 2*np.sqrt(area/len(conn))
+analysis = create_structure(comm, props, xpts, conn,
+                            bcs, aux, m_fixed, r0=r0)
+
+
+# Optimize the plane stress problem
+optimize_plane_stress(comm, analysis, root_dir=root_dir,
                       parameter=parameter,
                       max_iters=50, optimizer=optimizer)
