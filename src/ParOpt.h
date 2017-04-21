@@ -11,8 +11,8 @@
 #include "ParOptProblem.h"
 
 /*
-  A parallel optimizer implemented in C++ for large-scale constrained
-  optimization.
+  ParOpt is a parallel optimizer implemented in C++ for large-scale 
+  constrained optimization.
 
   This code uses an interior-point method to perform gradient-based
   design optimization. The KKT system is solved using a bordered

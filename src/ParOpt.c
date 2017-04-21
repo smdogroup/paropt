@@ -4277,12 +4277,12 @@ int ParOpt::optimize( const char *checkpoint ){
   the Lagrange multipliers and slack variables from the remaining
   portion of the matrix, yields the following decomposition:
 
-  K = [ 0; A ] + [ H; 0 ]
-  .   [ E; C ]   [ 0; 0 ]
+  K = [ B; A ] + [ H - B; 0 ]
+  .   [ E; C ]   [     0; 0 ]
 
   Setting the precontioner as:
 
-  M = [ 0; A ]
+  M = [ B; A ]
   .   [ E; C ]
 
   We use right-preconditioning and solve the following system:
@@ -4291,8 +4291,8 @@ int ParOpt::optimize( const char *checkpoint ){
 
   where M*x = u, so we compute x = M^{-1}*u
 
-  {[ I; 0 ] + [ H; 0 ]*M^{-1}}[ ux ] = [ bx ] 
-  {[ 0; I ] + [ 0; 0 ]       }[ uy ]   [ by ]
+  {[ I; 0 ] + [ H - B; 0 ]*M^{-1}}[ ux ] = [ bx ] 
+  {[ 0; I ] + [     0; 0 ]       }[ uy ]   [ by ]
 */
 int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt, 
                                          ParOptVec *xt1, ParOptVec *xt2,
@@ -4565,7 +4565,7 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
     pzl->axpy(-1.0, rzl);
     pzu->axpy(-1.0, rzu);
     
-    // Add the terms from the 
+    // Add the terms from the dense constraints 
     for ( int i = 0; i < ncon; i++ ){
       pz[i] -= rc[i];
       ps[i] -= rs[i];
