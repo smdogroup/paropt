@@ -13,7 +13,7 @@ from paropt import ParOpt
 import multitopo
 
 class TACSAnalysis(ParOpt.pyParOptProblem):
-    def __init__(self, comm, tacs, const, num_materials,
+    def __init__(self, comm, props, tacs, const, num_materials,
                  xpts=None, conn=None, m_fixed=1.0):
         '''
         Analysis problem
@@ -23,6 +23,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         self.comm = comm
 
         # Set the TACS object and the constitutive list
+        self.props = props
         self.tacs = tacs
         self.const = const
 
@@ -66,10 +67,6 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         # Set the block size
         self.nwblock = self.num_materials+1
 
-        # Set the linearization point
-        self.xinit = np.zeros(self.num_design_vars)
-        self.xcurr = np.zeros(self.num_design_vars)
-
         # Allocate a vector that stores the gradient of the mass
         self.gmass = np.zeros(self.num_design_vars)
 
@@ -80,6 +77,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         self.tacs.evalDVSens(self.mass_func, self.gmass)
 
         # Set the initial variable values
+        self.xinit = np.zeros(self.num_design_vars)
         self.xinit[:] = 1.0
         self.xinit[::self.nblock] = 1.0
 
@@ -89,7 +87,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         # Set the initial design variable values
         xi = self.m_fixed/np.dot(self.gmass, self.xinit)
         self.xinit[:] = xi/self.num_materials
-        self.xinit[::self.nblock] = xi
+        self.xinit[::self.nblock] = self.num_materials*xi
 
         # Set the initial linearization
         self.RAMP_penalty = 0.0
@@ -139,12 +137,10 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
 
     def getVarsAndBounds(self, x, lb, ub):
         '''Get the design variable values and the bounds'''
-        q = 5.0
-        
-        self.tacs.getDesignVars(x)
-        self.tacs.getDesignVarRange(lb, ub)
+        q = self.props.getPenalization()        
+        x[:] = self.xinit[:]
         ub[:] = 1e30
-        lb[:] = q/(1.0 + q)*self.xinit[:]
+        lb[:] = q/(q + 1.0)*self.xinit[:]**2
         ub[::self.nblock] = 1.0
         lb[::self.nblock] = -1e30
         return
@@ -189,6 +185,8 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         self.tacs.assembleJacobian(1.0, 0.0, 0.0, self.res, self.mat)
         self.pc.factor()
         self.ksm.solve(self.res, self.u)
+        self.u.scale(-1.0)
+        self.tacs.setVariables(self.u)
 
         # Compute the compliance objective
         compliance = self.u.dot(self.res)
@@ -474,7 +472,7 @@ def create_structure(comm, props, xpts, conn, bcs, aux, m_fixed, r0=4):
     tacs.setAuxElements(aux)
 
     # Create the analysis object
-    analysis = TACSAnalysis(comm, tacs, const, len(E),
+    analysis = TACSAnalysis(comm, props, tacs, const, len(E),
                             conn=conn, xpts=xpts,
                             m_fixed=m_fixed)
 
@@ -555,6 +553,7 @@ def create_pyopt(analysis, optimizer='snopt', options={}):
             if self.optimizer == 'snopt':
                 self.options['Print file'] = fname
                 self.options['Summary file'] = fname + '_summary'
+                
             elif self.optimizer == 'ipopt':
                 self.options['bound_relax_factor'] = 0.0
                 self.options['linear_solver'] = 'ma27'
@@ -773,6 +772,7 @@ rho =    np.array([0.7,   1.0, 1.15])
 E = 70e3*np.array([0.725, 1.0, 1.125])
 nu =     np.array([0.3,  0.3, 0.3])
 props = multitopo.MultiTopoProperties(rho, E, nu)
+props.setPenalization(parameter)
 
 # Compute the fixed mass fraction
 m_fixed = 0.3*area*rho[1]
@@ -781,7 +781,6 @@ m_fixed = 0.3*area*rho[1]
 r0 = 2*np.sqrt(area/len(conn))
 analysis = create_structure(comm, props, xpts, conn,
                             bcs, aux, m_fixed, r0=r0)
-
 
 # Optimize the plane stress problem
 optimize_plane_stress(comm, analysis, root_dir=root_dir,

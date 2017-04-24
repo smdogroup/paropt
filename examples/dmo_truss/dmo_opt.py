@@ -149,9 +149,10 @@ def paropt_truss(truss, use_hessian=False,
     return opt
 
 def optimize_truss(N, M, root_dir='results', penalization='SIMP',
-                   parameter=2.0, max_iters=50):
+                   parameter=2.0, max_iters=50,
+                   optimizer='paropt', use_hessian=True):
     # Optimize the structure
-    heuristic = '%s%.0f'%(penalization, parameter)
+    heuristic = '%s_%s%.0f'%(optimizer, penalization, parameter)
     prefix = os.path.join(root_dir, '%dx%d'%(N, M), heuristic)
     
     # Make sure that the directory exists
@@ -171,7 +172,7 @@ def optimize_truss(N, M, root_dir='results', penalization='SIMP',
 
     # Write the header out to the file
     s = 'Variables = iteration, compliance '
-    s += '"min d", "max d", "tau", "ninfeas", "mass infeas", '
+    s += '"min d", "max d", "tau",'
     s += 'feval, geval, hvec, time\n'
     s += 'Zone T = %s\n'%(heuristic)
     fp.write(s)
@@ -253,7 +254,6 @@ def optimize_truss(N, M, root_dir='results', penalization='SIMP',
     filename = 'opt_truss.tex'
     output = os.path.join(prefix, filename)
     truss.printTruss(x, filename=output)
-    os.system('cd %s; pdflatex %s > /dev/null ; cd ..;'%(prefix, filename))
 
     # Save the final optimized point
     fname = os.path.join(prefix, 'x_opt.dat')
@@ -267,8 +267,228 @@ def optimize_truss(N, M, root_dir='results', penalization='SIMP',
 
     return
 
+def create_pyopt(analysis, optimizer='snopt', options={}):
+    '''
+    Take the given problem and optimize it with the given optimizer
+    from the pyOptSparse library of optimizers.
+    '''
+    # Import the optimization problem
+    from pyoptsparse import Optimization, OPT
+    from scipy import sparse
+
+    class pyOptWrapper:
+        optimizer = None
+        options = {}
+        opt = None
+        prob = None
+        def __init__(self, analysis):
+            self.xcurr = None
+            self.analysis = analysis
+
+        def objcon(self, x):
+            # Copy the design variable values
+            self.xcurr = np.array(x['x'])
+            fail, obj, con = self.analysis.evalObjCon(x['x'])
+            funcs = {'objective': obj, 'con': con}
+            return funcs, fail
+
+        def gobjcon(self, x, funcs):
+            g = np.zeros(x['x'].shape)
+            A = np.zeros((1, x['x'].shape[0]))
+            fail = self.analysis.evalObjConGradient(x['x'], g, A)
+            sens = {'objective': {'x': g}, 'con': {'x': A}}
+            return sens, fail
+
+        # Thin wrapper methods to make this look somewhat like ParOpt
+        def optimize(self):
+            self.opt = OPT(self.optimizer, options=self.options)
+            self.sol = self.opt(self.prob, sens=self.gobjcon)
+            return
+
+        def setOutputFile(self, fname):
+            if self.optimizer == 'snopt':
+                self.options['Print file'] = fname
+                self.options['Summary file'] = fname + '_summary'
+
+                # Ensure that we don't stop for iterations
+                self.options['Major iterations limit'] = 5000
+                self.options['Minor iterations limit'] = 100000000
+                self.options['Iterations limit'] = 100000000
+            elif self.optimizer == 'ipopt':
+                self.options['bound_relax_factor'] = 0.0
+                self.options['linear_solver'] = 'ma27'
+                self.options['output_file'] = fname
+                self.options['max_iter'] = 5000
+            return
+
+        def setInitBarrierParameter(self, *args):
+            return
+
+        def getOptimizedPoint(self):
+            x = np.array(self.xcurr)                         
+            return x
+        
+    # Set the design variables
+    wrap = pyOptWrapper(analysis)
+    prob = Optimization('topo', wrap.objcon)
+
+    # Record the number of elements/materials/designv ars
+    num_materials = analysis.nmats
+    num_elements = analysis.nelems
+    num_design_vars = analysis.num_design_vars
+
+    # Add the linear constraint
+    n = num_design_vars
+
+    # Create the sparse matrix for the design variable weights
+    rowp = [0]
+    cols = []
+    data = []
+    nrows = num_elements
+    ncols = num_design_vars
+
+    nblock = num_materials+1
+    for i in xrange(num_elements):
+        data.append(1.0)
+        cols.append(i*nblock)
+        for j in xrange(i*nblock+1, (i+1)*nblock):
+            data.append(-1.0)
+            cols.append(j)
+        rowp.append(len(cols))
+
+    Asparse = {'csr':[rowp, cols, data], 'shape':[nrows, ncols]}
+
+    lower = np.zeros(num_elements)
+    upper = np.zeros(num_elements)
+    prob.addConGroup('lincon', num_elements,
+                     lower=lower, upper=upper,
+                     linear=True, wrt=['x'], jac={'x': Asparse})
+
+    # Determine the initial variable values and their lower/upper
+    # bounds in the design problem
+    x0 = np.zeros(n)
+    lb = np.zeros(n)
+    ub = np.zeros(n)
+    analysis.getVarsAndBounds(x0, lb, ub)
+    
+    # Set the variable bounds and initial values
+    prob.addVarGroup('x', n, value=x0, lower=lb, upper=ub)
+
+    # Set the constraints
+    prob.addConGroup('con', 1, lower=0.0, upper=0.0)
+        
+    # Add the objective
+    prob.addObj('objective')
+
+    # Set the values into the wrapper
+    wrap.optimizer = optimizer
+    wrap.options = options
+    wrap.prob = prob
+
+    return wrap
+
+def optimize_truss_full(N, M, root_dir='results', penalization='SIMP',
+                        parameter=2.0, optimizer='snopt'):
+    '''
+    Optimize the truss using the full penalization method
+    '''
+    
+    # Optimize the structure
+    heuristic = 'full_%s_%s%.0f'%(optimizer, penalization, parameter)
+    prefix = os.path.join(root_dir, '%dx%d'%(N, M), heuristic)
+    
+    # Make sure that the directory exists
+    if not os.path.exists(prefix):
+        os.makedirs(prefix)
+   
+    # Create the ground structure and optimization
+    truss = setup_ground_struct(N, M, x_lb=0.0)
+
+    # Create the optimizer
+    opt = create_pyopt(truss, optimizer=optimizer)
+    
+    # Log the optimization file
+    log_filename = os.path.join(prefix, 'log_file.dat')
+    fp = open(log_filename, 'w')
+
+    # Write the header out to the file
+    s = 'Variables = iteration, compliance '
+    s += '"min d", "max d", "tau", '
+    s += 'feval, geval, hvec, time\n'
+    s += 'Zone T = %s\n'%(heuristic)
+    fp.write(s)
+
+    # Set the penalty parameter
+    truss.opt_type = 'full'
+    truss.SIMP = parameter
+    truss.RAMP = parameter
+    truss.penalization = penalization
+    truss.setNewInitPointPenalty(truss.xinit)
+
+    # Keep track of the ellapsed CPU time
+    init_time = MPI.Wtime()
+
+    # Previous value of the objective function
+    fobj_prev = 0.0
+
+    # Set the first time
+    first_time = True
+
+    # Set the initial compliance value
+    comp_prev = 0.0
+    
+    # Set the output file to use
+    fname = os.path.join(prefix, 'truss_%s'%(optimizer)) 
+    opt.setOutputFile(fname)
+    opt.optimize()
+
+    # Get the optimized point
+    x = opt.getOptimizedPoint()
+
+    # Get the discrete infeasibility measure
+    d = truss.getDiscreteInfeas(x)
+
+    # Compute the discrete infeasibility measure
+    tau = np.sum(d)
+
+    # Get the compliance
+    comp = truss.getCompliance(x)
+
+    # Print out the iteration information to the screen
+    print 'Min/max d:     %15.5e %15.5e  Total: %15.5e'%(
+        np.min(d), np.max(d), np.sum(d))
+    
+    s = '%d %e %e %e %e '%(0, comp, np.min(d), np.max(d), np.sum(d))
+    s += '%d %d %d %e\n'%(truss.fevals, truss.gevals, truss.hevals, 
+                          MPI.Wtime() - init_time)
+    fp.write(s)
+    fp.flush()
+
+    # Close the log file
+    fp.close()
+
+    # Print out the last optimized truss
+    filename = 'opt_truss.tex'
+    output = os.path.join(prefix, filename)
+    truss.printTruss(x, filename=output)
+
+    # Save the final optimized point
+    fname = os.path.join(prefix, 'x_opt.dat')
+    x = opt.getOptimizedPoint()
+    np.savetxt(fname, x)
+
+    # Get the rounded design
+    xinfty = truss.computeLimitDesign(x)
+    fname = os.path.join(prefix, 'x_opt_infty.dat')
+    np.savetxt(fname, xinfty)
+
+    return
 # Parse the command line arguments 
 parser = argparse.ArgumentParser()
+parser.add_argument('--root_dir', type=str, default='results',
+                    help='Root directory to store results')
+parser.add_argument('--optimizer', type=str, default='paropt',
+                    help='Optimizer to use')
 parser.add_argument('--N', type=int, default=4, 
                     help='Nodes in x-direction')
 parser.add_argument('--M', type=int, default=3, 
@@ -282,17 +502,13 @@ parser.add_argument('--penalization', type=str,
 args = parser.parse_args()
 
 # Get the arguments
+root_dir = args.root_dir
+optimizer = args.optimizer
 N = args.N
 M = args.M
 profile = args.profile
 penalization = args.penalization
 parameter = args.parameter
-
-# Set the root results directory
-root_dir = 'results'
-
-# Always use the Hessian-vector product implementation
-use_hessian = True
 
 # The trusses used in this instance
 trusses = []
@@ -304,12 +520,23 @@ for j in range(3, 7):
 if profile:
     for N, M in trusses:
         try:
-            optimize_truss(N, M, root_dir=root_dir,
-                           penalization=penalization, 
-                           parameter=parameter, max_iters=80)
+            if optimizer == 'paropt':
+                optimize_truss(N, M, root_dir=root_dir,
+                               penalization=penalization, 
+                               parameter=parameter, max_iters=80)
+            else:
+                optimize_truss_full(N, M, root_dir=root_dir,
+                                    penalization=penalization, 
+                                    parameter=parameter, optimizer=optimizer)
         except:
             pass
 else:
-    optimize_truss(N, M, root_dir=root_dir,
-                   penalization=penalization, 
-                   parameter=parameter, max_iters=80)
+    if optimizer == 'paropt':
+        optimize_truss(N, M, root_dir=root_dir,
+                       penalization=penalization, 
+                       parameter=parameter, max_iters=80)
+    else:
+        optimize_truss_full(N, M, root_dir=root_dir,
+                            penalization=penalization, 
+                            parameter=parameter, optimizer=optimizer)
+        

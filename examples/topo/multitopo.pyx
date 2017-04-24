@@ -27,6 +27,7 @@ cdef extern from "PSMultiTopo.h":
         PSMultiTopoProperties(TacsScalar*, TacsScalar*,
                               TacsScalar*, int)
         void setPenalization(double)
+        double getPenalization()
         
     cdef cppclass PSMultiTopo(PlaneStressStiffness):
         PSMultiTopo(PSMultiTopoProperties *_mats,
@@ -77,6 +78,13 @@ cdef class MultiTopoProperties:
 
     def __dealloc__(self):
         self.ptr.decref()
+
+    def setPenalization(self, double q):
+        self.ptr.setPenalization(q)
+        return
+
+    def getPenalization(self):
+        return self.ptr.getPenalization()
     
 cdef class MultiTopo(PlaneStress):
     cdef PSMultiTopo *self_ptr

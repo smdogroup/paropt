@@ -22,6 +22,7 @@ class PSMultiTopoProperties : public TACSObject {
                          TacsScalar _nu[], int num_mats );
   ~PSMultiTopoProperties();
   void setPenalization( double _q );
+  double getPenalization();
 
   // Set the material parameters
   double q;

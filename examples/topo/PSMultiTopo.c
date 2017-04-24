@@ -25,6 +25,10 @@ void PSMultiTopoProperties::setPenalization( double _q ){
   q = _q;
 }
 
+double PSMultiTopoProperties::getPenalization(){
+  return q;
+}
+
 PSMultiTopo::PSMultiTopo( PSMultiTopoProperties *_mats,
                           int _nodes[], double _weights[],
                           int _nweights ){

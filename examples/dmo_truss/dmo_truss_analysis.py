@@ -53,14 +53,14 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Initialize the super class
         ncon = 1
-        ndv = self.nblock*self.nelems
+        self.num_design_vars = self.nblock*self.nelems
         nwcon = self.nelems
         nwblock = 1
-        super(TrussAnalysis, self).__init__(MPI.COMM_SELF,
-                                            ndv, ncon, nwcon, nwblock)
+        super(TrussAnalysis, self).__init__(MPI.COMM_SELF, self.num_design_vars,
+                                            ncon, nwcon, nwblock)
 
         # Allocate a vector that stores the gradient of the mass
-        self.gmass = np.zeros(ndv)
+        self.gmass = np.zeros(self.num_design_vars)
 
         # Allocate the matrices required
         self.K = np.zeros((self.nvars, self.nvars))
@@ -113,16 +113,17 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         xi = self.m_fixed/max_mass
 
         # Set the initial design variable values
-        self.xinit = np.zeros(ndv)
-        self.xinit[:] = xi/self.nmats
-        self.xinit[::self.nblock] = xi
+        self.xinit = np.zeros(self.num_design_vars)
+        self.xinit[:] = xi
+        self.xinit[::self.nblock] = xi*self.nmats
 
         # Set the initial linearization
+        self.opt_type = 'convex'
         self.penalization = None
         self.SIMP = 1.0
         self.RAMP = 0.0
         self.xconst = np.array(self.xinit)
-        self.xlinear = np.ones(ndv)
+        self.xlinear = np.ones(self.xinit.shape)
 
         # Set the lower bounds on the variables
         self.x_lb = max(x_lb, 0.0)
@@ -189,8 +190,20 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             self.u[:] = self.getLimitDisplacements(x)
         else:
             # Set the cross-sectional areas from the design variable
-            # values
-            self.setAreas(x, lb_factor=self.epsilon)
+            # values using the full penalization regardless of whether
+            # this is a convex problem or not.
+            self.A[:] = self.Avals[0]*self.epsilon
+            if self.penalization == 'SIMP':
+                for i in xrange(len(self.conn)):
+                    for j in xrange(1, self.nblock):
+                        # Compute the value of the area variable
+                        self.A[i] += self.Avals[j-1]*x[i*self.nblock+j]**self.SIMP
+            else:
+                for i in xrange(len(self.conn)):
+                    for j in xrange(1, self.nblock):
+                        # Compute the value of the area variable
+                        val = x[i*self.nblock+j]/(1.0 + self.RAMP*(1 - x[i*self.nblock+j]))
+                        self.A[i] += self.Avals[j-1]*val
 
             # Evaluate compliance objective
             self.assembleMat(self.A, self.K)
@@ -218,13 +231,17 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         x[:] = self.xinit[:]
 
         # Set the bounds on the material selection variables
+        lb[:] = 0.0
         if self.penalization == 'SIMP':
-            lb[:] = self.xinit*(self.SIMP - 1.0)/self.SIMP
-        elif self.penalization == 'RAMP':
-            lb[:] = self.RAMP*self.xinit**2/(self.RAMP+1.0)
-        else:
-            lb[:] = 0.0
+            lb[:] = 1e-3
         ub[:] = self.no_bound
+        
+        if self.opt_type == 'convex':
+            # Set the bounds on the material selection variables
+            if self.penalization == 'SIMP':
+                lb[:] = self.xinit*(self.SIMP - 1.0)/self.SIMP
+            elif self.penalization == 'RAMP':
+                lb[:] = self.RAMP*self.xinit**2/(self.RAMP+1.0)
 
         # Set the bounds on the thickness variables
         lb[::self.nblock] = -self.no_bound
@@ -238,16 +255,27 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         # Zero all the areas
         self.A[:] = self.Avals[0]*lb_factor
 
-        # Add up the contributions to the areas from each 
-        # discrete variable
-        for i in xrange(len(self.conn)):
-            for j in xrange(1, self.nblock):
-                # Compute the value of the area variable
-                val = (self.xconst[i*self.nblock+j] + 
-                       self.xlinear[i*self.nblock+j]*(x[i*self.nblock+j] - 
-                                                      self.xinit[i*self.nblock+j]))
-                self.A[i] += self.Avals[j-1]*val
-
+        if self.opt_type == 'convex':
+            # Add up the contributions to the areas from each discrete
+            # variable
+            for i in xrange(len(self.conn)):
+                for j in xrange(1, self.nblock):
+                    # Compute the value of the area variable
+                    val = (self.xconst[i*self.nblock+j] + 
+                           self.xlinear[i*self.nblock+j]*(x[i*self.nblock+j] - 
+                                                          self.xinit[i*self.nblock+j]))
+                    self.A[i] += self.Avals[j-1]*val
+        elif self.penalization == 'SIMP':
+            for i in xrange(len(self.conn)):
+                for j in xrange(1, self.nblock):
+                    # Compute the value of the area variable
+                    self.A[i] += self.Avals[j-1]*x[i*self.nblock+j]**self.SIMP
+        elif self.penalization == 'RAMP':
+            for i in xrange(len(self.conn)):
+                for j in xrange(1, self.nblock):
+                    # Compute the value of the area variable
+                    val = x[i*self.nblock+j]/(1.0 + self.RAMP*(1 - x[i*self.nblock+j]))
+                    self.A[i] += self.Avals[j-1]*val
         return
 
     def setAreasLinear(self, px):
@@ -301,7 +329,10 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         # Compute the compliance objective
         obj = np.dot(self.u, self.f)
         if self.obj_scale is None:
-            self.obj_scale = 1.0*obj
+            # if self.opt_type == 'convex':
+            #     self.obj_scale = 1.0*obj
+            # else:
+            self.obj_scale = 1.0
 
         # Scale the compliance objective
         obj = obj/self.obj_scale
@@ -331,23 +362,48 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Set the number of materials
         nmats = len(self.Avals)+1
-        
-        # Add up the contribution to the gradient
-        for i in xrange(len(self.conn)):
-            # Get the first and second node numbers from the bar
-            n1 = self.conn[i][0]
-            n2 = self.conn[i][1]
 
-            # Find the element variables
-            ue = np.array([self.u[2*n1], self.u[2*n1+1],
-                           self.u[2*n2], self.u[2*n2+1]])
-            
-            # Compute the inner product with the element stiffness matrix
-            g = -np.dot(ue, np.dot(self.Ke[i,:,:], ue))  
-            
-            # Add the contribution to each derivative
-            gobj[i*self.nblock+1:(i+1)*self.nblock] += g*(
-                self.Avals*self.xlinear[i*self.nblock+1:(i+1)*self.nblock])
+        if self.opt_type == 'convex':
+            # Add up the contribution to the gradient
+            for i in xrange(len(self.conn)):
+                # Get the first and second node numbers from the bar
+                n1 = self.conn[i][0]
+                n2 = self.conn[i][1]
+
+                # Find the element variables
+                ue = np.array([self.u[2*n1], self.u[2*n1+1],
+                               self.u[2*n2], self.u[2*n2+1]])
+
+                # Compute the inner product with the element stiffness matrix
+                g = -np.dot(ue, np.dot(self.Ke[i,:,:], ue))  
+
+                # Add the contribution to each derivative
+                gobj[i*self.nblock+1:(i+1)*self.nblock] += g*(
+                    self.Avals*self.xlinear[i*self.nblock+1:(i+1)*self.nblock])
+        else:
+            # Add up the contribution to the gradient
+            for i in xrange(len(self.conn)):
+                # Get the first and second node numbers from the bar
+                n1 = self.conn[i][0]
+                n2 = self.conn[i][1]
+
+                # Find the element variables
+                ue = np.array([self.u[2*n1], self.u[2*n1+1],
+                               self.u[2*n2], self.u[2*n2+1]])
+
+                # Compute the inner product with the element stiffness matrix
+                g = -np.dot(ue, np.dot(self.Ke[i,:,:], ue))  
+
+                # Add the contribution to each derivative
+                if self.penalization == 'SIMP':
+                    # SIMP penalization
+                    simp = self.SIMP*x[i*self.nblock+1:(i+1)*self.nblock]**(self.SIMP-1.0)
+                    gobj[i*self.nblock+1:(i+1)*self.nblock] += g*self.Avals*simp
+                else:
+                    # RAMP penalization
+                    vals = x[i*self.nblock+1:(i+1)*self.nblock]
+                    ramp = (self.RAMP+1.0)/(1.0 + self.RAMP*(1.0 - vals))**2
+                    gobj[i*self.nblock+1:(i+1)*self.nblock] += g*self.Avals*ramp
 
         # Scale the objective gradient
         gobj /= self.obj_scale
