@@ -23,16 +23,22 @@ cdef extern from "mpi-compat.h":
     pass
 
 cdef extern from "PSMultiTopo.h":
+    enum PSPenaltyType"PSMultiTopoProperties::PSPenaltyType":
+        PS_CONVEX"PSMultiTopoProperties::PS_CONVEX"
+        PS_FULL"PSMultiTopoProperties::PS_FULL"
+      
     cdef cppclass PSMultiTopoProperties(TACSObject):
-        PSMultiTopoProperties(TacsScalar*, TacsScalar*,
-                              TacsScalar*, int)
+        PSMultiTopoProperties(TacsScalar*, TacsScalar*, int)
         void setPenalization(double)
         double getPenalization()
+        int getNumMaterials()
+        void setPenaltyType(PSPenaltyType)
         
     cdef cppclass PSMultiTopo(PlaneStressStiffness):
         PSMultiTopo(PSMultiTopoProperties *_mats,
                     int nodes[], double weights[], int nnodes)
         void setLinearization(const TacsScalar*, int)
+        int getFilteredDesignVars(const TacsScalar**)
 
     cdef cppclass LocatePoint:
         LocatePoint(const TacsScalar*, int, int)
@@ -66,12 +72,10 @@ cdef class MultiTopoProperties:
     cdef PSMultiTopoProperties *ptr
     def __cinit__(self, 
                   np.ndarray[TacsScalar, ndim=1, mode='c'] rho,
-                  np.ndarray[TacsScalar, ndim=1, mode='c'] E,
-                  np.ndarray[TacsScalar, ndim=1, mode='c'] nu):
-        assert((len(rho) == len(E)) and (len(rho) == len(nu)))
+                  np.ndarray[TacsScalar, ndim=2, mode='c'] Cmat):
+        assert((len(rho) == Cmat.shape[0]) and (Cmat.shape[1] == 6))
         self.ptr = new PSMultiTopoProperties(<TacsScalar*>rho.data,
-                                             <TacsScalar*>E.data,
-                                             <TacsScalar*>nu.data,
+                                             <TacsScalar*>Cmat.data,
                                              len(rho))
         self.ptr.incref()
         return
@@ -79,12 +83,21 @@ cdef class MultiTopoProperties:
     def __dealloc__(self):
         self.ptr.decref()
 
+    def getNumMaterials(self):
+        return self.ptr.getNumMaterials()
+
     def setPenalization(self, double q):
         self.ptr.setPenalization(q)
         return
 
     def getPenalization(self):
         return self.ptr.getPenalization()
+
+    def setPenaltyType(self, penalty='convex'):
+        if penalty == 'convex':
+            self.ptr.setPenaltyType(PS_CONVEX)
+        else:
+            self.ptr.setPenaltyType(PS_FULL)
     
 cdef class MultiTopo(PlaneStress):
     cdef PSMultiTopo *self_ptr
@@ -102,6 +115,16 @@ cdef class MultiTopo(PlaneStress):
     def setLinearization(self, np.ndarray[TacsScalar, ndim=1, mode='c'] dvs):
         self.self_ptr.setLinearization(<TacsScalar*>dvs.data, len(dvs))
         return
+    
+    def getFilteredDesignVars(self):
+        '''Get the filtered values of the design variables'''
+        cdef int nmats
+        cdef const TacsScalar *xf
+        nmats = self.self_ptr.getFilteredDesignVars(&xf)
+        x = np.zeros(nmats+1)
+        for i in xrange(nmats+1):
+            x[i] = xf[i]
+        return x
     
 def assembleProjectDVSens(Assembler assembler,
                           np.ndarray[TacsScalar, ndim=1, mode='c'] px,

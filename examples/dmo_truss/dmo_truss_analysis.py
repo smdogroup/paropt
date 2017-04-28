@@ -115,7 +115,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         # Set the initial design variable values
         self.xinit = np.zeros(self.num_design_vars)
         self.xinit[:] = xi
-        self.xinit[::self.nblock] = xi*self.nmats
+        self.xinit[::self.nblock] = min(1.0, xi*self.nmats)
 
         # Set the initial linearization
         self.opt_type = 'convex'
@@ -232,8 +232,6 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Set the bounds on the material selection variables
         lb[:] = 0.0
-        if self.penalization == 'SIMP':
-            lb[:] = 1e-3
         ub[:] = self.no_bound
         
         if self.opt_type == 'convex':
@@ -269,12 +267,12 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             for i in xrange(len(self.conn)):
                 for j in xrange(1, self.nblock):
                     # Compute the value of the area variable
-                    self.A[i] += self.Avals[j-1]*x[i*self.nblock+j]**self.SIMP
+                    self.A[i] += self.Avals[j-1]*(x[i*self.nblock+j]**self.SIMP)
         elif self.penalization == 'RAMP':
             for i in xrange(len(self.conn)):
                 for j in xrange(1, self.nblock):
                     # Compute the value of the area variable
-                    val = x[i*self.nblock+j]/(1.0 + self.RAMP*(1 - x[i*self.nblock+j]))
+                    val = x[i*self.nblock+j]/(1.0 + self.RAMP*(1.0 - x[i*self.nblock+j]))
                     self.A[i] += self.Avals[j-1]*val
         return
 
@@ -329,9 +327,6 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         # Compute the compliance objective
         obj = np.dot(self.u, self.f)
         if self.obj_scale is None:
-            # if self.opt_type == 'convex':
-            #     self.obj_scale = 1.0*obj
-            # else:
             self.obj_scale = 1.0
 
         # Scale the compliance objective

@@ -17,12 +17,20 @@ void assembleResProjectDVSens( TACSAssembler *tacs,
 
 class PSMultiTopoProperties : public TACSObject {
  public:
-  static const int MAX_NUM_MATERIALS = 10;
-  PSMultiTopoProperties( TacsScalar _rho[], TacsScalar _E[], 
-                         TacsScalar _nu[], int num_mats );
+  enum PSPenaltyType { PS_CONVEX, PS_FULL };
+  static const int MAX_NUM_MATERIALS = 12;
+  PSMultiTopoProperties( TacsScalar _rho[], TacsScalar Cmat[],
+                         int num_mats );
   ~PSMultiTopoProperties();
   void setPenalization( double _q );
   double getPenalization();
+  int getNumMaterials(){ return num_materials; }
+  void setPenaltyType( PSPenaltyType _penalty ){
+    penalty = _penalty;
+  }
+
+  // The type of penalization to use: Convex or full
+  PSPenaltyType penalty;
 
   // Set the material parameters
   double q;
@@ -30,22 +38,25 @@ class PSMultiTopoProperties : public TACSObject {
 
   // The material properties
   int num_materials;
-  double rho[MAX_NUM_MATERIALS];
-  double E[MAX_NUM_MATERIALS];
-  double nu[MAX_NUM_MATERIALS];
-  double D[MAX_NUM_MATERIALS];
-  double G[MAX_NUM_MATERIALS];
+  TacsScalar rho[MAX_NUM_MATERIALS];
+  TacsScalar C[6*MAX_NUM_MATERIALS];
 };
 
 class PSMultiTopo : public PlaneStressStiffness {
  public:
-  static const int MAX_NUM_MATERIALS = 10;
+  static const int MAX_NUM_MATERIALS = 12;
   static const int MAX_NUM_WEIGHTS = 15;
 
   PSMultiTopo( PSMultiTopoProperties *_mats,
                int _nodes[], double _weights[],
                int _nweights );
   ~PSMultiTopo();
+
+  // Get the filtered values of the design variables (for visualization)
+  int getFilteredDesignVars( const TacsScalar **xf ){
+    *xf = x;
+    return mats->num_materials; 
+  }
 
   void setLinearization( const TacsScalar dvs[], int numDVs );
   void setDesignVars( const TacsScalar dvs[], int numDVs );

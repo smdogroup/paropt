@@ -150,7 +150,8 @@ def paropt_truss(truss, use_hessian=False,
 
 def optimize_truss(N, M, root_dir='results', penalization='SIMP',
                    parameter=2.0, max_iters=50,
-                   optimizer='paropt', use_hessian=True):
+                   optimizer='paropt', use_hessian=True,
+                   start_strategy='point'):
     # Optimize the structure
     heuristic = '%s_%s%.0f'%(optimizer, penalization, parameter)
     prefix = os.path.join(root_dir, '%dx%d'%(N, M), heuristic)
@@ -177,11 +178,17 @@ def optimize_truss(N, M, root_dir='results', penalization='SIMP',
     s += 'Zone T = %s\n'%(heuristic)
     fp.write(s)
 
-    # Set the penalty parameter
-    truss.SIMP = parameter
-    truss.RAMP = parameter
-    truss.penalization = penalization
-    truss.setNewInitPointPenalty(truss.xinit)
+    if start_strategy == 'point':
+        # Set the penalty parameter
+        truss.SIMP = parameter
+        truss.RAMP = parameter
+        truss.penalization = penalization
+        truss.setNewInitPointPenalty(truss.xinit)
+    else:
+        truss.SIMP = 1.0
+        truss.RAMP = 0.0
+        truss.penalization = penalization
+        truss.setNewInitPointPenalty(truss.xinit)
 
     # Keep track of the ellapsed CPU time
     init_time = MPI.Wtime()
@@ -205,7 +212,6 @@ def optimize_truss(N, M, root_dir='results', penalization='SIMP',
         # Optimize the truss
         if k > 0:
             opt.setInitStartingPoint(0)
-            opt.setInitBarrierParameter(1e-4)
         opt.optimize()
 
         # Get the optimized point
@@ -236,9 +242,12 @@ def optimize_truss(N, M, root_dir='results', penalization='SIMP',
         output = os.path.join(prefix, filename)
         truss.printTruss(x, filename=output)
 
+        truss.SIMP = parameter
+        truss.RAMP = parameter
+        truss.penalization = penalization
         truss.setNewInitPointPenalty(x)
 
-        if k > 0 and (np.fabs((comp - comp_prev)/comp) < 1e-3):
+        if k > 0 and (np.fabs((comp - comp_prev)/comp) < 1e-4):
             break
         
         # Store the previous value of the compliance
@@ -309,6 +318,7 @@ def create_pyopt(analysis, optimizer='snopt', options={}):
             if self.optimizer == 'snopt':
                 self.options['Print file'] = fname
                 self.options['Summary file'] = fname + '_summary'
+                self.options['Minor feasibility tolerance'] = 1e-10
 
                 # Ensure that we don't stop for iterations
                 self.options['Major iterations limit'] = 5000
@@ -388,7 +398,8 @@ def create_pyopt(analysis, optimizer='snopt', options={}):
     return wrap
 
 def optimize_truss_full(N, M, root_dir='results', penalization='SIMP',
-                        parameter=2.0, optimizer='snopt'):
+                        parameter=2.0, optimizer='snopt',
+                        start_strategy='point'):
     '''
     Optimize the truss using the full penalization method
     '''
@@ -404,9 +415,6 @@ def optimize_truss_full(N, M, root_dir='results', penalization='SIMP',
     # Create the ground structure and optimization
     truss = setup_ground_struct(N, M, x_lb=0.0)
 
-    # Create the optimizer
-    opt = create_pyopt(truss, optimizer=optimizer)
-    
     # Log the optimization file
     log_filename = os.path.join(prefix, 'log_file.dat')
     fp = open(log_filename, 'w')
@@ -418,6 +426,59 @@ def optimize_truss_full(N, M, root_dir='results', penalization='SIMP',
     s += 'Zone T = %s\n'%(heuristic)
     fp.write(s)
 
+    # Keep track of the ellapsed CPU time
+    init_time = MPI.Wtime()
+
+    # Set the iteration counter
+    iteration = 0
+
+    if start_strategy == 'convex':
+        truss.opt_type = 'convex'
+        truss.SIMP = 1.0
+        truss.RAMP = 0.0
+        truss.penalization = penalization
+        truss.setNewInitPointPenalty(truss.xinit)
+        
+        # Create the optimizer
+        opt = create_pyopt(truss, optimizer=optimizer)
+    
+        # Set the output file to use
+        fname = os.path.join(prefix, 'truss_%s_iter%d'%(optimizer,
+                                                        iteration)) 
+        opt.setOutputFile(fname)
+        opt.optimize()
+        iteration += 1
+    
+        # Get the optimized point
+        x = opt.getOptimizedPoint()
+
+        # Get the discrete infeasibility measure
+        d = truss.getDiscreteInfeas(x)
+        
+        # Compute the discrete infeasibility measure
+        tau = np.sum(d)
+        
+        # Get the compliance
+        comp = truss.getCompliance(x)
+        
+        s = '%d %e %e %e %e '%(0, comp, np.min(d), np.max(d), np.sum(d))
+        s += '%d %d %d %e\n'%(truss.fevals, truss.gevals, truss.hevals, 
+                              MPI.Wtime() - init_time)
+        fp.write(s)
+        fp.flush()
+
+        # Print out the last optimized truss
+        filename = 'opt_truss.tex'
+        output = os.path.join(prefix, filename)
+        truss.printTruss(x, filename=output)
+        
+        # Set the new (feasible) starting point
+        truss.setNewInitPointPenalty(x)        
+    elif start_strategy == 'uniform':
+        truss.xinit[:] = 1.0/truss.nmats
+        truss.xinit[::(truss.nmats+1)] = 1.0
+        truss.setNewInitPointPenalty(truss.xinit)
+
     # Set the penalty parameter
     truss.opt_type = 'full'
     truss.SIMP = parameter
@@ -425,20 +486,12 @@ def optimize_truss_full(N, M, root_dir='results', penalization='SIMP',
     truss.penalization = penalization
     truss.setNewInitPointPenalty(truss.xinit)
 
-    # Keep track of the ellapsed CPU time
-    init_time = MPI.Wtime()
-
-    # Previous value of the objective function
-    fobj_prev = 0.0
-
-    # Set the first time
-    first_time = True
-
-    # Set the initial compliance value
-    comp_prev = 0.0
+    # Create the optimizer
+    opt = create_pyopt(truss, optimizer=optimizer)
     
     # Set the output file to use
-    fname = os.path.join(prefix, 'truss_%s'%(optimizer)) 
+    fname = os.path.join(prefix, 'truss_%s_iter%d'%(optimizer,
+                                                    iteration)) 
     opt.setOutputFile(fname)
     opt.optimize()
 
@@ -454,10 +507,6 @@ def optimize_truss_full(N, M, root_dir='results', penalization='SIMP',
     # Get the compliance
     comp = truss.getCompliance(x)
 
-    # Print out the iteration information to the screen
-    print 'Min/max d:     %15.5e %15.5e  Total: %15.5e'%(
-        np.min(d), np.max(d), np.sum(d))
-    
     s = '%d %e %e %e %e '%(0, comp, np.min(d), np.max(d), np.sum(d))
     s += '%d %d %d %e\n'%(truss.fevals, truss.gevals, truss.hevals, 
                           MPI.Wtime() - init_time)
@@ -483,12 +532,15 @@ def optimize_truss_full(N, M, root_dir='results', penalization='SIMP',
     np.savetxt(fname, xinfty)
 
     return
+
 # Parse the command line arguments 
 parser = argparse.ArgumentParser()
 parser.add_argument('--root_dir', type=str, default='results',
                     help='Root directory to store results')
 parser.add_argument('--optimizer', type=str, default='paropt',
                     help='Optimizer to use')
+parser.add_argument('--start_strategy', type=str, default='point',
+                    help='start up strategy to use')
 parser.add_argument('--N', type=int, default=4, 
                     help='Nodes in x-direction')
 parser.add_argument('--M', type=int, default=3, 
@@ -509,6 +561,7 @@ M = args.M
 profile = args.profile
 penalization = args.penalization
 parameter = args.parameter
+start_strategy = args.start_strategy
 
 # The trusses used in this instance
 trusses = []
@@ -523,20 +576,24 @@ if profile:
             if optimizer == 'paropt':
                 optimize_truss(N, M, root_dir=root_dir,
                                penalization=penalization, 
-                               parameter=parameter, max_iters=80)
+                               parameter=parameter, max_iters=80,
+                               start_strategy=start_strategy)
             else:
                 optimize_truss_full(N, M, root_dir=root_dir,
                                     penalization=penalization, 
-                                    parameter=parameter, optimizer=optimizer)
+                                    parameter=parameter, optimizer=optimizer,
+                                    start_strategy=start_strategy)
         except:
             pass
 else:
     if optimizer == 'paropt':
         optimize_truss(N, M, root_dir=root_dir,
                        penalization=penalization, 
-                       parameter=parameter, max_iters=80)
+                       parameter=parameter, max_iters=80,
+                       start_strategy=start_strategy)
     else:
         optimize_truss_full(N, M, root_dir=root_dir,
                             penalization=penalization, 
-                            parameter=parameter, optimizer=optimizer)
+                            parameter=parameter, optimizer=optimizer,
+                            start_strategy=start_strategy)
         

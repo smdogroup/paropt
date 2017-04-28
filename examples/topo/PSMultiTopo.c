@@ -4,18 +4,20 @@
 
 
 PSMultiTopoProperties::PSMultiTopoProperties( TacsScalar _rho[], 
-                                              TacsScalar _E[], 
-                                              TacsScalar _nu[], 
+                                              TacsScalar Cmat[],
                                               int num_mats ){
+  // By default, use the convex penalty approximation
+  penalty = PS_CONVEX;
+  
+  // Set the material parameters
   q = 1.0;
   eps = 1e-6;
   num_materials = num_mats;
   for ( int k = 0; k < num_mats; k++ ){
     rho[k] = _rho[k];
-    E[k] = _E[k];
-    nu[k] = _nu[k];
-    D[k] = E[k]/(1.0 - nu[k]*nu[k]);
-    G[k] = 0.5*E[k]/(1.0 + nu[k]);
+    for ( int j = 0; j < 6; j++ ){
+      C[6*k+j] = Cmat[6*k+j];
+    }
   }
 }
 
@@ -35,7 +37,7 @@ PSMultiTopo::PSMultiTopo( PSMultiTopoProperties *_mats,
   // Set the material properties
   mats = _mats;
   mats->incref();
-  
+
   // Set the initial design variable value
   x0[0] = 0.0;
   x[0] = 0.5;
@@ -113,12 +115,24 @@ void PSMultiTopo::calculateStress( const double pt[],
                                    const TacsScalar e[], 
                                    TacsScalar s[] ){
   s[0] = s[1] = s[2] = 0.0;
-  for ( int k = 0; k < mats->num_materials; k++ ){
-    TacsScalar Dx = mats->D[k]*(xconst[k] + xlin[k]*(x[k+1] - x0[k+1]));
-    TacsScalar Gx = mats->G[k]*(xconst[k] + xlin[k]*(x[k+1] - x0[k+1]));
-    s[0] += Dx*(e[0] + mats->nu[k]*e[1]);
-    s[1] += Dx*(e[1] + mats->nu[k]*e[0]);
-    s[2] += Gx*e[2];
+  if (mats->penalty == PSMultiTopoProperties::PS_CONVEX){
+    for ( int k = 0; k < mats->num_materials; k++ ){
+      const TacsScalar *C = &mats->C[6*k];
+      const TacsScalar w = xconst[k] + xlin[k]*(x[k+1] - x0[k+1]);
+      s[0] += w*(C[0]*e[0] + C[1]*e[1] + C[2]*e[2]);
+      s[1] += w*(C[1]*e[0] + C[3]*e[1] + C[4]*e[2]);
+      s[2] += w*(C[2]*e[0] + C[4]*e[1] + C[5]*e[2]);
+    }
+  }
+  else {
+    const double q = mats->q;
+    for ( int k = 0; k < mats->num_materials; k++ ){
+      const TacsScalar *C = &mats->C[6*k];
+      const TacsScalar w = x[k+1]/(1.0 + q*(1.0 - x[k+1]));
+      s[0] += w*(C[0]*e[0] + C[1]*e[1] + C[2]*e[2]);
+      s[1] += w*(C[1]*e[0] + C[3]*e[1] + C[4]*e[2]);
+      s[2] += w*(C[2]*e[0] + C[4]*e[1] + C[5]*e[2]);
+    }
   }
 }
 
@@ -128,12 +142,40 @@ void PSMultiTopo::addStressDVSens( const double pt[], const TacsScalar e[],
                                    TacsScalar alpha, const TacsScalar psi[],
                                    TacsScalar fdvSens[], int dvLen ){
   const int vars_per_node = mats->num_materials+1;
-  for ( int i = 0; i < nweights; i++ ){
+  if (mats->penalty == PSMultiTopoProperties::PS_CONVEX){
     for ( int j = 0; j < mats->num_materials; j++ ){
-      fdvSens[vars_per_node*nodes[i] + 1+j] += 
-        alpha*weights[i]*xlin[j]*(psi[0]*(mats->D[j]*(e[0] + mats->nu[j]*e[1])) +
-                                  psi[1]*(mats->D[j]*(e[1] + mats->nu[j]*e[0])) +
-                                  psi[2]*mats->G[j]*e[2]);
+      const TacsScalar *C = &mats->C[6*j];
+      TacsScalar s[3];
+      s[0] = C[0]*e[0] + C[1]*e[1] + C[2]*e[2];
+      s[1] = C[1]*e[0] + C[3]*e[1] + C[4]*e[2];
+      s[2] = C[2]*e[0] + C[4]*e[1] + C[5]*e[2];
+
+      // Compute the contribution to the derivative
+      TacsScalar scale = alpha*xlin[j]*(psi[0]*s[0] + psi[1]*s[1] + psi[2]*s[2]);
+
+      // Add the dependency on the filter
+      for ( int i = 0; i < nweights; i++ ){
+        fdvSens[vars_per_node*nodes[i] + 1+j] += scale*weights[i];
+      }
+    }
+  }
+  else {
+    const double q = mats->q;
+    for ( int j = 0; j < mats->num_materials; j++ ){
+      const TacsScalar *C = &mats->C[6*j];
+      TacsScalar s[3];
+      s[0] = C[0]*e[0] + C[1]*e[1] + C[2]*e[2];
+      s[1] = C[1]*e[0] + C[3]*e[1] + C[4]*e[2];
+      s[2] = C[2]*e[0] + C[4]*e[1] + C[5]*e[2];
+
+      // Compute the contribution to the derivative
+      TacsScalar scale = alpha*(psi[0]*s[0] + psi[1]*s[1] + psi[2]*s[2]);
+      scale *= (q + 1.0)/((1.0 + q*(1.0 - x[j+1]))*(1.0 + q*(1.0 - x[j+1])));     
+
+      // Add the derivative due to the filter weights
+      for ( int i = 0; i < nweights; i++ ){
+        fdvSens[vars_per_node*nodes[i] + 1+j] += scale*weights[i];
+      }
     }
   }
 }
@@ -147,13 +189,20 @@ void PSMultiTopo::calcStressDVProject( const double pt[],
                                        int dvLen, TacsScalar s[] ){
   s[0] = s[1] = s[2] = 0.0;
   const int vars_per_node = mats->num_materials+1;
-  for ( int i = 0; i < nweights; i++ ){
+  if (mats->penalty == PSMultiTopoProperties::PS_CONVEX){
     for ( int j = 0; j < mats->num_materials; j++ ){
-      TacsScalar Dx = weights[i]*mats->D[j]*xlin[j]*px[vars_per_node*nodes[i] + j+1];
-      TacsScalar Gx = weights[i]*mats->G[j]*xlin[j]*px[vars_per_node*nodes[i] + j+1];
-      s[0] += Dx*(e[0] + mats->nu[j]*e[1]);
-      s[1] += Dx*(e[1] + mats->nu[j]*e[0]);
-      s[2] += Gx*e[2];
+      const TacsScalar *C = &mats->C[6*j];
+      TacsScalar s0[3];
+      s0[0] = C[0]*e[0] + C[1]*e[1] + C[2]*e[2];
+      s0[1] = C[1]*e[0] + C[3]*e[1] + C[4]*e[2];
+      s0[2] = C[2]*e[0] + C[4]*e[1] + C[5]*e[2];
+
+      for ( int i = 0; i < nweights; i++ ){
+        const TacsScalar wx = weights[i]*xlin[j]*px[vars_per_node*nodes[i] + j+1];
+        s[0] += wx*s0[0];
+        s[1] += wx*s0[1];
+        s[2] += wx*s0[2];
+      }
     }
   }
 }

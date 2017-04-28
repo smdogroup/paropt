@@ -3687,6 +3687,12 @@ int ParOpt::optimize( const char *checkpoint ){
       barrier_converged = 1;
     }
 
+    // Keep track of the new barrier parameter (if any). Only set the
+    // new barrier parameter after we've check for convergence of the
+    // overall algorithm. This ensures that the previous barrier
+    // parameter is saved if we successfully converge.
+    double new_barrier_param = 0.0;
+
     // Broadcast the result of the test from the root processor
     MPI_Bcast(&barrier_converged, 1, MPI_INT, opt_root, comm);
 
@@ -3701,9 +3707,9 @@ int ParOpt::optimize( const char *checkpoint ){
       double mu_frac = monotone_barrier_fraction*barrier_param;
       double mu_pow = pow(barrier_param, monotone_barrier_power);
 
-      barrier_param = mu_frac;
+      new_barrier_param = mu_frac;
       if (mu_pow < mu_frac){
-        barrier_param = mu_pow;
+        new_barrier_param = mu_pow;
       }
 
       // Now, that we have adjusted the barrier parameter, we have
@@ -3711,7 +3717,7 @@ int ParOpt::optimize( const char *checkpoint ){
       max_dual = 0.0;
       if (dense_inequality){
         for ( int i = 0; i < ncon; i++ ){
-          rs[i] -= (mu_old - barrier_param);
+          rs[i] -= (mu_old - new_barrier_param);
         
           if (fabs(RealPart(rs[i])) > max_dual){
             max_dual = fabs(RealPart(rs[i]));
@@ -3726,7 +3732,7 @@ int ParOpt::optimize( const char *checkpoint ){
         rsw->getArray(&rswvals);
     
         for ( int i = 0; i < nwcon; i++ ){
-          rswvals[i] -= (mu_old - barrier_param);
+          rswvals[i] -= (mu_old - new_barrier_param);
         }
     
         double dual_zw = rsw->maxabs();
@@ -3743,7 +3749,7 @@ int ParOpt::optimize( const char *checkpoint ){
 
         for ( int i = 0; i < nvars; i++ ){
           if (RealPart(lbvals[i]) > -max_bound_val){
-            rzlvals[i] -= (mu_old - barrier_param);
+            rzlvals[i] -= (mu_old - new_barrier_param);
           }
           else {
             rzlvals[i] = 0.0;
@@ -3764,7 +3770,7 @@ int ParOpt::optimize( const char *checkpoint ){
 
         for ( int i = 0; i < nvars; i++ ){
           if (RealPart(ubvals[i]) < max_bound_val){
-            rzuvals[i] -= (mu_old - barrier_param);
+            rzuvals[i] -= (mu_old - new_barrier_param);
           }
           else {
             rzuvals[i] = 0.0;
@@ -3816,13 +3822,23 @@ int ParOpt::optimize( const char *checkpoint ){
       fflush(outfp);
     }
 
-    // Check for convergence, depending on the convergence criteria
+    // Check for convergence. We apply two different convergence
+    // criteria at this point: the first based on the infinity norm of
+    // the KKT condition residuals, and the second based on the
+    // difference between subsequent calls.
+
+    // Check if the barrier term has converged. This is required for
+    // both convergence checks
+    int barrier_term = (barrier_param <= 0.1*abs_res_tol);
+    if (barrier_converged){
+      barrier_term = (new_barrier_param <= 0.1*abs_res_tol);
+    }
+
+    // Check either of the two convergence criteria
     int converged = 0;
-    if (k > 0 && 
-        ((barrier_param < 0.1*abs_res_tol && 
-          res_norm < abs_res_tol) ||
-         (barrier_param < 0.1*abs_res_tol && 
-          alpha_xprev == 1.0 && alpha_zprev == 1.0 &&
+    if (k > 0 && barrier_term &&
+        (res_norm < abs_res_tol ||
+         (alpha_xprev == 1.0 && alpha_zprev == 1.0 &&
           (fabs(RealPart(fobj - fobj_prev)) < 
            rel_func_tol*fabs(RealPart(fobj_prev)))))){
       converged = 1;
@@ -3835,6 +3851,11 @@ int ParOpt::optimize( const char *checkpoint ){
     // Everybody quit altogether if we've converged
     if (converged){
       break;
+    }
+
+    // Set/store the new barrier parameter now.
+    if (barrier_converged){
+      barrier_param = new_barrier_param;
     }
 
     // Compute the relative GMRES tolerance given the residuals
