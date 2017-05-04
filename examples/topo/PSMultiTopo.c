@@ -12,6 +12,10 @@ PSMultiTopoProperties::PSMultiTopoProperties( TacsScalar _rho[],
   // Set the material parameters
   q = 1.0;
   eps = 1e-6;
+
+  // Set the relative tolerance
+  eps = eps/num_mats;
+
   num_materials = num_mats;
   for ( int k = 0; k < num_mats; k++ ){
     rho[k] = _rho[k];
@@ -128,7 +132,7 @@ void PSMultiTopo::calculateStress( const double pt[],
     const double q = mats->q;
     for ( int k = 0; k < mats->num_materials; k++ ){
       const TacsScalar *C = &mats->C[6*k];
-      const TacsScalar w = x[k+1]/(1.0 + q*(1.0 - x[k+1]));
+      const TacsScalar w = x[k+1]/(1.0 + q*(1.0 - x[k+1])) + mats->eps;
       s[0] += w*(C[0]*e[0] + C[1]*e[1] + C[2]*e[2]);
       s[1] += w*(C[1]*e[0] + C[3]*e[1] + C[4]*e[2]);
       s[2] += w*(C[2]*e[0] + C[4]*e[1] + C[5]*e[2]);
@@ -136,8 +140,10 @@ void PSMultiTopo::calculateStress( const double pt[],
   }
 }
 
-// Add the derivative of the product of the strain with an input
-// vector psi and add it to the array fdvSens
+/*
+  Add the derivative of the product of the strain with an input vector
+  psi and add it to the array fdvSens
+*/
 void PSMultiTopo::addStressDVSens( const double pt[], const TacsScalar e[],
                                    TacsScalar alpha, const TacsScalar psi[],
                                    TacsScalar fdvSens[], int dvLen ){
@@ -180,9 +186,11 @@ void PSMultiTopo::addStressDVSens( const double pt[], const TacsScalar e[],
   }
 }
 
-// Calculate the derivative of the stress projected onto the design
-// variable values. This is required for second derivative
-// computations.
+/* 
+   Calculate the derivative of the stress projected onto the design
+   variable values. This is required for second derivative
+   computations.
+*/
 void PSMultiTopo::calcStressDVProject( const double pt[],
                                        const TacsScalar e[],
                                        const TacsScalar px[],
@@ -202,6 +210,63 @@ void PSMultiTopo::calcStressDVProject( const double pt[],
         s[0] += wx*s0[0];
         s[1] += wx*s0[1];
         s[2] += wx*s0[2];
+      }
+    }
+  }
+  else {
+    const double q = mats->q;
+    for ( int j = 0; j < mats->num_materials; j++ ){
+      const TacsScalar *C = &mats->C[6*j];
+      TacsScalar s0[3];
+      s0[0] = C[0]*e[0] + C[1]*e[1] + C[2]*e[2];
+      s0[1] = C[1]*e[0] + C[3]*e[1] + C[4]*e[2];
+      s0[2] = C[2]*e[0] + C[4]*e[1] + C[5]*e[2];
+
+      // Compute the derivative of the weight
+      const TacsScalar scale = 
+        (q + 1.0)/((1.0 + q*(1.0 - x[j+1]))*(1.0 + q*(1.0 - x[j+1])));
+
+      for ( int i = 0; i < nweights; i++ ){
+        const TacsScalar wx = scale*weights[i]*px[vars_per_node*nodes[i] + j+1];
+        s[0] += wx*s0[0];
+        s[1] += wx*s0[1];
+        s[2] += wx*s0[2];
+      }
+    }
+  }
+}
+
+/*
+  Add the term from the second derivative of the inner product
+*/
+void PSMultiTopo::addStress2ndDVSensProduct( const double pt[], const TacsScalar e[],
+                                             TacsScalar alpha, const TacsScalar psi[],
+                                             const TacsScalar px[],
+                                             TacsScalar fdvSens[], int dvLen ){
+  const int vars_per_node = mats->num_materials+1;
+  if (mats->penalty == PSMultiTopoProperties::PS_FULL){
+    const double q = mats->q;
+    for ( int j = 0; j < mats->num_materials; j++ ){
+      const TacsScalar *C = &mats->C[6*j];
+      TacsScalar s[3];
+      s[0] = C[0]*e[0] + C[1]*e[1] + C[2]*e[2];
+      s[1] = C[1]*e[0] + C[3]*e[1] + C[4]*e[2];
+      s[2] = C[2]*e[0] + C[4]*e[1] + C[5]*e[2];
+
+      // Add the derivative due to the filter weights
+      TacsScalar proj = 0.0;
+      for ( int i = 0; i < nweights; i++ ){
+        proj += px[vars_per_node*nodes[i] + 1+j]*weights[i];
+      }
+
+      // Compute the contribution to the derivative
+      TacsScalar a = 1.0/(1.0 + q*(1.0 - x[j+1]));
+      TacsScalar scale = alpha*(psi[0]*s[0] + psi[1]*s[1] + psi[2]*s[2]);
+      scale *= 2.0*(q + 1.0)*a*a*a*proj;
+
+      // Add the derivative due to the filter weights
+      for ( int i = 0; i < nweights; i++ ){
+        fdvSens[vars_per_node*nodes[i] + 1+j] += scale*weights[i];
       }
     }
   }
@@ -235,6 +300,7 @@ void PSMultiTopo::addPointwiseMassDVSens( const double pt[],
 void assembleResProjectDVSens( TACSAssembler *tacs,
                                const TacsScalar *px,
                                int dvLen,
+                               TacsScalar *fdvSens,
                                TACSBVec *residual ){
   residual->zeroEntries();
   static const int NUM_NODES = 4;
@@ -296,7 +362,10 @@ void assembleResProjectDVSens( TACSAssembler *tacs,
           // Compute the strain
           TacsScalar strain[NUM_STRESSES];
           elem->evalStrain(strain, J, Na, Nb, vars);
- 
+
+          // Add the contribution -u^{T}*d^2K/dx^2*u to the derivative
+          con->addStress2ndDVSensProduct(pt, strain, -1.0, strain, px, fdvSens, dvLen);
+
           // Compute the corresponding stress
           TacsScalar stress[NUM_STRESSES];
           con->calcStressDVProject(pt, strain, px, dvLen, stress);

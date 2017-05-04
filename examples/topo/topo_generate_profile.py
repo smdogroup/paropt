@@ -56,7 +56,7 @@ merit = args.merit
 
 output_dir = 'results'
 root_dir = ['results', 'results',
-            'full_penalty_results', 'full_penalty_results']
+            'ipopt2', 'snopt2']
 
 output_type = 'isotropic'
 if args.case == 'isotropic':
@@ -303,7 +303,7 @@ else:
             nspan = (y2 - y1)/10
             yticks = np.linspace(y1, y2, nspan+1)                             
         else:
-            m = 25
+            m = 20
             y1 = m*(y1/m) # Round down to the nearst divisor by 5
             if y2 % m != 0:
                 y2 = m*(y2/m + 1)
@@ -319,8 +319,19 @@ else:
     # Reset the max/min y values
     ymin = y1
     if merit == 'compliance':
+        ymax = 1.45
         ymin = 0.98
-    
+        yticks = np.linspace(1, 1.45, 10)
+        y1 = ymin
+        y2 = ymax
+    if merit == 'time':
+        if ymax > 200:
+            ymax = 200
+            ymin = 0
+            yticks = np.linspace(0, 200, 11)
+            y1 = ymin
+            y2 = ymax
+        
     ymax = y2
     yscale = 1.0/(ymax - ymin)
 
@@ -354,22 +365,22 @@ else:
                 ylist.append(perform[i,k])
 
         line_dim = 'ultra thick'
-        if 'paropt' not in heuristics[k]:
-            line_dim += ', densely dotted'
+        # if 'paropt' not in heuristics[k]:
+        #     line_dim += ', densely dotted'
         s += tikz.get_2d_plot(xlist, ylist,
                               xscale=xscale, yscale=yscale,
                               color=colors[k], line_dim=line_dim,
                               xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax,
-                              symbol=symbols[k], symbol_size=0.025)
+                              symbol=symbols[k], symbol_size=0.035)
 
     # Add a background for the legend
     ylegend = 0.98*ymax
     xlegend = 12.5
-    delta_y = 0.075*(ymax - ymin)
+    delta_y = 0.1*(y2 - y1)
     if merit == 'time':
         ylegend = 0.95*ymax
         xlegend = 1.5
-        delta_y = 10.0
+    #    delta_y = 10.0
     
     length = 0.25
     xlegend_len = 2.65
@@ -381,13 +392,13 @@ else:
     for k in xrange(len(heuristics)):
         # Add a label to the legend
         line_dim = 'ultra thick'
-        if 'paropt' not in heuristics[k]:
-            line_dim += ', densely dotted'
+        # if 'paropt' not in heuristics[k]:
+        #     line_dim += ', densely dotted'
         s += tikz.get_legend_entry(xlegend, ylegend - delta_y*k, length,
                                    xscale=xscale, yscale=yscale,
                                    color=colors[k], line_dim=line_dim,
                                    symbol=symbols[k], font_size='normalsize',
-                                   label=heur_labels[k], symbol_size=0.025)
+                                   label=heur_labels[k], symbol_size=0.035)
 
     s += tikz.get_end_tikz()
 

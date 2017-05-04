@@ -262,6 +262,10 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   // Zero the number of evals
   neval = ngeval = nhvec = 0;
 
+  // Set the flag to indicate that this is not the final barrier
+  // problem
+  final_barrier_problem = 0;
+
   // Initialize the parameters with default values
   max_major_iters = 1000;
   init_starting_point = 1;
@@ -854,18 +858,35 @@ double ParOpt::getBarrierParameter(){
   return barrier_param;
 }
 
+/*
+  Get the average of the complementarity products at the current
+  point.  Note that this call is collective on all processors.
+*/
+ParOptScalar ParOpt::getComplementarity(){
+  return computeComp();
+}
+
+/*
+  Set fraction for the barrier update
+*/
 void ParOpt::setBarrierFraction( double frac ){
   if (frac > 0.0 && frac < 1.0){
     monotone_barrier_fraction = frac;
   }
 }
 
+/*
+  Set the power for the barrier update
+*/
 void ParOpt::setBarrierPower( double power ){
   if (power >= 1.0 && power < 10.0){
     monotone_barrier_power = power;
   }
 }
 
+/*
+  Set the frequency with which the Hessian is updated
+*/
 void ParOpt::setHessianResetFreq( int freq ){
   if (freq > 0){
     hessian_reset_freq = freq;
@@ -3431,7 +3452,7 @@ void ParOpt::initAndCheckDesignAndBounds( int init_multipliers ){
   ub->getArray(&ubvals);
 
   // Check the variable values to see if they are reasonable
-  double rel_bound = 1e-3;
+  double rel_bound = 0.001*barrier_param;;
   int check_flag = 0;
   if (use_lower && use_upper){
     for ( int i = 0; i < nvars; i++ ){
@@ -3469,11 +3490,11 @@ void ParOpt::initAndCheckDesignAndBounds( int init_multipliers ){
   }
   if (check_flag & 2){
     fprintf(stderr, 
-            "ParOpt Warning: Modification of variables; too close to lower bound\n");
+            "ParOpt Warning: Variables may be too close to lower bound\n");
   }
   if (check_flag & 4){
     fprintf(stderr, 
-            "ParOpt Warning: Modification of variables; too close to upper bound\n");
+            "ParOpt Warning: Variables may be too close to upper bound\n");
   }
 
   // Set the largrange multipliers with bounds outside the
@@ -3516,6 +3537,10 @@ int ParOpt::optimize( const char *checkpoint ){
   if (gradient_check_frequency > 0){
     checkGradients(gradient_check_step);
   }
+  
+  // This is not the final barrier problem
+  final_barrier_problem = 0;
+
   // Zero out the number of function/gradient evaluations
   neval = ngeval = nhvec = 0;
 
@@ -3675,15 +3700,16 @@ int ParOpt::optimize( const char *checkpoint ){
       res_norm_prev = res_norm;
     }
 
-    // Determine if the residual norm has been reduced
-    // sufficiently in order to switch to a new barrier
-    // problem
+    // Determine if we should switch to a new barrier problem or not
+    int rel_function_test = 
+      (alpha_xprev == 1.0 && alpha_zprev == 1.0 &&
+       (fabs(RealPart(fobj - fobj_prev)) < rel_func_tol*fabs(RealPart(fobj_prev))));
+
+    // Set the flag to indicate whether the barrier problem has
+    // converged
     int barrier_converged = 0;
-    if (k > 0 && 
-        ((res_norm < 10.0*barrier_param) || 
-         (alpha_xprev == 1.0 && alpha_zprev == 1.0 &&
-          (fabs(RealPart(fobj - fobj_prev)) < 
-           rel_func_tol*fabs(RealPart(fobj_prev)))))){
+    if (k > 0 && ((res_norm < 10.0*barrier_param) || 
+                  rel_function_test)){
       barrier_converged = 1;
     }
 
@@ -3710,6 +3736,14 @@ int ParOpt::optimize( const char *checkpoint ){
       new_barrier_param = mu_frac;
       if (mu_pow < mu_frac){
         new_barrier_param = mu_pow;
+      }
+
+      // Truncate the barrier parameter at 0.1*abs_res_tol. If this
+      // truncation occurs, set the flag that this is the final
+      // barrier problem
+      if (new_barrier_param < 0.1*abs_res_tol){
+        final_barrier_problem = 1;
+        new_barrier_param = 0.1*abs_res_tol;
       }
 
       // Now, that we have adjusted the barrier parameter, we have
@@ -3829,18 +3863,17 @@ int ParOpt::optimize( const char *checkpoint ){
 
     // Check if the barrier term has converged. This is required for
     // both convergence checks
-    int barrier_term = (barrier_param <= 0.1*abs_res_tol);
+    int barrier_term = (final_barrier_problem || 
+                        (barrier_param <= 0.1*abs_res_tol));
     if (barrier_converged){
-      barrier_term = (new_barrier_param <= 0.1*abs_res_tol);
+      barrier_term = (final_barrier_problem ||
+                      (new_barrier_param <= 0.1*abs_res_tol));
     }
 
     // Check either of the two convergence criteria
     int converged = 0;
-    if (k > 0 && barrier_term &&
-        (res_norm < abs_res_tol ||
-         (alpha_xprev == 1.0 && alpha_zprev == 1.0 &&
-          (fabs(RealPart(fobj - fobj_prev)) < 
-           rel_func_tol*fabs(RealPart(fobj_prev)))))){
+    if (k > 0 && barrier_term && 
+        (res_norm < abs_res_tol || rel_function_test)){
       converged = 1;
     }
 
@@ -3959,9 +3992,9 @@ int ParOpt::optimize( const char *checkpoint ){
         }
       }
     
-      // As a last check, compute the complementarity at
-      // the full step length. If the complementarity increases,
-      // use equal step lengths.
+      // As a last check, compute the average of the complementarity
+      // products at the full step length. If the complementarity
+      // increases, use equal step lengths.
       ParOptScalar comp_new = computeCompStep(alpha_x, alpha_z);
 
       if (RealPart(comp_new) > 10.0*RealPart(comp)){
@@ -4009,11 +4042,10 @@ int ParOpt::optimize( const char *checkpoint ){
       }
     }
 
-    // Store the design variable locations for the 
-    // Hessian update. The gradient difference update
-    // is done after the step has been selected, but
-    // before the new gradient is evaluated (so we 
-    // have the new multipliers)
+    // Store the design variable locations for the Hessian update. The
+    // gradient difference update is done after the step has been
+    // selected, but before the new gradient is evaluated (so we have
+    // the new multipliers)
     if (!sequential_linear_method){
       s_qn->copyValues(x);
       s_qn->scale(-1.0);
@@ -4030,9 +4062,9 @@ int ParOpt::optimize( const char *checkpoint ){
       evalMeritInitDeriv(alpha_x, &m0, &dm0, (gmres_iters > 0),
                          wtemp, rcw);
 
-      // Check that the merit function derivative is
-      // correct and print the derivative to the screen on the
-      // optimization-root processor
+      // Check that the merit function derivative is correct and print
+      // the derivative to the screen on the optimization-root
+      // processor
       if (k == major_iter_step_check){
         double dh = merit_func_check_epsilon;
         rx->copyValues(x);
@@ -4069,9 +4101,9 @@ int ParOpt::optimize( const char *checkpoint ){
       }
       
       // If the directional derivative is negative, take the full
-      // step, regardless. This can happen when an inexact Newton
-      // step is used. Also, if the directional derivative is too small
-      // we also apply the full step.
+      // step, regardless. This can happen when an inexact Newton step
+      // is used. Also, if the directional derivative is too small we
+      // also apply the full step.
       if (RealPart(dm0) > 0.0 ||
           RealPart(dm0) > -abs_res_tol*abs_res_tol){
         // Apply the full step to the Lagrange multipliers and
@@ -4114,12 +4146,12 @@ int ParOpt::optimize( const char *checkpoint ){
           }
         }
 
-        // Update x here so that we don't impact
-        // the design variables when computing Aw(x)^{T}*zw
+        // Update x here so that we don't impact the design variables
+        // when computing Aw(x)^{T}*zw
         x->axpy(alpha, px);
 
-        // Evaluate the objective, constraint and their gradients at the
-        // current values of the design variables
+        // Evaluate the objective, constraint and their gradients at
+        // the current values of the design variables
         int fail_obj = prob->evalObjCon(x, &fobj, c);
         neval++;
         if (fail_obj){
@@ -4136,7 +4168,7 @@ int ParOpt::optimize( const char *checkpoint ){
         }
 
         // Add the new gradient of the Lagrangian with the new
-        // multiplier estimates 
+        // multiplier estimates
         if (!sequential_linear_method){
           y_qn->axpy(1.0, g);
           for ( int i = 0; i < ncon; i++ ){

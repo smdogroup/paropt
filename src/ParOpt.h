@@ -169,6 +169,7 @@ class ParOpt {
   // -----------------------------
   void setInitBarrierParameter( double mu );
   double getBarrierParameter();
+  ParOptScalar getComplementarity();
 
   // Set parameters associated with the line search
   // ----------------------------------------------
@@ -293,8 +294,8 @@ class ParOpt {
                            ParOptScalar *_merit, ParOptScalar *_pmerit,
                            int inexact_step, ParOptVec *wt1, ParOptVec *wt2 );
   
-  // Compute the complementarity
-  ParOptScalar computeComp(); // Complementarity at the current point
+  // Compute the average of the complementarity products at the current point
+  ParOptScalar computeComp();
   ParOptScalar computeCompStep( double alpha_x,
                                 double alpha_z ); // Complementarity at (x + p)
 
@@ -380,6 +381,10 @@ class ParOpt {
   // Parameters for the periodic gradient check option
   int gradient_check_frequency;
   double gradient_check_step;
+
+  // Flag to indicate whether this is the final barrier problem or not
+  // (e.g. if barrier_param = 0.1*abs_res_tol)
+  int final_barrier_problem;
 
   // The barrier parameter
   double barrier_param;

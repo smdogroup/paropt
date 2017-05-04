@@ -155,6 +155,9 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         self.xinit[:] = xi
         self.xinit[::self.nblock] = self.num_materials*xi
 
+        # Create a temporary vector for the hessian-vector products
+        self.hvec_tmp = np.zeros(self.xinit.shape)
+
         # Set the initial linearization/point
         self.RAMP_penalty = 0.0
         self.setNewInitPointPenalty(self.xinit)
@@ -212,7 +215,9 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         q = self.props.getPenalization()        
         x[:] = self.xinit[:]
         ub[:] = 1e30
-        lb[:] = q/(q + 1.0)*self.xinit[:]**2
+        lb[:] = 0.0
+        if self.props.getPenaltyType() == 'convex':
+            lb[:] = q/(q + 1.0)*self.xinit[:]**2
         ub[::self.nblock] = 1.0
         lb[::self.nblock] = -1e30
         return
@@ -338,15 +343,20 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         
         # Zero the hessian-vector product
         hvec[:] = 0.0
+        self.hvec_tmp[:] = 0.0
 
         # Assemble the residual
-        multitopo.assembleProjectDVSens(self.tacs, px, self.res)
+        multitopo.assembleProjectDVSens(self.tacs, px,
+                                        self.hvec_tmp, self.res)
 
         # Solve K(x)*psi = res
         self.ksm.solve(self.res, self.psi)
 
         # Evaluate the adjoint-residual product
-        self.tacs.evalAdjointResProduct(self.psi, hvec)      
+        self.tacs.evalAdjointResProduct(self.psi, hvec)
+
+        # Add the contribution to the derivative
+        hvec[:] += self.hvec_tmp[:]
 
         # Scale the result to the correct range
         hvec /= 0.5*self.obj_scale
@@ -376,7 +386,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
 
             grey = [225, 225, 225]
             
-            if self.num_materials == 3:
+            if self.num_materials <= 3:
                 # Write out a tikz file
                 rgbvals = [(44, 160, 44),
                            (255, 127, 14),
@@ -440,8 +450,9 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
                         if xf[1+j] > 0.5:
                             c = np.cos(thetas[j])
                             s = np.sin(thetas[j])
-                            tikz += '\\draw[line width=%.2fmm, color=black!%d] (%f, %f) -- (%f, %f);\n'%(
-                                width, int(100*xf[0]),
+                            tikz += '\\draw[line width=%.2fmm, color=black!%d]'%(
+                                width, int(100*xf[0]))
+                            tikz += ' (%f, %f) -- (%f, %f);\n'%(
                                 xav - 0.5*l*c, yav - 0.5*l*s,
                                 xav + 0.5*l*c, yav + 0.5*l*s)
                                                    
@@ -611,7 +622,7 @@ def create_paropt(analysis, use_hessian=False,
     opt = ParOpt.pyParOpt(analysis, max_qn_subspace, qn_type)
 
     # Set the optimality tolerance
-    opt.setAbsOptimalityTol(1e-5)
+    opt.setAbsOptimalityTol(1e-6)
     
     # Set the Hessian-vector product iterations
     if use_hessian:
@@ -649,11 +660,13 @@ def create_pyopt(analysis, optimizer='snopt', options={}):
         prob = None
         def __init__(self, analysis):
             self.analysis = analysis
+
         def objcon(self, x):
             self.xcurr = np.array(x['x'])
             fail, obj, con = self.analysis.evalObjCon(x['x'])
             funcs = {'objective': obj, 'con': con}
             return funcs, fail
+        
         def gobjcon(self, x, funcs):
             g = np.zeros(x['x'].shape)
             A = np.zeros((1, x['x'].shape[0]))
@@ -671,12 +684,17 @@ def create_pyopt(analysis, optimizer='snopt', options={}):
             if self.optimizer == 'snopt':
                 self.options['Print file'] = fname
                 self.options['Summary file'] = fname + '_summary'
+                self.options['Major optimality tolerance'] = 1e-5
                 
-            elif self.optimizer == 'ipopt':
+            elif self.optimizer == 'ipopt':                
+                self.options['print_user_options'] = 'yes'
+                self.options['tol'] = 1e-5
+                self.options['nlp_scaling_method'] = 'none'
+                self.options['limited_memory_max_history'] = 25
                 self.options['bound_relax_factor'] = 0.0
                 self.options['linear_solver'] = 'ma27'
                 self.options['output_file'] = fname
-                self.options['max_iter'] = 2500
+                self.options['max_iter'] = 10000
             return
 
         def setInitBarrierParameter(self, *args):
@@ -754,10 +772,10 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
         os.makedirs(prefix)
        
     # Set up the optimization problem in ParOpt
-    if optimizer == 'paropt':
-        opt = create_paropt(analysis,
-                            use_hessian=use_hessian,
-                            qn_type=ParOpt.BFGS)
+    # if optimizer == 'paropt':
+    opt = create_paropt(analysis,
+                        use_hessian=use_hessian,
+                        qn_type=ParOpt.BFGS)
         
     # Log the optimization file
     log_filename = os.path.join(prefix, 'log_file.dat')
@@ -791,9 +809,15 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
 
     # Keep track of the number of iterations
     niters = 0
+
+    opt.setAbsOptimalityTol(1e-5)
+
+    # -------------------------------------
+    max_iters = 20
+    # -------------------------------------    
     for k in xrange(max_iters):
-        if optimizer != 'paropt':
-            opt = create_pyopt(analysis, optimizer=optimizer)
+        # if optimizer != 'paropt':
+        #     opt = create_pyopt(analysis, optimizer=optimizer)
         
         # Set the output file to use
         fname = os.path.join(prefix, 'history_iter%d.out'%(k)) 
@@ -801,10 +825,10 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
 
         # Optimize
         if k > 0 and optimizer == 'paropt':
-            if k == 1 and start_strategy == 'convex':
-                opt.setInitBarrierParameter(1e-4)
-            else:
-                opt.setInitStartingPoint(0)
+            opt.setInitStartingPoint(0)
+            comp = opt.getComplementarity()
+            print 'complementarity: ', comp
+            opt.setInitBarrierParameter(comp)
         opt.optimize()
 
         # Get the optimized point
@@ -854,6 +878,49 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
         # Increase the iteration counter
         niters += 1
 
+    # ----------------------------------------------
+    opt = create_paropt(analysis,
+                        use_hessian=use_hessian,
+                        qn_type=ParOpt.BFGS)
+
+    opt.checkGradients(1e-6)
+    # opt.setInitStartingPoint(0)
+    # opt.setInitBarrierParameter(opt.getComplementarity())
+    opt.setAbsOptimalityTol(1e-6)
+
+    analysis.props.setPenaltyType('full')
+    analysis.setNewInitPointPenalty(analysis.xinit)
+
+    # opt = create_pyopt(analysis, optimizer='ipopt')
+    # opt.setUseLineSearch(1)
+    # opt.setUseHvecProduct(0)
+        
+    # Set the output file to use
+    fname = os.path.join(prefix, 'history_iter%d.out'%(niters)) 
+    opt.setOutputFile(fname)
+
+    # Optimize
+    opt.optimize()
+
+    # Get the optimized point
+    x = opt.getOptimizedPoint()
+
+    # Get the discrete infeasibility measure
+    d = analysis.getDiscreteInfeas(x)
+    
+    # Compute the discrete infeasibility measure
+    tau = np.sum(d)
+
+    # Get the compliance and objective values
+    comp = analysis.getCompliance(x)
+
+    s = '%d %e %e %e %e '%(niters, comp, np.min(d), np.max(d), np.sum(d))
+    s += '%d %d %d %e\n'%(
+        analysis.fevals, analysis.gevals, analysis.hevals, 
+        MPI.Wtime() - init_time)
+    fp.write(s)
+    # ---------------------------------------------------
+
     # Close the log file
     fp.close()
 
@@ -871,7 +938,7 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
 
 def optimize_plane_stress_full(comm, analysis, root_dir='results',
                                parameter=5.0, optimizer='paropt', case='isotropic',
-                               start_strategy='point'):
+                               use_hessian=False, start_strategy='point'):
     # Optimize the structure
     penalization = 'RAMP'
     heuristic = '%s%.0f_%s_%s_%s'%(penalization, parameter, optimizer,
@@ -887,6 +954,7 @@ def optimize_plane_stress_full(comm, analysis, root_dir='results',
         opt = create_paropt(analysis,
                             use_hessian=use_hessian,
                             qn_type=ParOpt.BFGS)
+        # opt.setBFGSUpdateType(ParOpt.DAMPED_UPDATE)
         
     # Log the optimization file
     log_filename = os.path.join(prefix, 'log_file.dat')
@@ -925,6 +993,10 @@ def optimize_plane_stress_full(comm, analysis, root_dir='results',
 
         # Get the optimized point
         x = opt.getOptimizedPoint()
+
+        # Make sure that all of the variables are strictly positive
+        for i in xrange(len(x)):
+            x[i] = max(0.0, x[i])
         
         # Get the discrete infeasibility measure
         d = analysis.getDiscreteInfeas(x)
@@ -934,16 +1006,22 @@ def optimize_plane_stress_full(comm, analysis, root_dir='results',
         
         # Get the compliance and objective values
         comp = analysis.getCompliance(x)
-
+        
         s = '%d %e %e %e %e '%(iteration, comp, np.min(d), np.max(d), np.sum(d))
         s += '%d %d %d %e\n'%(
             analysis.fevals, analysis.gevals, analysis.hevals, 
             MPI.Wtime() - init_time)
         fp.write(s)
 
+        iteration += 1
         analysis.RAMP_penalty = parameter
         analysis.props.setPenaltyType('full')
         analysis.setNewInitPointPenalty(x)
+
+        # Print out the design variables
+        filename = 'opt_struct_iter%d.tex'%(iteration)
+        output = os.path.join(prefix, filename)
+        analysis.writeTikzFile(x, output)
     elif start_strategy == 'uniform':
         analysis.xinit[:] = 1.0/analysis.num_materials
         analysis.xinit[::(analysis.num_materials+1)] = 1.0
@@ -952,6 +1030,13 @@ def optimize_plane_stress_full(comm, analysis, root_dir='results',
 
     if optimizer != 'paropt':
         opt = create_pyopt(analysis, optimizer=optimizer)
+    else:
+        opt = create_paropt(analysis,
+                            use_hessian=use_hessian,
+                            qn_type=ParOpt.BFGS)
+        opt.setNKSwitchTolerance(0.001)
+        opt.setEisenstatWalkerParameters(0.01, 0.0)
+        opt.setUseLineSearch(1)
         
     # Set the output file to use
     fname = os.path.join(prefix, 'history_iter%d.out'%(iteration)) 
@@ -1031,11 +1116,12 @@ xpts, conn, bcs, aux, area = rectangular_domain(nx, ny)
 
 # Set the material properties for the isotropic case
 if args.case == 'isotropic':
-    rho = np.array([0.7,   1.0, 1.15])
-    E = 70e3*np.array([0.725, 1.0, 1.125])
-    nu = np.array([0.3,  0.3, 0.3])
-    C = np.zeros((3, 6))
-    for i in xrange(3):
+    rho = np.array([0.5,   1.0])
+    E = 70e3*np.array([0.45, 1.0])
+    nu = np.array([0.3,  0.2])
+    C = np.zeros((len(rho), 6))
+    
+    for i in xrange(len(rho)):
         D = E[i]/(1.0 - nu[i])
         G = 0.5*E[i]/(1.0 + nu[i])
         C[i,0] = D
@@ -1091,11 +1177,13 @@ if args.full_penalty:
     optimize_plane_stress_full(comm, analysis, root_dir=root_dir,
                                parameter=parameter, optimizer=optimizer,
                                start_strategy=start_strategy,
+                               use_hessian=use_hessian,
                                case=args.case)
 else:
     # Optimize the plane stress problem
     optimize_plane_stress(comm, analysis, root_dir=root_dir,
                           parameter=parameter,
-                          max_iters=50, optimizer=optimizer,
+                          max_iters=100, optimizer=optimizer,
                           start_strategy=start_strategy,
+                          use_hessian=use_hessian,
                           case=args.case)

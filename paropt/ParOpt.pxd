@@ -104,6 +104,7 @@ cdef extern from "ParOpt.h":
       # Set/obtain the barrier parameter
       void setInitBarrierParameter(double mu)
       double getBarrierParameter()
+      ParOptScalar getComplementarity()
 
       # Reset the quasi-Newton approximation
       void resetQuasiNewtonHessian()

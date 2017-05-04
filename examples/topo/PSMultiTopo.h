@@ -13,6 +13,7 @@
 void assembleResProjectDVSens( TACSAssembler *tacs,
                                const TacsScalar *px,
                                int dvLen,
+                               TacsScalar *fdvSens,
                                TACSBVec *residual );
 
 class PSMultiTopoProperties : public TACSObject {
@@ -27,6 +28,9 @@ class PSMultiTopoProperties : public TACSObject {
   int getNumMaterials(){ return num_materials; }
   void setPenaltyType( PSPenaltyType _penalty ){
     penalty = _penalty;
+  }
+  PSPenaltyType getPenaltyType(){
+    return penalty;
   }
 
   // The type of penalization to use: Convex or full
@@ -72,6 +76,10 @@ class PSMultiTopo : public PlaneStressStiffness {
                             const TacsScalar e[],
                             const TacsScalar px[],
                             int dvLen, TacsScalar s[] );
+  void addStress2ndDVSensProduct( const double pt[], const TacsScalar e[],
+                                  TacsScalar alpha, const TacsScalar psi[],
+                                  const TacsScalar px[],
+                                  TacsScalar fdvSens[], int dvLen );
   void getPointwiseMass( const double pt[], TacsScalar mass[] );
   void addPointwiseMassDVSens( const double pt[],
                                const TacsScalar alpha[],

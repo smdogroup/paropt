@@ -412,6 +412,9 @@ cdef class pyParOpt:
       
    def getBarrierParameter(self):
       return self.this_ptr.getBarrierParameter()
+
+   def getComplementarity(self):
+      return self.this_ptr.getComplementarity()
   
    # Reset the quasi-Newton Hessian
    def resetQuasiNewtonHessian(self):

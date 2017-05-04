@@ -33,6 +33,7 @@ cdef extern from "PSMultiTopo.h":
         double getPenalization()
         int getNumMaterials()
         void setPenaltyType(PSPenaltyType)
+        PSPenaltyType getPenaltyType()
         
     cdef cppclass PSMultiTopo(PlaneStressStiffness):
         PSMultiTopo(PSMultiTopoProperties *_mats,
@@ -45,7 +46,8 @@ cdef extern from "PSMultiTopo.h":
         void locateKClosest(int, int*, TacsScalar*, const TacsScalar *)
         
     cdef void assembleResProjectDVSens(TACSAssembler*,
-                                       const TacsScalar*, int, TACSBVec*)
+                                       const TacsScalar*, int,
+                                       TacsScalar*, TACSBVec*)
 
 cdef class Locator:
     cdef LocatePoint *ptr
@@ -98,6 +100,12 @@ cdef class MultiTopoProperties:
             self.ptr.setPenaltyType(PS_CONVEX)
         else:
             self.ptr.setPenaltyType(PS_FULL)
+
+    def getPenaltyType(self):
+        if self.ptr.getPenaltyType() == PS_CONVEX:
+            return 'convex'
+        else:
+            return 'full'
     
 cdef class MultiTopo(PlaneStress):
     cdef PSMultiTopo *self_ptr
@@ -128,8 +136,11 @@ cdef class MultiTopo(PlaneStress):
     
 def assembleProjectDVSens(Assembler assembler,
                           np.ndarray[TacsScalar, ndim=1, mode='c'] px,
+                          np.ndarray[TacsScalar, ndim=1, mode='c'] deriv,
                           Vec residual):
+    assert(len(deriv) == len(px))
     assembleResProjectDVSens(assembler.ptr,
                              <TacsScalar*>px.data, len(px),
+                             <TacsScalar*>deriv.data,
                              residual.ptr)
     return
