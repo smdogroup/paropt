@@ -24,8 +24,10 @@ cdef extern from "mpi-compat.h":
 
 cdef extern from "PSMultiTopo.h":
     enum PSPenaltyType"PSMultiTopoProperties::PSPenaltyType":
-        PS_CONVEX"PSMultiTopoProperties::PS_CONVEX"
-        PS_FULL"PSMultiTopoProperties::PS_FULL"
+        PS_RAMP_CONVEX"PSMultiTopoProperties::PS_RAMP_CONVEX"
+        PS_RAMP_FULL"PSMultiTopoProperties::PS_RAMP_FULL"
+        PS_SIMP_CONVEX"PSMultiTopoProperties::PS_SIMP_CONVEX"
+        PS_SIMP_FULL"PSMultiTopoProperties::PS_SIMP_FULL"
       
     cdef cppclass PSMultiTopoProperties(TACSObject):
         PSMultiTopoProperties(TacsScalar*, TacsScalar*, int)
@@ -95,17 +97,25 @@ cdef class MultiTopoProperties:
     def getPenalization(self):
         return self.ptr.getPenalization()
 
-    def setPenaltyType(self, penalty='convex'):
-        if penalty == 'convex':
-            self.ptr.setPenaltyType(PS_CONVEX)
-        else:
-            self.ptr.setPenaltyType(PS_FULL)
+    def setPenaltyType(self, penalty='convex', ptype='ramp'):
+        if penalty == 'convex' and ptype == 'ramp':
+            self.ptr.setPenaltyType(PS_RAMP_CONVEX)
+        elif penalty == 'full' and ptype == 'ramp':
+            self.ptr.setPenaltyType(PS_RAMP_FULL)
+        elif penalty == 'convex' and ptype == 'simp':
+            self.ptr.setPenaltyType(PS_SIMP_CONVEX)
+        elif penalty == 'full' and ptype == 'simp':
+            self.ptr.setPenaltyType(PS_SIMP_FULL)
 
     def getPenaltyType(self):
-        if self.ptr.getPenaltyType() == PS_CONVEX:
-            return 'convex'
+        if self.ptr.getPenaltyType() == PS_RAMP_CONVEX:
+            return 'convex', 'ramp'
+        elif self.ptr.getPenaltyType() == PS_RAMP_FULL:
+            return 'full', 'ramp'
+        elif self.ptr.getPenaltyType() == PS_SIMP_FULL:
+            return 'convex', 'simp'
         else:
-            return 'full'
+            return 'full', 'simp'
     
 cdef class MultiTopo(PlaneStress):
     cdef PSMultiTopo *self_ptr

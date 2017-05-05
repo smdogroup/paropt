@@ -58,6 +58,11 @@ cdef extern from "CyParOptProblem.h":
                                 int _isDenseInequal,
                                 int _useLower, int _useUpper)
 
+cdef extern from "ParOptQuasiNewton.h":
+   enum BFGSUpdateType"LBFGS::BFGSUpdateType":
+      SKIP_NEGATIVE_CURVATURE"LBFGS::SKIP_NEGATIVE_CURVATURE"
+      DAMPED_UPDATE"LBFGS::DAMPED_UPDATE"
+
 cdef extern from "ParOptVec.h":
    cppclass ParOptVec:
       ParOptVec(MPI_Comm comm, int n)
@@ -99,6 +104,7 @@ cdef extern from "ParOpt.h":
       void setBarrierPower(double power)
       void setHessianResetFreq(int freq)
       void setQNDiagonalFactor(double sigma)
+      void setBFGSUpdateType(BFGSUpdateType)
       void setSequentialLinearMethod(int truth)
 
       # Set/obtain the barrier parameter
@@ -108,6 +114,9 @@ cdef extern from "ParOpt.h":
 
       # Reset the quasi-Newton approximation
       void resetQuasiNewtonHessian()
+
+      # Reset the design variables and the bounds
+      void resetDesignAndBounds()
       
       # Set parameters associated with the line search
       void setUseLineSearch(int truth)

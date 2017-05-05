@@ -507,7 +507,7 @@ void ParOpt::getOptimizedPoint( ParOptVec **_x,
   if (_zu){
     *_zu = NULL;
     if (use_upper){
-      *_zu = NULL;
+      *_zu = zu;
     }
   }
 }
@@ -1012,6 +1012,13 @@ void ParOpt::resetQuasiNewtonHessian(){
 }
 
 /*
+  Reset the design variables and bounds
+*/
+void ParOpt::resetDesignAndBounds(){
+  prob->getVarsAndBounds(x, lb, ub);
+}
+
+/*
   Set the size of the GMRES subspace and allocate the vectors
   required. Note that the old subspace information is deleted before
   the new subspace data is allocated.
@@ -1428,8 +1435,8 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec *xt,
       }
     }
 
-    // Next, complete the evaluation of Cw by 
-    // add the following contribution to the matrix
+    // Next, complete the evaluation of Cw by adding the following
+    // contribution to the matrix
     // Cw += Aw*C^{-1}*Aw^{T}
     prob->addSparseInnerProduct(1.0, x, Cvec, Cw);
 
@@ -2067,7 +2074,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(ubvals[i]) < max_bound_val){
-        yzuvals[i] =  (zuvals[i]*yxvals[i])/(ubvals[i] - xvals[i]);
+        yzuvals[i] = (zuvals[i]*yxvals[i])/(ubvals[i] - xvals[i]);
       }
       else {
         yzuvals[i] = 0.0;
@@ -3452,7 +3459,7 @@ void ParOpt::initAndCheckDesignAndBounds( int init_multipliers ){
   ub->getArray(&ubvals);
 
   // Check the variable values to see if they are reasonable
-  double rel_bound = 0.001*barrier_param;;
+  double rel_bound = 0.001*barrier_param;
   int check_flag = 0;
   if (use_lower && use_upper){
     for ( int i = 0; i < nvars; i++ ){
@@ -3497,8 +3504,9 @@ void ParOpt::initAndCheckDesignAndBounds( int init_multipliers ){
             "ParOpt Warning: Variables may be too close to upper bound\n");
   }
 
-  // Set the largrange multipliers with bounds outside the
-  // limits to zero
+  // Set the largrange multipliers with bounds outside the limits to
+  // zero. This ensures that they have no effect because they will not
+  // be updated once the optimization begins.
   ParOptScalar *zlvals, *zuvals;
   zl->getArray(&zlvals);
   zu->getArray(&zuvals);
@@ -4708,7 +4716,6 @@ void ParOpt::checkGradients( double dh ){
   xt->axpy(dh, px);
 #endif // PAROPT_USE_COMPLEX
 
-
   // Compute the finite-difference product
   ParOptScalar fobj2;
   prob->evalObjCon(xt, &fobj2, rc);
@@ -4751,9 +4758,8 @@ void ParOpt::checkGradients( double dh ){
       Ac2[i] = prob->createDesignVec();
     }
     
-    // Evaluate the gradient at the perturbed point
-    // and add the contribution from the sparse constraints
-    // to the Hessian
+    // Evaluate the gradient at the perturbed point and add the
+    // contribution from the sparse constraints to the Hessian
     prob->evalObjConGradient(xt, g2, Ac2);
     prob->addSparseJacobianTranspose(-1.0, xt, pzw, g2);
 

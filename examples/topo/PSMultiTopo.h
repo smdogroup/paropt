@@ -18,7 +18,8 @@ void assembleResProjectDVSens( TACSAssembler *tacs,
 
 class PSMultiTopoProperties : public TACSObject {
  public:
-  enum PSPenaltyType { PS_CONVEX, PS_FULL };
+  enum PSPenaltyType { PS_RAMP_CONVEX, PS_RAMP_FULL,
+                       PS_SIMP_CONVEX, PS_SIMP_FULL };
   static const int MAX_NUM_MATERIALS = 12;
   PSMultiTopoProperties( TacsScalar _rho[], TacsScalar Cmat[],
                          int num_mats );

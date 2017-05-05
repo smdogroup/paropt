@@ -216,8 +216,13 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         x[:] = self.xinit[:]
         ub[:] = 1e30
         lb[:] = 0.0
-        if self.props.getPenaltyType() == 'convex':
-            lb[:] = q/(q + 1.0)*self.xinit[:]**2
+
+        penalty, ptype = self.props.getPenaltyType()        
+        if penalty == 'convex':
+            if ptype == 'ramp':
+                lb[:] = q/(q + 1.0)*self.xinit[:]**2
+            else:
+                lb[:] = (2.0/3.0)*self.xinit[:] 
         ub[::self.nblock] = 1.0
         lb[::self.nblock] = -1e30
         return
@@ -354,12 +359,13 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
 
         # Evaluate the adjoint-residual product
         self.tacs.evalAdjointResProduct(self.psi, hvec)
+        hvec[:] *= 2.0
 
         # Add the contribution to the derivative
         hvec[:] += self.hvec_tmp[:]
 
         # Scale the result to the correct range
-        hvec /= 0.5*self.obj_scale
+        hvec[:] /= self.obj_scale
 
         fail = 0
         return fail
@@ -760,9 +766,10 @@ def create_pyopt(analysis, optimizer='snopt', options={}):
 def optimize_plane_stress(comm, analysis, root_dir='results',
                           parameter=5.0, max_iters=100,
                           optimizer='paropt', case='isotropic',
-                          start_strategy='point'):
+                          use_hessian=False, start_strategy='point',
+                          ptype='ramp'):
     # Optimize the structure
-    penalization = 'RAMP'
+    penalization = ptype.upper()
     heuristic = '%s%.0f_%s_%s_%s'%(penalization, parameter, optimizer,
                                    case, start_strategy)
     prefix = os.path.join(root_dir, '%dx%d'%(nx, ny), heuristic)
@@ -784,7 +791,7 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
     # Write the header out to the file
     s = 'Variables = iteration, "compliance" '
     s += '"min d", "max d", "tau", '
-    s += 'feval, geval, hvec, time\n'
+    s += 'feval, geval, hvec, time, "kkt error infty", "kkt error l2"\n'
     s += 'Zone T = %s\n'%(heuristic)
     fp.write(s)
 
@@ -795,11 +802,17 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
     if start_strategy == 'convex':
         # Set the optimality tolerance
         analysis.RAMP_penalty = 0.0
+        analysis.props.setPenaltyType(penalty='convex', ptype='ramp')
+        analysis.setNewInitPointPenalty(analysis.xinit)        
     elif start_strategy == 'uniform':
         analysis.xinit[:] = 1.0/analysis.num_materials
         analysis.xinit[::(analysis.num_materials+1)] = 1.0
-
-    analysis.setNewInitPointPenalty(analysis.xinit)
+        analysis.props.setPenaltyType(penalty='convex', ptype=ptype)
+        analysis.setNewInitPointPenalty(analysis.xinit)        
+    else:
+        # Set the initial starting point strategy
+        analysis.props.setPenaltyType(penalty='convex', ptype=ptype)
+        analysis.setNewInitPointPenalty(analysis.xinit)
 
     # Keep track of the ellapsed CPU time
     init_time = MPI.Wtime()
@@ -812,13 +825,8 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
 
     opt.setAbsOptimalityTol(1e-5)
 
-    # -------------------------------------
-    max_iters = 20
-    # -------------------------------------    
+    max_iters = 1000
     for k in xrange(max_iters):
-        # if optimizer != 'paropt':
-        #     opt = create_pyopt(analysis, optimizer=optimizer)
-        
         # Set the output file to use
         fname = os.path.join(prefix, 'history_iter%d.out'%(k)) 
         opt.setOutputFile(fname)
@@ -826,9 +834,15 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
         # Optimize
         if k > 0 and optimizer == 'paropt':
             opt.setInitStartingPoint(0)
-            comp = opt.getComplementarity()
-            print 'complementarity: ', comp
-            opt.setInitBarrierParameter(comp)
+
+            # Reset the design variables and bounds
+            opt.resetDesignAndBounds()
+
+            # Get the new complementarity
+            mu = opt.getComplementarity()
+            opt.setInitBarrierParameter(mu)
+
+        # Optimize the new point
         opt.optimize()
 
         # Get the optimized point
@@ -840,21 +854,6 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
         # Compute the discrete infeasibility measure
         tau = np.sum(d)
 
-        # Get the compliance and objective values
-        comp = analysis.getCompliance(x)
-
-        # Print out the iteration information to the screen
-        print 'Iteration %d'%(k)
-        print 'Min/max d:     %15.5e %15.5e  Total: %15.5e'%(
-            np.min(d), np.max(d), np.sum(d))
-
-        s = '%d %e %e %e %e '%(k, comp, np.min(d), np.max(d), np.sum(d))
-        s += '%d %d %d %e\n'%(
-            analysis.fevals, analysis.gevals, analysis.hevals, 
-            MPI.Wtime() - init_time)
-        fp.write(s)
-        fp.flush()
-
         # Print the output
         filename = 'opt_struct_iter%d.f5'%(k)
         output = os.path.join(prefix, filename)
@@ -865,64 +864,57 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
         output = os.path.join(prefix, filename)
         analysis.writeTikzFile(x, output)
 
-        if k > 0 and (np.fabs((comp - comp_prev)/comp) < 1e-4):
-            break
-
-        # Set the new penalty
+        # Get the compliance and objective values
         analysis.RAMP_penalty = parameter
-        analysis.setNewInitPointPenalty(x)
+        analysis.setNewInitPointPenalty(x)       
+        comp = analysis.getCompliance(x)
 
         # Store the previous value of the objective function
         comp_prev = 1.0*comp
 
+        # Compute the KKT error based on the original problem
+        x = opt.getOptimizedPoint()
+        z, zw, zl, zu = opt.getOptimizedMultipliers()
+
+        # Evaluate the objective and constraints
+        gobj1 = np.zeros(x.shape)
+        Acon1 = np.zeros((1, x.shape[0]))
+        fail, obj1, con1 = analysis.evalObjCon(x)
+        analysis.evalObjConGradient(x, gobj1, Acon1)
+        
+        # Compute the KKT error
+        kkt = gobj1 - Acon1[0,:]*z[0] - zl + zu
+        analysis.addSparseJacobianTranspose(-1.0, x, zw, kkt)
+
+        # Compute the maximum error contribution
+        kkt_max_err = max(kkt)
+        kkt_l2_err = np.sqrt(np.dot(kkt, kkt))
+        gnorm = np.sqrt(np.dot(gobj1, gobj1))
+
+        # Print out the iteration information to the screen
+        print 'Iter %d  Dis. Infeas:  %15.5e  KKT_infty: %15.5e  KKT_l2: %15.5e'%(
+            k, np.sum(d), kkt_max_err, kkt_l2_err)
+
+        # Print out the
+        s = '%d %e %e %e %e '%(k, comp, np.min(d), np.max(d), np.sum(d))
+        s += '%d %d %d %e %e %e\n'%(
+            analysis.fevals, analysis.gevals, analysis.hevals,
+            MPI.Wtime() - init_time, kkt_max_err, kkt_l2_err)
+        fp.write(s)
+        fp.flush()
+
+        # Quit when the max KKT error is less than 10^{-4}
+        if kkt_max_err < 1e-4:
+            break
+        
         # Increase the iteration counter
         niters += 1
 
-    # ----------------------------------------------
-    opt = create_paropt(analysis,
-                        use_hessian=use_hessian,
-                        qn_type=ParOpt.BFGS)
-
-    opt.checkGradients(1e-6)
-    # opt.setInitStartingPoint(0)
-    # opt.setInitBarrierParameter(opt.getComplementarity())
-    opt.setAbsOptimalityTol(1e-6)
-
-    analysis.props.setPenaltyType('full')
-    analysis.setNewInitPointPenalty(analysis.xinit)
-
-    # opt = create_pyopt(analysis, optimizer='ipopt')
-    # opt.setUseLineSearch(1)
-    # opt.setUseHvecProduct(0)
-        
-    # Set the output file to use
-    fname = os.path.join(prefix, 'history_iter%d.out'%(niters)) 
-    opt.setOutputFile(fname)
-
-    # Optimize
-    opt.optimize()
-
-    # Get the optimized point
-    x = opt.getOptimizedPoint()
-
-    # Get the discrete infeasibility measure
-    d = analysis.getDiscreteInfeas(x)
-    
-    # Compute the discrete infeasibility measure
-    tau = np.sum(d)
-
-    # Get the compliance and objective values
-    comp = analysis.getCompliance(x)
-
-    s = '%d %e %e %e %e '%(niters, comp, np.min(d), np.max(d), np.sum(d))
-    s += '%d %d %d %e\n'%(
-        analysis.fevals, analysis.gevals, analysis.hevals, 
-        MPI.Wtime() - init_time)
-    fp.write(s)
-    # ---------------------------------------------------
-
     # Close the log file
     fp.close()
+
+    # Get the final, optimzied point
+    x = opt.getOptimizedPoint()
 
     # Print out the design variables
     filename = 'final_opt_struct.tex'
@@ -938,9 +930,10 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
 
 def optimize_plane_stress_full(comm, analysis, root_dir='results',
                                parameter=5.0, optimizer='paropt', case='isotropic',
-                               use_hessian=False, start_strategy='point'):
+                               use_hessian=False, start_strategy='point',
+                               ptype='ramp'):
     # Optimize the structure
-    penalization = 'RAMP'
+    penalization = ptype.upper()
     heuristic = '%s%.0f_%s_%s_%s'%(penalization, parameter, optimizer,
                                    case, start_strategy)
     prefix = os.path.join(root_dir, '%dx%d'%(nx, ny), heuristic)
@@ -954,7 +947,6 @@ def optimize_plane_stress_full(comm, analysis, root_dir='results',
         opt = create_paropt(analysis,
                             use_hessian=use_hessian,
                             qn_type=ParOpt.BFGS)
-        # opt.setBFGSUpdateType(ParOpt.DAMPED_UPDATE)
         
     # Log the optimization file
     log_filename = os.path.join(prefix, 'log_file.dat')
@@ -969,7 +961,7 @@ def optimize_plane_stress_full(comm, analysis, root_dir='results',
 
     # Set the penalty parameter
     analysis.RAMP_penalty = parameter
-    analysis.props.setPenaltyType('full')
+    analysis.props.setPenaltyType('full', ptype=ptype)
 
     # Keep track of the ellapsed CPU time
     init_time = MPI.Wtime()
@@ -979,7 +971,7 @@ def optimize_plane_stress_full(comm, analysis, root_dir='results',
     if start_strategy == 'convex':
         # Set the optimality tolerance
         analysis.RAMP_penalty = 0.0
-        analysis.props.setPenaltyType('convex')
+        analysis.props.setPenaltyType('convex', ptype=ptype)
 
         if optimizer != 'paropt':
             opt = create_pyopt(analysis, optimizer=optimizer)
@@ -1015,7 +1007,7 @@ def optimize_plane_stress_full(comm, analysis, root_dir='results',
 
         iteration += 1
         analysis.RAMP_penalty = parameter
-        analysis.props.setPenaltyType('full')
+        analysis.props.setPenaltyType('full', ptype=ptype)
         analysis.setNewInitPointPenalty(x)
 
         # Print out the design variables
@@ -1034,8 +1026,10 @@ def optimize_plane_stress_full(comm, analysis, root_dir='results',
         opt = create_paropt(analysis,
                             use_hessian=use_hessian,
                             qn_type=ParOpt.BFGS)
-        opt.setNKSwitchTolerance(0.001)
-        opt.setEisenstatWalkerParameters(0.01, 0.0)
+        opt.setUseHvecProduct(1)
+        opt.setBFGSUpdateType('skip')
+        opt.setNKSwitchTolerance(1e-3)
+        opt.setEisenstatWalkerParameters(0.1, 0.0)
         opt.setUseLineSearch(1)
         
     # Set the output file to use
@@ -1086,6 +1080,8 @@ parser.add_argument('--ny', type=int, default=48,
                     help='Nodes in y-direction')
 parser.add_argument('--parameter', type=float, default=5.0,
                     help='Penalization parameter')
+parser.add_argument('--ptype', type=str, default='ramp',
+                    help='Penalty type')
 parser.add_argument('--optimizer', type=str, default='paropt',
                     help='Optimizer name')
 parser.add_argument('--full_penalty', default=False,
@@ -1104,11 +1100,16 @@ args = parser.parse_args()
 nx = args.nx
 ny = args.ny
 parameter = args.parameter
+ptype = args.ptype
 optimizer = args.optimizer
 use_hessian = args.use_hessian
 start_strategy = args.start_strategy
 root_dir = args.root_dir
 
+# Make sure everything is in lower case
+ptype = ptype.lower()
+
+# The MPI communicator
 comm = MPI.COMM_WORLD
 
 # Create the connectivity data
@@ -1116,9 +1117,15 @@ xpts, conn, bcs, aux, area = rectangular_domain(nx, ny)
 
 # Set the material properties for the isotropic case
 if args.case == 'isotropic':
-    rho = np.array([0.5,   1.0])
-    E = 70e3*np.array([0.45, 1.0])
-    nu = np.array([0.3,  0.2])
+    rho = np.array([0.5, 1.0, 1.15])
+    E = 70e3*np.array([0.45, 1.0, 1.2])
+    nu = np.array([0.2,  0.3, 0.3])
+
+    print 'mat # %15s %15s %15s'%('E/rho', 'G/rho', 'E/G')
+    for i in range(len(rho)):
+        G = E[i]/(1.0 + nu[i])
+        print 'mat %d %15g %15g %15g'%(E[i]/rho[i], G/rho[i], E[i]/G)
+            
     C = np.zeros((len(rho), 6))
     
     for i in xrange(len(rho)):
@@ -1130,7 +1137,7 @@ if args.case == 'isotropic':
         C[i,5] = G
 
     # Compute the fixed mass fraction
-    m_fixed = 0.3*area*rho[1]
+    m_fixed = 0.3*area*rho[0]
 else:
     # These properties are taken from Jones, pg. 101 for a
     # graphite-epoxy material. Note that units are in MPa.
@@ -1178,7 +1185,7 @@ if args.full_penalty:
                                parameter=parameter, optimizer=optimizer,
                                start_strategy=start_strategy,
                                use_hessian=use_hessian,
-                               case=args.case)
+                               case=args.case, ptype=ptype)
 else:
     # Optimize the plane stress problem
     optimize_plane_stress(comm, analysis, root_dir=root_dir,
@@ -1186,4 +1193,4 @@ else:
                           max_iters=100, optimizer=optimizer,
                           start_strategy=start_strategy,
                           use_hessian=use_hessian,
-                          case=args.case)
+                          case=args.case, ptype=ptype)

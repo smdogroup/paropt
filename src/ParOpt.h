@@ -71,11 +71,11 @@
   
   The full KKT system can be written as follows:
   
-  [  B   -Aw^{T} -Ac^{T}  0   0  -I         I        ][ px  ]
+  [  B   -Ac^{T} -Aw^{T}  0   0  -I         I        ][ px  ]
   [  Ac   0       0      -I   0   0         0        ][ pz  ]
   [  Aw   0       0       0  -I   0         0        ][ pzw ]
-  [  0    0       S       Z   0   0         0        ][ ps  ] = -r
-  [  0   Sw       0       0  Zw   0         0        ][ psw ]
+  [  0    S       0       Z   0   0         0        ][ ps  ] = -r
+  [  0    0       Sw      0  Zw   0         0        ][ psw ]
   [  Zl   0       0       0   0   (X - Xl)  0        ][ pzl ]
   [ -Zu   0       0       0   0   0         (Xu - X) ][ pzu ]
 
@@ -162,7 +162,7 @@ class ParOpt {
   void setBarrierPower( double power );
   void setHessianResetFreq( int freq );
   void setQNDiagonalFactor( double sigma );
-  void setBFGSUpdateType( LBFGS::BFGSUpdateType bfgs_update );    
+  void setBFGSUpdateType( LBFGS::BFGSUpdateType bfgs_update );
   void setSequentialLinearMethod( int truth );
 
   // Set/get the barrier parameter
@@ -191,6 +191,10 @@ class ParOpt {
   // Force a quasi-Newton Hessian reset
   // ----------------------------------
   void resetQuasiNewtonHessian();
+
+  // Reset the design point and the bounds using the problem instance
+  // ----------------------------------------------------------------
+  void resetDesignAndBounds();
 
   // Set other parameters
   // --------------------

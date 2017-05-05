@@ -402,6 +402,13 @@ cdef class pyParOpt:
    
    def setQNDiagonalFactor(self, double sigma):
       self.this_ptr.setQNDiagonalFactor(sigma)
+
+   def setBFGSUpdateType(self, str update):
+      if update == 'damped':
+         self.this_ptr.setBFGSUpdateType(DAMPED_UPDATE)
+      elif update == 'skip':
+         self.this_ptr.setBFGSUpdateType(SKIP_NEGATIVE_CURVATURE)
+      return
       
    def setSequentialLinearMethod(self, int truth):
       self.this_ptr.setSequentialLinearMethod(truth)
@@ -419,6 +426,10 @@ cdef class pyParOpt:
    # Reset the quasi-Newton Hessian
    def resetQuasiNewtonHessian(self):
       self.this_ptr.resetQuasiNewtonHessian()
+
+   # Reset the design variables and bounds
+   def resetDesignAndBounds(self):
+      self.this_ptr.resetDesignAndBounds()
 
    # Set parameters associated with the linesearch
    def setUseLineSearch(self, int truth):
