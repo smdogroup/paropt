@@ -55,24 +55,28 @@ args = parser.parse_args()
 merit = args.merit
 
 output_dir = 'results'
-root_dir = ['results', 'results',
+root_dir = ['results', 'results', 'results',
             'ipopt2', 'snopt2']
 
 output_type = 'isotropic'
 if args.case == 'isotropic':
-    heuristics = ['RAMP5_paropt_isotropic_convex',  
-                  'RAMP5_paropt_isotropic_point',            
+    heuristics = ['RAMP5_paropt_isotropic_convex',
+                  'RAMP5_paropt_isotropic_point',
+                  'SIMP5_paropt_isotropic_convex',
                   'RAMP5_ipopt_isotropic_point',
                   'RAMP5_snopt_isotropic_point']
     heur_labels = ['ParOpt-cvx isotropic', 'ParOpt-pt isotropic',
+                   'ParOpt-SIMP-cvx',
                    'IPOPT isotropic', 'SNOPT isotropic']
 else:
     output_type = 'orthotropic'
     heuristics = ['RAMP5_paropt_orthotropic_convex',  
-                  'RAMP5_paropt_orthotropic_point',            
+                  'RAMP5_paropt_orthotropic_point',
+                  'SIMP5_paropt_orthotropic_convex',
                   'RAMP5_ipopt_orthotropic_point',
                   'RAMP5_snopt_orthotropic_point']
     heur_labels = ['ParOpt-cvx orthotropic', 'ParOpt-pt orthotropic',
+                   'ParOpt-SIMP-cvx',
                    'IPOPT orthotropic', 'SNOPT orthotropic']
 
 problems = ['32x32', '64x32', '96x32',
@@ -319,16 +323,16 @@ else:
     # Reset the max/min y values
     ymin = y1
     if merit == 'compliance':
-        ymax = 1.45
-        ymin = 0.98
-        yticks = np.linspace(1, 1.45, 10)
+        ymax = 1.1
+        ymin = 0.99
+        yticks = np.linspace(1, 1.1, 11)
         y1 = ymin
         y2 = ymax
     if merit == 'time':
-        if ymax > 200:
-            ymax = 200
+        if ymax > 400:
+            ymax = 400
             ymin = 0
-            yticks = np.linspace(0, 200, 11)
+            yticks = np.linspace(0, 400, 11)
             y1 = ymin
             y2 = ymax
         
@@ -421,15 +425,15 @@ else:
         # Set the bounds on the plot
         xmin = 0.5
         xmax = len(problems)+1.0
-        ymin = -0.5
-        ymax = 4
+        ymin = -0.25
+        ymax = 5
     
         # Set the positions of the tick locations
         yticks = range(0, ymax+1)
         yticks = [0, 1, 2, 
-                  3, 4 ]
+                  3, 4, 5 ]
         ytick_labels = ['$1$', '$10$', '$10^{2}$', 
-                        '$10^{3}$', '$10^{4}$']
+                        '$10^{3}$', '$10^{4}$', '$10^{5}$']
         xticks = range(1, len(problems)+1, 3)
         
         # Get the header info
@@ -442,7 +446,7 @@ else:
                                    gevals[:, iheur], 
                                    hvecs[:, iheur])).T)
 
-        for i in xrange(5):
+        for i in xrange(6):
             s += tikz.get_2d_plot([xmin, xmax], [i, i],
                                   xscale=xscale, yscale=yscale,
                                   color='gray', line_dim='thin',

@@ -87,6 +87,10 @@ cdef extern from "ParOpt.h":
       void getProblemSizes(int *nvars, int *ncon, 
                            int *nwcon, int *nwblock)
 
+      # Get the initial multipliers
+      void getInitMultipliers(ParOptScalar**, ParOptVec**,
+                              ParOptVec**, ParOptVec**)
+      
       # Retrieve the optimized point
       void getOptimizedPoint(ParOptVec **_x,
                              const ParOptScalar **_z, ParOptVec **_zw,

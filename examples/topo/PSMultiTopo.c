@@ -11,7 +11,7 @@ PSMultiTopoProperties::PSMultiTopoProperties( TacsScalar _rho[],
   
   // Set the material parameters
   q = 1.0;
-  eps = 1e-6;
+  eps = 1e-3;
 
   // Set the relative tolerance
   eps = eps/num_mats;

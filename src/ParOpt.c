@@ -441,9 +441,9 @@ void ParOpt::getProblemSizes( int *_nvars, int *_ncon,
   problem if they are calling this function...)
 */
 void ParOpt::getInitMultipliers( ParOptScalar **_z,
-				 ParOptVec **_zw,
-				 ParOptVec **_zl,
-				 ParOptVec **_zu ){
+                                 ParOptVec **_zw,
+                                 ParOptVec **_zl,
+                                 ParOptVec **_zu ){
   init_starting_point = 0;
   if (_z){
     *_z = NULL;
@@ -466,7 +466,7 @@ void ParOpt::getInitMultipliers( ParOptScalar **_z,
   if (_zu){
     *_zu = NULL;
     if (use_upper){
-      *_zu = NULL;
+      *_zu = zu;
     }
   }
 }
@@ -2863,7 +2863,7 @@ void ParOpt::computeMaxStep( double tau,
 
   varphi(alpha) = 
   
-  f(x + alpha*px) + 
+  f(x) + 
   mu*(log(s) + log(x - xl) + log(xu - x)) +
   rho*||c(x) - s||_{2}
 
@@ -3429,6 +3429,9 @@ int ParOpt::lineSearch( double *_alpha,
   init_multipliers:  Flag to indicate whether to initialize multipliers
 */
 void ParOpt::initAndCheckDesignAndBounds( int init_multipliers ){
+  // Get the design variables and bounds
+  prob->getVarsAndBounds(x, lb, ub);
+  
   if (init_multipliers){
     // Set the Largrange multipliers associated with the
     // the lower/upper bounds to 1.0
@@ -3447,9 +3450,6 @@ void ParOpt::initAndCheckDesignAndBounds( int init_multipliers ){
       s[i] = 1.0;
     }
   }
-
-  // Get the design variables and bounds
-  prob->getVarsAndBounds(x, lb, ub);
 
   // Check the design variables and bounds, move things that 
   // don't make sense and print some warnings
@@ -4332,11 +4332,240 @@ int ParOpt::optimize( const char *checkpoint ){
 }
 
 /*
+  The following functions create 
+*/
+/*
+void ParOpt::leftSymmTransform( ParOptVec *bx,
+                                ParOptScalar *bc,
+                                ParOptVec *bcw, 
+                                ParOptScalar *bs,
+                                ParOptVec *bsw,
+                                ParOptVec *bzl,
+                                ParOptVec *bzu ){
+  // bs <--  -S^{-1/2}*bs
+  if (dense_inequality && bs){
+    for ( int k = 0; k < ncon; k++ ){
+      if (s[k] != 0.0){
+        bs[k] *= -1.0/sqrt(s[k]);
+      }
+    }
+  }
+
+  // bsw <--  -Sw^{-1/2}*bsw
+  if (sparse_inequality && rsw){
+    ParOptScalar *swvals, *bswvals;
+    zw->getArray(&zwvals);
+    bsw->getArray(&rswvals);
+    
+    for ( int i = 0; i < nwcon; i++ ){
+      bswvals[i] *= -1.0/sqrt(swvals[i]);
+    }
+  }
+
+  // bzl <--  -Zl^{-1/2}*bzl
+  if (use_lower && bzl){
+    ParOptScalar *zlvals, *bzlvals;
+    zl->getArray(&zlvals);
+    bzl->getArray(&bzlvals);
+
+    for ( int i = 0; i < nvars; i++ ){
+      if (zlvals[i] != 0.0){
+        bzlvals[i] *= -1.0/sqrt(zlvals[i]);
+      }
+    }
+  }
+
+  // bzu <--  -Zu^{-1/2}*bzu
+  if (use_upper && bzu){
+    ParOptScalar *zuvals, *bzuvals;
+    zu->getArray(&zuvals);
+    bzu->getArray(&bzuvals);
+
+    for ( int i = 0; i < nvars; i++ ){
+      if (zuvals[i] != 0.0){
+        bzuvals[i] *= -1.0/sqrt(zuvals[i]);
+      }
+    }
+  }
+}
+
+void ParOpt::leftInvSymmTransform( ParOptVec *bx,
+                                   ParOptScalar *bc,
+                                   ParOptVec *bcw, 
+                                   ParOptScalar *bs,
+                                   ParOptVec *bsw,
+                                   ParOptVec *bzl,
+                                   ParOptVec *bzu ){
+  // bs <--  -S^{1/2}*bs
+  if (dense_inequality && bs){
+    for ( int k = 0; k < ncon; k++ ){
+      if (s[k] != 0.0){
+        bs[k] *= -sqrt(s[k]);
+      }
+    }
+  }
+
+  // bsw <--  -Sw^{1/2}*bsw
+  if (sparse_inequality && rsw){
+    ParOptScalar *swvals, *bswvals;
+    zw->getArray(&zwvals);
+    bsw->getArray(&rswvals);
+    
+    for ( int i = 0; i < nwcon; i++ ){
+      bswvals[i] *= -sqrt(swvals[i]);
+    }
+  }
+
+  // bzl <--  -Zl^{1/2}*bzl
+  if (use_lower && bzl){
+    ParOptScalar *zlvals, *bzlvals;
+    zl->getArray(&zlvals);
+    bzl->getArray(&bzlvals);
+
+    for ( int i = 0; i < nvars; i++ ){
+      if (zlvals[i] != 0.0){
+        bzlvals[i] *= -sqrt(zlvals[i]);
+      }
+    }
+  }
+
+  // bzu <--  -Zu^{1/2}*bzu
+  if (use_upper && bzu){
+    ParOptScalar *zuvals, *bzuvals;
+    zu->getArray(&zuvals);
+    bzu->getArray(&bzuvals);
+
+    for ( int i = 0; i < nvars; i++ ){
+      if (zuvals[i] != 0.0){
+        bzuvals[i] *= -sqrt(zuvals[i]);
+      }
+    }
+  }
+}
+
+void ParOpt::rightSymmTransform( ParOptVec *dx,
+                                 ParOptScalar *dz,
+                                 ParOptVec *dzw, 
+                                 ParOptScalar *ds,
+                                 ParOptVec *dsw,
+                                 ParOptVec *dzl,
+                                 ParOptVec *dzu ){
+  for ( int k = 0; k < ncon; k++ ){
+    dz[k] *= -1.0;
+  }
+
+  // ds <--  -S^{1/2}*ds
+  if (dense_inequality && ds){
+    for ( int k = 0; k < ncon; k++ ){
+      if (s[k] != 0.0){
+        ds[k] *= sqrt(s[k]);
+      }
+    }
+  }
+
+  // dsw <--  Sw^{1/2}*dsw
+  if (sparse_inequality && rsw){
+    ParOptScalar *swvals, *dswvals;
+    zw->getArray(&zwvals);
+    dsw->getArray(&rswvals);
+    
+    for ( int i = 0; i < nwcon; i++ ){
+      dswvals[i] *= sqrt(swvals[i]);
+    }
+  }
+
+  // dzl <--  Zl^{1/2}*dzl
+  if (use_lower && dzl){
+    ParOptScalar *zlvals, *dzlvals;
+    zl->getArray(&zlvals);
+    dzl->getArray(&dzlvals);
+
+    for ( int i = 0; i < nvars; i++ ){
+      if (zlvals[i] != 0.0){
+        dzlvals[i] *= sqrt(zlvals[i]);
+      }
+    }
+  }
+
+  // dzu <--  Zu^{1/2}*dzu
+  if (use_upper && dzu){
+    ParOptScalar *zuvals, *dzuvals;
+    zu->getArray(&zuvals);
+    dzu->getArray(&dzuvals);
+
+    for ( int i = 0; i < nvars; i++ ){
+      if (zuvals[i] != 0.0){
+        dzuvals[i] *= sqrt(zuvals[i]);
+      }
+    }
+  }
+}
+
+void ParOpt::rightInvSymmTransform( ParOptVec *dx,
+                                    ParOptScalar *dz,
+                                    ParOptVec *dzw, 
+                                    ParOptScalar *ds,
+                                    ParOptVec *dsw,
+                                    ParOptVec *dzl,
+                                    ParOptVec *dzu ){
+  for ( int k = 0; k < ncon; k++ ){
+    dz[k] *= -1.0;
+  }
+
+  // ds <--  -S^{1/2}*ds
+  if (dense_inequality && ds){
+    for ( int k = 0; k < ncon; k++ ){
+      if (s[k] != 0.0){
+        ds[k] *= 1.0/sqrt(s[k]);
+      }
+    }
+  }
+
+  // dsw <--  Sw^{1/2}*dsw
+  if (sparse_inequality && rsw){
+    ParOptScalar *swvals, *dswvals;
+    zw->getArray(&zwvals);
+    dsw->getArray(&rswvals);
+    
+    for ( int i = 0; i < nwcon; i++ ){
+      dswvals[i] *= 1.0/sqrt(swvals[i]);
+    }
+  }
+
+  // dzl <--  Zl^{1/2}*dzl
+  if (use_lower && dzl){
+    ParOptScalar *zlvals, *dzlvals;
+    zl->getArray(&zlvals);
+    dzl->getArray(&dzlvals);
+
+    for ( int i = 0; i < nvars; i++ ){
+      if (zlvals[i] != 0.0){
+        dzlvals[i] *= 1.0/sqrt(zlvals[i]);
+      }
+    }
+  }
+
+  // dzu <--  Zu^{1/2}*dzu
+  if (use_upper && dzu){
+    ParOptScalar *zuvals, *dzuvals;
+    zu->getArray(&zuvals);
+    dzu->getArray(&dzuvals);
+
+    for ( int i = 0; i < nvars; i++ ){
+      if (zuvals[i] != 0.0){
+        dzuvals[i] *= 1.0/sqrt(zuvals[i]);
+      }
+    }
+  }
+}
+*/
+/*
   This function approximately solves the linearized KKT system with
-  Hessian-vector products using GMRES.  This procedure uses a
-  preconditioner formed from a portion of the KKT system.  Grouping
-  the Lagrange multipliers and slack variables from the remaining
-  portion of the matrix, yields the following decomposition:
+  Hessian-vector products using right-preconditioned GMRES.  This
+  procedure uses a preconditioner formed from a portion of the KKT
+  system.  Grouping the Lagrange multipliers and slack variables from
+  the remaining portion of the matrix, yields the following
+  decomposition:
 
   K = [ B; A ] + [ H - B; 0 ]
   .   [ E; C ]   [     0; 0 ]
@@ -4368,12 +4597,14 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
   ParOptScalar *Qsin = &gmres_Q[gmres_subspace_size];
   ParOptVec **W = gmres_W;
 
-  // Compute the beta factor: the product of the
-  // diagonal terms after normalization
+  int use_symmetrized_newton = 0;
+
+  // Compute the beta factor: the product of the diagonal terms
+  // after normalization
   ParOptScalar beta = 0.0;
   for ( int i = 0; i < ncon; i++ ){
     beta += rc[i]*rc[i];
-  }
+    }
   if (dense_inequality){
     for ( int i = 0; i < ncon; i++ ){
       beta += rs[i]*rs[i];
@@ -4391,10 +4622,10 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
       beta += rsw->dot(rsw);
     }
   }
-
+  
   // Compute the norm of the initial vector
   ParOptScalar bnorm = sqrt(rx->dot(rx) + beta);
-
+  
   // Broadcast the norm of the residuals and the
   // beta parameter to keep things consistent across processors
   ParOptScalar temp[2];
@@ -4460,9 +4691,9 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
         xt2->axpy(zt[k], Z[k]);
       }
     
-      // Solve the digaonal system again, this time simplifying
-      // the result due to the structure of the right-hand-side.
-      // Note that this call uses W[i+1] as a temporary vector. 
+      // Solve the digaonal system again, this time simplifying the
+      // result due to the structure of the right-hand-side.  Note
+      // that this call uses W[i+1] as a temporary vector.
       solveKKTDiagSystem(xt2, px,
                          zt, W[i+1], wt);
 
@@ -4477,7 +4708,6 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
     // Add the term -B*W[i]
     if (!sequential_linear_method){
       qn->multAdd(-1.0, xt1, W[i+1]);
-      W[i+1]->axpy(-qn_sigma, xt1);
     }
 
     // Add the term from the diagonal
@@ -4503,8 +4733,8 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
     W[i+1]->scale(1.0/H[i+1 + hptr]);
     alpha[i+1] *= 1.0/H[i+1 + hptr];
       
-    // Apply the existing part of Q to the new components of 
-    // the Hessenberg matrix
+    // Apply the existing part of Q to the new components of the
+    // Hessenberg matrix
     for ( int k = 0; k < i; k++ ){
       ParOptScalar h1 = H[k + hptr];
       ParOptScalar h2 = H[k+1 + hptr];
@@ -4584,8 +4814,7 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
     rsw->scale(gamma);
   }
 
-  // Apply M^{-1} to the result to obtain the final
-  // answer
+  // Apply M^{-1} to the result to obtain the final answer
   solveKKTDiagSystem(W[0], rc, rcw, rs, rsw, rzl, rzu, 
                      px, pz, pzw, ps, psw, pzl, pzu,
                      xt1, wt);

@@ -628,7 +628,7 @@ def create_paropt(analysis, use_hessian=False,
     opt = ParOpt.pyParOpt(analysis, max_qn_subspace, qn_type)
 
     # Set the optimality tolerance
-    opt.setAbsOptimalityTol(1e-6)
+    opt.setAbsOptimalityTol(1e-5)
     
     # Set the Hessian-vector product iterations
     if use_hessian:
@@ -764,22 +764,22 @@ def create_pyopt(analysis, optimizer='snopt', options={}):
     return wrap
 
 def optimize_plane_stress(comm, analysis, root_dir='results',
-                          parameter=5.0, max_iters=100,
+                          parameter=5.0, max_iters=1000,
                           optimizer='paropt', case='isotropic',
                           use_hessian=False, start_strategy='point',
                           ptype='ramp'):
     # Optimize the structure
+    optimizer = optimizer.lower()
     penalization = ptype.upper()
-    heuristic = '%s%.0f_%s_%s_%s'%(penalization, parameter, optimizer,
-                                   case, start_strategy)
-    prefix = os.path.join(root_dir, '%dx%d'%(nx, ny), heuristic)
+    heuristic = '%s%.0f_%s_%s'%(penalization, parameter,
+                                case, start_strategy)
+    prefix = os.path.join(root_dir, optimizer, '%dx%d'%(nx, ny), heuristic)
     
     # Make sure that the directory exists
     if not os.path.exists(prefix):
         os.makedirs(prefix)
        
     # Set up the optimization problem in ParOpt
-    # if optimizer == 'paropt':
     opt = create_paropt(analysis,
                         use_hessian=use_hessian,
                         qn_type=ParOpt.BFGS)
@@ -817,18 +817,12 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
     # Keep track of the ellapsed CPU time
     init_time = MPI.Wtime()
 
-    # Set the initial compliance value
-    comp_prev = 0.0
-
     # Keep track of the number of iterations
     niters = 0
 
-    opt.setAbsOptimalityTol(1e-5)
-
-    max_iters = 1000
     for k in xrange(max_iters):
         # Set the output file to use
-        fname = os.path.join(prefix, 'history_iter%d.out'%(k)) 
+        fname = os.path.join(prefix, 'history_iter%d.out'%(niters)) 
         opt.setOutputFile(fname)
 
         # Optimize
@@ -854,23 +848,17 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
         # Compute the discrete infeasibility measure
         tau = np.sum(d)
 
-        # Print the output
-        filename = 'opt_struct_iter%d.f5'%(k)
-        output = os.path.join(prefix, filename)
-        analysis.writeOutput(output)
-
-        # Print out the design variables
-        filename = 'opt_struct_iter%d.tex'%(k)
-        output = os.path.join(prefix, filename)
-        analysis.writeTikzFile(x, output)
+        # Print the output to the file
+        if k % 10 == 0:
+            # Print out the design
+            filename = 'opt_struct_iter%d.tex'%(niters)
+            output = os.path.join(prefix, filename)
+            analysis.writeTikzFile(x, output)
 
         # Get the compliance and objective values
         analysis.RAMP_penalty = parameter
         analysis.setNewInitPointPenalty(x)       
         comp = analysis.getCompliance(x)
-
-        # Store the previous value of the objective function
-        comp_prev = 1.0*comp
 
         # Compute the KKT error based on the original problem
         x = opt.getOptimizedPoint()
@@ -887,29 +875,98 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
         analysis.addSparseJacobianTranspose(-1.0, x, zw, kkt)
 
         # Compute the maximum error contribution
-        kkt_max_err = max(kkt)
+        kkt_max_err = np.amax(np.fabs(kkt))
         kkt_l2_err = np.sqrt(np.dot(kkt, kkt))
-        gnorm = np.sqrt(np.dot(gobj1, gobj1))
+
+        g_max = np.amax(np.fabs(gobj1))
+        g_l2 = np.sqrt(np.dot(gobj1, gobj1))
 
         # Print out the iteration information to the screen
-        print 'Iter %d  Dis. Infeas:  %15.5e  KKT_infty: %15.5e  KKT_l2: %15.5e'%(
-            k, np.sum(d), kkt_max_err, kkt_l2_err)
+        if k % 10 == 0:
+            print '%4s %10s %10s %10s %10s %10s'%(
+                'Iter', 'tau', 'KKT infty', 'KKT l2', 'Rel infty', 'Rel l2')
+        print '%4d %10.4e %10.4e %10.4e %10.4e %10.4e'%(
+            niters, np.sum(d), kkt_max_err, kkt_l2_err, kkt_max_err/g_max, kkt_l2_err/g_l2)
 
         # Print out the
-        s = '%d %e %e %e %e '%(k, comp, np.min(d), np.max(d), np.sum(d))
+        s = '%d %e %e %e %e '%(niters, comp, np.min(d), np.max(d), np.sum(d))
         s += '%d %d %d %e %e %e\n'%(
             analysis.fevals, analysis.gevals, analysis.hevals,
             MPI.Wtime() - init_time, kkt_max_err, kkt_l2_err)
         fp.write(s)
         fp.flush()
-
-        # Quit when the max KKT error is less than 10^{-4}
-        if kkt_max_err < 1e-4:
-            break
         
         # Increase the iteration counter
-        niters += 1
+        niters += 1        
 
+        # Quit when the relative KKT error is less than 10^{-2}
+        if kkt_l2_err/g_l2 < 1e-2:
+            break        
+
+    # Print out the design
+    filename = 'opt_struct_iter%d.tex'%(niters)
+    output = os.path.join(prefix, filename)
+    analysis.writeTikzFile(x, output)
+
+    # Set the penalty parameter
+    analysis.RAMP_penalty = parameter
+    analysis.props.setPenaltyType('full', ptype=ptype)
+
+    # Get the new complementarity
+    opt.resetDesignAndBounds()
+    mu = opt.getComplementarity()
+    opt.setInitBarrierParameter(mu)
+    opt.setUseHvecProduct(0)
+    opt.setUseLineSearch(1)
+
+    # Set the output file to use
+    fname = os.path.join(prefix, 'history_iter%d.out'%(niters)) 
+    opt.setOutputFile(fname)
+    
+    # Optimize the new point
+    opt.optimize()
+       
+    # Compute the KKT error based on the original problem
+    x = opt.getOptimizedPoint()
+    z, zw, zl, zu = opt.getOptimizedMultipliers()
+
+    # Get the discrete infeasibility measure
+    d = analysis.getDiscreteInfeas(x)
+
+    # Get the compliance and objective values
+    analysis.RAMP_penalty = parameter
+    analysis.setNewInitPointPenalty(x)       
+    comp = analysis.getCompliance(x)
+
+    # Evaluate the objective and constraints
+    gobj1 = np.zeros(x.shape)
+    Acon1 = np.zeros((1, x.shape[0]))
+    fail, obj1, con1 = analysis.evalObjCon(x)
+    analysis.evalObjConGradient(x, gobj1, Acon1)
+        
+    # Compute the KKT error
+    kkt = gobj1 - Acon1[0,:]*z[0] - zl + zu
+    analysis.addSparseJacobianTranspose(-1.0, x, zw, kkt)
+    
+    # Compute the maximum error contribution
+    kkt_max_err = np.amax(np.fabs(kkt))
+    kkt_l2_err = np.sqrt(np.dot(kkt, kkt))
+    
+    g_max = np.amax(np.fabs(gobj1))
+    g_l2 = np.sqrt(np.dot(gobj1, gobj1))
+    
+    # Print out the iteration information to the screen
+    print '%4s %10s %10s %10s %10s %10s'%(
+        'Iter', 'tau', 'KKT infty', 'KKT l2', 'Rel infty', 'Rel l2')
+    print '%4d %10.4e %10.4e %10.4e %10.4e %10.4e'%(
+        niters, np.sum(d), kkt_max_err, kkt_l2_err, kkt_max_err/g_max, kkt_l2_err/g_l2)
+
+    s = '%d %e %e %e %e '%(niters, comp, np.min(d), np.max(d), np.sum(d))
+    s += '%d %d %d %e %e %e\n'%(
+        analysis.fevals, analysis.gevals, analysis.hevals,
+        MPI.Wtime() - init_time, kkt_max_err, kkt_l2_err)
+    fp.write(s)
+    
     # Close the log file
     fp.close()
 
@@ -920,6 +977,10 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
     filename = 'final_opt_struct.tex'
     output = os.path.join(prefix, filename)
     analysis.writeTikzFile(x, output)
+    
+    filename = 'final_opt_struct.f5'
+    output = os.path.join(prefix, filename)
+    analysis.writeOutput(output)
 
     # Save the final optimized point
     fname = os.path.join(prefix, 'x_opt.dat')
@@ -933,10 +994,12 @@ def optimize_plane_stress_full(comm, analysis, root_dir='results',
                                use_hessian=False, start_strategy='point',
                                ptype='ramp'):
     # Optimize the structure
+    optimizer = optimizer.lower()
     penalization = ptype.upper()
-    heuristic = '%s%.0f_%s_%s_%s'%(penalization, parameter, optimizer,
-                                   case, start_strategy)
-    prefix = os.path.join(root_dir, '%dx%d'%(nx, ny), heuristic)
+    heuristic = '%s%.0f_%s_%s'%(penalization, parameter,
+                                case, start_strategy)
+    prefix = os.path.join(root_dir, optimizer + '_full',
+                          '%dx%d'%(nx, ny), heuristic)
     
     # Make sure that the directory exists
     if not os.path.exists(prefix):
@@ -1026,11 +1089,9 @@ def optimize_plane_stress_full(comm, analysis, root_dir='results',
         opt = create_paropt(analysis,
                             use_hessian=use_hessian,
                             qn_type=ParOpt.BFGS)
-        opt.setUseHvecProduct(1)
-        opt.setBFGSUpdateType('skip')
-        opt.setNKSwitchTolerance(1e-3)
-        opt.setEisenstatWalkerParameters(0.1, 0.0)
+        opt.setUseHvecProduct(0)
         opt.setUseLineSearch(1)
+        opt.setBFGSUpdateType('skip')
         
     # Set the output file to use
     fname = os.path.join(prefix, 'history_iter%d.out'%(iteration)) 
@@ -1084,11 +1145,9 @@ parser.add_argument('--ptype', type=str, default='ramp',
                     help='Penalty type')
 parser.add_argument('--optimizer', type=str, default='paropt',
                     help='Optimizer name')
-parser.add_argument('--full_penalty', default=False,
-                    action='store_true',
+parser.add_argument('--full_penalty', default=False, action='store_true',
                     help='Use the full RAMP penalization')
-parser.add_argument('--use_hessian', default=False,
-                    action='store_true',
+parser.add_argument('--use_hessian', default=False, action='store_true',
                     help='Use hessian-vector products')
 parser.add_argument('--case', type=str, default='isotropic',
                     help='Case name')
@@ -1117,19 +1176,19 @@ xpts, conn, bcs, aux, area = rectangular_domain(nx, ny)
 
 # Set the material properties for the isotropic case
 if args.case == 'isotropic':
-    rho = np.array([0.5, 1.0, 1.15])
-    E = 70e3*np.array([0.45, 1.0, 1.2])
+    rho = np.array([0.85, 1.0, 1.2])
+    E = 70e3*np.array([0.85, 1.0, 1.15])
     nu = np.array([0.2,  0.3, 0.3])
 
     print 'mat # %15s %15s %15s'%('E/rho', 'G/rho', 'E/G')
     for i in range(len(rho)):
-        G = E[i]/(1.0 + nu[i])
-        print 'mat %d %15g %15g %15g'%(E[i]/rho[i], G/rho[i], E[i]/G)
+        G = 0.5*E[i]/(1.0 + nu[i])
+        print 'mat %d %15g %15g %15g'%(i+1, E[i]/rho[i], G/rho[i], E[i]/G)
             
     C = np.zeros((len(rho), 6))
     
     for i in xrange(len(rho)):
-        D = E[i]/(1.0 - nu[i])
+        D = E[i]/(1.0 - nu[i]**2)
         G = 0.5*E[i]/(1.0 + nu[i])
         C[i,0] = D
         C[i,1] = nu[i]*D
@@ -1137,7 +1196,7 @@ if args.case == 'isotropic':
         C[i,5] = G
 
     # Compute the fixed mass fraction
-    m_fixed = 0.3*area*rho[0]
+    m_fixed = 0.4*area*rho[2]
 else:
     # These properties are taken from Jones, pg. 101 for a
     # graphite-epoxy material. Note that units are in MPa.
@@ -1189,8 +1248,7 @@ if args.full_penalty:
 else:
     # Optimize the plane stress problem
     optimize_plane_stress(comm, analysis, root_dir=root_dir,
-                          parameter=parameter,
-                          max_iters=100, optimizer=optimizer,
+                          parameter=parameter, optimizer=optimizer,
                           start_strategy=start_strategy,
                           use_hessian=use_hessian,
                           case=args.case, ptype=ptype)

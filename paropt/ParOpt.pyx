@@ -374,6 +374,54 @@ cdef class pyParOpt:
 
       return z, zw, zl, zu
 
+   def getDesignPoint(self):
+      cdef int nvars
+      cdef ParOptScalar *xvals = NULL
+      cdef ParOptVec *xvec = NULL
+      self.this_ptr.getOptimizedPoint(&xvec, NULL, NULL, NULL, NULL)
+      xvec.getArray(&xvals)
+      return inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>xvals)
+
+   def getDualPoint(self):
+      cdef int nvars = 0, nw = 0, nc = 0
+      cdef ParOptScalar *zvals = NULL
+      cdef ParOptScalar *zwvals = NULL
+      cdef ParOptScalar *zlvals = NULL
+      cdef ParOptScalar *zuvals = NULL
+      cdef ParOptVec *zwvec = NULL
+      cdef ParOptVec *zlvec = NULL
+      cdef ParOptVec *zuvec = NULL
+      cdef np.ndarray z = None
+      cdef np.ndarray zw = None
+      cdef np.ndarray zl = None
+      cdef np.ndarray zu = None
+      
+      # Retrieve the optimized vector
+      self.this_ptr.getInitMultipliers(&zvals, &zwvec, &zlvec, &zuvec)
+
+      # Get the number of constraints
+      self.this_ptr.getProblemSizes(NULL, &nc, NULL, NULL)
+
+      # Convert things to in-place numpy arrays
+      z = inplace_array_1d(PAROPT_NPY_SCALAR, nc, <void*>zvals)
+
+      # Convert the weighting multipliers
+      if zwvec:
+         nw = zwvec.getArray(&zwvals)
+         zw = inplace_array_1d(PAROPT_NPY_SCALAR, nw, <void*>zwvals)
+
+      # Convert the lower bound multipliers
+      if zlvec:
+         nvars = zlvec.getArray(&zlvals)
+         zl = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>zlvals)
+
+      # Convert the upper bound multipliers
+      if zuvec:
+         nvars = zuvec.getArray(&zuvals)
+         zu = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>zuvals)
+
+      return z, zw, zl, zu
+
    # Check objective and constraint gradients
    def checkGradients(self, double dh):    
       self.this_ptr.checkGradients(dh)
