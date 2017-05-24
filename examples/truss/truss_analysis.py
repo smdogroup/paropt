@@ -79,6 +79,22 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         x[:] = self.A_init/self.Area_scale
         return
 
+    def evalSparseCon(self, x, con):
+        '''Evaluate the sparse constraints'''
+        return
+    
+    def addSparseJacobian(self, alpha, x, px, con):
+        '''Compute the Jacobian-vector product con = alpha*J(x)*px'''
+        return
+
+    def addSparseJacobianTranspose(self, alpha, x, pz, out):
+        '''Compute the transpose Jacobian-vector product alpha*J^{T}*pz'''
+        return
+
+    def addSparseInnerProduct(self, alpha, x, c, A):
+        '''Add the results from the product J(x)*C*J(x)^{T} to A'''
+        return
+    
     def evalObjCon(self, x):
         '''
         Evaluate the objective (compliance) and constraint (mass)
@@ -110,7 +126,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         # Compute the compliance objective
         obj = np.dot(self.u, self.f)
         if self.obj_scale is None:
-            self.obj_scale = 1.0*obj
+            self.obj_scale = obj/10.0
 
         # Scale the compliance objective
         self.gamma = 0.0

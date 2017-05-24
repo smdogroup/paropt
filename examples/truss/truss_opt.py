@@ -118,17 +118,14 @@ def setup_ground_struct(N, M, L=2.5, E=70e9, rho=2700.0,
     return truss
 
 def paropt_truss(truss, use_hessian=False, 
-                 prefix='results', use_sr1=False):
+                 prefix='results'):
     '''
     Optimize the given truss structure using ParOpt
     '''
 
     # Create the optimizer
-    qn_type = ParOpt.BFGS
-    if not use_sr1:
-        qn_type = ParOpt.SR1
-    max_qn_subspace = 50
-    opt = ParOpt.pyParOpt(truss, max_qn_subspace, qn_type)
+    max_qn_subspace = 20
+    opt = ParOpt.pyParOpt(truss, max_qn_subspace, ParOpt.BFGS)
 
     # Set the optimality tolerance
     opt.setAbsOptimalityTol(1e-5)
@@ -143,7 +140,7 @@ def paropt_truss(truss, use_hessian=False,
         opt.setGMRESTolerances(1.0, 1e-30)
     else:
         opt.setUseHvecProduct(0)
-
+        
     # Set optimization parameters
     opt.setArmijioParam(1e-5)
     opt.setMaxMajorIterations(2500)
@@ -151,9 +148,6 @@ def paropt_truss(truss, use_hessian=False,
     # Set the output file to use
     fname = os.path.join(prefix, 'truss_paropt%dx%d.out'%(N, M)) 
     opt.setOutputFile(fname)
-
-    # Perform a quick check of the gradient (and Hessian)
-    opt.checkGradients(1e-6)
     
     # Optimize the truss
     opt.optimize()
@@ -352,8 +346,8 @@ if profile:
             truss.plotTruss(x, tol=1e-1, filename=filename) 
             
         # Record the performance of the algorithm
-        fp.write('%d %d %d %d %d %e\n'%(
-                index,
+        fp.write('%d %d %d %d %d %d %e\n'%(
+                index, len(truss.conn),
                 truss.fevals, truss.gevals, truss.hevals,
                 truss.fevals + truss.hevals, t0))
         fp.flush()
