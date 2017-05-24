@@ -42,7 +42,7 @@ class Rosenbrock : public ParOptProblem {
 
       ub[i] = 1e20;
       if (i % 2 == 0){
-	ub[i] = 0.5;
+        ub[i] = 0.5;
       }
     }
   }
@@ -50,7 +50,7 @@ class Rosenbrock : public ParOptProblem {
   // Evaluate the objective and constraints
   // --------------------------------------
   int evalObjCon( ParOptVec *xvec, 
-		  ParOptScalar *fobj, ParOptScalar *cons ){
+                  ParOptScalar *fobj, ParOptScalar *cons ){
     ParOptScalar obj = 0.0;
     ParOptScalar *x;
     xvec->getArray(&x);
@@ -86,7 +86,7 @@ class Rosenbrock : public ParOptProblem {
   // Evaluate the objective and constraint gradients
   // -----------------------------------------------
   int evalObjConGradient( ParOptVec *xvec,
-			  ParOptVec *gvec, ParOptVec **Ac ){
+                          ParOptVec *gvec, ParOptVec **Ac ){
     ParOptScalar *x, *g, *c;
     xvec->getArray(&x);
     gvec->getArray(&g);
@@ -114,8 +114,8 @@ class Rosenbrock : public ParOptProblem {
   // Evaluate the product of the Hessian with the given vector
   // ---------------------------------------------------------
   int evalHvecProduct( ParOptVec *xvec,
-		       ParOptScalar *z, ParOptVec *zwvec,
-		       ParOptVec *pxvec, ParOptVec *hvec ){
+                       ParOptScalar *z, ParOptVec *zwvec,
+                       ParOptVec *pxvec, ParOptVec *hvec ){
     ParOptScalar *hvals;
     hvec->zeroEntries();
     hvec->getArray(&hvals);
@@ -147,7 +147,7 @@ class Rosenbrock : public ParOptProblem {
     for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
       outvals[i] = 1.0;
       for ( int k = 0; k < nw; k++, j++ ){
-	outvals[i] -= xvals[j];
+        outvals[i] -= xvals[j];
       }
     }
   }
@@ -162,7 +162,7 @@ class Rosenbrock : public ParOptProblem {
 
     for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
       for ( int k = 0; k < nw; k++, j++ ){
-	outvals[i] -= alpha*pxvals[j];
+        outvals[i] -= alpha*pxvals[j];
       }
     }
   }
@@ -170,13 +170,13 @@ class Rosenbrock : public ParOptProblem {
   // Compute the transpose Jacobian-vector product out = J(x)^{T}*pzw
   // -----------------------------------------------------------------
   void addSparseJacobianTranspose( ParOptScalar alpha, ParOptVec *x,
-				   ParOptVec *pzw, ParOptVec *out ){
+                                   ParOptVec *pzw, ParOptVec *out ){
     ParOptScalar *outvals, *pzwvals;
     out->getArray(&outvals);
     pzw->getArray(&pzwvals);
     for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
       for ( int k = 0; k < nw; k++, j++ ){
-	outvals[j] -= alpha*pzwvals[i];
+        outvals[j] -= alpha*pzwvals[i];
       }
     }
   }
@@ -185,13 +185,13 @@ class Rosenbrock : public ParOptProblem {
   // that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix
   // ------------------------------------------------------------
   void addSparseInnerProduct( ParOptScalar alpha, ParOptVec *x,
-			      ParOptVec *cvec, ParOptScalar *A ){
+                              ParOptVec *cvec, ParOptScalar *A ){
     ParOptScalar *cvals;
     cvec->getArray(&cvals);
 
     for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
       for ( int k = 0; k < nw; k++, j++ ){
-	A[i] += alpha*cvals[j];
+        A[i] += alpha*cvals[j];
       }
     }
   }
@@ -222,7 +222,7 @@ int main( int argc, char* argv[] ){
     }
     if (sscanf(argv[k], "nvars=%d", &nvars) == 1){
       if (nvars < 100){
-	nvars = 100;
+        nvars = 100;
       }
     }
   }
@@ -236,7 +236,7 @@ int main( int argc, char* argv[] ){
   int nwcon = 5, nw = 5;
   int nwstart = 1, nwskip = 1;  
   Rosenbrock * rosen = new Rosenbrock(comm, nvars-1,
-				      nwcon, nwstart, nw, nwskip);
+                                      nwcon, nwstart, nw, nwskip);
   
   // Allocate the optimizer
   int max_lbfgs = 20;
@@ -245,10 +245,8 @@ int main( int argc, char* argv[] ){
   opt->setGMRESSubspaceSize(30);
   opt->setNKSwitchTolerance(1e3);
   opt->setGMRESTolerances(1.0, 1e-30);
-  opt->setUseHvecProduct(0);
-  opt->setMajorIterStepCheck(-1);
+  opt->setUseHvecProduct(1);
   opt->setMaxMajorIterations(1500);
-  opt->setGradientCheckFrequency(-1, 1e-6);
   opt->setOutputFrequency(1);
   
   // Set the checkpoint file

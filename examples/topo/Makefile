@@ -1,6 +1,7 @@
 TACS_DIR=${HOME}/hg/tacs
 include ${TACS_DIR}/Makefile.in
 include ${TACS_DIR}/TACS_Common.mk
+include ../../Makefile.in
 
 #Flags for python compilation
 PY_INCLUDE = ${PYTHON_INCLUDE} -I${NUMPY_DIR} -I${MPI4PY_DIR}

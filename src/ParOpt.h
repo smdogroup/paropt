@@ -136,7 +136,7 @@ class ParOpt {
   // Get the initial internal values of the multipliers
   // --------------------------------------------------
   void getInitMultipliers( ParOptScalar **_z, ParOptVec **_zw,
-			   ParOptVec **_zl, ParOptVec **_zu );
+                           ParOptVec **_zl, ParOptVec **_zu );
   
   // Retrieve the values of the design variables and multipliers
   // -----------------------------------------------------------

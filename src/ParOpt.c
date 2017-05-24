@@ -2526,7 +2526,7 @@ void ParOpt::computeKKTStep( ParOptScalar *zt,
     size = qn->getCompactMat(&b0, &d, &M, &Z);
   }
 
-  // At this point the residuals are no longer required.
+  // After this point the residuals are no longer required.
   solveKKTDiagSystem(rx, rc, rcw, rs, rsw, rzl, rzu,
                      px, pz, pzw, ps, psw, pzl, pzu,
                      xt1, wt);
@@ -2558,7 +2558,7 @@ void ParOpt::computeKKTStep( ParOptScalar *zt,
     pzl->axpy(-1.0, rzl);
     pzu->axpy(-1.0, rzu);
     
-    // Add the terms from the 
+    // Add the terms from the slacks/multipliers
     for ( int i = 0; i < ncon; i++ ){
       pz[i] -= rc[i];
       ps[i] -= rs[i];

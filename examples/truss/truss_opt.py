@@ -97,7 +97,7 @@ def setup_ground_struct(N, M, L=2.5, E=70e9, rho=2700.0,
                                                   L=L, P=10e3)
 
     # Set the scaling for the material variables
-    Area_scale = 1.0
+    Area_scale = 1e-4
 
     # Set the fixed mass constraint
     mass_fixed = 5.0*N*M*L*rho
@@ -124,11 +124,11 @@ def paropt_truss(truss, use_hessian=False,
     '''
 
     # Create the optimizer
-    max_qn_subspace = 20
+    max_qn_subspace = 30
     opt = ParOpt.pyParOpt(truss, max_qn_subspace, ParOpt.BFGS)
 
     # Set the optimality tolerance
-    opt.setAbsOptimalityTol(1e-5)
+    opt.setAbsOptimalityTol(1e-6)
 
     # Set the Hessian-vector product iterations
     if use_hessian:
@@ -140,11 +140,12 @@ def paropt_truss(truss, use_hessian=False,
         opt.setGMRESTolerances(1.0, 1e-30)
     else:
         opt.setUseHvecProduct(0)
+        opt.setHessianResetFreq(max_qn_subspace)
         
     # Set optimization parameters
     opt.setArmijioParam(1e-5)
     opt.setMaxMajorIterations(2500)
-    
+
     # Set the output file to use
     fname = os.path.join(prefix, 'truss_paropt%dx%d.out'%(N, M)) 
     opt.setOutputFile(fname)

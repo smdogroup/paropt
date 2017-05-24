@@ -129,8 +129,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             self.obj_scale = obj/10.0
 
         # Scale the compliance objective
-        self.gamma = 0.0
-        obj = obj/self.obj_scale + 0.5*self.gamma*np.dot(x, x)
+        obj = obj/self.obj_scale
 
         # Compute the mass of the entire truss
         mass = 0.0
@@ -210,7 +209,6 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Scale the objective gradient
         gobj *= self.Area_scale/self.obj_scale
-        gobj += self.gamma*x
 
         fail = 0
         return fail
@@ -273,8 +271,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             
             index += 1
 
-        hvec *= self.Area_scale**2/self.obj_scale
-        hvec += self.gamma*px
+        hvec *= self.Area_scale/self.obj_scale
 
         fail = 0
         return fail
