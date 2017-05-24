@@ -115,7 +115,10 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         self.u[:] = self.f[:]
 
         # Perform the Cholesky factorization
-        self.L = linalg.cholesky(self.K, lower=True)
+        try:
+            self.L = linalg.cholesky(self.K, lower=True)
+        except Exception as excpt:
+            print 'Exception in cholesky factorization ', excpt
 
         # Solve the resulting linear system of equations
         linalg.solve_triangular(self.L, self.u, lower=True,

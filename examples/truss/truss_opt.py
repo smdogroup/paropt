@@ -113,7 +113,7 @@ def setup_ground_struct(N, M, L=2.5, E=70e9, rho=2700.0,
     # Set the options
     truss.setInequalityOptions(dense_ineq=False, 
                                use_lower=True,
-                               use_upper=False)
+                               use_upper=True)
 
     return truss
 
@@ -191,7 +191,7 @@ def pyopt_truss(truss, optimizer='snopt', options={}):
     
     # Set the variable bounds and initial values
     prob.addVarGroup('x', n, value=x0, lower=lower,
-                     upper=[None]*n)
+                     upper=upper)
     
     # Set the constraints
     prob.addConGroup('con', 1, lower=0.0, upper=0.0)
@@ -265,13 +265,21 @@ all_options = {
     'slsqp': {'MAXIT': 5000},
     'snopt': {'Major iterations limit': 10000000,
               'Minor iterations limit': 10000000},
-    'ipopt': {}}
+    'ipopt': {},
+    'nsga2': {'PrintOut': 1},
+    'alpso': {'fileout': 3,
+              'maxOuterIter': 250,
+              'stopCriteria': 1,
+              'atol': 1e-6,
+              'Scaling': 1}}
 
 # Set the output file name
 outfile_names = {'None': None,
                  'slsqp': 'IFILE',
                  'snopt': 'Print file',
-                 'ipopt': 'output_file'}
+                 'ipopt': 'output_file',
+                 'alpso': 'filename',
+                 'nsga2': None}
 outfile_name = outfile_names[optimizer]
 
 if profile:
@@ -357,11 +365,11 @@ if profile:
     # Close the file
     fp.close()
 
-    profiles = ['bfgs', 'hessian', 'snopt', 'slsqp']
-    colours = ['g', 'b', 'r', 'k']
+    profiles = ['bfgs', 'hessian', 'snopt', 'slsqp', 'alpso']
+    colours = ['g', 'b', 'r', 'k', 'c']
 
     # Read the performance values from each file
-    perform = np.zeros((len(trusses), len(profiles)))
+    perform = 1e3*np.ones((len(trusses), len(profiles)))
     index = 0
     for prefix in profiles:
         fname = os.path.join(prefix, 'performance_profile.dat')
@@ -418,8 +426,9 @@ else:
         options = all_options[optimizer]
         
         # Set the output file
-        options[outfile_name] = os.path.join(prefix, 
-                                             'output_%dx%d.out'%(N, M))
+        if outfile_name is not None:
+            options[outfile_name] = os.path.join(prefix, 
+                                                 'output_%dx%d.out'%(N, M))
         # Optimize the truss with the specified optimizer
         opt, prob, sol = pyopt_truss(truss, optimizer=optimizer,
                                      options=options)
