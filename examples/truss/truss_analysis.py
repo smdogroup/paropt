@@ -419,44 +419,6 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         return
 
-    def fullyStressed(self, A, sigma_max, A_min):
-        '''
-        Perform the fully stress design procedure
-        '''
-
-        for i in xrange(100):
-            # Evaluate compliance objective
-            self.assembleMat(A, self.K)
-            self.assembleLoadVec(self.f)
-            self.applyBCs(self.K, self.f)
-            
-            # Solve the resulting linear system of equations
-            self.u = np.linalg.solve(self.K, self.f)
-
-            # Evaluate the forces
-            forces = self.compute_forces(A, u)
-
-            # Compute the mass
-            mass = 0.0
-            for bar, A_bar in zip(self.conn, A):
-                # Get the first and second node numbers from the bar
-                n1 = bar[0]
-                n2 = bar[1]
-
-                # Compute the nodal locations
-                xd = self.xpos[2*n2] - self.xpos[2*n1]
-                yd = self.xpos[2*n2+1] - self.xpos[2*n1+1]
-                Le = np.sqrt(xd**2 + yd**2)
-
-                mass += self.rho*A_bar*Le
-
-            print mass
-
-            for k in xrange(len(A)):
-                A[k] = np.max([np.fabs(forces[k])/sigma_max, A_min])
-
-        return A
-
     def plotTruss(self, x, tol=None, filename='opt_truss.pdf'):
         '''
         Plot the deformed and undeformed truss structure

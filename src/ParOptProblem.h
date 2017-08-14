@@ -47,8 +47,8 @@ class ParOptProblem {
     nvars = ncon = nwcon = nwblock = 0;
   }
   ParOptProblem( MPI_Comm _comm,
-		 int _nvars, int _ncon,
-		 int _nwcon, int _nwblock ){
+                 int _nvars, int _ncon,
+                 int _nwcon, int _nwblock ){
     comm = _comm;
     nvars = _nvars;
     ncon = _ncon;
@@ -85,7 +85,7 @@ class ParOptProblem {
   // Get the problem dimensions
   // --------------------------
   void getProblemSizes( int *_nvars, int *_ncon, 
-			int *_nwcon, int *_nwblock ){
+                        int *_nwcon, int *_nwblock ){
     if (_nvars){ *_nvars = nvars; }
     if (_ncon){ *_ncon = ncon; }
     if (_nwcon){ *_nwcon = nwcon; }
@@ -102,25 +102,25 @@ class ParOptProblem {
   // Get the variables and bounds from the problem
   // ---------------------------------------------
   virtual void getVarsAndBounds( ParOptVec *x,
-				 ParOptVec *lb, 
-				 ParOptVec *ub ) = 0;
+                                 ParOptVec *lb, 
+                                 ParOptVec *ub ) = 0;
   
   // Evaluate the objective and constraints
   // --------------------------------------
   virtual int evalObjCon( ParOptVec *x, 
-			  ParOptScalar *fobj, 
-			  ParOptScalar *cons ) = 0;
+                          ParOptScalar *fobj, 
+                          ParOptScalar *cons ) = 0;
 
   // Evaluate the objective and constraint gradients
   // -----------------------------------------------
   virtual int evalObjConGradient( ParOptVec *x,
-				  ParOptVec *g, ParOptVec **Ac ) = 0;
+                                  ParOptVec *g, ParOptVec **Ac ) = 0;
 
   // Evaluate the product of the Hessian with a given vector
   // -------------------------------------------------------
   virtual int evalHvecProduct( ParOptVec *x,
-			       ParOptScalar *z, ParOptVec *zw,
-			       ParOptVec *px, ParOptVec *hvec ) = 0;
+                               ParOptScalar *z, ParOptVec *zw,
+                               ParOptVec *px, ParOptVec *hvec ) = 0;
 
   // Evaluate the constraints
   // ------------------------
@@ -129,18 +129,18 @@ class ParOptProblem {
   // Compute the Jacobian-vector product out = J(x)*px
   // --------------------------------------------------
   virtual void addSparseJacobian( ParOptScalar alpha, ParOptVec *x,
-				  ParOptVec *px, ParOptVec *out ) = 0;
+                                  ParOptVec *px, ParOptVec *out ) = 0;
 
   // Compute the transpose Jacobian-vector product out = J(x)^{T}*pzw
   // -----------------------------------------------------------------
   virtual void addSparseJacobianTranspose( ParOptScalar alpha, ParOptVec *x,
-					   ParOptVec *pzw, ParOptVec *out ) = 0;
+                                           ParOptVec *pzw, ParOptVec *out ) = 0;
 
   // Add the inner product of the constraints to the matrix such 
   // that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix
   // ------------------------------------------------------------
   virtual void addSparseInnerProduct( ParOptScalar alpha, ParOptVec *x,
-				      ParOptVec *cvec, ParOptScalar *A ) = 0;
+                                      ParOptVec *cvec, ParOptScalar *A ) = 0;
 
   // Over-write this function if you'd like to print out
   // something with the same frequency as the output files

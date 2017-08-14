@@ -1,0 +1,803 @@
+\documentclass[12pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{mathptmx}
+\usepackage[colorlinks, citecolor=black, linkcolor=black, %
+filecolor=black, urlcolor=blue]{hyperref}
+\usepackage{natbib}
+\usepackage{doi}
+\usepackage{amsmath,amssymb,amsthm}
+
+\newcommand{\mb}{\mathbf}
+\newcommand{\p}{\partial}
+\newcommand{\mbs}{\boldsymbol}
+\newcommand{\f}{\frac}
+
+\title{ParOpt: A parallel interior-point optimizer}
+\author{Graeme J. Kennedy}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+ParOpt is a parallel gradient-based optimizer implemented in C++ and is intended for solving large-scale constrained optimization problems.
+The constraints in ParOpt fall into one of two categories: (1) constraints with full dependence on the design vector such that the constraint Jacobian is fully populated, or (2) constraints that have a specific sparse structure so that they can be grouped independently.
+All operations in ParOpt use distributed design vectors and almost all computations are performed in parallel, with a few factorization operations on small dense matrices.
+ParOpt can optionally use information from Hessian-vector products to accelerate convergence.
+Within the Hessian-vector product mode, inexact solutions of the KKT system are used where the tolerances are determined using the Eisenstat--Walker forcing terms.
+
+ParOpt utilizes both a C++ and a python-level interface.
+The python-level interface is generated using cython.
+Call-backs from C++ to python are implemented using efficient direct memory access into numpy arrays.
+However, some care must be taken when setting or reading values from arrays passed to python-level functions so as not to inadvertently set gradient or Jacobian values into a copied vector.
+Furthermore, the design variable vector is used by ParOpt, so modification of design vector will produce undesirable results.
+ParOpt uses an abstract problem interface with an abstract vector class that can be implemented by application-specific methods.
+This enables the use of externally-defined vectors, as long as basic vector-vector and vector-scalar operations are defined.
+A default ParOptVec class is implemented to provide generic functionality.
+
+The following document is divided into two sections: (1) a high-level description of the algorithms implemented in ParOpt, and (2) a detailed description of the implementation of ParOpt.
+
+\section{Algorithms}
+
+ParOpt uses an interior-point method to solve optimization problems formulated as follows:
+\begin{equation}
+  \label{eqn:opt-problem}
+  \begin{aligned}
+    \min_{\mb{x}} \qquad & f(\mb{x}) \\
+    \text{such that} \qquad 
+    & \mb{c}(\mb{x}) \ge 0 \\
+    & \mb{c}_{w}(\mb{x}) \ge 0 \\
+    & \mb{l} \le \mb{x} \le \mb{u}
+  \end{aligned}
+\end{equation}
+Here, $\mb{c}(\mb{x})$ are the dense constraints, and $\mb{c}_{w}(\mb{x})$ are the sparse constraints with the structure such that the matrix
+\begin{equation*}
+  \mb{D} = \mb{A}_{w}^{T}\mb{S}\mb{A}_{w}
+\end{equation*}
+is a block-diagonal matrix whenever $\mb{S}$ is a diagonal matrix. 
+This structure arises in many topology optimization problems that employ different types of weighting constraints for each element within the problem. 
+
+An interior point algorithm approximately solves a sequence of barrier problems that are designed to approach the true constrained minimizer in the limit.
+The barrier objective is a combination of the objective and log-barrier terms designed to keep the solution strictly in the interior of the feasible region. The barrier problem can be written in the following form
+\begin{equation}
+  \label{eqn:barrier-problem}
+  \begin{aligned}
+    \min_{\mb{x}, \mb{s}, \mb{s}_{w}} \qquad &  \varphi(\mb{x}, \mb{s}, \mb{s}_{w}; \mu) = f(\mb{x}) - \mu \left[ \log \mb{s} + \log \mb{s}_{w} + \log (\mb{x} - \mb{l}) + \log (\mb{u} - \mb{x})  \right] \\
+    \text{such that} \qquad & \mb{c}(\mb{x}) = \mb{s} \\
+    & \mb{c}_{w}(\mb{x}) = \mb{s}_{w} \\
+  \end{aligned}
+\end{equation}
+where $\mb{s}$ and $\mb{s}_{w}$ are slack variables associated with the dense and sparse constraints, respectively. 
+The function $\log$ is the component-wise sum of the logarithms of the vector components, i.e. $\log \mb{s} = \sum_{i} \ln s_{i}$.
+As the barrier parameter, $\mu$, decreases, the minimizer of the barrier problem~\eqref{eqn:barrier-problem} approaches the KKT solution.
+
+The barrier problem~\eqref{eqn:barrier-problem} is related to the perturbed KKT conditions for the optimization problem~\eqref{eqn:opt-problem} are.
+Introducing multipliers for the dense constraints $\mb{z}$, the sparse constraints $\mb{z}_{w}$, and the lower and upper bounds, $\mb{z}_{l}$, and $\mb{z}_{u}$, the perturbed KKT conditions can be written as follows:
+%
+\begin{equation}
+  \label{eqn:perturbed-kkt}
+  \begin{aligned}
+    \mb{r}_{x} \triangleq    & \mb{g} - \mb{A}^{T}\mb{z} - \mb{A}_{w} \mb{z}_{w} - \mb{z}_{l} + \mb{z}_{u} = 0 \\
+    \mb{r}_{z} \triangleq    & \mb{c} - \mb{s} = 0 \\
+    \mb{r}_{z_{w}} \triangleq & \mb{c}_{w} - \mb{s}_{w} = 0 \\
+    \mb{r}_{s} \triangleq    & \mb{S} \mb{z} - \mu \mb{e} = 0 \\
+    \mb{r}_{s_{w}} \triangleq & \mb{S}_{w} \mb{z}_{w} - \mu \mb{e} = 0\\
+    \mb{r}_{z_{l}} \triangleq & (\mb{X} - \mb{L})\mb{z}_{l} - \mu \mb{e} = 0\\
+    \mb{r}_{z_{u}} \triangleq & (\mb{U} - \mb{X})\mb{z}_{u} - \mu \mb{e} = 0
+  \end{aligned}
+\end{equation}
+Here, the gradient of the objective function is $\mb{g} = \nabla_{x} f(\mb{x})$ and the Jacobians of the constraints are $\mb{A} = \nabla_{x} \mb{c}(\mb{x})$ and $\mb{A}_{w} = \nabla_{x} \mb{c}_{w}(\mb{x})$.
+
+At each step of the optimization algorithm, ParOpt computes an update $\mb{p}$ to the design variables, slacks, and multipliers, based on an approximate Newton step, which can be written as follows:
+%
+\begin{equation*}
+  \mb{K} \mb{p} = - \mb{r},
+\end{equation*}
+where $\mb{K}$ is the approximate Jacobian of the perturbed KKT system~\eqref{eqn:perturbed-kkt}.
+The matrix $\mb{K}$ is an approximate Jacobian due to the use of a quasi-Newton Hessian approximation, which approximates the Hessian of the Lagrangian $\mb{B} \approx \nabla_{x}^{2} \left(f(\mb{x}) - \mb{z}^{T}\mb{c}(\mb{x}) - \mb{z}_{w}^{T}\mb{c}_{w}(\mb{x}) \right)$.
+The approximate KKT matrix is
+%
+\begin{equation}
+  \label{eqn:kkt-update}
+  \begin{bmatrix}
+    \mb{B}    & -\mb{A}^{T} & \mb{A}_{w} &       0 &      0 & -\mb{I} & \mb{I} \\
+    \mb{A}    &           0 &         0 & -\mb{I} &      0 &       0 & 0 \\
+    \mb{A}_{w} &           0 &         0 &      0 & -\mb{I} &       0 & 0 \\
+    0 &               \mb{S} &        0 & \mb{Z} &       0 &       0 & 0 \\
+    0 &                    0 & \mb{S}_{w} &      0 & -\mb{Z}_{w} &  0 & 0 \\
+    \mb{Z}_{l} &           0 &          0 &      0 & 0 & (\mb{X} - \mb{L}) & 0 \\
+    -\mb{Z}_{u} &          0 &          0 &      0 & 0 & 0 & (\mb{U} - \mb{X}) \\
+  \end{bmatrix}
+  \begin{bmatrix}
+    \mb{p}_{x} \\
+    \mb{p}_{z} \\
+    \mb{p}_{z_{w}} \\
+    \mb{p}_{s} \\
+    \mb{p}_{s_{w}} \\
+    \mb{p}_{z_{l}} \\
+    \mb{p}_{z_{u}}
+  \end{bmatrix} = -\mb{r}.
+\end{equation}
+
+ParOpt uses a quasi-Newton Hessian approximations based either on compact limited-memory BFGS or SR1 updates. 
+When the compact formula are used, the quasi-Newton approximation is
+%
+\begin{equation*}
+  \mb{B} = b_0\mb{I} - \mb{W}\mb{M}\mb{W}^{T},
+\end{equation*}
+where $b_0$ is a scalar, $\mb{M}$ is a small matrix and $\mb{W}$ is a matrix with a small number of columns that is stored as a series of vectors.
+The form of these matrices depends on whether the limited-memory BFGS or SR1 technique is used. 
+An exact solution to the update step $\mb{p}$ can be obtained using the Sherman-Morrison-Woodbury formula.
+
+
+ParOpt approximately solves the perturbed KKT equations~\eqref{eqn:perturbed-kkt} for a sequence of barrier parameters $\mu_{k}$ such that $\mu_{k} \rightarrow 0$ for $k \rightarrow \infty$. 
+ParOpt uses a monotone approach~\citet{Fiacco:McCormick:1990} in which the barrier parameter is maintained at a fixed value and reduced only after a barrier-problem convergence criterion is satisfied.
+The barrier parameter criterion is that the infinity norm of the solution vector must be reduced below a factor of the barrier parameter itself
+%
+\begin{equation}
+  \label{eqn:barrier-stopping-criterion}
+  ||\mb{r}||_{\infty}  \le 10 \mu_{k}.
+\end{equation}
+After the barrier criterion is satisfied, the parameter is modified using the expression $\mu_{k+1} \leftarrow \min \{ \; \theta \mu_{k},\; \mu_{k}^{\beta}\;\}$ for $\beta \in (1, 2]$.
+
+\subsection{Merit function and line search}
+
+The interior-point method implemented in ParOpt uses a line search method that guarantees a sufficient decrease of a merit function at each iteration.
+The line search is based on the following $\ell_{2}$ merit function:
+%
+\begin{equation}
+  \label{eqn:merit-function}
+  \begin{aligned}
+    \phi(\alpha) = & \varphi(\mb{x} + \alpha\mb{p}_{x}, \mb{s} + \alpha\mb{p}_{s}, \mb{s}_{w} + \alpha\mb{p}_{s_{w}}; \mu) + \\
+    & \nu ||\mb{c}(\mb{x} + \alpha\mb{p}_{s}) - \mb{s}||_{2},
+    \nu ||\mb{c}_{w}(\mb{x} + \alpha\mb{p}_{s_{w}}) - \mb{s}_{w}||_{2},
+  \end{aligned}
+\end{equation}
+%
+The penalty parameter $\nu$ is  selected to ensure a sufficiently negative descent direction, such that $\phi'(0)$ is sufficiently negative~\citep{Nocedal.Wright}. 
+At each step ParOpt uses a line search that seeks a point that satisfies the Armijo sufficient decrease condition:
+%
+\begin{equation*}
+  \phi(\alpha) < \phi(0) + c_{1} \alpha \phi'(0),
+\end{equation*}
+where we typically choose $c_{1} = 10^{-3}$. If a step is unsuccessful, we select the next step using a quadratic interpolation based on the initial point and slope of the merit function along the search direction, as well as the most recent merit function value. 
+Since $\phi'(0)$ is negative, and $\phi(\alpha) \ge \phi(0) + c_{1} \phi'(0)$, this sequence of step lengths is decreasing.
+
+To ensure that the design variables remain within bounds and that the Lagrange multipliers and slack variables remain sufficiently positive, ParOpt uses a fraction-to-the-boundary rule, such that
+%
+\begin{equation*}
+  \begin{aligned}
+    \alpha_{x} & = \max\left\{ \alpha \in (0, 1]\;|\; 
+      \mb{x} + \alpha \mb{p}_{x} - \mb{l} \ge (1 - \tau)(\mb{x} - \mb{l}) \right\}, \\
+      %
+      \alpha_{z} & = \max\left\{ \alpha \in (0, 1]\;|\; 
+      \mb{z} + \alpha \mb{p}_{z} \ge (1 - \tau)\mb{z} \right\},
+  \end{aligned}
+\end{equation*}
+%
+with analogous expressions for the remaining components of the step length vector $\mb{p}$. Note that $\alpha_{x}$ is the step length for the design and slack variables, and $\alpha_{z}$ is the step length for the Lagrange multipliers. 
+Following~\citet{Wachter:2006:IPOPT}, ParOpt sets the parameter $\tau$ as follows:
+%
+\begin{equation*}
+  \tau = \max(0.95, 1 - \mu).
+\end{equation*}
+To avoid situations in which there is a large discrepancy between the step lengths, we guard $\alpha_{x}$ and $\alpha_{z}$ such that if $\alpha_{x} \ge \alpha_z$, ParOpt truncates the difference between the step lengths such that
+%
+\begin{equation*}
+  \alpha_x = \max(\min(\alpha_x, 100\alpha_z), \alpha_z/100),
+\end{equation*}
+otherwise if $\alpha_z > \alpha_{x}$, we set:
+\begin{equation*}
+  \alpha_z = \max(\min(\alpha_z, 100\alpha_x), \alpha_x/100).
+\end{equation*}
+Note that this modification only has an effect if the difference in step lengths exceeds $100$. 
+This modification does not interfere with the asymptotic convergence behavior of the algorithm and enables faster recovery from poor steps early in the optimization.
+
+\subsection{Solving the approximate KKT system with a compact quasi-Newton Hessian}
+
+Within ParOpt, the single most computationally expensive operation at each iteration of the optimization algorithm is the solution of the linearized KKT system obtained from the perturbed KKT conditions~\eqref{eqn:perturbed-kkt}. 
+The following section presents an overview of the methods used to solve this linear system in a computationally efficient manner in parallel. 
+
+To derive the proposed solution procedure, we first express the linearized KKT matrix as a combination of two matrices
+which take the form:
+%
+\begin{equation}
+  \label{eqn:ip-newton-update}
+  \mb{J} \mb{p} = \left[ \mb{J}_{0} + \mb{Y} \mb{M} \mb{Y}^{T} \right] \mb{p} = - \mb{r}
+\end{equation}
+where the matrix $\mb{Y}$ can be written as:
+%
+\begin{equation*}
+  \mb{Y} = \begin{bmatrix} \bar{\mb{Y}}^T & 0 & 0 & 
+    0 & 0 & 0 & 0 \end{bmatrix}^{T}, 
+\end{equation*}
+and the matrices $\bar{\mb{Y}}$ and $\mb{M}$ are from the compact BFGS
+representation~\eqref{eqn:quasi-Newton}. Note that the terms in
+$\mb{J}_{0}$ represent the diagonal term $\gamma$ from the compact
+BFGS representation and all other first-order terms from the
+linearized KKT system.
+
+We can obtain an exact solution to this linear
+system~\eqref{eqn:ip-newton-update}, using the
+Sherman--Morrison--Woodbury formula.  This formula leads to the
+following expression for the update $\mb{p}$:
+\begin{equation*}
+  \mb{p} = \mb{J}^{-1}_{0} \mb{Y} \mb{C}^{-1} \mb{Y}^{T} \mb{J}_{0}^{-1} \mb{r} - \mb{J}_{0}^{-1} \mb{r}  
+\end{equation*}
+where the matrix $\mb{C} \in \mathbb{R}^{2m \times 2m}$ is given as
+follows:
+\begin{equation*}
+  \mb{C} = \mb{Y}^{T} \mb{J}_{0}^{-1}\mb{Y} - \mb{M}.
+\end{equation*}
+Note that we can now obtain a solution of the linear
+system~\eqref{eqn:ip-newton-update} from the solution of $2m+1$ linear
+systems of the form $\mb{J}_{0}\mb{y} = \mb{b}$.  Furthermore, if we
+store the matrix $\bar{\mb{Y}}$ as a series of column vectors, then
+the operations required to compute the solution consist of operations
+with small matrices of size $\mathcal{O}(m)$, parallel vector-vector
+products, and the application of $\mb{J}_{0}^{-1}$. Since
+vector-vector operations parallelize efficiently for distributed
+vectors, and the small matrix operations normally constitute a small
+contribution to the overall computational time, we concentrate on the
+parallel solution of systems of the form $\mb{J}_{0} \mb{y} =
+\mb{b}$. Note that we refer to the linear system $\mb{J}_{0} \mb{y} =
+\mb{b}$ as the diagonal KKT matrix since the Hessian term in the matrix
+$\mb{J}_{0}$ is replaced by a diagonal matrix, $\mb{B} =
+\gamma\mb{I}$.
+
+\subsection{Parallel solution of the diagonal KKT system}
+
+We solve the diagonal KKT system $\mb{J}_{0} \mb{y} = \mb{b}$ in
+parallel through a series of variable eliminations. In general, this
+type of method suffers from numerical cancellation, however, our
+experience has been that this method produces remarkably accurate
+steps, even for very small values of the barrier parameter.  We
+attribute this observed behavior to the structure of the constraint
+Jacobians and the form of the multimaterial parametrization
+constraints. In our solution method, we use a series of variable
+eliminations that result in a linear system for the Lagrange
+multipliers of the dense constraints.  These eliminations produce a
+series of Schur-complement matrices that can be computed in sequence.
+Each of these computations require vector-vector operations and can
+therefore be implemented efficiently in parallel. Since each
+individual operation in the solution procedure can be performed in
+parallel, apart from a limited number of matrix operations on matrices
+of size $\mathcal{O}(m)$, the entire solution procedure scales
+efficiently.
+
+The solution procedure can be derived by first linearizng the final
+four equations of the perturbed KKT equations, and obtaining the
+solution for the slack variables and lower and upper Lagrange
+multiplier bound variables as follows:
+%
+\begin{equation}
+  \label{eqn:slack-var-elim}
+  \mb{p}_{z} = \mb{X}^{-1}(\mb{r}_{z} - \mb{Z} \mb{p}_{x} ),
+\end{equation}
+Next, we linearize the first three KKT equations, and replace the
+Hessian with the diagonal term $\mb{B} = \gamma \mb{I}$, to obtain the
+following expressions:
+\begin{equation}
+  \label{eqn:kkt-first-elim}
+  \begin{aligned}
+    \theta \mb{p}_{x} - \mb{A}_{w}^{T}\mb{p}_{\lambda} - \mb{p}_{z} & = \mb{r}_{x}, \\
+    \mb{A}_{w} \mb{p}_{x} & = \mb{r}_{w}.
+  \end{aligned}
+\end{equation}
+Substituting the expressions for the slack and Lagrange multiplier
+updates~\eqref{eqn:slack-var-elim} into the expression for the first
+three linearized KKT conditions~\eqref{eqn:kkt-first-elim} yields the
+following expressions:
+%
+\begin{equation}
+  \label{eqn:kkt-x-lagrange}
+  \begin{aligned}
+    \mb{D} \mb{p}_{x} - \mb{A}_{w}^{T}\mb{p}_{\lambda} & = 
+    \mb{r}_{x} + \mb{X}^{-1}\mb{r}_{z}, \\
+    %
+    \mb{A}_{w} \mb{p}_{x} & = \mb{r}_{w} \\
+    \end{aligned}
+\end{equation}
+where the diagonal matrix $\mb{D}$ is defined as follows:
+\begin{equation*}
+  \mb{D} = \left[ \theta \mb{I} + \mb{X}^{-1}\mb{Z} \right].
+\end{equation*}
+%
+Finally, we can eliminate $\mb{p}_{x}$ as follows, yielding
+an equation for $\mb{p}_{\lambda}$:
+\begin{equation}
+  \mb{A}_{w}\mb{D}^{-1}\mb{A}_{w}^{T} \mb{p}_{\lambda} = \mb{r}_{w} - \mb{A}_{w}\mb{D}^{-1}\left( \mb{r}_{x} + \mb{X}^{-1} \mb{r}_{z}\right)
+\end{equation}
+
+This solution procedure is invoked each time a solution of the form
+$\mb{J}_{0}\mb{y} = \mb{b}$ is required. However, entries such as the
+factorization of $\mb{G}$, and the matrix $\mb{D}$, can be computed
+once and stored for all subsequent solutions.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+After each new step has been computed, ParOpt uses a line search method and
+obtain the search direction by solving a linearization of the
+perturbed KKT conditions~\eqref{eqn:kkt-perturbed} inexactly. Within
+the linearization, we include the contribution from the second
+derivatives of the objective by solving the linearization with
+Hessian-vector products. The exact linearization of the perturbed KKT
+conditions~\eqref{eqn:kkt-perturbed} takes the following form:
+\begin{equation}
+  \label{eqn:linearized-kkt-perturbed}
+  \mb{J} = \mb{J}_{0} + \mb{E} (\mb{H} - \theta\mb{I}) \mb{E}^{T},
+\end{equation}
+where $\theta \ge 0$ is a scalar value.  Here $\mb{H} = \nabla^{2}
+f$. In practice, however, we do not form $\mb{H}$ explicitly and
+instead only require Hessian-vector products. The matrix $\mb{E}$ is
+an injection matrix defined as follows:
+%
+\begin{equation*}
+  \mb{E}^{T} = \begin{bmatrix} \mb{I} & 0 & 0 \end{bmatrix}^{T}
+\end{equation*}
+such that the term $\mb{E}\mb{H}\mb{E}^{T}$ in the
+linearization~\eqref{eqn:linearized-kkt-perturbed} adds the matrix
+$\mb{H}$ to the upper-most block-matrix entry.  The matrix
+$\mb{J}_{0}$ contains only first-order terms and defined as:
+\begin{equation}
+  \mb{J}_{0} = \begin{bmatrix}
+    \theta \mb{I} & -\mb{A}_{w}^{T} & -\mb{I} \\
+    \mb{A}_{w} & 0 & 0 \\
+    \mb{Z} & 0 & \mb{X} 
+  \end{bmatrix}.
+\end{equation}
+
+Next we illustrate how the Hessian-vector products can be obtained
+from methods that are required to evaluate the first derivative.  To
+obtain the Hessian--vector product $\mb{y} = \mb{H}\mb{s}$, we form
+the following Lagrangian:
+\begin{equation}
+  \label{eqn:second-order-lagrangian}
+  \begin{aligned}
+    \mathcal{L} & = \mb{s}^{T} \nabla f(\mb{x} + \mb{p}) - 
+    2\mbs{\varphi}^{T}\left(\mb{K}(\mb{x} + \mb{p}) \mb{u} - \mb{f}\right) \\
+    %
+    & = \mb{u}^{T} \mb{K}(\mb{s}) \mb{u} - 
+    2\mbs{\varphi}^{T}\left(\mb{K}(\mb{x} + \mb{p}) \mb{u} - \mb{f}\right) 
+  \end{aligned}
+\end{equation}
+where $\mb{s}$ is a search direction and $\mbs{\varphi}$ are Lagrange
+multipliers associated with the governing equations. Taking the
+derivative of the Lagrangian with respect to $\mb{u}$ yields the
+following equation for the multipliers, $\mbs{\varphi}$:
+\begin{equation}
+  \mb{K}(\mb{x} + \mb{p})\mbs{\varphi} = \mb{K}(\mb{s})\mb{u}.
+\end{equation}
+Note that this expression requires the matrix-vector product with the. 
+
+Finally, the Hessian-vector product can be obtained by differentiating
+the Lagrangian~\eqref{eqn:second-order-lagrangian} with respect to the
+design variables as follows:
+\begin{equation}
+  \f{\p \mathcal{L}}{\p \mb{x}_{j}} = \left[ \mb{H} \mb{s} \right]_{j} 
+  = - 2 \varphi^{T} \mb{K}_{j_1\; j_2} \mb{u}.
+\end{equation}
+where $j_1 = \lfloor (j-1)/N \rfloor + 1$ and $j_2 = \left((j-1)\mod{N}\right) + 1$
+
+We precondition the linearized KKT system using a compact
+limited-memory BFGS
+representation~\citep{Byrd:1994:quasi-Newton-LBFGS}.  The limited
+memory BFGS approximation, $\mb{B}$, is designed to approximate the
+true Hessian using information from the last $m$ optimization
+iterations. The compact representation technique accumulates the
+design variable updates and gradient changes for the last $m$
+iterations in a matrix $\mb{Y} \in \mathbb{R}^{NM \times 2m}$, where
+$m \ll NM$. The approximate Hessian, $\mb{B}$, computed as
+follows:
+%
+\begin{equation}
+  \label{eqn:quasi-Newton}
+  \mb{B} = \theta \mb{I} + \mb{Y} \mb{M} \mb{Y}^{T}
+\end{equation}
+where $\theta$ is a scalar and $\mb{M} \in \mathbb{R}^{2m \times 2m}$
+is a small matrix that are based on the columns of
+$\mb{Y}$~\citep{Byrd:1994:quasi-Newton-LBFGS}. In the problems
+presented within this paper, the objective is always convex and
+therefore the BFGS scheme is well defined~\citep{Nocedal.Wright}.  In
+addition, we can reuse the BFGS approximation for each subsequent
+optimization subproblem since only the linear terms in the objective
+are modified as $\Gamma_{k}$ increases.
+
+\subsection{Solution of the governing equations}
+
+We solve the linearized KKT system with the Hessian--vector products
+using GMRES. (Why GMRES? Why not CG?)
+
+
+We form the preconditioner based on the matrix:
+%
+\begin{equation}
+  \mb{J}_{B} = \mb{J}_{0} + \mb{E} \mb{Y}\mb{M} \mb{Y}^{T} \mb{E}^{T}
+\end{equation}
+where $\mb{B}$ is the BFGS Hessian approximation. We can then compute
+the product:
+%
+\begin{equation}
+  \begin{aligned}
+    \mb{J}\mb{J}_{B}^{-1} & = \left(\mb{J}_{B} + 
+    \mb{E}\left(\mb{H} - \mb{B}\right)\mb{E}^{T}\right)\mb{J}_{B}^{-1} \\
+    %
+    & = \mb{I} + \mb{E} \left(\mb{H} - \mb{B} \right) \mb{E}^{T} \mb{J}_{B}^{-1}
+  \end{aligned}
+\end{equation}
+
+Based on this formula, we see that the preconditioned system only
+modifies the first
+
+As a result, the output from this expression can be written as:
+%
+\begin{equation}
+  \mb{y} = \mb{J}\mb{J}_{B}^{-1} \mb{w}
+\end{equation}
+
+where, writing the individual components of $\mb{y}$ as:
+%
+\begin{equation}
+  \mb{y} = \left( \mb{y}_{x},\; \mb{y}_{\lambda},\; \mb{y}_{z} \right)
+\end{equation}
+
+Now, we can write the application of the preconditioner as follows:
+%
+\begin{equation}
+  \begin{aligned}
+    \mb{y}_{x} & = \left(\mb{H} - \mb{B}\right)\mb{E}^{T} \mb{J}_{B}^{-1} \mb{w} \\
+    \mb{y}_{\lambda} & = \mb{w}_{\lambda} \\
+    \mb{y}_{z} & = \mb{w}_{z} 
+  \end{aligned}
+\end{equation}
+As a result, the action of the preconditioned operator $\mb{J}
+\mb{J}_{B}^{-1}$ does not modify the components $\mb{y}_{\lambda}$ or
+$\mb{y}_{z}$.  This result can be used to reduce both computational
+and memory requirements within GMRES. Instead of storing the
+components corresponding to $\mbs{\lambda}$ and $\mb{z}$ for every
+vector in the Krylov subspace, and computing dot products with these
+components, we can store the components corresponding to $\mb{x}$ and
+a scalar multiple of the residuals $\alpha_{}$
+
+
+
+
+\subsection{Parallel solution of the KKT system}
+
+
+
+
+  %% At each step of the optimization, we compute a solution to the
+  %% linear system above, using:
+
+  %% ||J(q)*p + r(q)|| <= eta*||r(q)||
+
+  %% where q are all the optimization variables, r(q) are the perturbed
+  %% KKT residuals and J(q) is either an approximate or exact
+  %% linearization of r(q). The parameter eta is a forcing term that
+  %% controls how tightly the linearization is solved. The inexact
+  %% solution p is a search direction that is subsequently used in a line
+  %% search.
+  
+  %% The full KKT system can be written as follows:
+  
+  %% [  B   -Ac^{T} -Aw^{T}  0   0  -I         I        ][ px  ]
+  %% [  Ac   0       0      -I   0   0         0        ][ pz  ]
+  %% [  Aw   0       0       0  -I   0         0        ][ pzw ]
+  %% [  0    S       0       Z   0   0         0        ][ ps  ] = -r
+  %% [  0    0       Sw      0  Zw   0         0        ][ psw ]
+  %% [  Zl   0       0       0   0   (X - Xl)  0        ][ pzl ]
+  %% [ -Zu   0       0       0   0   0         (Xu - X) ][ pzu ]
+
+  %% where B is a quasi-Newton Hessian approximation. 
+
+  %% After certain transition criteria are met, we employ an exact
+  %% Hessian, accessible through Hessian-vector products, and instead
+  %% solve exact linearization inexactly using a forcing parameter such
+  %% that eta > 0. We use this technique because the Hessian-vector
+  %% products are costly to compute and may not provide a benefit early
+  %% in the optimization. 
+
+  %% In the inexact phase, we select the forcing parameter based on the
+  %% work of Eisenstat and Walker as follows:
+
+  %% eta = gamma*(||r(q_{k})||_{infty}/||r(q_{k-1})||_{infty})^{alpha} 
+
+  %% where gamma and alpha are parameters such that 0 < gamma <= 1.0, and
+  %% 1 < alpha <= 2.  The transition from the approximate to the inexact
+  %% optimization phase depends on two factors:
+
+  %% 1. The KKT residuals measured in the infinity norm ||r(q)||_{infty}
+  %% must be reduced below a specified tolerance
+
+  %% 2. The eta parameter predicted by the Eisenstat-Walker formula must
+  %% be below some maximum tolerance.
+
+  %% Once both of these criteria are satisifed, we compute updates using
+  %% the exact linearization with right-preconditioned GMRES scheme. This
+  %% method utilizes the limited-memory BFGS or SR1 quasi-Newton
+  %% approximation as a preconditioner. The preconditioned operator,
+  %% J*J_{B}^{-1}, takes a special form where only entries associated
+  %% with the design vector need to be stored.
+
+% \subsection{Solving the KKT system}
+
+  %% This function computes the terms required to solve the KKT system
+  %% using a bordering method.  The initialization process computes the
+  %% following matrix:
+  
+  %% C = b0 + zl/(x - lb) + zu/(ub - x)
+
+  %% where C is a diagonal matrix. The components of C^{-1} (also a
+  %% diagonal matrix) are stored in Cvec.
+
+  %% Next, we compute:
+  
+  %% Cw = Zw^{-1}*Sw + Aw*C^{-1}*Aw^{T}
+
+  %% where Cw is a block-diagonal matrix. We store the factored block
+  %% matrix Cw in the variable Cw!  The code then computes the
+  %% contribution from the weighting constraints as follows:
+
+  %% Ew = Aw*C^{-1}*A, followed by:
+
+  %% Dw = Ew^{T}*Cw^{-1}*Ew
+
+  %% Finally, the code computes a factorization of the matrix:
+
+  %% D = Z^{-1}*S + A*C^{-1}*A^{T} - Dw
+
+  %% which is required to compute the solution of the KKT step.
+
+
+  %% Solve the linear system 
+  
+  %% y <- K^{-1}*b
+
+  %% where K consists of the approximate KKT system where the approximate
+  %% Hessian is replaced with only the diagonal terms.  The system of
+  %% equations consists of the following terms:
+  
+  %% B0*yx - A^{T}*yz - Aw^{T}*yzw - yzl + yzu = bx
+  %% A*yx - ys = bc
+  %% Aw*yx - ysw = bw
+
+  %% With the additional equations:
+
+  %% ys = Z^{-1}*bs - Z^{-1}*S*yz
+  %% yzl = (X - Xl)^{-1}*(bzl - Zl*yx)
+  %% yzu = (Xu - X)^{-1}*(bzu + Zu*yx)
+
+  %% Substitution of these three equations yields the following system of
+  %% equations:
+
+  %% ((B0 + (X - Xl)^{-1}*Zl + (Xu - X)^{-1}*Zu))*yx - A^{T}*yz - Aw^{T}*yzw
+  %% = bx + (X - Xl)^{-1}*bzl - (Xu - X)^{-1}*bzu
+
+  %% which we rewrite as the equation:
+
+  %% C*yx - A^{T}*yz - Aw^{T}*yzw = d
+
+  %% and
+  
+  %% A*yx + Z^{-1}*S*yz = bc + Z^{-1}*bs,
+  %% Aw*yx = bw.
+
+  %% Where we define d as the vector:
+  
+  %% d = bx + (X - Xl)^{-1}*bzl - (Xu - X)^{-1}*bzu,
+
+  %% we can solve for yz by solving the following system of equations:
+
+  %% D0*yz + Ew^{T}*yzw = bc + Z^{-1}*bs - A*C^{-1}*d,
+  %% Ew*yz +     Cw*yzw = bw - Aw*C^{-1}*d
+
+  %% where C, Ew, and D0 are defined as follows:
+
+  %% C = B0 + (X - Xl)^{-1}*Zl + (Xu - X)^{-1}*Zu,
+  %% Ew = Aw*C^{-1}*A^{T},
+  %% D0 = Z^{-1}*S + A*C^{-1}*A^{T}.
+
+  %% We can then obtain yz by solving the following system of equations:
+  
+  %% Dmat*yz = bc + Z^{-1}*bs - A*C^{-1}*d 
+  %% .         - Ew^{T}*Cw^{-1}*(bw - Aw*C^{-1}*d)
+
+  %% Once yz is obtained, we find yzw and yx as follows:
+
+  %% yzw = Cw^{-1}*(bw - Ew*yz - Aw*C^{-1}*d) 
+  %% yx = C^{-1}*(d + A^{T}*yz + Aw^{T}*yzw)
+
+  %% Note: This code uses the temporary arrays xt and wt which therefore
+  %% cannot be inputs/outputs for this function, otherwise strange
+  %% behavior will occur.
+
+% \subsection{GMRES algorithm with Hessian-vector products}
+
+
+
+\section{Implementation details}
+
+The two main classes need by users of ParOpt are \texttt{ParOptProblem} and \texttt{ParOpt}.
+These classes are both accessible using Python through a Cython wrapper.
+The \texttt{ParOptProblem} class is an abstract base class that is designed to implement the functions needed for an optimization. 
+It is responsible for evaluating functions and constraints as well as allocating parallel vectors needed for the optimization problem.
+The python-level implementation of this class uses a default vector implementation where the components of the vector are distributed across all processors in the communicator provided to ParOpt.
+
+The \texttt{ParOpt} class itself is responsible for optimizing the problem.
+All options are set through public member-access functions that can be called from the python or C++ interfaces.
+These functions will be described below.
+
+\subsection{ParOptProblem class methods}
+
+The constructor for the \texttt{ParOptProblem} class takes the following form:
+%
+\begin{verbatim}
+ParOptProblem( MPI_Comm _comm,
+               int _nvars, int _ncon,
+               int _nwcon, int _nwblock );
+\end{verbatim}
+
+The arguments to this constructor are:
+\begin{itemize}
+\item \texttt{comm} is the MPI communicator for the problem. 
+This communicator will be passed to the corresponding \texttt{ParOpt} optimizer class.
+
+\item \texttt{nvars}: The local number of design variables that are owned by this processor.
+
+\item \texttt{ncon}: The global number of dense constraints.
+
+\item \texttt{nwcon}: The local number of sparse constraints that are owned by this processor
+
+\item \texttt{nwblock}: The size of the block in block-diagonal matrix formed from the weighting constraints $\mb{A}_{w}^{T}\mb{A}_{w}$. This size must be the same on all processors.
+\end{itemize}
+
+The following functions are used to specify the structure of the design problem:
+\begin{enumerate}
+\item \texttt{int isDenseInequality()}: Are the dense constraints inequality or equality constraints?
+\item \texttt{int isSparseInequality()}: Are the sparse constraints inequality or equality constraints?
+\item \texttt{int useLowerBounds()}: Should the optimizer use the lower bound constraints?
+\item \texttt{int useUpperBounds()}: Should the optimizer use the upper bound constraints?
+\end{enumerate}
+
+\subsubsection{ParOptProblem evaluation functions}
+
+The following evaluation member functions must be defined. Their arguments are omitted here, but can be found
+in the file \texttt{src/ParOptProblem.h}.
+\begin{enumerate}
+\item \texttt{getVarsAndBounds}: Get the design variables at the starting point as well as the lower and upper bounds for the variables. This is called when \texttt{ParOpt} is initialized. 
+
+\item \texttt{int evalObjCon}: Given the design variable values, evaluate the objective and dense constraint functions. This returns a fail flag. When the fail flag is non-zero, the function has failed.
+
+\item \texttt{int evalObjConGradient}: Given the design variable values, evaluate the objective and constraint gradients. The objective is a single \texttt{ParOptVec} instance. The dense constraint Jacobian is an array of \texttt{ParOptVec} instances. This function also returns a fail flag. 
+
+\item \texttt{int evalHvecProduct}: Given the design variable values, the multipliers for the dense and sparse constraints, and a direction in the design space, compute the Hessian-vector product. Note that this function combines computations using the sparse and dense constraints. This function also returns a fail flag.
+\end{enumerate}
+
+\subsubsection{ParOptProblem sparse constraint functions}
+
+The following functions are used exclusively for the sparse constraints
+%
+\begin{enumerate}
+\item \texttt{evalSparseCon}: Given the design variables, evaluate the sparse constraints.
+
+\item \texttt{addSparseJacobian} Given a scalar, the design variables, and an input direction vector the size of the number of design variables, compute the scaled Jacobian-vector product of the sparse constraints.
+
+\item \texttt{addSparseJacobianTranspose} Given a scalar, the design variables, and an input direction vector the same size as the number of sparse constraints, compute the scaled transpose Jacobian-vector product of the sparse constraints. This function is required for computing the product $\mb{A}_{w}\mb{z}_{w}$.
+
+\item \texttt{addSparseInnerProduct} Given a scalar, the design variable vector, and the diagonal of a square matrix the size of the number of sparse constraints, compute add the product, $\mb{D} \leftarrow \mb{D} + \alpha \mb{A}_{w} \mb{S}\mb{A}_{w}^{T}$.
+\end{enumerate}
+
+
+ParOpt implements a default vector class. However, it is often convenient to override this class for certain design problems.
+ParOptProblem can override the default implementation if the following two functions are provided:
+\begin{enumerate}
+\item \texttt{ParOptVec *createDesignVec()}: Create a vector with the right type and shape to store design variables/objective gradients.
+\item \texttt{ParOptVec *createConstraintVec()}: Create a vector with the right type and shape to store a sparse constraint vector
+\end{enumerate}  
+
+The function \texttt{void writeOutput( int iter, ParOptVec *x )} can be overridden to write out design-dependent data at a specified frequency.
+  
+\subsection{ParOpt class methods}
+
+The prototype for the constructor for the \texttt{ParOpt} class is:
+%
+\begin{verbatim}
+ParOpt( ParOptProblem *_prob,
+        int _max_qn_subspace,
+        QuasiNewtonType qn_type=BFGS,
+        double _max_bound_val=1e20 );
+\end{verbatim}
+%
+The \texttt{ParOptProblem} defines the problem size, structure, and serves as a factory for generating problem-specific vectors.
+The quasi-Newton method must be specified at creation time.
+The following are the primary member functions used in \texttt{ParOpt}:
+\begin{enumerate}
+\item \texttt{int optimize( const char *checkpoint=NULL )} Begin the optimization algorithm and use the given checkpoint file. This binary file can be used to restart the optimization from the last iterate with the same design variables, barrier parameter and multipliers. This does not retain the same set of optimization parameters.
+
+\item \texttt{void checkGradients( double dh )}: Check the gradients of the objective and constraints as well as the Hessian-vector products if they are defined. This call should be made when debugging the optimization problem. This check uses finite-difference or complex-step method if the code is compiled in complex mode.
+
+\item \texttt{void setMaxMajorIterations( int iters )}: Set the maximum number of iterations to use during the optimization
+
+\item \texttt{void setAbsOptimalityTol( double tol )}: Set the absolute optimality tolerance used within ParOpt. This is an absolute tolerance on the $\ell_{\infty}$ norm of the KKT conditions.
+
+\item \texttt{void setRelFunctionTol( double tol )}: Set the relative function tolerance stopping criterion. ParOpt will terminate a barrier problem when the decrease in the objective function value falls below the specified tolerance. This defaults to zero, in which case the criteria is never satisfied.
+
+\item \texttt{void setInitBarrierParameter( double mu )}: Set the initial barrier parameter
+
+\item \texttt{void setMaxLineSearchIters( int iters )}: Set the maximum number of iterations before the line search fails
+
+\item \texttt{void setBacktrackingLineSearch( int truth )}: Use a backtracking line search rather than 
+
+\item \texttt{void setArmijioParam( double c1 )}: Set the Armijio parameter in the line search acceptance criteria (first Wolfe condition).
+
+\item \texttt{void setOutputFrequency( int freq )}: Set the output iteration frequency. This is the frequency at which the \texttt{writeOutput} function is called in \texttt{ParOptProblem}.
+
+\item \texttt{void setOutputFile( const char *filename )}: Set the output file name for the optimization summary file. This file is flushed at the same frequency as the \texttt{writeOutput} call.
+
+\item \texttt{int writeSolutionFile( const char *filename )}: Write a binary solution file containing the multipliers/design variables
+
+\item \texttt{int readSolutionFile( const char *filename )}: Read a binary solution file and set the variables internally. This requires that the problem sizes are exactly the same as the original problem. A different number of processors may be used if the design variables and multipliers are numbered consistently. 
+\end{enumerate}
+
+\subsubsection{Advanced ParOpt functions}
+
+The following are more advanced options/member functions needed for specific applications
+
+\begin{enumerate}
+\item \texttt{getInitMultipliers}: Get the multiplier vectors stored internally in ParOpt. This is needed if you have specific knowledge of what the best multiplier estimates should be before starting the optimization algorithm.
+
+\item \texttt{getOptimizedPoint}: Get the optimized point including the design variables and multipliers from ParOpt. This can be called at any time to return the current approximate solution from ParOpt. 
+
+\item \texttt{setMaxAbsVariableBound( doublee max\_bound )}: Set the maximum absolute value of the bound variables in the problem. Components of the $\mb{l}$ and $\mb{u}$ vector that are specified beyond this limit will be ignored by ParOpt.
+
+\item \texttt{void setInitStartingPoint( int init )}: Tells ParOpt whether it should attempt to guess the initial multipliers or use the values that are set in ParOpt, possibly with a call to getInitMultipliers.
+
+\item \texttt{void setBarrierFraction( double frac )}: Set the fraction applied during the Fiacco--McCormick barrier parameter update scheme
+\item \texttt{void setBarrierPower( double power )}: Set the barrier power applied during the Fiacco--McCormick barrier parameter update scheme
+
+\item \texttt{double getBarrierParameter()}: Get the barrier parameter
+\item \texttt{ParOptScalar getComplementarity()}: Compute the average complementarity product at the current design point
+
+\item \texttt{void setUseLineSearch( int truth )}: Set a flag to indicate whether a line search will be performed. If false, then the new point is automatically accepted once the fraction-to-the-boundary rule is applied to the step (to ensure the multipliers/slacks remain positive). 
+ 
+\item \texttt{void setHessianResetFreq( int freq )}: Set the frequency at which the Hessian will be reset to a diagonal matrix
+\item \texttt{void setBFGSUpdateType( LBFGS::BFGSUpdateType bfgs\_update )}: Set the type of BFGS update to use when a negative curvature condition is encountered. This will either skip or update the either damped or skip
+
+\item \texttt{void setUseHvecProduct( int truth )}: Set the flag to either the Hessian-vector product code. This relies on the implementation of the Hessian-vector product code in the optimization class itself.
+
+\item \texttt{void setUseQNGMRESPreCon( int truth )}: Use the BFGS or SR1 update as a preconditioner in the GMRES solver.
+
+\item \texttt{void setNKSwitchTolerance( double tol )}: Set the optimality tolerance at which to switch to the full Newton--Krylov method.
+
+\item \texttt{void setEisenstatWalkerParameters( double gamma, double alpha )}: Set the Eisenstat--Walker parameters for the forcing term
+
+\item \texttt{void setGMRESSubspaceSize( int gmres\_subspace\_size )}: Set the size of the GMRES subspace to use during the optimization algorithm
+
+\item \texttt{void setPenaltyDescentFraction( double frac )}: Set the penalty parameter 
+
+\item \texttt{void resetQuasiNewtonHessian()}: Force a reset of the quasi-Newton Hessian approximation
+
+\item \texttt{void resetDesignAndBounds()}: Force a reset the design variables and bounds within the problem
+\end{enumerate}
+
+\bibliographystyle{abbrvnat}
+\bibliography{refs}
+
+\end{document}

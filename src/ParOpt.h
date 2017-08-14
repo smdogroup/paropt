@@ -59,8 +59,8 @@
   Hessian approximations based either on compact limited-memory BFGS
   or SR1 updates. In this case, we can compute an exact solution to
   the update equations using the Sherman-Morrison-Woodbury formula.
-  When these formula are used, we can representent the update formula
-  as follows:
+  When these formula are used, we can represent the update formula as
+  follows:
 
   B = b0*I - Z*M*Z^{T}
 
