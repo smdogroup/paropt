@@ -129,7 +129,7 @@ The approximate KKT matrix is
   \end{bmatrix} = -\mb{r}.
 \end{equation}
 
-ParOpt uses quasi-Newton Hessian approximations based either on compact limited-memory BFGS or compact limited-memory SR1 updates. 
+ParOpt uses quasi-Newton Hessian approximations based either on compact limited-memory BFGS or compact limited-memory SR1 updates~\citep{Byrd:1994:quasi-Newton-LBFGS}. 
 Compact representations of limited-memory quasi-Newton approximations take the form
 %
 \begin{equation*}
@@ -299,105 +299,13 @@ Finally, $\mb{p}_{x}$ can be eliminated for $\mb{p}_{z}$ and $\mb{p}_{z_{w}}$ as
 Finally, noting that $\mb{E} \triangleq \mb{A}_{w}\mb{D}^{-1}\mb{A}_{w}^{T}$ is block diagonal, and defining $\mb{F} \triangleq \mb{A}\mb{D}^{-1}\mb{A}_{w}^{T}$, gives the following equation
 \begin{equation*}
   \begin{aligned}
-    \left[\mb{A}\mb{D}^{-1}\mb{A} - \mb{F}\mb{E}^{-1}\mb{F} \right]\mb{p}_{z} =& 
+    \left[\mb{A}\mb{D}^{-1}\mb{A}^{T} - \mb{F}\mb{E}^{-1}\mb{F}^{T} \right]\mb{p}_{z} =& 
     \mb{b}_{z} - \mb{A}\mb{D}^{-1}\left(\mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}} \right) \\
     & - \mb{E}^{-1}\left( \mb{b}_{z_{w}} - \mb{A}_{w}\mb{D}^{-1}\left(\mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}} \right) \right)
   \end{aligned}
 \end{equation*}
 
 This solution procedure is invoked each time a solution of the form $\mb{K}_{0}\mb{p} = \mb{b}$ is required. 
-
-
-
-
-
-
-% After each new step has been computed, ParOpt uses a line search method and
-% obtain the search direction by solving a linearization of the
-% perturbed KKT conditions~\eqref{eqn:kkt-perturbed} inexactly. Within
-% the linearization, we include the contribution from the second
-% derivatives of the objective by solving the linearization with
-% Hessian-vector products. The exact linearization of the perturbed KKT
-% conditions~\eqref{eqn:kkt-perturbed} takes the following form:
-% \begin{equation}
-%   \label{eqn:linearized-kkt-perturbed}
-%   \mb{J} = \mb{J}_{0} + \mb{E} (\mb{H} - \theta\mb{I}) \mb{E}^{T},
-% \end{equation}
-% where $\theta \ge 0$ is a scalar value.  Here $\mb{H} = \nabla^{2}
-% f$. In practice, however, we do not form $\mb{H}$ explicitly and
-% instead only require Hessian-vector products. The matrix $\mb{E}$ is
-% an injection matrix defined as follows:
-% %
-% \begin{equation*}
-%   \mb{E}^{T} = \begin{bmatrix} \mb{I} & 0 & 0 \end{bmatrix}^{T}
-% \end{equation*}
-% such that the term $\mb{E}\mb{H}\mb{E}^{T}$ in the
-% linearization~\eqref{eqn:linearized-kkt-perturbed} adds the matrix
-% $\mb{H}$ to the upper-most block-matrix entry.  The matrix
-% $\mb{J}_{0}$ contains only first-order terms and defined as:
-% \begin{equation}
-%   \mb{J}_{0} = \begin{bmatrix}
-%     \theta \mb{I} & -\mb{A}_{w}^{T} & -\mb{I} \\
-%     \mb{A}_{w} & 0 & 0 \\
-%     \mb{Z} & 0 & \mb{X} 
-%   \end{bmatrix}.
-% \end{equation}
-
-% Next we illustrate how the Hessian-vector products can be obtained
-% from methods that are required to evaluate the first derivative.  To
-% obtain the Hessian--vector product $\mb{y} = \mb{H}\mb{s}$, we form
-% the following Lagrangian:
-% \begin{equation}
-%   \label{eqn:second-order-lagrangian}
-%   \begin{aligned}
-%     \mathcal{L} & = \mb{s}^{T} \nabla f(\mb{x} + \mb{p}) - 
-%     2\mbs{\varphi}^{T}\left(\mb{K}(\mb{x} + \mb{p}) \mb{u} - \mb{f}\right) \\
-%     %
-%     & = \mb{u}^{T} \mb{K}(\mb{s}) \mb{u} - 
-%     2\mbs{\varphi}^{T}\left(\mb{K}(\mb{x} + \mb{p}) \mb{u} - \mb{f}\right) 
-%   \end{aligned}
-% \end{equation}
-% where $\mb{s}$ is a search direction and $\mbs{\varphi}$ are Lagrange
-% multipliers associated with the governing equations. Taking the
-% derivative of the Lagrangian with respect to $\mb{u}$ yields the
-% following equation for the multipliers, $\mbs{\varphi}$:
-% \begin{equation}
-%   \mb{K}(\mb{x} + \mb{p})\mbs{\varphi} = \mb{K}(\mb{s})\mb{u}.
-% \end{equation}
-% Note that this expression requires the matrix-vector product with the. 
-
-% Finally, the Hessian-vector product can be obtained by differentiating
-% the Lagrangian~\eqref{eqn:second-order-lagrangian} with respect to the
-% design variables as follows:
-% \begin{equation}
-%   \f{\p \mathcal{L}}{\p \mb{x}_{j}} = \left[ \mb{H} \mb{s} \right]_{j} 
-%   = - 2 \varphi^{T} \mb{K}_{j_1\; j_2} \mb{u}.
-% \end{equation}
-% where $j_1 = \lfloor (j-1)/N \rfloor + 1$ and $j_2 = \left((j-1)\mod{N}\right) + 1$
-
-% We precondition the linearized KKT system using a compact
-% limited-memory BFGS
-% representation~\citep{Byrd:1994:quasi-Newton-LBFGS}.  The limited
-% memory BFGS approximation, $\mb{B}$, is designed to approximate the
-% true Hessian using information from the last $m$ optimization
-% iterations. The compact representation technique accumulates the
-% design variable updates and gradient changes for the last $m$
-% iterations in a matrix $\mb{Y} \in \mathbb{R}^{NM \times 2m}$, where
-% $m \ll NM$. The approximate Hessian, $\mb{B}$, computed as
-% follows:
-% %
-% \begin{equation}
-%   \label{eqn:quasi-Newton}
-%   \mb{B} = \theta \mb{I} + \mb{Y} \mb{M} \mb{Y}^{T}
-% \end{equation}
-% where $\theta$ is a scalar and $\mb{M} \in \mathbb{R}^{2m \times 2m}$
-% is a small matrix that are based on the columns of
-% $\mb{Y}$~\citep{Byrd:1994:quasi-Newton-LBFGS}. In the problems
-% presented within this paper, the objective is always convex and
-% therefore the BFGS scheme is well defined~\citep{Nocedal.Wright}.  In
-% addition, we can reuse the BFGS approximation for each subsequent
-% optimization subproblem since only the linear terms in the objective
-% are modified as $\Gamma_{k}$ increases.
 
 \subsection{Inexact Hessian-vector product mode}
 
@@ -408,8 +316,8 @@ The product of the Jacobian and precondition is
 %
 \begin{equation}
   \begin{aligned}
-    \mb{K}\mb{K}_{B}^{-1} & = \left(\mb{J}_{B} + 
-    \mb{E}\left(\mb{H} - \mb{B}\right)\mb{E}^{T}\right)\mb{K}_{B}^{-1} \\
+    \mb{K}\mb{K}_{B}^{-1} & = \left(\mb{K}_{B} + 
+    \mb{N}\left(\mb{H} - \mb{B}\right)\mb{N}^{T}\right)\mb{K}_{B}^{-1} \\
     %
     & = \mb{I} + \mb{N} \left(\mb{H} - \mb{B} \right) \mb{N}^{T} \mb{K}_{B}^{-1}
   \end{aligned}
@@ -419,162 +327,12 @@ It is clear that the preconditioned system modifies only the $\mb{x}$-components
 This property can be used to reduce both computational and memory requirements within GMRES. 
 Instead of storing all the components of the primal and dual variables for each vector in the Krylov subspace, and computing dot products with these components, ParOpt only stores the components corresponding to $\mb{x}$ and a scalar multiple of the residuals.
 
-
-  %% At each step of the optimization, we compute a solution to the
-  %% linear system above, using:
-
-  %% ||J(q)*p + r(q)|| <= eta*||r(q)||
-
-  %% where q are all the optimization variables, r(q) are the perturbed
-  %% KKT residuals and J(q) is either an approximate or exact
-  %% linearization of r(q). The parameter eta is a forcing term that
-  %% controls how tightly the linearization is solved. The inexact
-  %% solution p is a search direction that is subsequently used in a line
-  %% search.
-  
-  %% The full KKT system can be written as follows:
-  
-  %% [  B   -Ac^{T} -Aw^{T}  0   0  -I         I        ][ px  ]
-  %% [  Ac   0       0      -I   0   0         0        ][ pz  ]
-  %% [  Aw   0       0       0  -I   0         0        ][ pzw ]
-  %% [  0    S       0       Z   0   0         0        ][ ps  ] = -r
-  %% [  0    0       Sw      0  Zw   0         0        ][ psw ]
-  %% [  Zl   0       0       0   0   (X - Xl)  0        ][ pzl ]
-  %% [ -Zu   0       0       0   0   0         (Xu - X) ][ pzu ]
-
-  %% where B is a quasi-Newton Hessian approximation. 
-
-  %% After certain transition criteria are met, we employ an exact
-  %% Hessian, accessible through Hessian-vector products, and instead
-  %% solve exact linearization inexactly using a forcing parameter such
-  %% that eta > 0. We use this technique because the Hessian-vector
-  %% products are costly to compute and may not provide a benefit early
-  %% in the optimization. 
-
-  %% In the inexact phase, we select the forcing parameter based on the
-  %% work of Eisenstat and Walker as follows:
-
-  %% eta = gamma*(||r(q_{k})||_{infty}/||r(q_{k-1})||_{infty})^{alpha} 
-
-  %% where gamma and alpha are parameters such that 0 < gamma <= 1.0, and
-  %% 1 < alpha <= 2.  The transition from the approximate to the inexact
-  %% optimization phase depends on two factors:
-
-  %% 1. The KKT residuals measured in the infinity norm ||r(q)||_{infty}
-  %% must be reduced below a specified tolerance
-
-  %% 2. The eta parameter predicted by the Eisenstat-Walker formula must
-  %% be below some maximum tolerance.
-
-  %% Once both of these criteria are satisifed, we compute updates using
-  %% the exact linearization with right-preconditioned GMRES scheme. This
-  %% method utilizes the limited-memory BFGS or SR1 quasi-Newton
-  %% approximation as a preconditioner. The preconditioned operator,
-  %% J*J_{B}^{-1}, takes a special form where only entries associated
-  %% with the design vector need to be stored.
-
-% \subsection{Solving the KKT system}
-
-  %% This function computes the terms required to solve the KKT system
-  %% using a bordering method.  The initialization process computes the
-  %% following matrix:
-  
-  %% C = b0 + zl/(x - lb) + zu/(ub - x)
-
-  %% where C is a diagonal matrix. The components of C^{-1} (also a
-  %% diagonal matrix) are stored in Cvec.
-
-  %% Next, we compute:
-  
-  %% Cw = Zw^{-1}*Sw + Aw*C^{-1}*Aw^{T}
-
-  %% where Cw is a block-diagonal matrix. We store the factored block
-  %% matrix Cw in the variable Cw!  The code then computes the
-  %% contribution from the weighting constraints as follows:
-
-  %% Ew = Aw*C^{-1}*A, followed by:
-
-  %% Dw = Ew^{T}*Cw^{-1}*Ew
-
-  %% Finally, the code computes a factorization of the matrix:
-
-  %% D = Z^{-1}*S + A*C^{-1}*A^{T} - Dw
-
-  %% which is required to compute the solution of the KKT step.
-
-
-  %% Solve the linear system 
-  
-  %% y <- K^{-1}*b
-
-  %% where K consists of the approximate KKT system where the approximate
-  %% Hessian is replaced with only the diagonal terms.  The system of
-  %% equations consists of the following terms:
-  
-  %% B0*yx - A^{T}*yz - Aw^{T}*yzw - yzl + yzu = bx
-  %% A*yx - ys = bc
-  %% Aw*yx - ysw = bw
-
-  %% With the additional equations:
-
-  %% ys = Z^{-1}*bs - Z^{-1}*S*yz
-  %% yzl = (X - Xl)^{-1}*(bzl - Zl*yx)
-  %% yzu = (Xu - X)^{-1}*(bzu + Zu*yx)
-
-  %% Substitution of these three equations yields the following system of
-  %% equations:
-
-  %% ((B0 + (X - Xl)^{-1}*Zl + (Xu - X)^{-1}*Zu))*yx - A^{T}*yz - Aw^{T}*yzw
-  %% = bx + (X - Xl)^{-1}*bzl - (Xu - X)^{-1}*bzu
-
-  %% which we rewrite as the equation:
-
-  %% C*yx - A^{T}*yz - Aw^{T}*yzw = d
-
-  %% and
-  
-  %% A*yx + Z^{-1}*S*yz = bc + Z^{-1}*bs,
-  %% Aw*yx = bw.
-
-  %% Where we define d as the vector:
-  
-  %% d = bx + (X - Xl)^{-1}*bzl - (Xu - X)^{-1}*bzu,
-
-  %% we can solve for yz by solving the following system of equations:
-
-  %% D0*yz + Ew^{T}*yzw = bc + Z^{-1}*bs - A*C^{-1}*d,
-  %% Ew*yz +     Cw*yzw = bw - Aw*C^{-1}*d
-
-  %% where C, Ew, and D0 are defined as follows:
-
-  %% C = B0 + (X - Xl)^{-1}*Zl + (Xu - X)^{-1}*Zu,
-  %% Ew = Aw*C^{-1}*A^{T},
-  %% D0 = Z^{-1}*S + A*C^{-1}*A^{T}.
-
-  %% We can then obtain yz by solving the following system of equations:
-  
-  %% Dmat*yz = bc + Z^{-1}*bs - A*C^{-1}*d 
-  %% .         - Ew^{T}*Cw^{-1}*(bw - Aw*C^{-1}*d)
-
-  %% Once yz is obtained, we find yzw and yx as follows:
-
-  %% yzw = Cw^{-1}*(bw - Ew*yz - Aw*C^{-1}*d) 
-  %% yx = C^{-1}*(d + A^{T}*yz + Aw^{T}*yzw)
-
-  %% Note: This code uses the temporary arrays xt and wt which therefore
-  %% cannot be inputs/outputs for this function, otherwise strange
-  %% behavior will occur.
-
-% \subsection{GMRES algorithm with Hessian-vector products}
-
-
-
 \section{Implementation details}
 
 The two main classes need by users of ParOpt are \texttt{ParOptProblem} and \texttt{ParOpt}.
 These classes are both accessible using Python through a Cython wrapper.
-The \texttt{ParOptProblem} class is an abstract base class that is designed to implement the functions needed for an optimization. 
-It is responsible for evaluating functions and constraints as well as allocating parallel vectors needed for the optimization problem.
+The \texttt{ParOptProblem} class is an abstract base class that is designed to implement the functions needed to solve an optimization problem. 
+It is responsible for evaluating functions and constraints as well as allocating parallel design and sparse constraint vectors.
 The python-level implementation of this class uses a default vector implementation where the components of the vector are distributed across all processors in the communicator provided to ParOpt.
 
 The \texttt{ParOpt} class itself is responsible for optimizing the problem.
