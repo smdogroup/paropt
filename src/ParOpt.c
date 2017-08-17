@@ -62,7 +62,7 @@ static const char *paropt_parameter_help[][2] = {
    "Integer: Write out the solution file and checkpoint file at this frequency"},
 
   {"gradient_check_frequency",
-   "Integer: Print to screen the output of the gradient check at this frequency "},
+   "Integer: Print to screen the output of the gradient check at this frequency"},
 
   {"sequential_linear_method", 
    "Boolean: Discard the quasi-Newton approximation (but not \
