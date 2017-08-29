@@ -379,7 +379,7 @@ cdef class pyParOpt:
       cdef ParOptScalar *xvals = NULL
       cdef ParOptVec *xvec = NULL
       self.this_ptr.getOptimizedPoint(&xvec, NULL, NULL, NULL, NULL)
-      xvec.getArray(&xvals)
+      nvars = xvec.getArray(&xvals)
       return inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>xvals)
 
    def getDualPoint(self):

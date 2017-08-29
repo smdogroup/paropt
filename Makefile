@@ -42,6 +42,7 @@ python:
 
 clean:
 	${RM} lib/libparopt.a lib/*.so
+	${RM} paropt/*.so paropt/*.cpp
 	@for subdir in ${PAROPT_SUBDIRS}; do \
 	   echo; (cd $$subdir && ${MAKE} $@ ) || exit 1; \
 	done
