@@ -25,6 +25,36 @@ include "ParOptDefs.pxi"
 cdef extern from "mpi-compat.h":
    pass
 
+# Extract the optimality and objective function value from given input
+# paropt output files into separate files
+def get_fobj_opt(int num_files, str input, str fop, str foj):
+   iter_count = 0
+   # Open the objective and optimality files respectively
+   fo = open(fop,'w')
+   fj = open(foj,'w')
+   for i in xrange(num_files):
+      # Read and write the optimality and objective function to a new
+      # file
+      f1 = input+str(i)+'.out'
+      fp = open(f1,'r')
+        
+      # Read all the lines from fp
+      content = fp.readlines()
+      # Number of lines in file
+      endoffile = len(content)
+      for k in xrange(116,endoffile):
+         try:
+            fobj = float(content[k][45:56])
+            fo.write('%d%s%1.7e\n'%
+                     (iter_count, ' ',fobj))
+            opti = float(content[k][57:64])
+            fj.write('%d%s%1.7e\n'%
+                     (iter_count, ' ',opti))
+            iter_count += 1
+         except ValueError:
+            continue
+   return 
+
 # Read in a ParOpt checkpoint file and produce python variables
 def unpack_checkpoint(str filename):
    '''Convert the checkpoint file to usable python objects'''
@@ -63,6 +93,8 @@ def unpack_checkpoint(str filename):
    offset += fb*nvars
 
    return barrier, s, z, x, zl, zu
+
+
 
 # This wraps a C++ array with a numpy array for later useage
 cdef inplace_array_1d(int nptype, int dim1, void *data_ptr):
