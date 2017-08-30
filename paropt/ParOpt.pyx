@@ -134,7 +134,8 @@ cdef inplace_array_2d(int nptype, int dim1, int dim2, void *data_ptr):
    return ndarray
 
 cdef void _getvarsandbounds(void *_self, int nvars,
-                            ParOptScalar *x, ParOptScalar *lb, ParOptScalar *ub):
+                            ParOptScalar *x, ParOptScalar *lb, 
+                            ParOptScalar *ub):
    # The numpy arrays that will be used to wrap x/lb/ub
    cdef np.ndarray xnp, lbnp, ubnp
 
@@ -149,7 +150,8 @@ cdef void _getvarsandbounds(void *_self, int nvars,
    return
 
 cdef int _evalobjcon(void *_self, int nvars, int ncon,
-                     ParOptScalar *x, ParOptScalar *fobj, ParOptScalar *cons):
+                     ParOptScalar *x, ParOptScalar *fobj, 
+                     ParOptScalar *cons):
    # The numpy arrays that will be used for x
    cdef np.ndarray xnp
    cdef int i
@@ -170,7 +172,8 @@ cdef int _evalobjcon(void *_self, int nvars, int ncon,
    return fail
 
 cdef int _evalobjcongradient(void *_self, int nvars, int ncon,
-                             ParOptScalar *x, ParOptScalar *g, ParOptScalar *A):
+                             ParOptScalar *x, ParOptScalar *g, 
+                             ParOptScalar *A):
    # The numpy arrays that will be used for x
    cdef np.ndarray xnp, gnp, Anp
    
@@ -220,7 +223,8 @@ cdef void _evalsparsecon(void *_self, int nvars, int nwcon,
 
 cdef void _addsparsejacobian(void *_self, int nvars, 
                              int nwcon, ParOptScalar alpha, 
-                             ParOptScalar *x, ParOptScalar *px, ParOptScalar *con):
+                             ParOptScalar *x, ParOptScalar *px, 
+                             ParOptScalar *con):
    # The numpy arrays
    cdef np.ndarray xnp, pxnp, cnp
    
@@ -235,7 +239,8 @@ cdef void _addsparsejacobian(void *_self, int nvars,
 
 cdef void _addsparsejacobiantranspose(void *_self, int nvars, 
                                       int nwcon, ParOptScalar alpha, 
-                                      ParOptScalar *x, ParOptScalar *pzw, ParOptScalar *out):
+                                      ParOptScalar *x, ParOptScalar *pzw, 
+                                      ParOptScalar *out):
    # The numpy arrays
    cdef np.ndarray xnp, pzwnp, outnp
 
@@ -250,7 +255,8 @@ cdef void _addsparsejacobiantranspose(void *_self, int nvars,
 
 cdef void _addsparseinnerproduct(void *_self, int nvars,
                                  int nwcon, int nwblock, ParOptScalar alpha,
-                                 ParOptScalar *x, ParOptScalar *c, ParOptScalar *A):
+                                 ParOptScalar *x, ParOptScalar *c, 
+                                 ParOptScalar *A):
    # The numpy arrays
    cdef np.ndarray xnp, cnp, Anp
 
