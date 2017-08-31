@@ -9,6 +9,11 @@ cimport numpy as np
 # Typdefs required for either real or complex mode
 include "ParOptTypedefs.pxi"
 
+cdef extern from "ParOptProblem.h":
+   cdef cppclass ParOptProblem:
+      ParOptProblem(MPI_Comm)
+      ParOptProblem(MPI_Comm, int, int, int, int)
+
 cdef extern from "CyParOptProblem.h":
    # Define the callback types
    ctypedef void (*getvarsandbounds)(void *_self, int nvars,
@@ -31,17 +36,23 @@ cdef extern from "CyParOptProblem.h":
                                       ParOptScalar *px, ParOptScalar *out)
    ctypedef void (*addsparsejacobiantranspose)(void *_self, 
                                                int nvars, int nwcon,
-                                               ParOptScalar alpha, ParOptScalar *x, 
-                                               ParOptScalar *px, ParOptScalar *out)
+                                               ParOptScalar alpha, 
+                                               ParOptScalar *x, 
+                                               ParOptScalar *px, 
+                                               ParOptScalar *out)
    ctypedef void (*addsparseinnerproduct)(void *_self, int nvars, 
                                           int nwcon, int nwblock,
                                           ParOptScalar alpha, ParOptScalar *x, 
                                           ParOptScalar *c, ParOptScalar *A)
 
-   cppclass CyParOptProblem:
+   cdef cppclass CyParOptProblem(ParOptProblem):
       CyParOptProblem(MPI_Comm _comm, int _nvars, int _ncon,
                       int _nwcon, int _nwblock)
-
+      
+      # Set options for the inequality constraints
+      void setInequalityOptions(int _isSparseInequal, 
+                                int _isDenseInequal,
+                                int _useLower, int _useUpper)
       # Set the callback functions
       void setSelfPointer(void *_self)
       void setGetVarsAndBounds(getvarsandbounds usr_func)
@@ -52,11 +63,6 @@ cdef extern from "CyParOptProblem.h":
       void setAddSparseJacobian(addsparsejacobian usr_func)
       void setAddSparseJacobianTranspose(addsparsejacobiantranspose usr_func)
       void setAddSparseInnerProduct(addsparseinnerproduct usr_func)
-
-      # Set options for the inequality constraints
-      void setInequalityOptions(int _isSparseInequal, 
-                                int _isDenseInequal,
-                                int _useLower, int _useUpper)
 
 cdef extern from "ParOptQuasiNewton.h":
    enum BFGSUpdateType"LBFGS::BFGSUpdateType":
@@ -77,9 +83,9 @@ cdef extern from "ParOpt.h":
       PAROPT_SR1"ParOpt::SR1"
 
    cppclass ParOpt:
-      ParOpt(CyParOptProblem *_prob, int _max_lbfgs_subspace, 
+      ParOpt(ParOptProblem *_prob, int _max_lbfgs_subspace, 
              QuasiNewtonType qn_type) except +
-             
+
       # Perform the optimiztion
       int optimize(const char *checkpoint)
 
@@ -146,3 +152,7 @@ cdef extern from "ParOpt.h":
       # Write out the design variables to binary format (fast MPI/IO)
       int writeSolutionFile(const char *filename)
       int readSolutionFile(const char *filename)
+
+cdef class pyParOptProblemBase:
+   cdef ParOptProblem *ptr
+

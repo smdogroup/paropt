@@ -37,7 +37,7 @@ complex:
 	@echo "PAROPT_NPY_SCALAR = np.NPY_CDOUBLE" > paropt/ParOptDefs.pxi;
 	@echo "dtype = np.complex" >> paropt/ParOptDefs.pxi;
 
-python:
+interface:
 	python setup.py build_ext --inplace
 
 clean:

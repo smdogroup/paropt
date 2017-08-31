@@ -271,30 +271,29 @@ cdef void _addsparseinnerproduct(void *_self, int nvars,
    return
 
 # "Wrap" the abtract base class ParOptProblem 
-cdef class pyParOptProblem:
-   cdef CyParOptProblem *this_ptr
-   
+cdef class pyParOptProblem(pyParOptProblemBase):
+   cdef CyParOptProblem *me
    def __init__(self, MPI.Comm comm, int nvars, int ncon,
                 int nwcon=0, int nwblock=0):
       # Convert the communicator
       cdef MPI_Comm c_comm = comm.ob_mpi
 
       # Create the pointer to the underlying C++ object
-      self.this_ptr = new CyParOptProblem(c_comm, nvars, ncon,
-                                          nwcon, nwblock)
-      self.this_ptr.setSelfPointer(<void*>self)
-      self.this_ptr.setGetVarsAndBounds(_getvarsandbounds)
-      self.this_ptr.setEvalObjCon(_evalobjcon)
-      self.this_ptr.setEvalObjConGradient(_evalobjcongradient)
-      self.this_ptr.setEvalHvecProduct(_evalhvecproduct)
-      self.this_ptr.setEvalSparseCon(_evalsparsecon)
-      self.this_ptr.setAddSparseJacobian(_addsparsejacobian)
-      self.this_ptr.setAddSparseJacobianTranspose(_addsparsejacobiantranspose)
-      self.this_ptr.setAddSparseInnerProduct(_addsparseinnerproduct)
+      self.me = new CyParOptProblem(c_comm, nvars, ncon, nwcon, nwblock)
+      self.me.setSelfPointer(<void*>self)
+      self.me.setGetVarsAndBounds(_getvarsandbounds)
+      self.me.setEvalObjCon(_evalobjcon)
+      self.me.setEvalObjConGradient(_evalobjcongradient)
+      self.me.setEvalHvecProduct(_evalhvecproduct)
+      self.me.setEvalSparseCon(_evalsparsecon)
+      self.me.setAddSparseJacobian(_addsparsejacobian)
+      self.me.setAddSparseJacobianTranspose(_addsparsejacobiantranspose)
+      self.me.setAddSparseInnerProduct(_addsparseinnerproduct)
+      self.ptr = self.me
       return
 
    def __dealloc__(self):
-      del self.this_ptr
+      del self.ptr
       return
 
    def setInequalityOptions(self, dense_ineq=True, sparse_ineq=True,
@@ -312,7 +311,7 @@ cdef class pyParOptProblem:
       if use_upper: upper = 1
 
       # Set the options
-      self.this_ptr.setInequalityOptions(dense, sparse, lower, upper)
+      self.me.setInequalityOptions(dense, sparse, lower, upper)
    
       return
 
@@ -322,23 +321,21 @@ SR1 = PAROPT_SR1
 
 # Python class for corresponding instance ParOpt
 cdef class pyParOpt:
-   cdef ParOpt *this_ptr
-      
+   cdef ParOpt *ptr
    def __cinit__(self, pyParOptProblem _prob, 
                  int max_qn_subspace, 
                  QuasiNewtonType qn_type):
-      self.this_ptr = new ParOpt(_prob.this_ptr, 
-                                 max_qn_subspace, qn_type)
+      self.ptr = new ParOpt(_prob.ptr, max_qn_subspace, qn_type)
       
    def __dealloc__(self):
-      del self.this_ptr
+      del self.ptr
       
    # Perform the optimization
    def optimize(self, char *checkpoint=''):
       if checkpoint is None: 
-         return self.this_ptr.optimize(NULL)
+         return self.ptr.optimize(NULL)
       else:
-         return self.this_ptr.optimize(&checkpoint[0])
+         return self.ptr.optimize(&checkpoint[0])
    
    def getOptimizedPoint(self):
       '''Get the optimized solution from ParOpt'''
@@ -347,7 +344,7 @@ cdef class pyParOpt:
       cdef ParOptVec *vec = NULL
       
       # Retrieve the optimized vector
-      self.this_ptr.getOptimizedPoint(&vec, NULL, NULL, NULL, NULL)
+      self.ptr.getOptimizedPoint(&vec, NULL, NULL, NULL, NULL)
       
       # Get the variables from the vector
       n = vec.getArray(&values)
@@ -379,10 +376,10 @@ cdef class pyParOpt:
       zu = None
 
       # Retrieve the optimized vector
-      self.this_ptr.getOptimizedPoint(NULL, &zvals, &zwvec, &zlvec, &zuvec)
+      self.ptr.getOptimizedPoint(NULL, &zvals, &zwvec, &zlvec, &zuvec)
 
       # Get the number of constraints
-      self.this_ptr.getProblemSizes(NULL, &nc, NULL, NULL)
+      self.ptr.getProblemSizes(NULL, &nc, NULL, NULL)
       
       # Copy over the Lagrange multipliers
       z = np.zeros(nc, dtype)
@@ -416,7 +413,7 @@ cdef class pyParOpt:
       cdef int nvars
       cdef ParOptScalar *xvals = NULL
       cdef ParOptVec *xvec = NULL
-      self.this_ptr.getOptimizedPoint(&xvec, NULL, NULL, NULL, NULL)
+      self.ptr.getOptimizedPoint(&xvec, NULL, NULL, NULL, NULL)
       nvars = xvec.getArray(&xvals)
       return inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>xvals)
 
@@ -435,10 +432,10 @@ cdef class pyParOpt:
       cdef np.ndarray zu = None
       
       # Retrieve the optimized vector
-      self.this_ptr.getInitMultipliers(&zvals, &zwvec, &zlvec, &zuvec)
+      self.ptr.getInitMultipliers(&zvals, &zwvec, &zlvec, &zuvec)
 
       # Get the number of constraints
-      self.this_ptr.getProblemSizes(NULL, &nc, NULL, NULL)
+      self.ptr.getProblemSizes(NULL, &nc, NULL, NULL)
 
       # Convert things to in-place numpy arrays
       z = inplace_array_1d(PAROPT_NPY_SCALAR, nc, <void*>zvals)
@@ -462,116 +459,116 @@ cdef class pyParOpt:
 
    # Check objective and constraint gradients
    def checkGradients(self, double dh):    
-      self.this_ptr.checkGradients(dh)
+      self.ptr.checkGradients(dh)
       
    # Set optimizer parameters
    def setInitStartingPoint(self, int init):
-      self.this_ptr.setInitStartingPoint(init)
+      self.ptr.setInitStartingPoint(init)
       
    def setMaxMajorIterations(self, int iters):
-      self.this_ptr.setMaxMajorIterations(iters)
+      self.ptr.setMaxMajorIterations(iters)
       
    def setAbsOptimalityTol(self, double tol):
-      self.this_ptr.setAbsOptimalityTol(tol)
+      self.ptr.setAbsOptimalityTol(tol)
 
    def setRelFunctionTol(self, double tol):
-      self.this_ptr.setRelFunctionTol(tol)
+      self.ptr.setRelFunctionTol(tol)
       
    def setBarrierFraction(self, double frac):
-      self.this_ptr.setBarrierFraction(frac)
+      self.ptr.setBarrierFraction(frac)
       
    def setBarrierPower(self, double power):
-      self.this_ptr.setBarrierPower(power)
+      self.ptr.setBarrierPower(power)
       
    def setHessianResetFreq(self, int freq):
-      self.this_ptr.setHessianResetFreq(freq)
+      self.ptr.setHessianResetFreq(freq)
    
    def setQNDiagonalFactor(self, double sigma):
-      self.this_ptr.setQNDiagonalFactor(sigma)
+      self.ptr.setQNDiagonalFactor(sigma)
 
    def setBFGSUpdateType(self, str update):
       if update == 'damped':
-         self.this_ptr.setBFGSUpdateType(DAMPED_UPDATE)
+         self.ptr.setBFGSUpdateType(DAMPED_UPDATE)
       elif update == 'skip':
-         self.this_ptr.setBFGSUpdateType(SKIP_NEGATIVE_CURVATURE)
+         self.ptr.setBFGSUpdateType(SKIP_NEGATIVE_CURVATURE)
       return
       
    def setSequentialLinearMethod(self, int truth):
-      self.this_ptr.setSequentialLinearMethod(truth)
+      self.ptr.setSequentialLinearMethod(truth)
       
    # Set/obtain the barrier parameter
    def setInitBarrierParameter(self, double mu):
-      self.this_ptr.setInitBarrierParameter(mu)
+      self.ptr.setInitBarrierParameter(mu)
       
    def getBarrierParameter(self):
-      return self.this_ptr.getBarrierParameter()
+      return self.ptr.getBarrierParameter()
 
    def getComplementarity(self):
-      return self.this_ptr.getComplementarity()
+      return self.ptr.getComplementarity()
   
    # Reset the quasi-Newton Hessian
    def resetQuasiNewtonHessian(self):
-      self.this_ptr.resetQuasiNewtonHessian()
+      self.ptr.resetQuasiNewtonHessian()
 
    # Reset the design variables and bounds
    def resetDesignAndBounds(self):
-      self.this_ptr.resetDesignAndBounds()
+      self.ptr.resetDesignAndBounds()
 
    # Set parameters associated with the linesearch
    def setUseLineSearch(self, int truth):
-      self.this_ptr.setUseLineSearch(truth)
+      self.ptr.setUseLineSearch(truth)
       
    def setMaxLineSearchIters(self, int iters):
-      self.this_ptr.setMaxLineSearchIters(iters)
+      self.ptr.setMaxLineSearchIters(iters)
       
    def setBacktrackingLineSearch(self, int truth):
-      self.this_ptr.setBacktrackingLineSearch(truth)
+      self.ptr.setBacktrackingLineSearch(truth)
       
    def setArmijioParam(self, double c1):
-      self.this_ptr.setArmijioParam(c1)
+      self.ptr.setArmijioParam(c1)
       
    def setPenaltyDescentFraction(self, double frac):
-      self.this_ptr.setPenaltyDescentFraction(frac)
+      self.ptr.setPenaltyDescentFraction(frac)
       
    # Set parameters for the interal GMRES algorithm
    def setUseHvecProduct(self, int truth):
-      self.this_ptr.setUseHvecProduct(truth)
+      self.ptr.setUseHvecProduct(truth)
       
    def setUseQNGMRESPreCon(self, int truth):
-      self.this_ptr.setUseQNGMRESPreCon(truth)
+      self.ptr.setUseQNGMRESPreCon(truth)
       
    def setNKSwitchTolerance(self, double tol):
-      self.this_ptr.setNKSwitchTolerance(tol)
+      self.ptr.setNKSwitchTolerance(tol)
       
    def setEisenstatWalkerParameters(self, double gamma, double alpha):
-      self.this_ptr.setEisenstatWalkerParameters(gamma, alpha)
+      self.ptr.setEisenstatWalkerParameters(gamma, alpha)
       
    def setGMRESTolerances(self, double rtol, double atol):
-      self.this_ptr.setGMRESTolerances(rtol, atol)
+      self.ptr.setGMRESTolerances(rtol, atol)
       
    def setGMRESSubspaceSize(self, int _gmres_subspace_size):
-      self.this_ptr.setGMRESSubspaceSize(_gmres_subspace_size)
+      self.ptr.setGMRESSubspaceSize(_gmres_subspace_size)
       
    # Set other parameters
    def setOutputFrequency(self, int freq):
-      self.this_ptr.setOutputFrequency(freq)
+      self.ptr.setOutputFrequency(freq)
       
    def setMajorIterStepCheck(self, int step):
-      self.this_ptr.setMajorIterStepCheck(step)
+      self.ptr.setMajorIterStepCheck(step)
       
    def setOutputFile(self, char *filename):
       if filename is not None:
-         self.this_ptr.setOutputFile(filename)
+         self.ptr.setOutputFile(filename)
          
    def setGradientCheckFrequency(self, int freq, double step_size):
-       self.this_ptr.setGradientCheckFrequency(freq, step_size)
+       self.ptr.setGradientCheckFrequency(freq, step_size)
          
    # Write out the design variables to binary format (fast MPI/IO)
    def writeSolutionFile(self, char *filename):
       if filename is not None:
-         return self.this_ptr.writeSolutionFile(filename)
+         return self.ptr.writeSolutionFile(filename)
   
    def readSolutionFile(self, char *filename):
       if filename is not None:
-         return self.this_ptr.readSolutionFile(filename)
+         return self.ptr.readSolutionFile(filename)
       
