@@ -322,8 +322,7 @@ SR1 = PAROPT_SR1
 # Python class for corresponding instance ParOpt
 cdef class pyParOpt:
    cdef ParOpt *ptr
-   def __cinit__(self, pyParOptProblem _prob, 
-                 int max_qn_subspace, 
+   def __cinit__(self, pyParOptProblemBase _prob, int max_qn_subspace, 
                  QuasiNewtonType qn_type):
       self.ptr = new ParOpt(_prob.ptr, max_qn_subspace, qn_type)
       
