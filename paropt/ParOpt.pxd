@@ -11,6 +11,7 @@ include "ParOptTypedefs.pxi"
 
 cdef extern from "ParOptProblem.h":
    cdef cppclass ParOptProblem:
+      ParOptProblem()
       ParOptProblem(MPI_Comm)
       ParOptProblem(MPI_Comm, int, int, int, int)
 
