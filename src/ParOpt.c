@@ -255,10 +255,6 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
     Ac[i] = prob->createDesignVec();
   }
 
-  // Initialize the design variables and bounds
-  int init_multipliers = 1;
-  initAndCheckDesignAndBounds(init_multipliers);
-
   // Zero the number of evals
   neval = ngeval = nhvec = 0;
 
@@ -309,6 +305,10 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   gmres_res = NULL;
   gmres_Q = NULL;
   gmres_W = NULL;
+
+  // Initialize the design variables and bounds
+  int init_multipliers = 1;
+  initAndCheckDesignAndBounds(init_multipliers);
 }
 
 /*
@@ -3473,7 +3473,6 @@ void ParOpt::initAndCheckDesignAndBounds( int init_multipliers ){
           lbvals[i] = 0.5*(lbvals[i] + ubvals[i]) - 0.5*rel_bound;
           ubvals[i] = lbvals[i] + rel_bound;
         }
-
         delta = ubvals[i] - lbvals[i];
       }
 
