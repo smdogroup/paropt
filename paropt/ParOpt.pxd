@@ -72,8 +72,8 @@ cdef extern from "ParOptQuasiNewton.h":
 
 cdef extern from "ParOptVec.h":
    cppclass ParOptVec:
-      ParOptVec(MPI_Comm comm, int n)
-      
+      ParOptVec()
+      ParOptVec(MPI_Comm comm, int n)      
       # Retrieve the values from the array
       int getArray(ParOptScalar **array)
 
