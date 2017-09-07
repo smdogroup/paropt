@@ -350,29 +350,24 @@ cdef class pyParOpt:
       else:
          return self.ptr.optimize(&checkpoint[0])
 
-   def getOptimizedVec(self, PVec x,
-                       np.ndarray[ParOptScalar, ndim=1, mode='c'] z,
-                       PVec zw, PVec zl, PVec zu):
+   def getInitMultipliers(self,
+                          np.ndarray[ParOptScalar, ndim=1, mode='c'] z,
+                          PVec zw, PVec zl, PVec zu):
 
       '''
       Get the optimized solution in PVec form for interpolation purposes
       '''
-      cdef ParOptVec *px = NULL
-      cdef ParOptVec *_px = NULL
       cdef ParOptVec *pzw = NULL
       cdef ParOptVec *_pzw = NULL
-      cdef const ParOptScalar *pz = NULL
-      cdef const ParOptScalar *_pz = NULL
+      cdef ParOptScalar *pz = NULL
+      cdef ParOptScalar *_pz = NULL
       cdef ParOptVec *pzl = NULL
       cdef ParOptVec *_pzl = NULL
       cdef ParOptVec *pzu = NULL
       cdef ParOptVec *_pzu = NULL
 
-      self.ptr.getOptimizedPoint(&_px, &_pz, &_pzw, &_pzl, &_pzu);
+      self.ptr.getInitMultipliers(&_pz, &_pzw, &_pzl, &_pzu);
       
-      if x:
-         px.copyValues(_px)
-         x = _init_PVec(px)
       if zw:
          pzw.copyValues(_pzw)
          zw = _init_PVec(pzw)
