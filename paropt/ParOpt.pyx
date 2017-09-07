@@ -319,6 +319,20 @@ cdef class pyParOptProblem(pyParOptProblemBase):
 BFGS = PAROPT_BFGS
 SR1 = PAROPT_SR1
 
+cdef class PVec:
+   def __cinit__(self):
+      self.ptr = NULL
+      return
+   
+   def __dealloc__(self):
+      if self.ptr:
+         del self.ptr
+      return
+   
+   def copyValues(self, PVec vec):
+      self.ptr.copyValues(vec.ptr)
+      return
+
 # Python class for corresponding instance ParOpt
 cdef class pyParOpt:
    cdef ParOpt *ptr
@@ -335,6 +349,45 @@ cdef class pyParOpt:
          return self.ptr.optimize(NULL)
       else:
          return self.ptr.optimize(&checkpoint[0])
+
+   def getOptimizedVec(self, PVec x,
+                       np.ndarray[ParOptScalar, ndim=1, mode='c'] z,
+                       PVec zw, PVec zl, PVec zu):
+
+      '''
+      Get the optimized solution in PVec form for interpolation purposes
+      '''
+      cdef ParOptVec *px = NULL
+      cdef ParOptVec *_px = NULL
+      cdef ParOptVec *pzw = NULL
+      cdef ParOptVec *_pzw = NULL
+      cdef const ParOptScalar *pz = NULL
+      cdef const ParOptScalar *_pz = NULL
+      cdef ParOptVec *pzl = NULL
+      cdef ParOptVec *_pzl = NULL
+      cdef ParOptVec *pzu = NULL
+      cdef ParOptVec *_pzu = NULL
+
+      self.ptr.getOptimizedPoint(&_px, &_pz, &_pzw, &_pzl, &_pzu);
+      
+      if x:
+         px.copyValues(_px)
+         x = _init_PVec(px)
+      if zw:
+         pzw.copyValues(_pzw)
+         zw = _init_PVec(pzw)
+      if zl:
+         pzl.copyValues(_pzl)
+         zl = _init_PVec(pzl)
+      if zu:
+         pzu.copyValues(_pzu)
+         zu = _init_PVec(pzu)
+
+      if z:
+         n = len(z)
+         for i in xrange(n):
+            z[i] = pz[i]
+
    
    def getOptimizedPoint(self):
       '''Get the optimized solution from ParOpt'''

@@ -76,6 +76,15 @@ cdef extern from "ParOptVec.h":
       ParOptVec(MPI_Comm comm, int n)      
       # Retrieve the values from the array
       int getArray(ParOptScalar **array)
+      void copyValues(ParOptVec*)
+
+cdef class PVec:
+   cdef ParOptVec *ptr
+
+cdef inline _init_PVec(ParOptVec *ptr):
+   vec = PVec()
+   vec.ptr = ptr
+   return vec
 
 cdef extern from "ParOpt.h":
    # Set the quasi-Newton type to use
