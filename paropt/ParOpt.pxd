@@ -77,7 +77,7 @@ cdef extern from "ParOptVec.h":
       # Retrieve the values from the array
       int getArray(ParOptScalar **array)
       void copyValues(ParOptVec*)
-
+      ParOptScalar norm()
 cdef class PVec:
    cdef ParOptVec *ptr
 

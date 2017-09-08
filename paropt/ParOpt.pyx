@@ -330,6 +330,9 @@ cdef class PVec:
          self.ptr.copyValues(vec.ptr)
       return
 
+   def norm(self):
+      return self.ptr.norm()
+
 # Python class for corresponding instance ParOpt
 cdef class pyParOpt:
    cdef ParOpt *ptr
