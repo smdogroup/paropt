@@ -293,7 +293,8 @@ cdef class pyParOptProblem(pyParOptProblemBase):
       return
 
    def __dealloc__(self):
-      del self.ptr
+      if self.ptr:
+         del self.ptr
       return
 
    def setInequalityOptions(self, dense_ineq=True, sparse_ineq=True,
@@ -323,14 +324,10 @@ cdef class PVec:
    def __cinit__(self):
       self.ptr = NULL
       return
-   
-   def __dealloc__(self):
-      if self.ptr:
-         del self.ptr
-      return
-   
+    
    def copyValues(self, PVec vec):
-      self.ptr.copyValues(vec.ptr)
+      if self.ptr and vec.ptr:
+         self.ptr.copyValues(vec.ptr)
       return
 
 # Python class for corresponding instance ParOpt
@@ -341,7 +338,8 @@ cdef class pyParOpt:
       self.ptr = new ParOpt(_prob.ptr, max_qn_subspace, qn_type)
       
    def __dealloc__(self):
-      del self.ptr
+      if self.ptr:
+         del self.ptr
       
    # Perform the optimization
    def optimize(self, char *checkpoint=''):
@@ -351,43 +349,35 @@ cdef class pyParOpt:
          return self.ptr.optimize(&checkpoint[0])
       
    def getOptimizedVec(self, PVec x,
-                       np.ndarray[ParOptScalar, ndim=1, mode='c'] z,
                        PVec zw, PVec zl, PVec zu):
 
       '''
       Get the optimized solution in PVec form for interpolation purposes
       '''
-      cdef ParOptVec *px = NULL
-      cdef ParOptVec *_px = NULL
-      cdef ParOptVec *pzw = NULL
-      cdef ParOptVec *_pzw = NULL
-      cdef const ParOptScalar *pz = NULL
-      cdef const ParOptScalar *_pz = NULL
-      cdef ParOptVec *pzl = NULL
-      cdef ParOptVec *_pzl = NULL
-      cdef ParOptVec *pzu = NULL
-      cdef ParOptVec *_pzu = NULL
-
-      self.ptr.getOptimizedPoint(&_px, &_pz, &_pzw, &_pzl, &_pzu);
+      cdef ParOptVec *_x = NULL
+      cdef ParOptVec *_zw = NULL
+      cdef ParOptVec *_zu = NULL
+      cdef ParOptVec *_zl = NULL
+      cdef const ParOptScalar *_z = NULL
+      cdef int ncon = 0
+      self.ptr.getProblemSizes(NULL, &ncon, NULL, NULL)      
+      self.ptr.getOptimizedPoint(&_x, &_z, &_zw, &_zl, &_zu);
       
       if x:
-         px.copyValues(_px)
-         x = _init_PVec(px)
+         x = _init_PVec(_x)
       if zw:
-         pzw.copyValues(_pzw)
-         zw = _init_PVec(pzw)
+         zw = _init_PVec(_zw)
       if zl:
-         pzl.copyValues(_pzl)
-         zl = _init_PVec(pzl)
+         zl = _init_PVec(_zl)
       if zu:
-         pzu.copyValues(_pzu)
-         zu = _init_PVec(pzu)
+         zu = _init_PVec(_zu)
 
-      if z:
-         n = len(z)
-         for i in xrange(n):
-            z[i] = pz[i]
+      z = np.zeros(ncon)
+      for i in range(ncon):
+         z[i] = _z[i]
 
+      return z
+   
    def getInitMultipliers(self,
                           np.ndarray[ParOptScalar, ndim=1, mode='c'] z,
                           PVec zw, PVec zl, PVec zu):
@@ -395,32 +385,26 @@ cdef class pyParOpt:
       '''
       Get the optimized solution in PVec form for interpolation purposes
       '''
-      cdef ParOptVec *pzw = NULL
-      cdef ParOptVec *_pzw = NULL
-      cdef ParOptScalar *pz = NULL
-      cdef ParOptScalar *_pz = NULL
-      cdef ParOptVec *pzl = NULL
-      cdef ParOptVec *_pzl = NULL
-      cdef ParOptVec *pzu = NULL
-      cdef ParOptVec *_pzu = NULL
-
-      self.ptr.getInitMultipliers(&_pz, &_pzw, &_pzl, &_pzu);
+      cdef ParOptVec *_zw = NULL
+      cdef ParOptScalar *_z = NULL
+      cdef ParOptVec *_zl = NULL
+      cdef ParOptVec *_zu = NULL
+      cdef int ncon = 0
+      self.ptr.getProblemSizes(NULL, &ncon, NULL, NULL) 
+      self.ptr.getInitMultipliers(&_z, &_zw, &_zl, &_zu);
       
       if zw:
-         pzw.copyValues(_pzw)
-         zw = _init_PVec(pzw)
+         zw = _init_PVec(_zw)
       if zl:
-         pzl.copyValues(_pzl)
-         zl = _init_PVec(pzl)
+         zl = _init_PVec(_zl)
       if zu:
-         pzu.copyValues(_pzu)
-         zu = _init_PVec(pzu)
+         zu = _init_PVec(_zu)
 
-      if z:
-         n = len(z)
-         for i in xrange(n):
-            z[i] = pz[i]
+      z = np.zeros(ncon)
+      for i in range(ncon):
+         z[i] = _z[i]
 
+      return z
    
    def getOptimizedPoint(self):
       '''Get the optimized solution from ParOpt'''
