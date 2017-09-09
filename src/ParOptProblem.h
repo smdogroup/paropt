@@ -40,7 +40,7 @@
   nwcon:   the number of sparse constraints
   nwblock: the block size of the Aw*D*Aw^{T} matrix
 */
-class ParOptProblem {
+class ParOptProblem : public ParOptBase {
  public:
   ParOptProblem( MPI_Comm _comm ){ 
     comm = _comm; 

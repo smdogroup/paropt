@@ -168,51 +168,52 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   else {
     qn = new LSR1(prob, max_qn_subspace);
   }
+  qn->incref();
 
   // Set the default maximum variable bound
   max_bound_val = _max_bound_val;
 
   // Set the values of the variables/bounds
-  x = prob->createDesignVec();
-  lb = prob->createDesignVec();
-  ub = prob->createDesignVec();
+  x = prob->createDesignVec(); x->incref();
+  lb = prob->createDesignVec(); lb->incref();
+  ub = prob->createDesignVec(); ub->incref();
   
   // Allocate storage space for the variables etc.
-  zl = prob->createDesignVec();
-  zu = prob->createDesignVec();
+  zl = prob->createDesignVec(); zl->incref();
+  zu = prob->createDesignVec(); zu->incref();
 
   // Allocate space for the sparse constraints
-  zw = prob->createConstraintVec();
-  sw = prob->createConstraintVec();
+  zw = prob->createConstraintVec(); zw->incref();
+  sw = prob->createConstraintVec(); sw->incref();
 
   // Set the initial values of the Lagrange multipliers
   z = new ParOptScalar[ ncon ];
   s = new ParOptScalar[ ncon ];
 
   // Allocate space for the steps
-  px = prob->createDesignVec();
-  pzl = prob->createDesignVec();
-  pzu = prob->createDesignVec();
+  px = prob->createDesignVec(); px->incref();
+  pzl = prob->createDesignVec(); pzl->incref();
+  pzu = prob->createDesignVec(); pzu->incref();
   pz = new ParOptScalar[ ncon ];
   ps = new ParOptScalar[ ncon ];
-  pzw = prob->createConstraintVec();
-  psw = prob->createConstraintVec();
+  pzw = prob->createConstraintVec(); pzw->incref();
+  psw = prob->createConstraintVec(); psw->incref();
 
   // Allocate space for the residuals
-  rx = prob->createDesignVec();
-  rzl = prob->createDesignVec();
-  rzu = prob->createDesignVec();
+  rx = prob->createDesignVec(); rx->incref();
+  rzl = prob->createDesignVec(); rzl->incref();
+  rzu = prob->createDesignVec(); rzu->incref();
   rc = new ParOptScalar[ ncon ];
   rs = new ParOptScalar[ ncon ];
-  rcw = prob->createConstraintVec();
-  rsw = prob->createConstraintVec();
+  rcw = prob->createConstraintVec(); rcw->incref();
+  rsw = prob->createConstraintVec(); rsw->incref();
 
   // Allocate space for the Quasi-Newton updates
-  y_qn = prob->createDesignVec();
-  s_qn = prob->createDesignVec();
+  y_qn = prob->createDesignVec(); y_qn->incref();
+  s_qn = prob->createDesignVec(); s_qn->incref();
 
   // Allocate vectors for the weighting constraints
-  wtemp = prob->createConstraintVec();
+  wtemp = prob->createConstraintVec(); wtemp->incref();
 
   // Allocate space for the block-diagonal matrix
   Cw = new ParOptScalar[ nwcon*(nwblock+1)/2 ];
@@ -221,6 +222,7 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   Ew = new ParOptVec*[ ncon ];
   for ( int i = 0; i < ncon; i++ ){
     Ew[i] = prob->createConstraintVec();
+    Ew[i]->incref();
   }
 
   // Allocate storage for bfgs/constraint sized things
@@ -240,6 +242,7 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
 
   // Allocate space for the diagonal matrix components
   Cvec = prob->createDesignVec();
+  Cvec->incref();
 
   // Set the value of the objective
   fobj = 0.0;
@@ -253,6 +256,7 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   Ac = new ParOptVec*[ ncon ];
   for ( int i = 0; i < ncon; i++ ){
     Ac[i] = prob->createDesignVec();
+    Ac[i]->incref();
   }
 
   // Zero the number of evals
@@ -315,50 +319,50 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   Free the data allocated during the creation of the object
 */
 ParOpt::~ParOpt(){
-  delete qn;
+  qn->decref();
 
   // Delete the variables and bounds
-  delete x;
-  delete lb;
-  delete ub;
-  delete zl;
-  delete zu;
+  x->decref();
+  lb->decref();
+  ub->decref();
+  zl->decref();
+  zu->decref();
   delete [] z;
   delete [] s;
-  delete zw;
-  delete sw;
+  zw->decref();
+  sw->decref();
 
   // Delete the steps
-  delete px;
-  delete pzl;
-  delete pzu;
+  px->decref();
+  pzl->decref();
+  pzu->decref();
   delete [] pz;
   delete [] ps;
-  delete pzw;
-  delete psw;
+  pzw->decref();
+  psw->decref();
 
   // Delete the residuals
-  delete rx;
-  delete rzl;
-  delete rzu;
+  rx->decref();
+  rzl->decref();
+  rzu->decref();
   delete [] rc;
   delete [] rs;
-  delete rcw;
-  delete rsw;
+  rcw->decref();
+  rsw->decref();
 
   // Delete the quasi-Newton updates
-  delete y_qn;
-  delete s_qn;
+  y_qn->decref();
+  s_qn->decref();
 
   // Delete the temp data
-  delete wtemp;
+  wtemp->decref();
   delete [] ztemp;
  
   // Delete the matrix
   delete [] Cw;
   
   for ( int i = 0; i < ncon; i++ ){
-    delete Ew[i];
+    Ew[i]->decref();
   }
   delete [] Ew;
 
@@ -369,7 +373,7 @@ ParOpt::~ParOpt(){
   delete [] cpiv;
 
   // Delete the diagonal matrix
-  delete Cvec;
+  Cvec->decref();
 
   // Free the variable ranges
   delete [] var_range;
@@ -377,9 +381,9 @@ ParOpt::~ParOpt(){
 
   // Delete the constraint/gradient information
   delete [] c;
-  delete g;
+  g->decref();
   for ( int i = 0; i < ncon; i++ ){
-    delete Ac[i];
+    Ac[i]->decref();
   }
   delete [] Ac;
 
@@ -392,7 +396,7 @@ ParOpt::~ParOpt(){
 
     // Delete the subspace
     for ( int i = 0; i < gmres_subspace_size; i++ ){
-      delete gmres_W[i];
+      gmres_W[i]->decref();
     }
     delete [] gmres_W;
   }
@@ -1031,7 +1035,7 @@ void ParOpt::setGMRESSubspaceSize( int m ){
     delete [] gmres_Q;
 
     for ( int i = 0; i < m; i++ ){
-      delete gmres_W[i];
+      gmres_W[i]->decref();;
     }
     delete [] gmres_W;
   }
@@ -1047,6 +1051,7 @@ void ParOpt::setGMRESSubspaceSize( int m ){
     gmres_W = new ParOptVec*[ m+1 ];
     for ( int i = 0; i < m+1; i++ ){
       gmres_W[i] = prob->createDesignVec();
+      gmres_W[i]->incref();
     }
   }
   else {
@@ -4917,6 +4922,7 @@ void ParOpt::checkGradients( double dh ){
 
     // Evaluate the Hessian-vector product
     hvec = prob->createDesignVec();
+    hvec->incref();
     prob->evalHvecProduct(x, ztemp, pzw, px, hvec);
   
     // Check that multiple calls to the Hvec code
@@ -4981,9 +4987,11 @@ void ParOpt::checkGradients( double dh ){
   if (use_hvec_product){
     // Evaluate the objective/constraints
     ParOptVec *g2 = prob->createDesignVec();
+    g2->incref();
     ParOptVec **Ac2 = new ParOptVec*[ ncon ];
     for ( int i = 0; i < ncon; i++ ){
       Ac2[i] = prob->createDesignVec();
+      Ac2[i]->incref();
     }
     
     // Evaluate the gradient at the perturbed point and add the
@@ -5026,10 +5034,10 @@ void ParOpt::checkGradients( double dh ){
     }
 
     // Clean up the allocated data
-    delete hvec;
-    delete g2;
+    hvec->decref();
+    g2->decref();
     for ( int i = 0; i < ncon; i++ ){
-      delete Ac2[i];
+      Ac2[i]->decref();
     }
     delete [] Ac2;
 

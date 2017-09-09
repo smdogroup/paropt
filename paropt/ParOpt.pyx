@@ -94,8 +94,6 @@ def unpack_checkpoint(str filename):
 
    return barrier, s, z, x, zl, zu
 
-
-
 # This wraps a C++ array with a numpy array for later useage
 cdef inplace_array_1d(int nptype, int dim1, void *data_ptr):
    '''Return a numpy version of the array'''
@@ -290,11 +288,12 @@ cdef class pyParOptProblem(pyParOptProblemBase):
       self.me.setAddSparseJacobianTranspose(_addsparsejacobiantranspose)
       self.me.setAddSparseInnerProduct(_addsparseinnerproduct)
       self.ptr = self.me
+      self.ptr.incref()
       return
 
    def __dealloc__(self):
       if self.ptr:
-         del self.ptr
+         self.ptr.decref()
       return
 
    def setInequalityOptions(self, dense_ineq=True, sparse_ineq=True,
@@ -324,6 +323,10 @@ cdef class PVec:
    def __cinit__(self):
       self.ptr = NULL
       return
+
+   def __dealloc__(self):
+      if self.ptr:
+         self.ptr.decref()
     
    def copyValues(self, PVec vec):
       if self.ptr and vec.ptr:
@@ -339,10 +342,12 @@ cdef class pyParOpt:
    def __cinit__(self, pyParOptProblemBase _prob, int max_qn_subspace, 
                  QuasiNewtonType qn_type):
       self.ptr = new ParOpt(_prob.ptr, max_qn_subspace, qn_type)
+      self.ptr.incref()
+      return
       
    def __dealloc__(self):
       if self.ptr:
-         del self.ptr
+         self.ptr.decref()
       
    # Perform the optimization
    def optimize(self, char *checkpoint=''):
@@ -351,22 +356,35 @@ cdef class pyParOpt:
       else:
          return self.ptr.optimize(&checkpoint[0])
       
-   def getOptimizedVec(self, PVec x,
-                       PVec zw, PVec zl, PVec zu):
-
+   def getOptimizedVec(self):
       '''
       Get the optimized solution in PVec form for interpolation purposes
       '''
+      cdef int ncon = 0
+      cdef const ParOptScalar *_z = NULL
       cdef ParOptVec *_x = NULL
       cdef ParOptVec *_zw = NULL
-      cdef ParOptVec *_zu = NULL
       cdef ParOptVec *_zl = NULL
-      cdef const ParOptScalar *_z = NULL
-      cdef int ncon = 0
+      cdef ParOptVec *_zu = NULL
+      cdef int self_owned = 0
+
+      # Get the problem size/vector for the values
       self.ptr.getProblemSizes(NULL, &ncon, NULL, NULL)      
       self.ptr.getOptimizedPoint(&_x, &_z, &_zw, &_zl, &_zu);
       
-      if x:
+      # Set the default values
+      x = None
+      zw = None
+      zl = None
+      zu = None
+
+      # Convert the multipliers to in-place numpy arrays
+      z = inplace_array_1d(PAROPT_NPY_SCALAR, ncon, <void*>_z)
+
+      # Note that these vectors are owned by the ParOpt class, we're simply
+      # passing references to them back to the python layer. The caveat 
+
+      if _x :
          x = _init_PVec(_x)
       if zw:
          zw = _init_PVec(_zw)
@@ -375,11 +393,7 @@ cdef class pyParOpt:
       if zu:
          zu = _init_PVec(_zu)
 
-      z = np.zeros(ncon)
-      for i in range(ncon):
-         z[i] = _z[i]
-
-      return z
+      return x, z, zw, zl, zu
    
    def getInitMultipliers(self,
                           np.ndarray[ParOptScalar, ndim=1, mode='c'] z,

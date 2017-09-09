@@ -110,7 +110,7 @@
   J*J_{B}^{-1}, takes a special form where only entries associated
   with the design vector need to be stored.
 */
-class ParOpt {
+class ParOpt : public ParOptBase {
  public:
   enum QuasiNewtonType { BFGS, SR1 };
 

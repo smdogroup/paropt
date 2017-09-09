@@ -9,8 +9,30 @@ cimport numpy as np
 # Typdefs required for either real or complex mode
 include "ParOptTypedefs.pxi"
 
+cdef extern from "ParOptVec.h":
+   cppclass ParOptBase:
+      void incref()
+      void decref()
+
+   cppclass ParOptVec(ParOptBase):
+      ParOptVec()
+      ParOptVec(MPI_Comm comm, int n)      
+      # Retrieve the values from the array
+      int getArray(ParOptScalar **array)
+      void copyValues(ParOptVec*)
+      ParOptScalar norm()
+
+cdef class PVec:
+   cdef ParOptVec *ptr
+
+cdef inline _init_PVec(ParOptVec *ptr):
+   vec = PVec()
+   vec.ptr = ptr
+   vec.ptr.incref()
+   return vec
+
 cdef extern from "ParOptProblem.h":
-   cdef cppclass ParOptProblem:
+   cdef cppclass ParOptProblem(ParOptBase):
       ParOptProblem()
       ParOptProblem(MPI_Comm)
       ParOptProblem(MPI_Comm, int, int, int, int)
@@ -70,29 +92,13 @@ cdef extern from "ParOptQuasiNewton.h":
       SKIP_NEGATIVE_CURVATURE"LBFGS::SKIP_NEGATIVE_CURVATURE"
       DAMPED_UPDATE"LBFGS::DAMPED_UPDATE"
 
-cdef extern from "ParOptVec.h":
-   cppclass ParOptVec:
-      ParOptVec()
-      ParOptVec(MPI_Comm comm, int n)      
-      # Retrieve the values from the array
-      int getArray(ParOptScalar **array)
-      void copyValues(ParOptVec*)
-      ParOptScalar norm()
-cdef class PVec:
-   cdef ParOptVec *ptr
-
-cdef inline _init_PVec(ParOptVec *ptr):
-   vec = PVec()
-   vec.ptr = ptr
-   return vec
-
 cdef extern from "ParOpt.h":
    # Set the quasi-Newton type to use
    enum QuasiNewtonType"ParOpt::QuasiNewtonType": 
       PAROPT_BFGS"ParOpt::BFGS"
       PAROPT_SR1"ParOpt::SR1"
 
-   cppclass ParOpt:
+   cppclass ParOpt(ParOptBase):
       ParOpt(ParOptProblem *_prob, int _max_lbfgs_subspace, 
              QuasiNewtonType qn_type) except +
 

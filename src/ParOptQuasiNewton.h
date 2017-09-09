@@ -15,7 +15,7 @@
   This class can be used to implement both limited-memory BFGS and SR1
   update schemes for quasi-Newton optimization methods.
 */
-class CompactQuasiNewton {
+class CompactQuasiNewton : public ParOptBase {
  public:
   CompactQuasiNewton(){}
   virtual ~CompactQuasiNewton(){}

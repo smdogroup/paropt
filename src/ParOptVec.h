@@ -26,10 +26,36 @@ typedef double ParOptScalar;
 #endif // PAROPT_USE_COMPLEX
 
 /*
+  ParOpt base class for reference counting
+*/
+class ParOptBase {
+ public:
+  ParOptBase(){
+    ref_count = 0;
+  }
+  virtual ~ParOptBase(){}
+
+  // Incref/decref the reference count
+  // ---------------------------------
+  void incref(){
+    ref_count++;
+  }
+  void decref(){
+    ref_count--;
+    if (ref_count == 0){
+      delete this;
+    }
+  }
+
+ private:
+  int ref_count;
+};
+
+/*
   This vector class defines the basic linear algebra operations and
   member functions required for design optimization.
 */
-class ParOptVec {
+class ParOptVec : public ParOptBase {
  public:
   virtual ~ParOptVec(){}
 

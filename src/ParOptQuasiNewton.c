@@ -19,7 +19,7 @@
   msub_max:  the maximum subspace size
 */
 LBFGS::LBFGS( ParOptProblem *prob,
-	      int _msub_max ){
+              int _msub_max ){
   msub_max = _msub_max;
   msub = 0;
 
@@ -35,11 +35,14 @@ LBFGS::LBFGS( ParOptProblem *prob,
 
   for ( int i = 0; i < msub_max; i++ ){
     S[i] = prob->createDesignVec();
+    S[i]->incref();
     Y[i] = prob->createDesignVec();
+    Y[i]->incref();
   }
 
   // A temporary vector for the damped update
   r = prob->createDesignVec();
+  r->incref();
 
   // The full M-matrix
   M = new ParOptScalar[ 4*msub_max*msub_max ];
@@ -78,14 +81,14 @@ LBFGS::LBFGS( ParOptProblem *prob,
 LBFGS::~LBFGS(){
   // Delete the vectors
   for ( int i = 0; i < msub_max; i++ ){
-    delete Y[i];
-    delete S[i];
+    Y[i]->decref();
+    S[i]->decref();
   }
+  r->decref();
 
   delete [] S;
   delete [] Y;
   delete [] Z;
-  delete r;
 
   // Delete the matrices/data
   delete [] M;
@@ -243,13 +246,13 @@ int LBFGS::update( ParOptVec *s, ParOptVec *y ){
 
     for ( int i = 0; i < msub-1; i++ ){
       for ( int j = 0; j < msub-1; j++ ){
-	B[i + j*msub_max] = B[i+1 + (j+1)*msub_max];
+        B[i + j*msub_max] = B[i+1 + (j+1)*msub_max];
       }
     }
 
     for ( int i = 0; i < msub-1; i++ ){
       for ( int j = 0; j < i; j++ ){
-	L[i + j*msub_max] = L[i+1 + (j+1)*msub_max];
+        L[i + j*msub_max] = L[i+1 + (j+1)*msub_max];
       }
     }
   }
@@ -339,8 +342,8 @@ void LBFGS::mult( ParOptVec *x, ParOptVec *y ){
     // Solve rz = M^{-1}*rz
     int n = 2*msub, one = 1, info = 0;
     LAPACKdgetrs("N", &n, &one, 
-		 M_factor, &n, mfpiv, 
-		 rz, &n, &info);
+                 M_factor, &n, mfpiv, 
+                 rz, &n, &info);
     
     // Compute rz *= d0
     for ( int i = 0; i < 2*msub; i++ ){
@@ -378,8 +381,8 @@ void LBFGS::multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ){
     // Solve rz = M^{-1}*rz
     int n = 2*msub, one = 1, info = 0;
     LAPACKdgetrs("N", &n, &one, 
-		 M_factor, &n, mfpiv, 
-		 rz, &n, &info);
+                 M_factor, &n, mfpiv, 
+                 rz, &n, &info);
     
     // Compute rz *= d0
     for ( int i = 0; i < 2*msub; i++ ){
@@ -398,9 +401,9 @@ void LBFGS::multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ){
   representation
 */
 int LBFGS::getCompactMat( ParOptScalar *_b0,
-			  const ParOptScalar **_d,
-			  const ParOptScalar **_M,
-			  ParOptVec ***_Z ){
+                          const ParOptScalar **_d,
+                          const ParOptScalar **_M,
+                          ParOptVec ***_Z ){
   if (_b0){ *_b0 = b0; }
   if (_d){ *_d = d0; }
   if (_M){ *_M = M; }
@@ -433,12 +436,16 @@ LSR1::LSR1( ParOptProblem *prob, int _msub_max ){
 
   for ( int i = 0; i < msub_max; i++ ){
     S[i] = prob->createDesignVec();
+    S[i]->incref();
     Y[i] = prob->createDesignVec();
+    Y[i]->incref();
     Z[i] = prob->createDesignVec();
+    Z[i]->incref();
   }
 
   // A temporary vector for the damped update
   r = prob->createDesignVec();
+  r->incref();
 
   // The full M-matrix
   M = new ParOptScalar[ msub_max*msub_max ];
@@ -477,15 +484,15 @@ LSR1::LSR1( ParOptProblem *prob, int _msub_max ){
 LSR1::~LSR1(){
   // Delete the vectors
   for ( int i = 0; i < msub_max; i++ ){
-    delete Y[i];
-    delete S[i];
-    delete Z[i];
+    Y[i]->decref();
+    S[i]->decref();
+    Z[i]->decref();
   }
+  r->decref();
 
   delete [] S;
   delete [] Y;
   delete [] Z;
-  delete r;
 
   // Delete the matrices/data
   delete [] M;
@@ -581,13 +588,13 @@ int LSR1::update( ParOptVec *s, ParOptVec *y ){
 
     for ( int i = 0; i < msub-1; i++ ){
       for ( int j = 0; j < msub-1; j++ ){
-	B[i + j*msub_max] = B[i+1 + (j+1)*msub_max];
+        B[i + j*msub_max] = B[i+1 + (j+1)*msub_max];
       }
     }
 
     for ( int i = 0; i < msub-1; i++ ){
       for ( int j = 0; j < i; j++ ){
-	L[i + j*msub_max] = L[i+1 + (j+1)*msub_max];
+        L[i + j*msub_max] = L[i+1 + (j+1)*msub_max];
       }
     }
   }
@@ -667,8 +674,8 @@ void LSR1::mult( ParOptVec *x, ParOptVec *y ){
     // Solve rz = M^{-1}*rz
     int n = msub, one = 1, info = 0;
     LAPACKdgetrs("N", &n, &one, 
-		 M_factor, &n, mfpiv, 
-		 rz, &n, &info);
+                 M_factor, &n, mfpiv, 
+                 rz, &n, &info);
     
     // Now compute: y <- Z*rz
     for ( int i = 0; i < msub; i++ ){
@@ -696,8 +703,8 @@ void LSR1::multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ){
     // Solve rz = M^{-1}*rz
     int n = msub, one = 1, info = 0;
     LAPACKdgetrs("N", &n, &one, 
-		 M_factor, &n, mfpiv, 
-		 rz, &n, &info);
+                 M_factor, &n, mfpiv, 
+                 rz, &n, &info);
     
     // Now compute: y <- Z*rz
     for ( int i = 0; i < msub; i++ ){
@@ -711,9 +718,9 @@ void LSR1::multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ){
   representation
 */
 int LSR1::getCompactMat( ParOptScalar *_b0,
-			 const ParOptScalar **_d,
-			 const ParOptScalar **_M,
-			 ParOptVec ***_Z ){
+                         const ParOptScalar **_d,
+                         const ParOptScalar **_M,
+                         ParOptVec ***_Z ){
   if (_b0){ *_b0 = b0; }
   if (_d){ *_d = d0; }
   if (_M){ *_M = M; }
