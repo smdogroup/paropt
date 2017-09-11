@@ -253,6 +253,8 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   
   // Set the objective and constraint gradients 
   g = prob->createDesignVec();
+  g->incref();
+
   Ac = new ParOptVec*[ ncon ];
   for ( int i = 0; i < ncon; i++ ){
     Ac[i] = prob->createDesignVec();
