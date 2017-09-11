@@ -15,7 +15,7 @@ class Problem1(ParOpt.pyParOptProblem):
         '''Get the variable values and bounds'''
         lb[:] = -2.0
         ub[:] = 2.0
-        x[:] = -2.0 + 4.0*np.random.uniform(size=x.shape)
+        x[:] = -2.0 + 4.0*np.random.uniform(size=len(x))
         return
 
     def evalObjCon(self, x):
@@ -34,8 +34,8 @@ class Problem1(ParOpt.pyParOptProblem):
         fail = 0
         g[0] = 4*x[0] + x[1]
         g[1] = 4*x[1] + x[0]
-        A[0,0] = 1.0
-        A[0,1] = 1.0
+        A[0][0] = 1.0
+        A[0][1] = 1.0
         return fail
 
 class Problem2(ParOpt.pyParOptProblem):
@@ -48,7 +48,7 @@ class Problem2(ParOpt.pyParOptProblem):
         '''Get the variable values and bounds'''
         lb[:] = -2.0
         ub[:] = 2.0
-        x[:] = -2.0 + 4.0*np.random.uniform(size=x.shape)
+        x[:] = -2.0 + 4.0*np.random.uniform(size=len(x))
         return
 
     def evalObjCon(self, x):
@@ -67,8 +67,8 @@ class Problem2(ParOpt.pyParOptProblem):
         fail = 0
         g[0] = 4*x[0]**3 + 2*x[1] - 1.0 
         g[1] = 2*x[1] + 2*x[0] - 1.0
-        A[0,0] = 1.0
-        A[0,1] = 1.0
+        A[0][0] = 1.0
+        A[0][1] = 1.0
         return fail
 
 class Problem3(ParOpt.pyParOptProblem):
@@ -81,7 +81,7 @@ class Problem3(ParOpt.pyParOptProblem):
         '''Get the variable values and bounds'''
         lb[:] = -2.0
         ub[:] = 2.0
-        x[:] = -2.0 + 4.0*np.random.uniform(size=x.shape)
+        x[:] = -2.0 + 4.0*np.random.uniform(size=len(x))
         return
 
     def evalObjCon(self, x):
@@ -100,8 +100,8 @@ class Problem3(ParOpt.pyParOptProblem):
         fail = 0
         g[0] = 4*x[0]**3 - 2*x[0]
         g[1] = 4*x[1]**3 - 2*x[1]
-        A[0,0] = 1.0
-        A[0,1] = 1.0
+        A[0][0] = 1.0
+        A[0][1] = 1.0
         return fail
 
 class Problem4(ParOpt.pyParOptProblem):
@@ -114,7 +114,7 @@ class Problem4(ParOpt.pyParOptProblem):
         '''Get the variable values and bounds'''
         lb[:] = -2.0
         ub[:] = 2.0
-        x[:] = -2.0 + 4.0*np.random.uniform(size=x.shape)
+        x[:] = -2.0 + 4.0*np.random.uniform(size=len(x))
         return
 
     def evalObjCon(self, x):
@@ -133,8 +133,8 @@ class Problem4(ParOpt.pyParOptProblem):
         fail = 0
         g[0] = -20*x[0] + 4*np.cos(x[0]*x[1])*x[1] - 2.0 + 4*x[0]**3
         g[1] =  20*x[1] + 4*np.cos(x[0]*x[1])*x[0]
-        A[0,0] = 1.0
-        A[0,1] = 1.0
+        A[0][0] = 1.0
+        A[0][1] = 1.0
         return fail
 
 def plot_it_all(problem):

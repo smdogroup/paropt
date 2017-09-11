@@ -36,6 +36,8 @@ cdef extern from "ParOptProblem.h":
       ParOptProblem()
       ParOptProblem(MPI_Comm)
       ParOptProblem(MPI_Comm, int, int, int, int)
+      ParOptVec *createDesignVec()
+      ParOptVec *createConstraintVec()
 
 cdef extern from "CyParOptProblem.h":
    # Define the callback types

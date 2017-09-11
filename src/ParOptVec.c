@@ -145,6 +145,8 @@ void ParOptBasicVec::axpy( ParOptScalar alpha, ParOptVec *pvec ){
   Retrieve the locally stored values from the array
 */
 int ParOptBasicVec::getArray( ParOptScalar **array ){
-  *array = x;
+  if (array){
+    *array = x;
+  }
   return size;
 }

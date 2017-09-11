@@ -211,6 +211,20 @@ cdef void _addsparseinnerproduct(void *_self, int nvars,
    (<object>_self).addSparseInnerProduct(alpha, x, c, A)
    return
 
+cdef class pyParOptProblemBase:
+   def __cinit__(self):
+      self.ptr = NULL
+
+   def createDesignVec(self):
+      cdef ParOptVec *vec = NULL
+      vec = self.ptr.createDesignVec()
+      return _init_PVec(vec)
+
+   def createConstraintVec(self):
+      cdef ParOptVec *vec = NULL
+      vec = self.ptr.createConstraintVec()
+      return _init_PVec(vec)
+
 # "Wrap" the abtract base class ParOptProblem 
 cdef class pyParOptProblem(pyParOptProblemBase):
    cdef CyParOptProblem *me
@@ -286,7 +300,7 @@ cdef class PVec:
             raise IndexError(errmsg)
          return array[k]
       elif isinstance(k, slice):
-         start, stop, step = slice.indices(size)
+         start, stop, step = k.indices(size)
          arr = np.zeros((stop - start)/step, dtype=dtype)
          for i in range(start, stop, step):
             if i < 0:
@@ -310,16 +324,25 @@ cdef class PVec:
             raise IndexError(errmsg)
          array[k] = values
       elif isinstance(k, slice):
-         start, stop, step = slice.indices(size)
-         index = 0
-         for i in range(start, stop, step):
-            if i < 0:
-               i = size+i
-            if i >= 0 and i < size:
-               array[i] = values[index]
-            else:
-               raise IndexError('Index %d out of range [0,%d)'%(i, size))
-            index += 1
+         start, stop, step = k.indices(size)
+         if hasattr(values, '__len__'):
+            index = 0
+            for i in range(start, stop, step):
+               if i < 0:
+                  i = size+i
+               if i >= 0 and i < size:
+                  array[i] = values[index]
+               else:
+                  raise IndexError('Index %d out of range [0,%d)'%(i, size))
+               index += 1
+         else:
+            for i in range(start, stop, step):
+               if i < 0:
+                  i = size+i
+               if i >= 0 and i < size:
+                  array[i] = values
+               else:
+                  raise IndexError('Index %d out of range [0,%d)'%(i, size))
       else:
          errmsg = 'Index must be of type int or slice'
          raise ValueError(errmsg)
