@@ -104,7 +104,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         self.fevals += 1
 
         # Convert the design variables with the scaling
-        A = self.Area_scale*x
+        A = self.Area_scale*x[:]
 
         # Evaluate compliance objective
         self.assembleMat(A, self.K)
@@ -167,10 +167,10 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Zero the objecive and constraint gradients
         gobj[:] = 0.0
-        Acon[:] = 0.0
+        Acon[0][:] = 0.0
 
         # Retrieve the area variables
-        A = self.Area_scale*x
+        A = self.Area_scale*x[:]
         
         # Add up the contribution to the gradient
         index = 0
@@ -187,7 +187,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             S = yd/Le
             
             # Add the contribution to the gradient of the mass
-            Acon[0, index] += self.rho*Le
+            Acon[0][index] += self.rho*Le
 
             # Compute the element stiffness matrix
             Ke = (self.E/Le)*np.array(
@@ -200,18 +200,18 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             elem_vars = [2*n1, 2*n1+1, 2*n2, 2*n2+1]
             
             # Add the product to the derivative of the compliance
+            v = 0.0
             for i in xrange(4):
                 for j in xrange(4):
-                    gobj[index] -= \
-                        self.u[elem_vars[i]]*self.u[elem_vars[j]]*Ke[i, j]
-            
+                    v += self.u[elem_vars[i]]*self.u[elem_vars[j]]*Ke[i, j]
+            gobj[index] = gobj[index] - v
             index += 1
 
         # Create the array of constraints >= 0.0
-        Acon[0, :] *= -self.Area_scale/self.mass_scale
+        Acon[0] *= -(self.Area_scale/self.mass_scale)
 
         # Scale the objective gradient
-        gobj *= self.Area_scale/self.obj_scale
+        gobj *= (self.Area_scale/self.obj_scale)
 
         fail = 0
         return fail
@@ -229,10 +229,10 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         hvec[:] = 0.0
 
         # Retrieve the area variables
-        A = self.Area_scale*x
+        A = self.Area_scale*x[:]
 
         # Assemble the stiffness matrix along the px direction
-        self.assembleMat(self.Area_scale*px, self.Kp)
+        self.assembleMat(self.Area_scale*px[:], self.Kp)
         np.dot(self.Kp, self.u, out=self.phi)
         self.applyBCs(self.Kp, self.phi)
 
@@ -274,7 +274,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             
             index += 1
 
-        hvec *= self.Area_scale/self.obj_scale
+        hvec *= (self.Area_scale/self.obj_scale)
 
         fail = 0
         return fail
@@ -425,7 +425,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         '''
 
         # Scale the values of the design variables
-        A = self.Area_scale*x
+        A = self.Area_scale*x[:]
 
         # Find out if the tolerance is set
         if tol is None:

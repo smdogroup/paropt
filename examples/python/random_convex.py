@@ -50,7 +50,7 @@ class ConvexProblem(ParOpt.pyParOptProblem):
         con = np.zeros(1)
 
         # Compute the artificial stiffness matrix
-        self.K = self.Affine + np.dot(self.Q, np.dot(np.diag(x**3), self.Q.T))
+        self.K = self.Affine + np.dot(self.Q, np.dot(np.diag(x), self.Q.T))
 
         # Compute the displacements
         self.u = np.linalg.solve(self.K, self.b)
@@ -71,10 +71,10 @@ class ConvexProblem(ParOpt.pyParOptProblem):
         fail = 0
         
         # The objective gradient
-        g[:] = -3.0*x**2*np.dot(self.Q.T, self.u)**2
+        g[:] = -np.dot(self.Q.T, self.u)**2
         
         # The constraint gradient
-        A[0,:] = -self.Acon[:]
+        A[0][:] = -self.Acon[:]
 
         return fail
 
@@ -135,7 +135,8 @@ def solve_problem(eigs, filename=None, data_type='orthogonal'):
     opt.setBarrierFraction(0.1)
     opt.optimize()
 
-    x = opt.getOptimizedPoint()
+    # Get the optimized point
+    x, z, zw, zl, zu = opt.getOptimizedPoint()
 
     return x
 
@@ -151,6 +152,4 @@ print 'n = ', n
 
 # Solve the problem
 x = solve_problem(n, filename=None) #'opt_convex.out')
-
-print 'Discrete infeasibility: ', np.sqrt(np.dot(x*(1.0 - x), x*(1.0 - x)))
 

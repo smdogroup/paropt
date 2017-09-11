@@ -63,12 +63,12 @@ class PlateOpt(ParOpt.pyParOptProblem):
         fail = 0
         
         # Append the point to the solution history
-        self.x_hist.append(np.array(x))
+        self.x_hist.append(np.array(x[:]))
 
         # Call the solver
         try:
             self.currentX = x
-            self.physics.getFuncGrad(self.nvars, x, self.funcVals,
+            self.physics.getFuncGrad(self.nvars, x[:], self.funcVals,
                                      self.gradVals)            
         except:
             traceback.print_exc(file=sys.stdout)
@@ -95,7 +95,7 @@ class PlateOpt(ParOpt.pyParOptProblem):
             try:
                 print "Info: evaluating gradients at new x:", x
                 self.currentX = x
-                self.physics.getFuncGrad(self.nvars, x, self.funcVals,
+                self.physics.getFuncGrad(self.nvars, x[:], self.funcVals,
                                          self.gradVals)            
             except:
                 traceback.print_exc(file=sys.stdout)
@@ -106,7 +106,7 @@ class PlateOpt(ParOpt.pyParOptProblem):
 
         # Set the constraint gradient
         for c in xrange(self.ncon):
-            A[c,:] = self.gradVals[(c+1)*(self.nvars):(c+2)*(self.nvars)]
+            A[c][:] = self.gradVals[(c+1)*(self.nvars):(c+2)*(self.nvars)]
         
         return fail
 
@@ -187,16 +187,13 @@ opt.resetQuasiNewtonHessian()
 opt.setInitBarrierParameter(0.1)
 opt.setUseLineSearch(1)
 opt.setMaxMajorIterations(100)
-opt.setGradientCheckFrequency(10, 1.0e-8)
 opt.optimize()
 
 # Get the final design point
-xopt = opt.getOptimizedPoint()
+x, z, zw, zu, zl = opt.getOptimizedPoint()
 
 # Print the design variables
-i = 0 
-for x in xopt:
-    print "x[%2d]"%i, "%5.2e" % x
-    i += 1
+for i in range(len(x)):
+    print 'x[%2d] %10.5e'%(i, x[i])
 
 # Do any post processing and plot making

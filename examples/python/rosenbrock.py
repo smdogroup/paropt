@@ -50,8 +50,8 @@ class Rosenbrock(ParOpt.pyParOptProblem):
         g[1] = 200*(x[1]-x[0]**2)
 
         # The constraint gradient
-        A[0,0] = 1.0
-        A[0,1] = 1.0
+        A[0][0] = 1.0
+        A[0][1] = 1.0
         return fail
 
 def plot_it_all(problem):

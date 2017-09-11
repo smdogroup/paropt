@@ -95,7 +95,8 @@ def unpack_checkpoint(str filename):
    return barrier, s, z, x, zl, zu
 
 # This wraps a C++ array with a numpy array for later useage
-cdef inplace_array_1d(int nptype, int dim1, void *data_ptr, base=None):
+cdef inplace_array_1d(int nptype, int dim1, void *data_ptr, 
+                      object base=None):
    '''Return a numpy version of the array'''
    # Set the shape of the array
    cdef int size = 1
@@ -112,7 +113,7 @@ cdef inplace_array_1d(int nptype, int dim1, void *data_ptr, base=None):
 
    if base is not None:
       Py_INCREF(base)
-      np.PyArray_SetBaseObject(ndarray, base)
+      ndarray.base = <PyObject*>base
 
    return ndarray
 
@@ -290,6 +291,142 @@ cdef class PVec:
       size = self.ptr.getArray(NULL)
       return size
 
+   def __add__(self, b):
+      return self[:] + b
+
+   def __sub__(self, b):
+      return self[:] - b
+
+   def __mul__(self, b):
+      return self[:]*b
+
+   def __div__(self, b):
+      return self[:]/b
+
+   def __iadd__(self, b):
+      cdef int size = 0
+      cdef int bsize = 0
+      cdef ParOptScalar *array = NULL
+      cdef ParOptScalar *barray = NULL
+      cdef ParOptScalar value = 0.0
+      cdef ParOptVec *bptr = NULL
+      size = self.ptr.getArray(&array)
+      if isinstance(b, PVec):
+         bptr = (<PVec>b).ptr
+         bsize = bptr.getArray(&barray)
+         if bsize == size:
+            for i in range(size):
+               array[i] += barray[i]
+         else:
+            errmsg = 'PVecs must be the same size'
+            raise ValueError(errmsg)
+      elif hasattr(b, '__len__'):
+         bsize = len(b)
+         if bsize == size:
+            for i in range(size):
+               array[i] += b[i]
+         else:
+            errmsg = 'PVecs must be the same size'
+            raise ValueError(errmsg)         
+      else:
+         value = b
+         for i in range(size):
+            array[i] += value
+      return
+
+   def __isub__(self, b):
+      cdef int size = 0
+      cdef int bsize = 0
+      cdef ParOptScalar *array = NULL
+      cdef ParOptScalar *barray = NULL
+      cdef ParOptScalar value = 0.0
+      cdef ParOptVec *bptr = NULL
+      size = self.ptr.getArray(&array)
+      if isinstance(b, PVec):
+         bptr = (<PVec>b).ptr
+         bsize = bptr.getArray(&barray)
+         if bsize == size:
+            for i in range(size):
+               array[i] -= barray[i]
+         else:
+            errmsg = 'PVecs must be the same size'
+            raise ValueError(errmsg)
+      elif hasattr(b, '__len__'):
+         bsize = len(b)
+         if bsize == size:
+            for i in range(size):
+               array[i] -= b[i]
+         else:
+            errmsg = 'PVecs must be the same size'
+            raise ValueError(errmsg)         
+      else:
+         value = b
+         for i in range(size):
+            array[i] -= value
+      return
+
+   def __imul__(self, b):
+      cdef int size = 0
+      cdef int bsize = 0
+      cdef ParOptScalar *array = NULL
+      cdef ParOptScalar *barray = NULL
+      cdef ParOptScalar value = 0.0
+      cdef ParOptVec *bptr = NULL
+      size = self.ptr.getArray(&array)
+      if isinstance(b, PVec):
+         bptr = (<PVec>b).ptr
+         bsize = bptr.getArray(&barray)
+         if bsize == size:
+            for i in range(size):
+               array[i] *= barray[i]
+         else:
+            errmsg = 'PVecs must be the same size'
+            raise ValueError(errmsg)
+      elif hasattr(b, '__len__'):
+         bsize = len(b)
+         if bsize == size:
+            for i in range(size):
+               array[i] *= b[i]
+         else:
+            errmsg = 'PVecs must be the same size'
+            raise ValueError(errmsg)         
+      else:
+         value = b
+         for i in range(size):
+            array[i] *= value
+      return
+
+   def __idiv__(self, b):
+      cdef int size = 0
+      cdef int bsize = 0
+      cdef ParOptScalar *array = NULL
+      cdef ParOptScalar *barray = NULL
+      cdef ParOptScalar value = 0.0
+      cdef ParOptVec *bptr = NULL
+      size = self.ptr.getArray(&array)
+      if isinstance(b, PVec):
+         bptr = (<PVec>b).ptr
+         bsize = bptr.getArray(&barray)
+         if bsize == size:
+            for i in range(size):
+               array[i] /= barray[i]
+         else:
+            errmsg = 'PVecs must be the same size'
+            raise ValueError(errmsg)
+      elif hasattr(b, '__len__'):
+         bsize = len(b)
+         if bsize == size:
+            for i in range(size):
+               array[i] /= b[i]
+         else:
+            errmsg = 'PVecs must be the same size'
+            raise ValueError(errmsg)         
+      else:
+         value = b
+         for i in range(size):
+            array[i] /= value
+      return
+
    def __getitem__(self, k):
       cdef int size = 0
       cdef ParOptScalar *array
@@ -346,6 +483,7 @@ cdef class PVec:
       else:
          errmsg = 'Index must be of type int or slice'
          raise ValueError(errmsg)
+      return
 
    def copyValues(self, PVec vec):
       if self.ptr and vec.ptr:

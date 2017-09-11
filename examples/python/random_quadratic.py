@@ -57,7 +57,7 @@ class Quadratic(ParOpt.pyParOptProblem):
         g[:] = np.dot(self.A, x) + self.b
         
         # The constraint gradient
-        A[0,:] = self.Acon[:]
+        A[0][:] = self.Acon[:]
 
         return fail
 

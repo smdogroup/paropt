@@ -411,12 +411,13 @@ else:
     if optimizer is 'None':
         opt = paropt_truss(truss, prefix=prefix,
                            use_hessian=use_hessian)
+        opt.checkGradients(1e-6)
 
         # Get the optimized point
         x = opt.getOptimizedPoint()
 
         # Retrieve the optimized multipliers
-        z, zw, zl, zu = opt.getOptimizedMultipliers()
+        x, z, zw, zl, zu = opt.getOptimizedPoint()
         print 'z =  ', z
         print 'zw = ', zw
         print 'zl = ', zl
@@ -443,4 +444,4 @@ else:
     truss.plotTruss(x, tol=0.1,
                     filename=prefix+'/opt_truss%dx%d.pdf'%(N, M))
 
-    print 'x = ', truss.Area_scale*x
+    print 'x = ', truss.Area_scale*x[:]
