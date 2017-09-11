@@ -39,34 +39,37 @@ cdef extern from "ParOptProblem.h":
 
 cdef extern from "CyParOptProblem.h":
    # Define the callback types
-   ctypedef void (*getvarsandbounds)(void *_self, int nvars,
-                                     ParOptScalar *x,
-                                     ParOptScalar *lb, ParOptScalar *ub)
+   ctypedef void (*getvarsandbounds)(void *_self, int nvars, ParOptVec *x,
+                                     ParOptVec *lb, ParOptVec *ub)
    ctypedef int (*evalobjcon)(void *_self, int nvars, int ncon,
-                              ParOptScalar *x, ParOptScalar *fobj,
+                              ParOptVec *x, ParOptScalar *fobj,
                               ParOptScalar *cons)
    ctypedef int (*evalobjcongradient)(void *_self, int nvars, int ncon,
-                                      ParOptScalar *x, ParOptScalar *gobj,
-                                      ParOptScalar *A)
-   ctypedef int (*evalhvecproduct)(void *_self, int nvars, int ncon, 
-                                   int nwcon, ParOptScalar *x, ParOptScalar *z,
-                                   ParOptScalar *zw, ParOptScalar *px,
-                                   ParOptScalar *hvec)
+                                      ParOptVec *x, ParOptVec *gobj,
+                                      ParOptVec **A)
+   ctypedef int (*evalhvecproduct)(void *_self, int nvars, int ncon, int nwcon,
+                                   ParOptVec *x, ParOptScalar *z,
+                                   ParOptVec *zw, ParOptVec *px,
+                                   ParOptVec *hvec)
    ctypedef void (*evalsparsecon)(void *_self, int nvars, int nwcon,
-                                  ParOptScalar *x, ParOptScalar *out)
+                                  ParOptVec *x, ParOptVec *out)
    ctypedef void (*addsparsejacobian)(void *_self, int nvars, int nwcon,
-                                      ParOptScalar alpha, ParOptScalar *x, 
-                                      ParOptScalar *px, ParOptScalar *out)
+                                      ParOptScalar alpha, 
+                                      ParOptVec *x, 
+                                      ParOptVec *px, 
+                                      ParOptVec *out)
    ctypedef void (*addsparsejacobiantranspose)(void *_self, 
                                                int nvars, int nwcon,
                                                ParOptScalar alpha, 
-                                               ParOptScalar *x, 
-                                               ParOptScalar *px, 
-                                               ParOptScalar *out)
+                                               ParOptVec *x, 
+                                               ParOptVec *px, 
+                                               ParOptVec *out)
    ctypedef void (*addsparseinnerproduct)(void *_self, int nvars, 
                                           int nwcon, int nwblock,
-                                          ParOptScalar alpha, ParOptScalar *x, 
-                                          ParOptScalar *c, ParOptScalar *A)
+                                          ParOptScalar alpha, 
+                                          ParOptVec *x, 
+                                          ParOptVec *c, 
+                                          ParOptScalar *out)
 
    cdef cppclass CyParOptProblem(ParOptProblem):
       CyParOptProblem(MPI_Comm _comm, int _nvars, int _ncon,
@@ -108,10 +111,6 @@ cdef extern from "ParOpt.h":
       # Get the problem dimensions
       void getProblemSizes(int *nvars, int *ncon, 
                            int *nwcon, int *nwblock)
-
-      # Get the initial multipliers
-      void getInitMultipliers(ParOptScalar**, ParOptVec**,
-                              ParOptVec**, ParOptVec**)
       
       # Retrieve the optimized point
       void getOptimizedPoint(ParOptVec **_x,

@@ -67,43 +67,64 @@ int CyParOptProblem::useUpperBounds(){
 void CyParOptProblem::setSelfPointer( void *_self ){
   self = _self;
 }
-void CyParOptProblem::setGetVarsAndBounds( void (*func)(void *, int, ParOptScalar*, 
-                                                        ParOptScalar*, ParOptScalar*) ){
+
+void CyParOptProblem::setGetVarsAndBounds( void (*func)(void *, int, 
+                                                        ParOptVec*, 
+                                                        ParOptVec*, 
+                                                        ParOptVec*) ){
   getvarsandbounds = func;
 }
-void CyParOptProblem::setEvalObjCon( int (*func)(void*, int, int, ParOptScalar*, 
-                                                 ParOptScalar*, ParOptScalar*) ){
+
+void CyParOptProblem::setEvalObjCon( int (*func)(void*, int, int, 
+                                                 ParOptVec*, 
+                                                 ParOptScalar*, 
+                                                 ParOptScalar*) ){
   evalobjcon = func;
 }
-void CyParOptProblem::setEvalObjConGradient( int (*func)(void*, int, int, ParOptScalar*, 
-                                                         ParOptScalar*, ParOptScalar*) ){
+
+void CyParOptProblem::setEvalObjConGradient( int (*func)(void*, int, int, 
+                                                         ParOptVec*, 
+                                                         ParOptVec*, 
+                                                         ParOptVec**) ){
   evalobjcongradient = func;
 }
+
 void CyParOptProblem::setEvalHvecProduct( int (*func)(void *, int, int, int,
-                                                      ParOptScalar*, ParOptScalar*,
-                                                      ParOptScalar*, ParOptScalar*,
-                                                      ParOptScalar*) ){
+                                                      ParOptVec*, 
+                                                      ParOptScalar*,
+                                                      ParOptVec*, 
+                                                      ParOptVec*,
+                                                      ParOptVec*) ){
   evalhvecproduct = func;
 }
+
 void CyParOptProblem::setEvalSparseCon( void (*func)(void *, int, int,
-                                                     ParOptScalar*, ParOptScalar*) ){
+                                                     ParOptVec*, 
+                                                     ParOptVec*) ){
   evalsparsecon = func;
 }
+
 void CyParOptProblem::setAddSparseJacobian( void (*func)(void *, int, int,
-                                                         ParOptScalar, ParOptScalar*, 
-                                                         ParOptScalar*, ParOptScalar*) ){
+                                                         ParOptScalar, 
+                                                         ParOptVec*, 
+                                                         ParOptVec*, 
+                                                         ParOptVec*) ){
   addsparsejacobian = func;
 }
+
 void CyParOptProblem::setAddSparseJacobianTranspose( void (*func)(void *, int, int,
                                                                   ParOptScalar, 
-                                                                  ParOptScalar*, 
-                                                                  ParOptScalar*, 
-                                                                  ParOptScalar*) ){
+                                                                  ParOptVec*, 
+                                                                  ParOptVec*, 
+                                                                  ParOptVec*) ){
   addsparsejacobiantranspose = func;
 }
+
 void CyParOptProblem::setAddSparseInnerProduct( void (*func)(void *, int, int, int,
-                                                             ParOptScalar, ParOptScalar*, 
-                                                             ParOptScalar*, ParOptScalar*) ){
+                                                             ParOptScalar, 
+                                                             ParOptVec*, 
+                                                             ParOptVec*, 
+                                                             ParOptScalar*) ){
   addsparseinnerproduct = func;
 }
 
@@ -117,11 +138,7 @@ void CyParOptProblem::getVarsAndBounds( ParOptVec *x,
     fprintf(stderr, "getvarsandbounds callback not defined\n");
     return;
   }
-  ParOptScalar *xvals, *lbvals, *ubvals;
-  x->getArray(&xvals);
-  lb->getArray(&lbvals);
-  ub->getArray(&ubvals);
-  getvarsandbounds(self, nvars, xvals, lbvals, ubvals);
+  getvarsandbounds(self, nvars, x, lb, ub);
 }
 
 /*
@@ -135,13 +152,8 @@ int CyParOptProblem::evalObjCon( ParOptVec *x,
     return 1;
   }
   
-  // Retrieve the (local) values of the design variables
-  ParOptScalar *xvals;
-  x->getArray(&xvals);
-  
   // Evaluate the objective and constraints
-  int fail = evalobjcon(self, nvars, ncon, 
-                        xvals, fobj, cons);
+  int fail = evalobjcon(self, nvars, ncon, x, fobj, cons);
   
   return fail;
 }
@@ -156,29 +168,10 @@ int CyParOptProblem::evalObjConGradient( ParOptVec *x,
     fprintf(stderr, "evalobjcongradient callback not defined\n");
     return 1;
   }
-  
-  // Get the design and gradient arrays
-  ParOptScalar *xvals, *gvals;
-  x->getArray(&xvals);
-  g->getArray(&gvals);
-
-  // Allocate a contiguous arary for the Jacobian entries
-  ParOptScalar *A = new ParOptScalar[ ncon*nvars ];
-  
+    
   // Evaluate the objective/constraint gradient 
-  int fail = evalobjcongradient(self, nvars, ncon, 
-                                xvals, gvals, A);
+  int fail = evalobjcongradient(self, nvars, ncon, x, g, Ac);
 
-  // Copy the values back into the vectors
-  for ( int i = 0; i < ncon; i++ ){
-    ParOptScalar *avals;
-    Ac[i]->getArray(&avals);
-    memcpy(avals, &A[i*nvars], nvars*sizeof(ParOptScalar));
-  }
-  
-  // Free the contiguous array values
-  delete [] A;
-  
   return fail;    
 }
 
@@ -194,17 +187,10 @@ int CyParOptProblem::evalHvecProduct( ParOptVec *x,
     fprintf(stderr, "evalhvecproduct callback not defined\n");
     return 1;
   }
-
-  // Get the arrays from the input vectors
-  ParOptScalar *xvals, *zwvals, *pxvals, *hvals;
-  x->getArray(&xvals);
-  zw->getArray(&zwvals);
-  px->getArray(&pxvals);
-  hvec->getArray(&hvals);
   
   // Evaluate the Hessian-vector callback
   int fail = evalhvecproduct(self, nvars, ncon, nwcon,
-                             xvals, z, zwvals, pxvals, hvals);
+                             x, z, zw, px, hvec);
   return fail;
 }
 
@@ -218,14 +204,8 @@ void CyParOptProblem::evalSparseCon( ParOptVec *x,
     return;
   }
 
-  // Get the arrays from the input vectors
-  ParOptScalar *xvals, *outvals;
-  x->getArray(&xvals);
-  out->getArray(&outvals);
-  
   // Evaluate the Hessian-vector callback
-  evalsparsecon(self, nvars, nwcon,
-                xvals, outvals);
+  evalsparsecon(self, nvars, nwcon, x, out);
 }
 
 /*
@@ -240,15 +220,8 @@ void CyParOptProblem::addSparseJacobian( ParOptScalar alpha,
     return;
   }
   
-  // Get the arrays from the input vectors
-  ParOptScalar *xvals, *pxvals, *outvals;
-  x->getArray(&xvals);
-  px->getArray(&pxvals);
-  out->getArray(&outvals);
-  
   // Evaluate the sparse Jacobian output
-  addsparsejacobian(self, nvars, nwcon,
-                    alpha, xvals, pxvals, outvals);
+  addsparsejacobian(self, nvars, nwcon, alpha, x, px, out);
 }
 
 /*
@@ -262,16 +235,9 @@ void CyParOptProblem::addSparseJacobianTranspose( ParOptScalar alpha,
     fprintf(stderr, "addsparsejacobiantranspose callback not defined\n");
     return;
   }
-
-  // Get the arrays from the input vectors
-  ParOptScalar *xvals, *pzwvals, *outvals;
-  x->getArray(&xvals);
-  pzw->getArray(&pzwvals);
-  out->getArray(&outvals);
   
   // Evaluate the sparse Jacobian output
-  addsparsejacobiantranspose(self, nvars, nwcon,
-                             alpha, xvals, pzwvals, outvals);
+  addsparsejacobiantranspose(self, nvars, nwcon, alpha, x, pzw, out);
 }
 
 /*
@@ -286,12 +252,7 @@ void CyParOptProblem::addSparseInnerProduct( ParOptScalar alpha,
     fprintf(stderr, "addsparseinnerproduct callback not defined\n");
     return;
   }
-  // Get the arrays from the input vectors
-  ParOptScalar *xvals, *cvals;
-  x->getArray(&xvals);
-  cvec->getArray(&cvals);
   
   // Evaluate the sparse Jacobian output
-  addsparseinnerproduct(self, nvars, nwcon, nwblock, 
-                        alpha, xvals, cvals, A);
+  addsparseinnerproduct(self, nvars, nwcon, nwblock, alpha, x, cvec, A);
 }

@@ -46,30 +46,30 @@ class CyParOptProblem : public ParOptProblem {
   // Set the member callback functions that are required
   // ---------------------------------------------------
   void setSelfPointer( void *_self );
-  void setGetVarsAndBounds( void (*func)(void*, int, ParOptScalar*, 
-                                         ParOptScalar*, ParOptScalar*) );
-  void setEvalObjCon( int (*func)(void*, int, int, ParOptScalar*, 
+  void setGetVarsAndBounds( void (*func)(void*, int, ParOptVec*, 
+                                         ParOptVec*, ParOptVec*) );
+  void setEvalObjCon( int (*func)(void*, int, int, ParOptVec*, 
                                   ParOptScalar*, ParOptScalar*) );
-  void setEvalObjConGradient( int (*func)(void*, int, int, ParOptScalar*, 
-                                          ParOptScalar*, ParOptScalar*) );
+  void setEvalObjConGradient( int (*func)(void*, int, int, ParOptVec*, 
+                                          ParOptVec*, ParOptVec**) );
   void setEvalHvecProduct( int (*func)(void*, int, int, int,
-                                       ParOptScalar *, ParOptScalar *,
-                                       ParOptScalar *, ParOptScalar *,
-                                       ParOptScalar *) );
+                                       ParOptVec*, ParOptScalar*,
+                                       ParOptVec*, ParOptVec*,
+                                       ParOptVec*) );
   void setEvalSparseCon( void (*func)(void*, int, int,
-                                      ParOptScalar*, ParOptScalar*) );
+                                      ParOptVec*, ParOptVec*) );
   void setAddSparseJacobian( void (*func)(void*, int, int,
-                                          ParOptScalar, ParOptScalar*, 
-                                          ParOptScalar*, ParOptScalar*) );
+                                          ParOptScalar, ParOptVec*, 
+                                          ParOptVec*, ParOptVec*) );
   void setAddSparseJacobianTranspose( void (*func)(void*, int, int,
                                                    ParOptScalar, 
-                                                   ParOptScalar*,
-                                                   ParOptScalar*, 
-                                                   ParOptScalar*) );
+                                                   ParOptVec*,
+                                                   ParOptVec*, 
+                                                   ParOptVec*) );
   void setAddSparseInnerProduct( void (*func)(void*, int, int, int,
                                               ParOptScalar, 
-                                              ParOptScalar*, 
-                                              ParOptScalar*, 
+                                              ParOptVec*, 
+                                              ParOptVec*, 
                                               ParOptScalar*) );
 
   // Get the variables and bounds from the problem
@@ -119,30 +119,30 @@ class CyParOptProblem : public ParOptProblem {
   // ---------------------------------------------------------
   void *self;
   void (*getvarsandbounds)( void *self, int nvars,
-                            ParOptScalar *x, ParOptScalar *lb, 
-                            ParOptScalar *ub );
+                            ParOptVec *x, ParOptVec *lb, 
+                            ParOptVec *ub );
   int (*evalobjcon)( void *self, int nvars, int ncon,
-                     ParOptScalar *x, ParOptScalar *fobj, 
+                     ParOptVec *x, ParOptScalar *fobj, 
                      ParOptScalar *cons );
   int (*evalobjcongradient)( void *self, int nvars, int ncon,
-                             ParOptScalar *x, ParOptScalar *gobj,
-                             ParOptScalar *A );
+                             ParOptVec *x, ParOptVec *gobj,
+                             ParOptVec **A );
   int (*evalhvecproduct)( void *self, int nvars, int ncon, int nwcon,
-                          ParOptScalar *x, ParOptScalar *z,
-                          ParOptScalar *zw, ParOptScalar *px,
-                          ParOptScalar *hvec );
+                          ParOptVec *x, ParOptScalar *z,
+                          ParOptVec *zw, ParOptVec *px,
+                          ParOptVec *hvec );
   void (*evalsparsecon)( void *self, int nvars, int nwcon,
-                         ParOptScalar *x, ParOptScalar *out );
+                         ParOptVec *x, ParOptVec *out );
   void (*addsparsejacobian)( void *self, int nvars, int nwcon,
-                             ParOptScalar alpha, ParOptScalar *x, 
-                             ParOptScalar *px, ParOptScalar *out );
+                             ParOptScalar alpha, ParOptVec *x, 
+                             ParOptVec *px, ParOptVec *out );
   void (*addsparsejacobiantranspose)( void *self, int nvars, int nwcon,
-                                      ParOptScalar alpha, ParOptScalar *x, 
-                                      ParOptScalar *px, ParOptScalar *out );
+                                      ParOptScalar alpha, ParOptVec *x, 
+                                      ParOptVec *px, ParOptVec *out );
   void (*addsparseinnerproduct)( void *self,
                                  int nvars, int nwcon, int nwblock,
-                                 ParOptScalar alpha, ParOptScalar *x, 
-                                 ParOptScalar *c, ParOptScalar *A );
+                                 ParOptScalar alpha, ParOptVec *x, 
+                                 ParOptVec *c, ParOptScalar *A );
 
   // Store information about the type of problem to solve
   int isDenseInequal;

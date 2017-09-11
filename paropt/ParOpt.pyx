@@ -95,7 +95,7 @@ def unpack_checkpoint(str filename):
    return barrier, s, z, x, zl, zu
 
 # This wraps a C++ array with a numpy array for later useage
-cdef inplace_array_1d(int nptype, int dim1, void *data_ptr):
+cdef inplace_array_1d(int nptype, int dim1, void *data_ptr, base=None):
    '''Return a numpy version of the array'''
    # Set the shape of the array
    cdef int size = 1
@@ -109,56 +109,28 @@ cdef inplace_array_1d(int nptype, int dim1, void *data_ptr):
    # delete the data once the ndarray goes out of scope
    ndarray = np.PyArray_SimpleNewFromData(size, shape,
                                           nptype, data_ptr)
-   
-   return ndarray
 
-# This wraps a C++ array with a numpy array for later useage
-cdef inplace_array_2d(int nptype, int dim1, int dim2, void *data_ptr):
-   '''Return a numpy version of the array'''
-   # Set the shape of the array
-   cdef int size = 2
-   cdef np.npy_intp shape[2]
-   cdef np.ndarray ndarray
+   if base is not None:
+      Py_INCREF(base)
+      np.PyArray_SetBaseObject(ndarray, base)
 
-   # Set the first entry of the shape array
-   shape[0] = <np.npy_intp>dim1
-   shape[1] = <np.npy_intp>dim2
-      
-   # Create the array itself - Note that this function will not
-   # delete the data once the ndarray goes out of scope
-   ndarray = np.PyArray_SimpleNewFromData(size, shape,
-                                          nptype, data_ptr)
-   
    return ndarray
 
 cdef void _getvarsandbounds(void *_self, int nvars,
-                            ParOptScalar *x, ParOptScalar *lb, 
-                            ParOptScalar *ub):
-   # The numpy arrays that will be used to wrap x/lb/ub
-   cdef np.ndarray xnp, lbnp, ubnp
-
-   # Create the array wrappers 
-   xnp = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>x)
-   lbnp = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>lb)
-   ubnp = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>ub)
-
-   # Retrieve the initial variables and their bounds 
-   (<object>_self).getVarsAndBounds(xnp, lbnp, ubnp)
-
+                            ParOptVec *_x, ParOptVec *_lb, 
+                            ParOptVec *_ub):
+   x = _init_PVec(_x)
+   lb = _init_PVec(_lb)
+   ub = _init_PVec(_ub) 
+   (<object>_self).getVarsAndBounds(x, lb, ub)
    return
 
 cdef int _evalobjcon(void *_self, int nvars, int ncon,
-                     ParOptScalar *x, ParOptScalar *fobj, 
+                     ParOptVec *_x, ParOptScalar *fobj, 
                      ParOptScalar *cons):
-   # The numpy arrays that will be used for x
-   cdef np.ndarray xnp
-   cdef int i
-   
-   # Create the array wrapper
-   xnp = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>x)
-   
    # Call the objective function
-   fail, _fobj, _cons = (<object>_self).evalObjCon(xnp)
+   x = _init_PVec(_x)
+   fail, _fobj, _cons = (<object>_self).evalObjCon(x)
 
    # Copy over the objective value
    fobj[0] = _fobj
@@ -166,106 +138,77 @@ cdef int _evalobjcon(void *_self, int nvars, int ncon,
    # Copy the values from the numpy arrays
    for i in range(ncon):
       cons[i] = _cons[i]
-         
    return fail
 
 cdef int _evalobjcongradient(void *_self, int nvars, int ncon,
-                             ParOptScalar *x, ParOptScalar *g, 
-                             ParOptScalar *A):
+                             ParOptVec *_x, ParOptVec *_g, 
+                             ParOptVec **A):
    # The numpy arrays that will be used for x
-   cdef np.ndarray xnp, gnp, Anp
-   
-   # Create the array wrapper
-   xnp = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>x)
-   gnp = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>g)
-   Anp = inplace_array_2d(PAROPT_NPY_SCALAR, ncon, nvars, <void*>A)
-   
-   # Call the objective function
-   fail = (<object>_self).evalObjConGradient(xnp, gnp, Anp)
+   x = _init_PVec(_x)
+   g = _init_PVec(_g)
+   Ac = []
+   for i in range(ncon):
+      Ac.append(_init_PVec(A[i]))
 
+   # Call the objective function
+   fail = (<object>_self).evalObjConGradient(x, g, Ac)
    return fail
 
 cdef int _evalhvecproduct(void *_self, int nvars, int ncon, int nwcon,
-                          ParOptScalar *x, ParOptScalar *z, ParOptScalar *zw,
-                          ParOptScalar *px, ParOptScalar *hvec):
-   # The numpy arrays that will be used for x
-   cdef np.ndarray xnp, znp, pxnp, hnp
-   cdef np.ndarray zwnp = None
+                          ParOptVec *_x, ParOptScalar *_z, ParOptVec *_zw,
+                          ParOptVec *_px, ParOptVec *_hvec):
+   x = _init_PVec(_x)
+   zw = None
+   if _zw != NULL:
+      zw = _init_PVec(_zw)
+   px = _init_PVec(_px)
+   hvec = _init_PVec(_hvec)
    
-   # Create the array wrapper
-   xnp = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>x)
-   znp = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>z)
-   pxnp = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>px)
-   hnp = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>hvec)
-   
-   if nwcon > 0:
-      zwnp = inplace_array_1d(PAROPT_NPY_SCALAR, nwcon, <void*>zw)
+   z = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>_z)
 
    # Call the objective function
-   fail = (<object>_self).evalHvecProduct(xnp, znp, zwnp,
-                                          pxnp, hnp)
+   fail = (<object>_self).evalHvecProduct(x, z, zw, px, hvec)
    return fail
 
 cdef void _evalsparsecon(void *_self, int nvars, int nwcon,
-                         ParOptScalar *x, ParOptScalar *con):
-   # The numpy arrays
-   cdef np.ndarray xnp, cnp
-   
-   # Create the array wrapper
-   xnp = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>x)
-   cnp = inplace_array_1d(PAROPT_NPY_SCALAR, nwcon, <void*>con)
+                         ParOptVec *_x, ParOptVec *_con):
+   x = _init_PVec(_x)
+   con = _init_PVec(_con)
 
-   (<object>_self).evalSparseCon(xnp, cnp)
-   
+   (<object>_self).evalSparseCon(x, con)
    return
 
 cdef void _addsparsejacobian(void *_self, int nvars, 
                              int nwcon, ParOptScalar alpha, 
-                             ParOptScalar *x, ParOptScalar *px, 
-                             ParOptScalar *con):
-   # The numpy arrays
-   cdef np.ndarray xnp, pxnp, cnp
-   
-   # Create the wrapper
-   xnp = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>x)
-   pxnp = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>px)
-   cnp = inplace_array_1d(PAROPT_NPY_SCALAR, nwcon, <void*>con)
+                             ParOptVec *_x, ParOptVec *_px, 
+                             ParOptVec *_con):
+   x = _init_PVec(_x)
+   px = _init_PVec(_px)
+   con = _init_PVec(_con)
 
-   (<object>_self).addSparseJacobian(alpha, xnp, pxnp, cnp)
-
+   (<object>_self).addSparseJacobian(alpha, x, px, con)
    return
 
 cdef void _addsparsejacobiantranspose(void *_self, int nvars, 
                                       int nwcon, ParOptScalar alpha, 
-                                      ParOptScalar *x, ParOptScalar *pzw, 
-                                      ParOptScalar *out):
-   # The numpy arrays
-   cdef np.ndarray xnp, pzwnp, outnp
-
-   # Create the wrapper
-   xnp = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>x)
-   pzwnp = inplace_array_1d(PAROPT_NPY_SCALAR, nwcon, <void*>pzw)
-   outnp = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>out)
-
-   (<object>_self).addSparseJacobianTranspose(alpha, xnp, pzwnp, outnp)
-
+                                      ParOptVec *_x, ParOptVec *_pzw, 
+                                      ParOptVec *_out):
+   x = _init_PVec(_x)
+   pzw = _init_PVec(_pzw)
+   out = _init_PVec(_out)
+   (<object>_self).addSparseJacobianTranspose(alpha, x, pzw, out)
    return
 
 cdef void _addsparseinnerproduct(void *_self, int nvars,
                                  int nwcon, int nwblock, ParOptScalar alpha,
-                                 ParOptScalar *x, ParOptScalar *c, 
-                                 ParOptScalar *A):
-   # The numpy arrays
-   cdef np.ndarray xnp, cnp, Anp
+                                 ParOptVec *_x, ParOptVec *_c, 
+                                 ParOptScalar *_A):
+   x = _init_PVec(_x)
+   c = _init_PVec(_c)
+   A = inplace_array_1d(PAROPT_NPY_SCALAR, nwcon*nwblock*nwblock,
+                        <void*>_A)
 
-   # Create the wrapper
-   xnp = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>x)
-   cnp = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>c)
-   Anp = inplace_array_1d(PAROPT_NPY_SCALAR, nwcon*nwblock*nwblock,
-                          <void*>A)
-
-   (<object>_self).addSparseInnerProduct(alpha, xnp, cnp, Anp)
-
+   (<object>_self).addSparseInnerProduct(alpha, x, c, A)
    return
 
 # "Wrap" the abtract base class ParOptProblem 
@@ -327,7 +270,60 @@ cdef class PVec:
    def __dealloc__(self):
       if self.ptr:
          self.ptr.decref()
-    
+
+   def __len__(self):
+      cdef int size = 0
+      size = self.ptr.getArray(NULL)
+      return size
+
+   def __getitem__(self, k):
+      cdef int size = 0
+      cdef ParOptScalar *array
+      size = self.ptr.getArray(&array)
+      if isinstance(k, int):
+         if k < 0 or k >= size:
+            errmsg = 'Index %d out of range [0,%d)'%(k, size)
+            raise IndexError(errmsg)
+         return array[k]
+      elif isinstance(k, slice):
+         start, stop, step = slice.indices(size)
+         arr = np.zeros((stop - start)/step, dtype=dtype)
+         for i in range(start, stop, step):
+            if i < 0:
+               i = size+i
+            if i >= 0 and i < size:
+               arr[i] = array[i]
+            else:
+               raise IndexError('Index %d out of range [0,%d)'%(i, size))
+         return arr
+      else:
+         errmsg = 'Index must be of type int or slice'
+         raise ValueError(errmsg)
+
+   def __setitem__(self, k, values):
+      cdef int size = 0
+      cdef ParOptScalar *array
+      size = self.ptr.getArray(&array)
+      if isinstance(k, int):
+         if k < 0 or k >= size:
+            errmsg = 'Index %d out of range [0,%d)'%(k, size)
+            raise IndexError(errmsg)
+         array[k] = values
+      elif isinstance(k, slice):
+         start, stop, step = slice.indices(size)
+         index = 0
+         for i in range(start, stop, step):
+            if i < 0:
+               i = size+i
+            if i >= 0 and i < size:
+               array[i] = values[index]
+            else:
+               raise IndexError('Index %d out of range [0,%d)'%(i, size))
+            index += 1
+      else:
+         errmsg = 'Index must be of type int or slice'
+         raise ValueError(errmsg)
+
    def copyValues(self, PVec vec):
       if self.ptr and vec.ptr:
          self.ptr.copyValues(vec.ptr)
@@ -356,7 +352,7 @@ cdef class pyParOpt:
       else:
          return self.ptr.optimize(&checkpoint[0])
       
-   def getOptimizedVec(self):
+   def getOptimizedPoint(self):
       '''
       Get the optimized solution in PVec form for interpolation purposes
       '''
@@ -373,176 +369,31 @@ cdef class pyParOpt:
       self.ptr.getOptimizedPoint(&_x, &_z, &_zw, &_zl, &_zu);
       
       # Set the default values
+      z = None
       x = None
       zw = None
       zl = None
       zu = None
 
-      # Convert the multipliers to in-place numpy arrays
-      z = inplace_array_1d(PAROPT_NPY_SCALAR, ncon, <void*>_z)
+      # Convert the multipliers to an in-place numpy array. This is
+      # duplicated on all processors, and must have the same values
+      # on all processors.
+      if _z != NULL:
+         z = inplace_array_1d(PAROPT_NPY_SCALAR, ncon, <void*>_z, self)
 
       # Note that these vectors are owned by the ParOpt class, we're simply
-      # passing references to them back to the python layer. The caveat 
-
-      if _x :
+      # passing references to them back to the python layer.
+      if _x != NULL:
          x = _init_PVec(_x)
-      if zw:
+      if _zw != NULL:
          zw = _init_PVec(_zw)
-      if zl:
+      if _zl != NULL:
          zl = _init_PVec(_zl)
-      if zu:
+      if _zu != NULL:
          zu = _init_PVec(_zu)
 
       return x, z, zw, zl, zu
    
-   def getInitMultipliers(self,
-                          np.ndarray[ParOptScalar, ndim=1, mode='c'] z,
-                          PVec zw, PVec zl, PVec zu):
-
-      '''
-      Get the optimized solution in PVec form for interpolation purposes
-      '''
-      cdef ParOptVec *_zw = NULL
-      cdef ParOptScalar *_z = NULL
-      cdef ParOptVec *_zl = NULL
-      cdef ParOptVec *_zu = NULL
-      cdef int ncon = 0
-      self.ptr.getProblemSizes(NULL, &ncon, NULL, NULL) 
-      self.ptr.getInitMultipliers(&_z, &_zw, &_zl, &_zu);
-      
-      if zw:
-         zw = _init_PVec(_zw)
-      if zl:
-         zl = _init_PVec(_zl)
-      if zu:
-         zu = _init_PVec(_zu)
-
-      z = np.zeros(ncon)
-      for i in range(ncon):
-         z[i] = _z[i]
-
-      return z
-   
-   def getOptimizedPoint(self):
-      '''Get the optimized solution from ParOpt'''
-      cdef int n = 0
-      cdef ParOptScalar *values = NULL
-      cdef ParOptVec *vec = NULL
-      
-      # Retrieve the optimized vector
-      self.ptr.getOptimizedPoint(&vec, NULL, NULL, NULL, NULL)
-      
-      # Get the variables from the vector
-      n = vec.getArray(&values)
-
-      # Allocate a new numpy array
-      x = np.zeros(n, dtype)
-
-      # Assign the new entries
-      for i in xrange(n):
-         x[i] = values[i]
-
-      return x
-
-   def getOptimizedMultipliers(self):
-      '''Get the optimized multipliers'''
-      cdef int n = 0, nc = 0, nw = 0
-      cdef const ParOptScalar *zvals = NULL
-      cdef ParOptScalar *zwvals = NULL
-      cdef ParOptScalar *zlvals = NULL
-      cdef ParOptScalar *zuvals = NULL
-      cdef ParOptVec *zwvec = NULL
-      cdef ParOptVec *zlvec = NULL
-      cdef ParOptVec *zuvec = NULL
-      
-      # Set the initial values for the multipliers etc.
-      z = None
-      zw = None
-      zl = None
-      zu = None
-
-      # Retrieve the optimized vector
-      self.ptr.getOptimizedPoint(NULL, &zvals, &zwvec, &zlvec, &zuvec)
-
-      # Get the number of constraints
-      self.ptr.getProblemSizes(NULL, &nc, NULL, NULL)
-      
-      # Copy over the Lagrange multipliers
-      z = np.zeros(nc, dtype)
-      for i in xrange(nc):
-         z[i] = zvals[i]
-
-      # Convert the weighting multipliers
-      if zwvec:
-         nw = zwvec.getArray(&zwvals)
-         zw = np.zeros(nw, dtype)
-         for i in xrange(nw):
-            zw[i] = zwvals[i]
-
-      # Convert the lower bound multipliers
-      if zlvec:
-         n = zlvec.getArray(&zlvals)
-         zl = np.zeros(n, dtype)
-         for i in xrange(n):
-            zl[i] = zlvals[i]
-
-      # Convert the upper bound multipliers
-      if zuvec:
-         n = zuvec.getArray(&zuvals)
-         zu = np.zeros(n, dtype)
-         for i in xrange(n):
-            zu[i] = zuvals[i]
-
-      return z, zw, zl, zu
-
-   def getDesignPoint(self):
-      cdef int nvars
-      cdef ParOptScalar *xvals = NULL
-      cdef ParOptVec *xvec = NULL
-      self.ptr.getOptimizedPoint(&xvec, NULL, NULL, NULL, NULL)
-      nvars = xvec.getArray(&xvals)
-      return inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>xvals)
-
-   def getDualPoint(self):
-      cdef int nvars = 0, nw = 0, nc = 0
-      cdef ParOptScalar *zvals = NULL
-      cdef ParOptScalar *zwvals = NULL
-      cdef ParOptScalar *zlvals = NULL
-      cdef ParOptScalar *zuvals = NULL
-      cdef ParOptVec *zwvec = NULL
-      cdef ParOptVec *zlvec = NULL
-      cdef ParOptVec *zuvec = NULL
-      cdef np.ndarray z = None
-      cdef np.ndarray zw = None
-      cdef np.ndarray zl = None
-      cdef np.ndarray zu = None
-      
-      # Retrieve the optimized vector
-      self.ptr.getInitMultipliers(&zvals, &zwvec, &zlvec, &zuvec)
-
-      # Get the number of constraints
-      self.ptr.getProblemSizes(NULL, &nc, NULL, NULL)
-
-      # Convert things to in-place numpy arrays
-      z = inplace_array_1d(PAROPT_NPY_SCALAR, nc, <void*>zvals)
-
-      # Convert the weighting multipliers
-      if zwvec:
-         nw = zwvec.getArray(&zwvals)
-         zw = inplace_array_1d(PAROPT_NPY_SCALAR, nw, <void*>zwvals)
-
-      # Convert the lower bound multipliers
-      if zlvec:
-         nvars = zlvec.getArray(&zlvals)
-         zl = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>zlvals)
-
-      # Convert the upper bound multipliers
-      if zuvec:
-         nvars = zuvec.getArray(&zuvals)
-         zu = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>zuvals)
-
-      return z, zw, zl, zu
-
    # Check objective and constraint gradients
    def checkGradients(self, double dh):    
       self.ptr.checkGradients(dh)
