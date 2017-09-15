@@ -25,6 +25,78 @@ include "ParOptDefs.pxi"
 cdef extern from "mpi-compat.h":
    pass
 
+def unpack_output(str filename):
+   '''
+   Unpack the parameters from the paropt output file and return them
+   in a list of numpy arrays. This also returns a small string
+   description from the file itself. This code relies ont he
+   fixed-width nature of the file, which is guaranteed.
+   '''
+
+   # The arguments that we're looking for
+   args = ['iter', 'nobj', 'ngrd', 'nhvc', 'alpha', 'alphx', 'alphz',
+           'fobj', '|opt|', '|infes|', '|dual|', 'mu', 'comp', 'dmerit',
+           'rho']
+   fmt = '4d 4d 4d 4d 7e 7e 7e 12e 7e 7e 7e 7e 7e 8e 7e'.split()
+   
+   # Loop over the file until the end
+   content = []
+   for f in fmt:
+      content.append([])
+
+   # Read the entire
+   with open(filename, 'r') as fp:
+      lines = fp.readlines()
+
+      index = 0
+      while index < len(lines):
+         fargs = lines[index].split()
+         if (len(fargs) > 2 and
+             (fargs[0] == args[0] and fargs[1] == args[1])):
+            index += 1
+            
+            # Read at most 10 lines before searching for the next
+            # header
+            counter = 0
+            while counter < 10 and index < len(lines):
+               line = lines[index]
+               index += 1
+               counter += 1
+
+               # Scan through the format list and determine how to
+               # convert the object based on the format string
+               off = 0
+               idx = 0
+               for f in fmt:
+                  next = int(f[:-1])
+                  s = line[off:off+next]
+                  off += next+1
+
+                  if f[-1] == 'd':
+                     try:
+                        content[idx].append(int(s))
+                     except:
+                        content[idx].append(0)
+                  elif f[-1] == 'e':
+                     try:
+                        content[idx].append(float(s))
+                     except:
+                        content[idx].append(0.0)
+                  idx += 1
+
+         # Increase the index by one
+         index += 1
+
+   # Convert the lists to numpy arrays
+   objs = []
+   for idx in range(len(args)):
+      if fmt[idx][1] == 'd':
+         objs.append(np.array(content[idx], dtype=np.int))
+      else:
+         objs.append(np.array(content[idx]))
+                  
+   return args, objs
+
 # Extract the optimality and objective function value from given input
 # paropt output files into separate files
 def get_fobj_opt(int num_files, str input, str fop, str foj):
