@@ -161,6 +161,9 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   // Set the total number of variables
   nvars_total = var_range[size];
 
+  // Set the default norm type
+  norm_type = PAROPT_INFTY_NORM;
+
   // Allocate the quasi-Newton approximation
   if (qn_type == BFGS){
     qn = new LBFGS(prob, max_qn_subspace);
@@ -536,6 +539,15 @@ void ParOpt::printOptionSummary( FILE *fp ){
     fprintf(fp, "%-30s %15d\n", "total variables", nvars_total);
     fprintf(fp, "%-30s %15d\n", "constraints", ncon);
     fprintf(fp, "%-30s %15d\n", "max_qn_size", qn_size);
+    if (norm_type == PAROPT_INFTY_NORM){
+      fprintf(fp, "%-30s %15s\n", "norm_type", "INFTY_NORM");
+    }
+    else if (norm_type == PAROPT_L1_NORM){
+      fprintf(fp, "%-30s %15s\n", "norm_type", "L1_NORM");
+    }
+    else {
+      fprintf(fp, "%-30s %15s\n", "norm_type", "L2_NORM");
+    }
     fprintf(fp, "%-30s %15d\n", "max_major_iters", max_major_iters);
     fprintf(fp, "%-30s %15d\n", "init_starting_point", 
             init_starting_point);
@@ -818,12 +830,22 @@ void ParOpt::setMaxAbsVariableBound( double max_bound ){
 }
 
 /*
+  Set what type of norm to use in the convergence criteria
+*/
+void ParOpt::setNormType( ParOptNormType _norm_type ){
+  norm_type = _norm_type;
+}
+
+/*
   Set optimizer parameters
 */
 void ParOpt::setInitStartingPoint( int init ){
   init_starting_point = init;
 }
 
+/*
+  Set the maximum number of major iterations
+*/
 void ParOpt::setMaxMajorIterations( int iters ){
   if (iters >= 1){ 
     max_major_iters = iters; 
@@ -1140,10 +1162,20 @@ void ParOpt::computeKKTRes( double *max_prime,
   }
 
   // Compute the error in the first KKT condition
-  *max_prime = rx->maxabs();
-
-  // Compute the residuals from the second KKT system:
-  *max_infeas = rcw->maxabs();
+  if (norm_type == PAROPT_INFTY_NORM){
+    *max_prime = rx->maxabs();
+    *max_infeas = rcw->maxabs();
+  }
+  else if (norm_type == PAROPT_L1_NORM){
+    *max_prime = rx->l1norm();
+    *max_infeas = rcw->l1norm();
+  }
+  else { // norm_type == PAROPT_L2_NORM
+    double prime_rx = rx->norm();
+    double prime_rcw = rcw->norm();
+    *max_prime = prime_rx*prime_rx;
+    *max_infeas = prime_rcw*prime_rcw;
+  }
 
   // Evaluate the residuals differently depending on whether
   // we're using a dense equality or inequality constraint
@@ -1151,23 +1183,39 @@ void ParOpt::computeKKTRes( double *max_prime,
     for ( int i = 0; i < ncon; i++ ){
       rc[i] = -(c[i] - s[i]);
       rs[i] = -(s[i]*z[i] - barrier_param);
-
-      if (fabs(RealPart(rc[i])) > *max_infeas){
-        *max_infeas = fabs(RealPart(rc[i]));
-      }
-      if (fabs(RealPart(rs[i])) > *max_dual){
-        *max_dual = fabs(RealPart(rs[i]));
-      }
     }
   }
   else {
     for ( int i = 0; i < ncon; i++ ){
       rc[i] = -c[i];
+      rs[i] = 0.0;
+    }
+  }
 
+  if (norm_type == PAROPT_INFTY_NORM){
+    for ( int i = 0; i < ncon; i++ ){
       if (fabs(RealPart(rc[i])) > *max_infeas){
-        *max_infeas = fabs(RealPart(rc[i]));
+	*max_infeas = fabs(RealPart(rc[i]));
+      }
+      if (fabs(RealPart(rs[i])) > *max_dual){
+	*max_dual = fabs(RealPart(rs[i]));
       }
     }
+  }
+  else if (norm_type == PAROPT_L1_NORM){
+    for ( int i = 0; i < ncon; i++ ){
+      *max_infeas += fabs(RealPart(rc[i]));
+      *max_dual += fabs(RealPart(rs[i]));
+    }
+  }
+  else { // norm_type == PAROPT_L2_NORM
+    double infeas = 0.0, dual = 0.0;
+    for ( int i = 0; i < ncon; i++ ){
+      infeas += RealPart(rc[i]*rc[i]);
+      dual += RealPart(rs[i]*rs[i]);
+    }
+    *max_infeas += infeas;
+    *max_dual += dual;
   }
 
   // Extract the values of the variables and lower/upper bounds
@@ -1191,10 +1239,19 @@ void ParOpt::computeKKTRes( double *max_prime,
         rzlvals[i] = 0.0;
       }
     }
-  
-    double dual_zl = rzl->maxabs();
-    if (dual_zl > *max_dual){
-      *max_dual = dual_zl;
+
+    if (norm_type == PAROPT_INFTY_NORM){
+      double dual_zl = rzl->maxabs();
+      if (dual_zl > *max_dual){
+	*max_dual = dual_zl;
+      }
+    }
+    else if (norm_type == PAROPT_L1_NORM){
+      *max_dual += rzl->l1norm();
+    }
+    else { // norm_type == PAROPT_L2_NORM
+      double dual_zl = rzl->norm();
+      *max_dual += dual_zl*dual_zl;
     }
   }
   if (use_upper){
@@ -1211,9 +1268,18 @@ void ParOpt::computeKKTRes( double *max_prime,
       }
     }
 
-    double dual_zu = rzu->maxabs();
-    if (RealPart(dual_zu) > RealPart(*max_dual)){
-      *max_dual = dual_zu;
+    if (norm_type == PAROPT_INFTY_NORM){
+      double dual_zu = rzu->maxabs();
+      if (RealPart(dual_zu) > RealPart(*max_dual)){
+	*max_dual = dual_zu;
+      }
+    }
+    else if (norm_type == PAROPT_L1_NORM){
+      *max_dual += rzu->l1norm();
+    }
+    else { // norm_type == PAROPT_L2_NORM
+      double dual_zu = rzu->norm();
+      *max_dual += dual_zu*dual_zu;
     }
   }
 
@@ -1229,10 +1295,26 @@ void ParOpt::computeKKTRes( double *max_prime,
       rswvals[i] = -(swvals[i]*zwvals[i] - barrier_param);
     }
     
-    double dual_zw = rsw->maxabs();
-    if (RealPart(dual_zw) > RealPart(*max_dual)){
-      *max_dual = dual_zw;
+    if (norm_type == PAROPT_INFTY_NORM){
+      double dual_zw = rsw->maxabs();
+      if (RealPart(dual_zw) > RealPart(*max_dual)){
+	*max_dual = dual_zw;
+      }
     }
+    else if (norm_type == PAROPT_L1_NORM){
+      *max_dual += rsw->l1norm();
+    }
+    else { // norm_type == PAROPT_L2_NORM
+      double dual_zw = rsw->norm();
+      *max_dual += dual_zw*dual_zw;
+    }
+  }
+
+  // If this is the l2 norm, take the square root
+  if (norm_type == PAROPT_L2_NORM){
+    *max_dual = sqrt(*max_dual);
+    *max_prime = sqrt(*max_prime);
+    *max_infeas = sqrt(*max_infeas);
   }
 }
 
@@ -3719,10 +3801,19 @@ int ParOpt::optimize( const char *checkpoint ){
       (alpha_xprev == 1.0 && alpha_zprev == 1.0 &&
        (fabs(RealPart(fobj - fobj_prev)) < rel_func_tol*fabs(RealPart(fobj_prev))));
 
+    // Set the factor to scale the residual
+    double nfactor = 1.0;
+    if (PAROPT_L1_NORM){
+      nfactor = 1.0/nvars_total;
+    }
+    else if (PAROPT_L2_NORM){
+      nfactor = 1.0/sqrt(nvars_total);
+    }
+
     // Set the flag to indicate whether the barrier problem has
     // converged
     int barrier_converged = 0;
-    if (k > 0 && ((res_norm < 10.0*barrier_param) || 
+    if (k > 0 && ((nfactor*res_norm < 10.0*barrier_param) || 
                   rel_function_test)){
       barrier_converged = 1;
     }

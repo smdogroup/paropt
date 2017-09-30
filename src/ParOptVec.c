@@ -88,6 +88,21 @@ double ParOptBasicVec::maxabs(){
 }
 
 /*
+  Compute the l1 norm of the vector
+*/
+double ParOptBasicVec::l1norm(){
+  double res = 0.0;
+  for ( int i = 0; i < size; i++ ){
+    res += fabs(RealPart(x[i]));
+  }
+
+  double l1_norm = 0.0;
+  MPI_Allreduce(&res, &l1_norm, 1, MPI_DOUBLE, MPI_SUM, comm);
+
+  return l1_norm;
+}
+
+/*
   Compute the dot-product of two vectors and return the result.
 */
 ParOptScalar ParOptBasicVec::dot( ParOptVec *pvec ){

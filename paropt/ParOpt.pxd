@@ -103,6 +103,11 @@ cdef extern from "ParOpt.h":
       PAROPT_BFGS"ParOpt::BFGS"
       PAROPT_SR1"ParOpt::SR1"
 
+   enum ParOptNormType:
+      PAROPT_INFTY_NORM
+      PAROPT_L1_NORM
+      PAROPT_L2_NORM
+
    cppclass ParOpt(ParOptBase):
       ParOpt(ParOptProblem *_prob, int _max_lbfgs_subspace, 
              QuasiNewtonType qn_type) except +
@@ -123,6 +128,7 @@ cdef extern from "ParOpt.h":
       void checkGradients(double dh)
       
       # Set optimizer parameters
+      void setNormType(ParOptNormType)
       void setInitStartingPoint(int init)
       void setMaxMajorIterations(int iters)
       void setAbsOptimalityTol(double tol)

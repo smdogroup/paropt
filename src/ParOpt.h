@@ -10,6 +10,10 @@
 #include "ParOptQuasiNewton.h"
 #include "ParOptProblem.h"
 
+enum ParOptNormType { PAROPT_INFTY_NORM,
+		      PAROPT_L1_NORM,
+		      PAROPT_L2_NORM };
+
 /*
   ParOpt is a parallel optimizer implemented in C++ for large-scale 
   constrained optimization.
@@ -154,6 +158,7 @@ class ParOpt : public ParOptBase {
 
   // Set optimizer parameters
   // ------------------------
+  void setNormType( ParOptNormType _norm_type );
   void setInitStartingPoint( int init );
   void setMaxMajorIterations( int iters );
   void setAbsOptimalityTol( double tol );
@@ -312,6 +317,9 @@ class ParOpt : public ParOptBase {
   // Communicator info
   MPI_Comm comm;
   int opt_root;
+
+  // Set the norm type to use
+  ParOptNormType norm_type;
 
   // Set the variable bound value
   double max_bound_val;

@@ -66,6 +66,7 @@ class ParOptVec : public ParOptBase {
   virtual void copyValues( ParOptVec *vec ) = 0;
   virtual double norm() = 0;
   virtual double maxabs() = 0;
+  virtual double l1norm() = 0;
   virtual ParOptScalar dot( ParOptVec *vec ) = 0;
   virtual void mdot( ParOptVec **vecs, int nvecs, ParOptScalar *output ) = 0;
   virtual void scale( ParOptScalar alpha ) = 0;
@@ -88,6 +89,7 @@ class ParOptBasicVec : public ParOptVec {
   void copyValues( ParOptVec *vec );
   double norm();
   double maxabs();
+  double l1norm();
   ParOptScalar dot( ParOptVec *vec );
   void mdot( ParOptVec **vecs, int nvecs, ParOptScalar *output );
   void scale( ParOptScalar alpha );

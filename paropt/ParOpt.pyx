@@ -25,6 +25,10 @@ include "ParOptDefs.pxi"
 cdef extern from "mpi-compat.h":
    pass
 
+INFTY_NORM = PAROPT_INFTY_NORM
+L1_NORM = PAROPT_L1_NORM
+L2_NORM = PAROPT_L2_NORM
+
 def unpack_output(str filename):
    '''
    Unpack the parameters from the paropt output file and return them
@@ -96,36 +100,6 @@ def unpack_output(str filename):
          objs.append(np.array(content[idx]))
                   
    return args, objs
-
-# Extract the optimality and objective function value from given input
-# paropt output files into separate files
-def get_fobj_opt(int num_files, str input, str fop, str foj):
-   iter_count = 0
-   # Open the objective and optimality files respectively
-   fo = open(fop,'w')
-   fj = open(foj,'w')
-   for i in xrange(num_files):
-      # Read and write the optimality and objective function to a new
-      # file
-      f1 = input+str(i)+'.out'
-      fp = open(f1,'r')
-        
-      # Read all the lines from fp
-      content = fp.readlines()
-      # Number of lines in file
-      endoffile = len(content)
-      for k in xrange(116,endoffile):
-         try:
-            fobj = float(content[k][45:56])
-            fo.write('%d%s%1.7e\n'%
-                     (iter_count, ' ',fobj))
-            opti = float(content[k][57:64])
-            fj.write('%d%s%1.7e\n'%
-                     (iter_count, ' ',opti))
-            iter_count += 1
-         except ValueError:
-            continue
-   return 
 
 # Read in a ParOpt checkpoint file and produce python variables
 def unpack_checkpoint(str filename):
@@ -632,6 +606,9 @@ cdef class pyParOpt:
       self.ptr.checkGradients(dh)
       
    # Set optimizer parameters
+   def setNormType(self, ParOptNormType norm_typ):
+      self.ptr.setNormType(norm_typ)
+
    def setInitStartingPoint(self, int init):
       self.ptr.setInitStartingPoint(init)
       
