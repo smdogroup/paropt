@@ -56,13 +56,15 @@ static const char *paropt_parameter_help[][2] = {
    "Float: Minimum fraction to the boundary rule < 1"},
   
   {"major_iter_step_check",
-   "Integer: Perform a check of the computed KKT step at this major iteration"},
+   "Integer: Perform a check of the computed KKT step at this iteration"},
   
   {"write_output_frequency", 
-   "Integer: Write out the solution file and checkpoint file at this frequency"},
+   "Integer: Write out the solution file and checkpoint file \
+at this frequency"},
 
   {"gradient_check_frequency",
-   "Integer: Print to screen the output of the gradient check at this frequency"},
+   "Integer: Print to screen the output of the gradient check \
+at this frequency"},
 
   {"sequential_linear_method", 
    "Boolean: Discard the quasi-Newton approximation (but not \
@@ -3399,7 +3401,8 @@ int ParOpt::lineSearch( double *_alpha,
 
     if (fail_obj){
       fprintf(stderr, 
-              "ParOpt: Evaluation failed during line search, trying new point\n");
+              "ParOpt: Evaluation failed during \
+line search, trying new point\n");
 
       // Multiply alpha by 1/10 like SNOPT
       alpha *= 0.1;
@@ -3799,7 +3802,8 @@ int ParOpt::optimize( const char *checkpoint ){
     // Determine if we should switch to a new barrier problem or not
     int rel_function_test = 
       (alpha_xprev == 1.0 && alpha_zprev == 1.0 &&
-       (fabs(RealPart(fobj - fobj_prev)) < rel_func_tol*fabs(RealPart(fobj_prev))));
+       (fabs(RealPart(fobj - fobj_prev)) < 
+        rel_func_tol*fabs(RealPart(fobj_prev))));
 
     // Set the factor to scale the residual
     double nfactor = 1.0;
@@ -3951,7 +3955,8 @@ int ParOpt::optimize( const char *checkpoint ){
       else {
         fprintf(outfp, "%4d %4d %4d %4d %7.1e %7.1e %7.1e %12.5e \
 %7.1e %7.1e %7.1e %7.1e %7.1e %8.1e %7.1e %s\n",
-                k, neval, ngeval, nhvec, alpha_prev, alpha_xprev, alpha_zprev,
+                k, neval, ngeval, nhvec, 
+                alpha_prev, alpha_xprev, alpha_zprev,
                 RealPart(fobj), max_prime, max_infeas, max_dual, 
                 barrier_param, RealPart(comp), RealPart(dm0_prev), 
                 rho_penalty_search, info);
@@ -5059,7 +5064,8 @@ void ParOpt::checkGradients( double dh ){
 
   if (rank == opt_root){
     printf("Objective gradient test\n");
-    printf("Objective FD: %15.8e  Actual: %15.8e  Err: %8.2e  Rel err: %8.2e\n",
+    printf("Objective FD: %15.8e  Actual: %15.8e  \
+Err: %8.2e  Rel err: %8.2e\n",
            RealPart(pfd), RealPart(pobj), 
            fabs(RealPart(pobj - pfd)), fabs(RealPart((pobj - pfd)/pfd)));
 
@@ -5071,7 +5077,8 @@ void ParOpt::checkGradients( double dh ){
       ParOptScalar fd = (rc[i] - c[i])/dh;
 #endif // PAROPT_USE_COMPLEX
 
-      printf("Con[%3d]  FD: %15.8e  Actual: %15.8e  Err: %8.2e  Rel err: %8.2e\n",
+      printf("Con[%3d]  FD: %15.8e  Actual: %15.8e  \
+Err: %8.2e  Rel err: %8.2e\n",
              i, RealPart(fd), RealPart(rs[i]), 
              fabs(RealPart(fd - rs[i])), fabs(RealPart((fd - rs[i])/fd)));
     }
@@ -5122,7 +5129,8 @@ void ParOpt::checkGradients( double dh ){
 
     if (rank == opt_root){
       printf("\nHessian product test\n");
-      printf("Objective FD: %15.8e  Actual: %15.8e  Err: %8.2e  Rel err: %8.2e\n",
+      printf("Objective FD: %15.8e  Actual: %15.8e  \
+  Err: %8.2e  Rel err: %8.2e\n",
              fdnorm, hnorm, herr, herr/hnorm);
     }
 
@@ -5178,7 +5186,8 @@ void ParOpt::checkGradients( double dh ){
 
     if (rank == opt_root){
       printf("\nTranspose-equivalence\n");
-      printf("x^{T}*(J(x)*p): %8.2e  p*(J(x)^{T}*x): %8.2e  Err: %8.2e  Rel Err: %8.2e\n",
+      printf("x^{T}*(J(x)*p): %8.2e  p*(J(x)^{T}*x): %8.2e  \
+  Err: %8.2e  Rel Err: %8.2e\n",
              RealPart(d1), RealPart(d2), 
              fabs(RealPart(d1 - d2)), fabs(RealPart((d1 - d2)/d2)));
     }
