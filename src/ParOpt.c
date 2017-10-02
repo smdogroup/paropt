@@ -1197,10 +1197,10 @@ void ParOpt::computeKKTRes( double *max_prime,
   if (norm_type == PAROPT_INFTY_NORM){
     for ( int i = 0; i < ncon; i++ ){
       if (fabs(RealPart(rc[i])) > *max_infeas){
-	*max_infeas = fabs(RealPart(rc[i]));
+        *max_infeas = fabs(RealPart(rc[i]));
       }
       if (fabs(RealPart(rs[i])) > *max_dual){
-	*max_dual = fabs(RealPart(rs[i]));
+        *max_dual = fabs(RealPart(rs[i]));
       }
     }
   }
@@ -1245,7 +1245,7 @@ void ParOpt::computeKKTRes( double *max_prime,
     if (norm_type == PAROPT_INFTY_NORM){
       double dual_zl = rzl->maxabs();
       if (dual_zl > *max_dual){
-	*max_dual = dual_zl;
+        *max_dual = dual_zl;
       }
     }
     else if (norm_type == PAROPT_L1_NORM){
@@ -1273,7 +1273,7 @@ void ParOpt::computeKKTRes( double *max_prime,
     if (norm_type == PAROPT_INFTY_NORM){
       double dual_zu = rzu->maxabs();
       if (RealPart(dual_zu) > RealPart(*max_dual)){
-	*max_dual = dual_zu;
+        *max_dual = dual_zu;
       }
     }
     else if (norm_type == PAROPT_L1_NORM){
@@ -1300,7 +1300,7 @@ void ParOpt::computeKKTRes( double *max_prime,
     if (norm_type == PAROPT_INFTY_NORM){
       double dual_zw = rsw->maxabs();
       if (RealPart(dual_zw) > RealPart(*max_dual)){
-	*max_dual = dual_zw;
+        *max_dual = dual_zw;
       }
     }
     else if (norm_type == PAROPT_L1_NORM){

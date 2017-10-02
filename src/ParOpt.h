@@ -11,8 +11,8 @@
 #include "ParOptProblem.h"
 
 enum ParOptNormType { PAROPT_INFTY_NORM,
-		      PAROPT_L1_NORM,
-		      PAROPT_L2_NORM };
+                      PAROPT_L1_NORM,
+                      PAROPT_L2_NORM };
 
 /*
   ParOpt is a parallel optimizer implemented in C++ for large-scale 

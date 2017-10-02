@@ -36,7 +36,7 @@ class CompactQuasiNewton : public ParOptBase {
   // Get the information for the limited-memory BFGS update
   // ------------------------------------------------------
   virtual int getCompactMat( ParOptScalar *_b0, const ParOptScalar **_d,
-			     const ParOptScalar **_M, ParOptVec ***Z ) = 0;
+                             const ParOptScalar **_M, ParOptVec ***Z ) = 0;
 
   // Get the maximum size of the limited-memory BFGS
   // -----------------------------------------------
@@ -90,7 +90,7 @@ class LBFGS : public CompactQuasiNewton {
   // Get the information for the limited-memory BFGS update
   // ------------------------------------------------------
   int getCompactMat( ParOptScalar *_b0, const ParOptScalar **_d,
-		     const ParOptScalar **_M, ParOptVec ***Z );
+                     const ParOptScalar **_M, ParOptVec ***Z );
 
   // Get the maximum size of the limited-memory BFGS
   // -----------------------------------------------
@@ -160,7 +160,7 @@ class LSR1 : public CompactQuasiNewton {
   // Get the information for the limited-memory BFGS update
   // ------------------------------------------------------
   int getCompactMat( ParOptScalar *_b0, const ParOptScalar **_d,
-		     const ParOptScalar **_M, ParOptVec ***Z );
+                     const ParOptScalar **_M, ParOptVec ***Z );
 
   // Get the maximum size of the limited-memory BFGS
   // -----------------------------------------------
