@@ -38,4 +38,5 @@ ax2.set_ylabel('Optimality error')
 lns = l1+l2+l3
 labs = [l.get_label() for l in lns]
 ax1.legend(lns, labs, loc=0)
+plt.title(args.filename)
 plt.show()

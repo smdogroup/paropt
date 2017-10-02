@@ -718,4 +718,22 @@ cdef class pyParOpt:
    def readSolutionFile(self, char *filename):
       if filename is not None:
          return self.ptr.readSolutionFile(filename)
+
+cdef class pyMMA:
+   cdef ParOptMMA *ptr
+   def __cinit__(self, pyParOptProblemBase _prob):
+      self.ptr = new ParOptMMA(_prob.ptr)
+      self.ptr.incref()
+      return
       
+   def __dealloc__(self):
+      if self.ptr:
+         self.ptr.decref()
+      
+   def update(self):
+      self.ptr.update()
+            
+   def getOptimizedPoint(self):
+      cdef ParOptVec *x
+      self.ptr.getOptimizedPoint(&x)
+      return _init_PVec(x)

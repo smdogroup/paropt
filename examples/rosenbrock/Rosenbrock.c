@@ -1,10 +1,19 @@
 #include "ParOpt.h"
+#include "ParOptQuasiSeparable.h"
 #include "time.h"
+
 /*
   The following is a simple implementation of a scalable Rosenbrock
   function with constraints that can be used to test the parallel
   optimizer. 
 */
+
+ParOptScalar min2( ParOptScalar a, ParOptScalar b ){
+  if (a < b){
+    return a;
+  }
+  return b;
+}
 
 class Rosenbrock : public ParOptProblem {
  public:
@@ -37,13 +46,9 @@ class Rosenbrock : public ParOptProblem {
 
     // Set the design variable bounds
     for ( int i = 0; i < nvars; i++ ){
-      x[i] = -1.0 + i*0.01;
-      lb[i] = -1.5;
-
-      ub[i] = 1e20;
-      if (i % 2 == 0){
-        ub[i] = 0.5;
-      }
+      x[i] = -1.0;
+      lb[i] = -1.0;
+      ub[i] = 1.0;
     }
   }
   
@@ -73,10 +78,8 @@ class Rosenbrock : public ParOptProblem {
     MPI_Allreduce(&obj, fobj, 1, PAROPT_MPI_TYPE, MPI_SUM, comm);
     MPI_Allreduce(con, cons, 2, PAROPT_MPI_TYPE, MPI_SUM, comm);
 
-    int size; 
-    MPI_Comm_size(comm, &size);
-    cons[0] += 100*size*nvars;
-
+    cons[0] += 0.25;
+    cons[1] += 10.0;
     cons[0] *= scale;
     cons[1] *= scale;
 
@@ -217,7 +220,7 @@ int main( int argc, char* argv[] ){
   const char *prefix = NULL;
   char buff[512];
   for ( int k = 0; k < argc; k++ ){
-    if (sscanf(argv[k], "prefix=%s", &buff) == 1){
+    if (sscanf(argv[k], "prefix=%s", buff) == 1){
       prefix = buff;
     }
     if (sscanf(argv[k], "nvars=%d", &nvars) == 1){
@@ -233,14 +236,16 @@ int main( int argc, char* argv[] ){
   }
 
   // Allocate the Rosenbrock function
-  int nwcon = 5, nw = 5;
+  int nwcon = 0, nw = 5;
   int nwstart = 1, nwskip = 1;  
-  Rosenbrock * rosen = new Rosenbrock(comm, nvars-1,
-                                      nwcon, nwstart, nw, nwskip);
-  
+  Rosenbrock *rosen = new Rosenbrock(comm, nvars-1,
+                                     nwcon, nwstart, nw, nwskip);
+  rosen->incref();
+
   // Allocate the optimizer
   int max_lbfgs = 20;
-  ParOpt * opt = new ParOpt(rosen, max_lbfgs);
+  ParOpt *opt = new ParOpt(rosen, max_lbfgs);
+  opt->incref();
 
   opt->setGMRESSubspaceSize(30);
   opt->setNKSwitchTolerance(1e3);
@@ -265,8 +270,46 @@ int main( int argc, char* argv[] ){
     printf("Time taken: %f seconds \n", diff);
   }
 
-  delete rosen;
-  delete opt;
+  ParOptMMA *mma = new ParOptMMA(rosen);
+  mma->incref();
+
+  // Perform the optimization using MMA
+  for ( int i = 0; i < 1000; i++ ){
+    mma->update();
+  }
+  
+  ParOptScalar *x1, *x2;
+  ParOptVec *xvec1, *xvec2;
+  mma->getOptimizedPoint(&xvec1);
+  opt->getOptimizedPoint(&xvec2, NULL, NULL, NULL, NULL);
+  xvec1->getArray(&x1);
+  xvec2->getArray(&x2);
+  
+  for ( int i = 0; i < nvars-1; i++ ){
+    printf("x[%3d] mma: %15.5f  paropt: %15.5f\n", i, x1[i], x2[i]);
+  }
+
+  ParOptScalar fobj1, fobj2;
+  ParOptScalar c1[2], c2[2];
+  rosen->evalObjCon(xvec1, &fobj1, c1);
+  rosen->evalObjCon(xvec2, &fobj2, c2);
+
+  printf("c1 = %e %e\n", c1[0], c1[1]);
+  printf("c2 = %e %e\n", c2[0], c2[1]);
+
+  printf("MMA infeas = %e\n", 
+         sqrt(min2(0.0, c1[0])*min2(0.0, c1[0]) +
+              min2(0.0, c1[1])*min2(0.0, c1[1])));
+  printf("ParOpt infeas = %e\n", 
+         sqrt(min2(0.0, c2[0])*min2(0.0, c2[0]) +
+              min2(0.0, c2[1])*min2(0.0, c2[1])));
+              
+  printf("Objective: mma: %15.5f  paropt: %15.5f\n",
+         fobj1, fobj2);
+
+  opt->decref(); 
+  mma->decref();
+  rosen->decref();
 
   MPI_Finalize();
   return (0);

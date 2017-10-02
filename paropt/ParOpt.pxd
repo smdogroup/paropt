@@ -176,6 +176,12 @@ cdef extern from "ParOpt.h":
       int writeSolutionFile(const char *filename)
       int readSolutionFile(const char *filename)
 
+cdef extern from "ParOptQuasiSeparable.h":
+   cdef cppclass ParOptMMA(ParOptBase):
+      ParOptMMA(ParOptProblem*)
+      int update()
+      void getOptimizedPoint(ParOptVec**)
+
 cdef class pyParOptProblemBase:
    cdef ParOptProblem *ptr
 

@@ -23,6 +23,9 @@ class ParOptMMA : public ParOptBase {
   // Update the problem
   int update();
 
+  // Get the optimized point
+  void getOptimizedPoint( ParOptVec **x );
+
  private:
   // Initialize the data
   void initialize();
@@ -33,6 +36,7 @@ class ParOptMMA : public ParOptBase {
   // Solve the dual problem
   void solveDual();
 
+  // Evaluate the dual gradient/hessian
   void evalDualGradient( ParOptScalar *grad, ParOptScalar *H,
                          ParOptScalar *x, ParOptScalar *ys,
                          const ParOptScalar *lambda,
