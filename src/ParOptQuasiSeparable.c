@@ -185,13 +185,6 @@ int ParOptMMA::update(){
 }
 
 /*
-  Get the optimized point
-*/
-void ParOptMMA::getOptimizedPoint( ParOptVec **_x ){
-  *_x = xvec;
-}
-
-/*
   Evaluate the gradient and Hessian of the dual sub-problem.
 
   This is collective on all processors. The function overwrites 
@@ -220,7 +213,7 @@ void ParOptMMA::evalDualGradient( ParOptScalar *grad,
   for ( int i = 0; i < m; i++ ){
     ys[i] = 0.0;
     if (lambda[i] > c[i]){
-      ys[i] = lambda[i] - c[i];
+      ys[i] = cons[i];
     }
   }
 
@@ -248,7 +241,7 @@ void ParOptMMA::evalDualGradient( ParOptScalar *grad,
     else if (x[j] > beta[j]){
       x[j] = beta[j];
     }
-    else {   
+    else {
       ParOptScalar Uinv = 1.0/(U[j] - x[j]);
       ParOptScalar Linv = 1.0/(x[j] - L[j]);
       for ( int i = 0; i < m; i++ ){
@@ -265,7 +258,7 @@ void ParOptMMA::evalDualGradient( ParOptScalar *grad,
       }
     }
   }
-  
+
   delete [] tmp;
 
   // Sum up the gradient contribution from all processors
@@ -275,10 +268,6 @@ void ParOptMMA::evalDualGradient( ParOptScalar *grad,
   // Complete the contribution to the gradient
   for ( int i = 0; i < m; i++ ){
     grad[i] -= b[i] + ys[i];
-
-    if (lambda[i] > c[i]){
-      H[i*(m+1)] -= 1.0;
-    }
   }
 }
 
@@ -328,7 +317,7 @@ void ParOptMMA::solveDual(){
   // Allocate the vector for the dual variables
   ParOptScalar *lambda = new ParOptScalar[ m ];
   for ( int i = 0; i < m; i++ ){
-    lambda[i] = 0.5*c[i];
+    lambda[i] = 10.0;
   }
 
   // Set the gradient and Hessian
@@ -343,34 +332,17 @@ void ParOptMMA::solveDual(){
   int *ipiv = new int[ m ];
 
   // Set the initial barrier parameter
-  double tol = 1e-9;
   int max_outer_iters = 20;
   int max_newton_iters = 100;
   double barrier = 1.0;
   double tau = 0.95;
-
-  // Get the MPI comm rank
-  int rank;
-  MPI_Comm_rank(comm, &rank);
-
-  if (rank == 0){
-    printf("%5s %5s %9s %9s %9s\n",
-           "MMA", "Iter", "barrier", "max step", "norm");
-  }
 
   for ( int outer = 0; outer < max_outer_iters; outer++ ){
     for ( int k = 0; k < max_newton_iters; k++ ){
       evalDualGradient(grad, H, x, y, lambda, p0, q0, pi, qi,
                        L, U, alpha, beta);
 
-      // Add the terms from the barrier, enforcing lambda >= 0
-      for ( int i = 0; i < m; i++ ){
-        grad[i] = -(grad[i] + barrier/lambda[i]);
-        H[i*(m+1)] -= barrier/(lambda[i]*lambda[i]);
-      }
-
-      // Check the norm of the gradient, including the barrier
-      // term to check for convergence
+      // Check the norm
       ParOptScalar res_norm = 0.0;
       for ( int i = 0; i < m; i++ ){
         ParOptScalar t = fabs(RealPart(grad[i])); 
@@ -382,10 +354,14 @@ void ParOptMMA::solveDual(){
         }
       }
 
-      if (res_norm < 10*barrier){
-        printf("%5d %5d %9.2e %9s %9.2e\n",
-               mma_iter, k, barrier, " ", res_norm);
+      if (res_norm < 10.0*barrier){
         break;
+      }
+
+      // Add the terms from the barrier, enforcing lambda >= 0
+      for ( int i = 0; i < m; i++ ){
+        grad[i] = -grad[i] - barrier/lambda[i];
+        H[i*(m+1)] -= barrier/(lambda[i]*lambda[i]);
       }
 
       // Compute the step length by solving the system of equations
@@ -406,23 +382,14 @@ void ParOptMMA::solveDual(){
         }
       }
 
-      if (rank == 0){
-        printf("%5d %5d %9.2e %9.2e %9.2e\n",
-               mma_iter, k, barrier, max_step, res_norm);
-      }
-
       // Update the multipliers
       for ( int i = 0; i < m; i++ ){
         lambda[i] += max_step*grad[i];
       }
     }
 
-    if (barrier < tol){
-      break;
-    }
-
     // Reduce the barrier parameter
-    barrier *= 0.1;
+    barrier *= 0.25;
   }
 
   delete [] grad;
@@ -466,8 +433,8 @@ void ParOptMMA::initSubProblem( int iter ){
   // Set all of the asymptote values
   if (iter < 2){
     for ( int j = 0; j < n; j++ ){
-      L[j] = x[j] - (ub[j] - lb[j]);
-      U[j] = x[j] + (ub[j] - lb[j]);
+      L[j] = x[j] - 0.5*(x[j] - lb[j]);
+      U[j] = x[j] + 0.5*(ub[j] - x[j]);
     }
   }
   else {
@@ -533,12 +500,12 @@ void ParOptMMA::initSubProblem( int iter ){
 
     // Compute the coefficients for the objective
     p0[j] = max2(0.0, g[j])*(U[j] - x[j])*(U[j] - x[j]);
-    q0[j] = -min2(0.0, g[j])*(x[j] - L[j])*(x[j] - L[j]);
+    q0[j] = min2(0.0, g[j])*(x[j] - L[j])*(x[j] - L[j]);
 
     // Compute the coefficients for the constraints
     for ( int i = 0; i < m; i++ ){
       pi[i][j] = max2(0.0, A[i][j])*(U[j] - x[j])*(U[j] - x[j]);
-      qi[i][j] = -min2(0.0, A[i][j])*(x[j] - L[j])*(x[j] - L[j]);
+      qi[i][j] = min2(0.0, A[i][j])*(x[j] - L[j])*(x[j] - L[j]);
     }
   }
 
