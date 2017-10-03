@@ -47,7 +47,7 @@ class Rosenbrock : public ParOptProblem {
     // Set the design variable bounds
     for ( int i = 0; i < nvars; i++ ){
       x[i] = -1.0;
-      lb[i] = -1.0;
+      lb[i] = -2.0;
       ub[i] = 1.0;
     }
   }
@@ -253,6 +253,7 @@ int main( int argc, char* argv[] ){
   opt->setUseHvecProduct(1);
   opt->setMaxMajorIterations(1500);
   opt->setOutputFrequency(1);
+  opt->setOutputFile("paropt.out");
   
   // Set the checkpoint file
   double start = MPI_Wtime();
@@ -267,45 +268,50 @@ int main( int argc, char* argv[] ){
   double diff = MPI_Wtime() - start;
 
   if (mpi_rank == 0){
-    printf("Time taken: %f seconds \n", diff);
+    printf("ParOpt time: %f seconds \n", diff);
   }
 
   ParOptMMA *mma = new ParOptMMA(rosen);
   mma->incref();
+  mma->setPrintLevel(1);
+  mma->setOutputFile("mma.out");
 
   // Perform the optimization using MMA
-  for ( int i = 0; i < 1000; i++ ){
+  int max_mma_iters = 1000;
+  for ( int i = 0; i < max_mma_iters; i++ ){
     mma->update();
+
+    double l1, linfty, infeas;
+    mma->computeKKTError(&l1, &linfty, &infeas);
+    if (l1 < 1e-3 && infeas < 1e-3){
+      break;
+    }
   }
   
   ParOptScalar *x1, *x2;
   ParOptVec *xvec1, *xvec2;
   mma->getOptimizedPoint(&xvec1);
   opt->getOptimizedPoint(&xvec2, NULL, NULL, NULL, NULL);
-  xvec1->getArray(&x1);
-  xvec2->getArray(&x2);
-  
-  for ( int i = 0; i < nvars-1; i++ ){
-    printf("x[%3d] mma: %15.5f  paropt: %15.5f\n", i, x1[i], x2[i]);
-  }
 
   ParOptScalar fobj1, fobj2;
   ParOptScalar c1[2], c2[2];
   rosen->evalObjCon(xvec1, &fobj1, c1);
   rosen->evalObjCon(xvec2, &fobj2, c2);
 
-  printf("c1 = %e %e\n", c1[0], c1[1]);
-  printf("c2 = %e %e\n", c2[0], c2[1]);
-
-  printf("MMA infeas = %e\n", 
-         sqrt(min2(0.0, c1[0])*min2(0.0, c1[0]) +
-              min2(0.0, c1[1])*min2(0.0, c1[1])));
-  printf("ParOpt infeas = %e\n", 
-         sqrt(min2(0.0, c2[0])*min2(0.0, c2[0]) +
-              min2(0.0, c2[1])*min2(0.0, c2[1])));
-              
-  printf("Objective: mma: %15.5f  paropt: %15.5f\n",
-         fobj1, fobj2);
+  // Take the difference of the two optimized points
+  xvec1->axpy(-1.0, xvec2);
+  ParOptScalar err = xvec1->norm();
+  if (mpi_rank == 0){
+    printf("Difference = %e\n", err);
+    printf("MMA infeas = %e\n", 
+           sqrt(min2(0.0, c1[0])*min2(0.0, c1[0]) +
+                min2(0.0, c1[1])*min2(0.0, c1[1])));
+    printf("ParOpt infeas = %e\n", 
+           sqrt(min2(0.0, c2[0])*min2(0.0, c2[0]) +
+                min2(0.0, c2[1])*min2(0.0, c2[1])));
+    printf("Objective: mma: %15.5f  paropt: %15.5f\n",
+           fobj1, fobj2);
+  }
 
   opt->decref(); 
   mma->decref();

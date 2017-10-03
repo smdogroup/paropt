@@ -6,13 +6,14 @@
 */
 
 #include "ParOptProblem.h"
+#include <stdio.h>
 
 /*
   The following code can be used to set up and solve a quasi-separable
   approximation of the given ParOptProblem. This code is designed to
-  be used to implement MMA-type methods that also include sparse constraints.
-  Each separable approximation is convex, enabling the efficient use
-  of Hessian-vector products.
+  be used to implement MMA-type methods that also include sparse
+  constraints.  Each separable approximation is convex, enabling the
+  efficient use of Hessian-vector products.
 */
 
 class ParOptMMA : public ParOptBase {
@@ -26,6 +27,15 @@ class ParOptMMA : public ParOptBase {
   // Get the optimized point
   void getOptimizedPoint( ParOptVec **x );
 
+  // Compute the KKT error
+  void computeKKTError( double *l1, double *linfty, double *infeas );
+
+  // Set the print level
+  void setPrintLevel( int _print_level );
+
+  // Set the output file (only on the root proc)
+  void setOutputFile( const char *filename );
+
  private:
   // Initialize the data
   void initialize();
@@ -34,7 +44,7 @@ class ParOptMMA : public ParOptBase {
   void initSubProblem( int iter );
 
   // Solve the dual problem
-  void solveDual();
+  int solveDual();
 
   // Evaluate the dual gradient/hessian
   void evalDualGradient( ParOptScalar *grad, ParOptScalar *H,
@@ -49,14 +59,22 @@ class ParOptMMA : public ParOptBase {
                          const ParOptScalar *alpha,
                          const ParOptScalar *beta );
 
+  // File pointer for the summary file - depending on the settings
+  FILE *fp;
+
+  // Settings for what to write out to a file or not...
+  int print_level; // == 0 => no print, 1 MMA iters, 2 MMA+subproblem
+
   // Communicator for this problem
   MPI_Comm comm;
 
   // Parameters used in the problem
   double asymptote_relax; // Relaxation coefficient default = 0.9
+  double bound_relax; // Relax the bound when computing the KKT err
 
   // Keep track of the number of iterations
   int mma_iter;
+  int subproblem_iter;
 
   int m; // The number of constraints (global)
   int n; // The number of design variables (local)
@@ -83,6 +101,12 @@ class ParOptMMA : public ParOptBase {
   // The coefficients for the approximation
   ParOptVec *p0vec, *q0vec; // The objective coefs
   ParOptVec **pivecs, **qivecs; // The constraint coefs
+
+  // The multiplier variables
+  ParOptScalar *lambda;
+  
+  // The slack variables
+  ParOptScalar *y;
 
   // The right-hand side for the constraints in the subproblem
   ParOptScalar *b;
