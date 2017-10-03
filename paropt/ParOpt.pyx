@@ -732,8 +732,19 @@ cdef class pyMMA:
       
    def update(self):
       self.ptr.update()
+
+   def getOptimality(self):
+      cdef double l1, linfty, infeas
+      self.ptr.computeKKTError(&l1, &linfty, &infeas)
+      return l1, linfty, infeas
             
    def getOptimizedPoint(self):
       cdef ParOptVec *x
       self.ptr.getOptimizedPoint(&x)
       return _init_PVec(x)
+
+   def setPrintLevel(self, int level):
+      self.ptr.setPrintLevel(level)
+
+   def setOutputFile(self, char *filename):
+      self.ptr.setOutputFile(filename)
