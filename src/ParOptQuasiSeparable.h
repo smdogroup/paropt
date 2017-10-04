@@ -27,11 +27,22 @@ class ParOptMMA : public ParOptBase {
   // Get the optimized point
   void getOptimizedPoint( ParOptVec **x );
 
+  // Get the asymptotes
+  void getAsymptotes( ParOptVec **_L, ParOptVec **_U );
+
   // Compute the KKT error
   void computeKKTError( double *l1, double *linfty, double *infeas );
 
   // Set the print level
   void setPrintLevel( int _print_level );
+
+  // Set parameters in the optimizer
+  void setAsymptoteContract( double val );
+  void setAsymptoteRelax( double val );
+  void setInitAsymptoteOffset( double val );
+  void setMinAsymptoteOffset( double val );
+  void setMaxAsymptoteOffset( double val );
+  void setBoundRelax( double val );
 
   // Set the output file (only on the root proc)
   void setOutputFile( const char *filename );
@@ -71,7 +82,9 @@ class ParOptMMA : public ParOptBase {
   // Parameters used in the problem
   double asymptote_contract; // Contract the asymptotes
   double asymptote_relax; // Relax the coefficient
-  double asymptote_offset; // Enforce a minimum fraction offset
+  double init_asymptote_offset; // The initial asymptote offset
+  double min_asymptote_offset; // Enforce a minimum fraction offset
+  double max_asymptote_offset; // Enforce a minimum fraction offset
   double bound_relax; // Relax the bound when computing the KKT error
 
   // Keep track of the number of iterations
@@ -106,7 +119,7 @@ class ParOptMMA : public ParOptBase {
 
   // The multiplier variables
   ParOptScalar *lambda;
-  ParOptScalar *theta;
+  ParOptScalar *zlb;
   
   // The slack variables
   ParOptScalar *y;

@@ -181,10 +181,17 @@ cdef extern from "ParOptQuasiSeparable.h":
       ParOptMMA(ParOptProblem*)
       int update()
       void getOptimizedPoint(ParOptVec**)
+      void getAsymptotes(ParOptVec**, ParOptVec**)
       void computeKKTError(double*, double*, double*)
       void setPrintLevel(int)
       void setOutputFile(const char*)
-      
+      void setAsymptoteContract(double)
+      void setAsymptoteRelax(double)
+      void setInitAsymptoteOffset(double)
+      void setMinAsymptoteOffset(double)
+      void setMaxAsymptoteOffset(double)
+      void setBoundRelax(double)
+
 cdef class pyParOptProblemBase:
    cdef ParOptProblem *ptr
 

@@ -35,7 +35,9 @@ ParOptMMA::ParOptMMA( ParOptProblem *_prob ){
   // Set default parameters
   asymptote_contract = 0.7;
   asymptote_relax = 1.2;
-  asymptote_offset = 1e-8;
+  init_asymptote_offset = 0.25;
+  min_asymptote_offset = 1e-8;
+  max_asymptote_offset = 100.0;
   bound_relax = 1e-5;
 
   // Set the file pointer to NULL
@@ -76,7 +78,7 @@ ParOptMMA::~ParOptMMA(){
 
   delete [] c;
   delete [] lambda;
-  delete [] theta;
+  delete [] zlb;
   delete [] y;
   xvec->decref();
   x1vec->decref();
@@ -114,6 +116,56 @@ void ParOptMMA::setPrintLevel( int _print_level ){
 }
 
 /*
+  Set the asymptote contraction factor
+*/
+void ParOptMMA::setAsymptoteContract( double val ){
+  if (val < 1.0){
+    asymptote_contract = val;
+  }
+}
+
+/*
+  Set the asymptote relaxation factor
+*/
+void ParOptMMA::setAsymptoteRelax( double val ){
+  if (val > 1.0){
+    asymptote_relax = val;
+  }
+}
+
+/*
+  Set the initial asymptote factor
+*/
+void ParOptMMA::setInitAsymptoteOffset( double val ){
+  init_asymptote_offset = val;
+}
+
+/*
+  Set the minimum asymptote offset
+*/
+void ParOptMMA::setMinAsymptoteOffset( double val ){
+  if (val < 1.0){
+    min_asymptote_offset = val;
+  }
+}
+
+/*
+  Set the maximum asymptote offset
+*/
+void ParOptMMA::setMaxAsymptoteOffset( double val ){
+  if (val > 1.0){
+    max_asymptote_offset = val;
+  }
+}
+ 
+/*
+  Set the bound relaxation factor
+*/
+void ParOptMMA::setBoundRelax( double val ){
+  bound_relax;
+}
+
+/*
   Set the output file (only on the root proc)
 */
 void ParOptMMA::setOutputFile( const char *filename ){
@@ -133,14 +185,19 @@ void ParOptMMA::setOutputFile( const char *filename ){
 void ParOptMMA::initialize(){
   // Allocate initial values for the penalty parameters
   c = new ParOptScalar[ m ];
+
+  // The Lagrange multipliers for the dual problem
+  // and their multipliers for the lower/upper bounds
   lambda = new ParOptScalar[ m ];
-  theta = new ParOptScalar[ m ];
+  zlb = new ParOptScalar[ m ];
+
+  // The constraint infeasibility
   y = new ParOptScalar[ m ];
 
   for ( int i = 0; i < m; i++ ){
     c[i] = 1000.0;
     lambda[i] = 10.0;
-    theta[i] = 1.0;
+    zlb[i] = 1.0;
     y[i] = 0.0;
   }
 
@@ -335,6 +392,18 @@ void ParOptMMA::getOptimizedPoint( ParOptVec **_x ){
 }
 
 /*
+  Get the asymptotes themselves
+*/
+void ParOptMMA::getAsymptotes( ParOptVec **_L, ParOptVec **_U ){
+  if (_L){
+    *_L = Lvec;
+  }
+  if (_U){
+    *_U = Uvec;
+  }
+}
+
+/*
   Evaluate the gradient and Hessian of the dual sub-problem.
 
   This is collective on all processors. The function overwrites the
@@ -362,10 +431,9 @@ void ParOptMMA::evalDualGradient( ParOptScalar *grad,
   // Allocate a temporary vector 
   ParOptScalar *tmp = new ParOptScalar[ m ];
 
-  // Adjust
   for ( int i = 0; i < m; i++ ){
     ys[i] = 0.0;
-    if (lam[i] >= c[i]){
+    if (lam[i] > c[i]){
       ys[i] = lam[i] - c[i];
     }
   }
@@ -385,20 +453,24 @@ void ParOptMMA::evalDualGradient( ParOptScalar *grad,
     sU = sqrt(sU);
     x[j] = (sL*L[j] + sU*U[j])/(sL + sU);
 
+    int at_bounds = 0;
     if (x[j] <= alpha[j]){
+      at_bounds = 1;
       x[j] = alpha[j];
     }
     else if (x[j] >= beta[j]){
+      at_bounds = 1;
       x[j] = beta[j];
     }
-    else {
-      ParOptScalar Uinv = 1.0/(U[j] - x[j]);
-      ParOptScalar Linv = 1.0/(x[j] - L[j]);
-      for ( int i = 0; i < m; i++ ){
-        grad[i] += Uinv*pi[i][j] + Linv*qi[i][j];
-        tmp[i] = Uinv*Uinv*pi[i][j] - Linv*Linv*qi[i][j];
-      }
-      
+
+    ParOptScalar Uinv = 1.0/(U[j] - x[j]);
+    ParOptScalar Linv = 1.0/(x[j] - L[j]);
+    for ( int i = 0; i < m; i++ ){
+      grad[i] += Uinv*pi[i][j] + Linv*qi[i][j];
+      tmp[i] = Uinv*Uinv*pi[i][j] - Linv*Linv*qi[i][j];
+    }
+    
+    if (!at_bounds){
       ParOptScalar scale = 
         -0.5/(sL*sL*Uinv*Uinv*Uinv + sU*sU*Linv*Linv*Linv);
       for ( int ii = 0; ii < m; ii++ ){
@@ -415,10 +487,9 @@ void ParOptMMA::evalDualGradient( ParOptScalar *grad,
   MPI_Allreduce(MPI_IN_PLACE, grad, m, PAROPT_MPI_TYPE, MPI_SUM, comm);
   MPI_Allreduce(MPI_IN_PLACE, H, m*m, PAROPT_MPI_TYPE, MPI_SUM, comm);
 
-  // Complete the contribution to the gradient
   for ( int i = 0; i < m; i++ ){
     grad[i] -= b[i] + ys[i];
-    if (lam[i] >= c[i]){
+    if (lam[i] > c[i]){
       H[i*(m+1)] -= 1.0;
     }
   }
@@ -465,15 +536,15 @@ int ParOptMMA::solveDual(){
   // Set the dual variables
   for ( int i = 0; i < m; i++ ){
     lambda[i] = 0.5*c[i];
-    theta[i] = 1.0;
+    zlb[i] = 1.0;
   }
 
   // Set the gradient and Hessian
   ParOptScalar *grad = new ParOptScalar[ m ];
   ParOptScalar *H = new ParOptScalar[ m*m ];
 
-  // Allocate the step for the multipliers
-  ParOptScalar *dtheta = new ParOptScalar[ m ];
+  // Allocate the multiplier step
+  ParOptScalar *pzlb = new ParOptScalar[ m ];
 
   // Get the values of the design variables
   ParOptScalar *x;
@@ -483,6 +554,7 @@ int ParOptMMA::solveDual(){
   int *ipiv = new int[ m ];
 
   // Set the initial barrier parameter
+  double abs_step_tol = 1e-12;
   double tol = 1e-8;
   int max_outer_iters = 20;
   int max_newton_iters = 100;
@@ -518,14 +590,14 @@ int ParOptMMA::solveDual(){
       // Add the terms from the barrier, enforcing lambda >= 0
       for ( int i = 0; i < m; i++ ){
         grad[i] = -(grad[i] + barrier/lambda[i]);
-        H[i*(m+1)] -= theta[i]/lambda[i];
+        H[i*(m+1)] -= zlb[i]/lambda[i];
       }
 
       // Check the norm of the gradient, including the barrier
       // term to check for convergence
-      ParOptScalar res_norm = 0.0;
+      double res_norm = 0.0;
       for ( int i = 0; i < m; i++ ){
-        ParOptScalar t = fabs(RealPart(grad[i])); 
+        double t = fabs(RealPart(grad[i])); 
         if (i == 0){
           res_norm = t;
         }
@@ -534,7 +606,7 @@ int ParOptMMA::solveDual(){
         }
       }
 
-      if (res_norm < 10.0*barrier){
+      if (res_norm < barrier){
         if (fp && print_level > 1){
           fprintf(fp, "%5d %8d %5d %9.3e %9s %9.3e\n",
                   mma_iter, subproblem_iter, k, barrier, " ", res_norm);
@@ -584,12 +656,25 @@ int ParOptMMA::solveDual(){
       // Use the factorization
       LAPACKdgetrs("N", &m, &one, H, &m, ipiv, grad, &m, &info);
 
+      // Check the norm of the step
+      double step_norm = 0.0;
+      for ( int i = 0; i < m; i++ ){
+        double t = fabs(RealPart(grad[i])); 
+        if (i == 0){
+          step_norm = t;
+        }
+        else if (t > res_norm){
+          step_norm = t;
+        }
+      }
+
       // Increase the number of sub-iterations
       subproblem_iter++;
 
       // Compute the step in the multipliers
       for ( int i = 0; i < m; i++ ){
-        dtheta[i] = -theta[i] + (barrier - grad[i]*theta[i])/lambda[i];
+        // zlb*plam + lam*pzlb = -(zlb*lam - barrier)
+        pzlb[i] = -zlb[i] + (barrier - grad[i]*zlb[i])/lambda[i];
       }
 
       // Truncate the step length, depending on the
@@ -602,8 +687,8 @@ int ParOptMMA::solveDual(){
             max_step = step;
           }
         }
-        if (dtheta[i] < 0.0){
-          double step = -tau*RealPart(theta[i]/dtheta[i]);
+        if (pzlb[i] < 0.0){
+          double step = -tau*RealPart(zlb[i]/pzlb[i]);
           if (step < max_step){
             max_step = step;
           }
@@ -624,7 +709,7 @@ int ParOptMMA::solveDual(){
       // Update the multipliers
       for ( int i = 0; i < m; i++ ){
         lambda[i] += max_step*grad[i];
-        theta[i] += max_step*dtheta[i];
+        zlb[i] += max_step*pzlb[i];
       }
     }
 
@@ -643,6 +728,10 @@ int ParOptMMA::solveDual(){
       for ( int i = 0; i < m; i++ ){
         fprintf(fp, "%4d %15.8e\n", i, lambda[i]);
       }
+      fprintf(fp, "\n%4s %15s\n", " ", "zlb");
+      for ( int i = 0; i < m; i++ ){
+        fprintf(fp, "%4d %15.8e\n", i, zlb[i]);
+      }
       fprintf(fp, "\n%4s %15s\n", " ", "y");
       for ( int i = 0; i < m; i++ ){
         fprintf(fp, "%4d %15.8e\n", i, y[i]);
@@ -655,10 +744,6 @@ int ParOptMMA::solveDual(){
       for ( int i = 0; i < m; i++ ){
         fprintf(fp, "%4d %15.8e\n", i, b[i]);
       }
-      fprintf(fp, "\n%4s %15s\n", " ", "grad");
-      for ( int i = 0; i < m; i++ ){
-        fprintf(fp, "%4d %15.8e\n", i, grad[i]);
-      }
     }
   }
 
@@ -667,7 +752,7 @@ int ParOptMMA::solveDual(){
   delete [] ipiv;
   delete [] pi;
   delete [] qi;
-  delete [] dtheta;
+  delete [] pzlb;
 }
 
 /*
@@ -698,8 +783,8 @@ void ParOptMMA::initSubProblem( int iter ){
   // Set all of the asymptote values
   if (iter < 2){
     for ( int j = 0; j < n; j++ ){
-      L[j] = x[j] - (ub[j] - lb[j]);
-      U[j] = x[j] + (ub[j] - lb[j]);
+      L[j] = x[j] - init_asymptote_offset*(ub[j] - lb[j]);
+      U[j] = x[j] + init_asymptote_offset*(ub[j] - lb[j]);
     }
   }
   else {
@@ -731,8 +816,13 @@ void ParOptMMA::initSubProblem( int iter ){
 
       // Ensure that the asymptotes do not converge entirely on the
       // design value
-      L[j] = min2(L[j], x[j] - asymptote_offset*intrvl);
-      U[j] = max2(U[j], x[j] + asymptote_offset*intrvl);
+      L[j] = min2(L[j], x[j] - min_asymptote_offset*intrvl);
+      U[j] = max2(U[j], x[j] + min_asymptote_offset*intrvl);
+
+      // Enforce a maximum offset so that the asymptotes do not
+      // move too far away from the design variables
+      L[j] = max2(L[j], x[j] - max_asymptote_offset*intrvl);
+      U[j] = min2(U[j], x[j] + max_asymptote_offset*intrvl);
     }
   }
 

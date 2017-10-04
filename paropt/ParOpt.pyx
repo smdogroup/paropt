@@ -743,8 +743,32 @@ cdef class pyMMA:
       self.ptr.getOptimizedPoint(&x)
       return _init_PVec(x)
 
+   def getAsymptotes(self):
+      cdef ParOptVec *L = NULL
+      cdef ParOptVec *U = NULL
+      self.ptr.getAsymptotes(&L, &U)
+      return _init_PVec(L), _init_PVec(U)
+
    def setPrintLevel(self, int level):
       self.ptr.setPrintLevel(level)
 
    def setOutputFile(self, char *filename):
       self.ptr.setOutputFile(filename)
+
+   def setAsymptoteContract(self, double val):
+      self.ptr.setAsymptoteContract(val)
+
+   def setAsymptoteRelax(self, double val):
+      self.ptr.setAsymptoteRelax(val)
+
+   def setInitAsymptoteOffset(self, double val):
+      self.ptr.setInitAsymptoteOffset(val)
+
+   def setMinAsymptoteOffset(self, double val):
+      self.ptr.setMinAsymptoteOffset(val)
+
+   def setMaxAsymptoteOffset(self, double val):
+      self.ptr.setMaxAsymptoteOffset(val)
+
+   def setBoundRelax(self, double val):
+      self.ptr.setBoundRelax(val)
