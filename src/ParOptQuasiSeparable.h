@@ -69,8 +69,10 @@ class ParOptMMA : public ParOptBase {
   MPI_Comm comm;
 
   // Parameters used in the problem
-  double asymptote_relax; // Relaxation coefficient default = 0.9
-  double bound_relax; // Relax the bound when computing the KKT err
+  double asymptote_contract; // Contract the asymptotes
+  double asymptote_relax; // Relax the coefficient
+  double asymptote_offset; // Enforce a minimum fraction offset
+  double bound_relax; // Relax the bound when computing the KKT error
 
   // Keep track of the number of iterations
   int mma_iter;

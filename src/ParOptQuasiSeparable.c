@@ -33,7 +33,9 @@ ParOptMMA::ParOptMMA( ParOptProblem *_prob ){
   comm = prob->getMPIComm();
 
   // Set default parameters
-  asymptote_relax = 0.7;
+  asymptote_contract = 0.7;
+  asymptote_relax = 1.2;
+  asymptote_offset = 1e-8;
   bound_relax = 1e-5;
 
   // Set the file pointer to NULL
@@ -693,10 +695,6 @@ void ParOptMMA::initSubProblem( int iter ){
   lbvec->getArray(&lb);
   ubvec->getArray(&ub);
 
-  // Set the assymptote relaxation factors
-  const double s = asymptote_relax;
-  const double sinv = 1.0/asymptote_relax;
-
   // Set all of the asymptote values
   if (iter < 2){
     for ( int j = 0; j < n; j++ ){
@@ -722,18 +720,19 @@ void ParOptMMA::initSubProblem( int iter ){
 
       if (RealPart(indc) < 0.0){
         // oscillation -> contract the asymptotes
-        L[j] = x[j] - s*(x1[j] - Lprev);
-        U[j] = x[j] + s*(Uprev - x1[j]);
+        L[j] = x[j] - asymptote_contract*(x1[j] - Lprev);
+        U[j] = x[j] + asymptote_contract*(Uprev - x1[j]);
       }
       else {
-        // Expand the asymptotes
-        L[j] = x[j] - sinv*(x1[j] - Lprev);
-        U[j] = x[j] + sinv*(Uprev - x1[j]);        
+        // Relax the asymptotes
+        L[j] = x[j] - asymptote_relax*(x1[j] - Lprev);
+        U[j] = x[j] + asymptote_relax*(Uprev - x1[j]);        
       }
 
-      double offset = 1e-4;
-      L[j] = min2(L[j], x[j] - offset*intrvl);
-      U[j] = max2(U[j], x[j] + offset*intrvl);
+      // Ensure that the asymptotes do not converge entirely on the
+      // design value
+      L[j] = min2(L[j], x[j] - asymptote_offset*intrvl);
+      U[j] = max2(U[j], x[j] + asymptote_offset*intrvl);
     }
   }
 
