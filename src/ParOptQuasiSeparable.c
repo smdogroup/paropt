@@ -217,13 +217,20 @@ int ParOptMMA::update(){
     computeKKTError(&l1, &linfty, &infeas);
     
     if (fp){
+      double l1_lambda = 0.0;
+      for ( int i = 0; i < m; i++ ){
+        l1_lambda += fabs(RealPart(lambda[i]));
+      }      
+
       if ((print_level == 1 && mma_iter % 10 == 0) ||
           (print_level > 1)){
-        fprintf(fp, "\n%5s %8s %15s %9s %9s %9s\n",
-                "MMA", "sub-iter", "fobj", "l1 opt", "linft opt", "infeas");
+        fprintf(fp, "\n%5s %8s %15s %9s %9s %9s %9s\n",
+                "MMA", "sub-iter", "fobj", "l1 opt", 
+                "linft opt", "l1 lambd", "infeas");
       }
-      fprintf(fp, "%5d %8d %15.6e %9.3e %9.3e %9.3e\n",
-              mma_iter, subproblem_iter, fobj, l1, linfty, infeas);
+      fprintf(fp, "%5d %8d %15.6e %9.3e %9.3e %9.3e %9.3e\n",
+              mma_iter, subproblem_iter, fobj, l1, 
+              linfty, l1_lambda, infeas);
     }
   }
 
@@ -346,11 +353,6 @@ void ParOptMMA::evalDualGradient( ParOptScalar *grad,
   memset(grad, 0, m*sizeof(ParOptScalar));
   memset(H, 0, m*m*sizeof(ParOptScalar));
 
-  // Set the value of the y variables based on the dual variables
-  for ( int i = 0; i < m; i++ ){
-    ys[i] = 0.0;
-  }
-
   // Allocate a temporary vector 
   ParOptScalar *tmp = new ParOptScalar[ m ];
 
@@ -401,7 +403,7 @@ void ParOptMMA::evalDualGradient( ParOptScalar *grad,
 
   // Complete the contribution to the gradient
   for ( int i = 0; i < m; i++ ){
-    grad[i] -= b[i] + ys[i];
+    grad[i] -= b[i];
   }
 }
 
@@ -463,7 +465,7 @@ int ParOptMMA::solveDual(){
   double tol = 1e-5;
   int max_outer_iters = 20;
   int max_newton_iters = 100;
-  double barrier = 1.0;
+  double barrier = 10.0;
   double tau = 0.95;
 
   if (fp && print_level > 1){
