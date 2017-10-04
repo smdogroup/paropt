@@ -104,6 +104,7 @@ class ParOptMMA : public ParOptBase {
 
   // The multiplier variables
   ParOptScalar *lambda;
+  ParOptScalar *theta;
   
   // The slack variables
   ParOptScalar *y;

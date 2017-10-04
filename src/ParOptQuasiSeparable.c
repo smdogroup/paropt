@@ -74,6 +74,7 @@ ParOptMMA::~ParOptMMA(){
 
   delete [] c;
   delete [] lambda;
+  delete [] theta;
   delete [] y;
   xvec->decref();
   x1vec->decref();
@@ -131,10 +132,13 @@ void ParOptMMA::initialize(){
   // Allocate initial values for the penalty parameters
   c = new ParOptScalar[ m ];
   lambda = new ParOptScalar[ m ];
+  theta = new ParOptScalar[ m ];
   y = new ParOptScalar[ m ];
+
   for ( int i = 0; i < m; i++ ){
     c[i] = 1000.0;
     lambda[i] = 10.0;
+    theta[i] = 1.0;
     y[i] = 0.0;
   }
 
@@ -356,6 +360,14 @@ void ParOptMMA::evalDualGradient( ParOptScalar *grad,
   // Allocate a temporary vector 
   ParOptScalar *tmp = new ParOptScalar[ m ];
 
+  // Adjust
+  for ( int i = 0; i < m; i++ ){
+    ys[i] = 0.0;
+    if (lam[i] >= c[i]){
+      ys[i] = lam[i] - c[i];
+    }
+  }
+
   // Compute the new values of x and the gradient
   // of the Lagrangian w.r.t. lam and the Hessian of
   // the Lagrangian based on  based on the
@@ -403,7 +415,10 @@ void ParOptMMA::evalDualGradient( ParOptScalar *grad,
 
   // Complete the contribution to the gradient
   for ( int i = 0; i < m; i++ ){
-    grad[i] -= b[i];
+    grad[i] -= b[i] + ys[i];
+    if (lam[i] >= c[i]){
+      H[i*(m+1)] -= 1.0;
+    }
   }
 }
 
@@ -448,11 +463,15 @@ int ParOptMMA::solveDual(){
   // Set the dual variables
   for ( int i = 0; i < m; i++ ){
     lambda[i] = 0.5*c[i];
+    theta[i] = 1.0;
   }
 
   // Set the gradient and Hessian
   ParOptScalar *grad = new ParOptScalar[ m ];
   ParOptScalar *H = new ParOptScalar[ m*m ];
+
+  // Allocate the step for the multipliers
+  ParOptScalar *dtheta = new ParOptScalar[ m ];
 
   // Get the values of the design variables
   ParOptScalar *x;
@@ -462,10 +481,10 @@ int ParOptMMA::solveDual(){
   int *ipiv = new int[ m ];
 
   // Set the initial barrier parameter
-  double tol = 1e-5;
+  double tol = 1e-8;
   int max_outer_iters = 20;
   int max_newton_iters = 100;
-  double barrier = 10.0;
+  double barrier = 1.0;
   double tau = 0.95;
 
   if (fp && print_level > 1){
@@ -496,12 +515,8 @@ int ParOptMMA::solveDual(){
 
       // Add the terms from the barrier, enforcing lambda >= 0
       for ( int i = 0; i < m; i++ ){
-        grad[i] = -(grad[i] + 
-                    barrier/lambda[i] -
-                    barrier/(c[i] - lambda[i]));
-        H[i*(m+1)] -= 
-          barrier*(1.0/(lambda[i]*lambda[i]) + 
-                   1.0/((c[i] - lambda[i])*(c[i] - lambda[i])));
+        grad[i] = -(grad[i] + barrier/lambda[i]);
+        H[i*(m+1)] -= theta[i]/lambda[i];
       }
 
       // Check the norm of the gradient, including the barrier
@@ -517,7 +532,7 @@ int ParOptMMA::solveDual(){
         }
       }
 
-      if (res_norm < 0.1*barrier){
+      if (res_norm < 10.0*barrier){
         if (fp && print_level > 1){
           fprintf(fp, "%5d %8d %5d %9.3e %9s %9.3e\n",
                   mma_iter, subproblem_iter, k, barrier, " ", res_norm);
@@ -530,10 +545,6 @@ int ParOptMMA::solveDual(){
           fprintf(fp, "\n%4s %15s\n", " ", "grad");
           for ( int i = 0; i < m; i++ ){
             fprintf(fp, "%4d %15.8e\n", i, grad[i]);
-          }
-          fprintf(fp, "\n%4s %15s\n", " ", "c");
-          for ( int i = 0; i < m; i++ ){
-            fprintf(fp, "%4d %15.8e\n", i, c[i]);
           }
           fprintf(fp, "\n%4s %4s %15s\n", " ", " ", "H");
           for ( int j = 0; j < m; j++ ){
@@ -574,6 +585,11 @@ int ParOptMMA::solveDual(){
       // Increase the number of sub-iterations
       subproblem_iter++;
 
+      // Compute the step in the multipliers
+      for ( int i = 0; i < m; i++ ){
+        dtheta[i] = -theta[i] + (barrier - grad[i]*theta[i])/lambda[i];
+      }
+
       // Truncate the step length, depending on the
       // step-to-the-boundary rule with tau as the factor
       double max_step = 1.0;
@@ -584,8 +600,8 @@ int ParOptMMA::solveDual(){
             max_step = step;
           }
         }
-        else if (grad[i] > 0.0){
-          double step = tau*RealPart((c[i] - lambda[i])/grad[i]);
+        if (dtheta[i] < 0.0){
+          double step = -tau*RealPart(theta[i]/dtheta[i]);
           if (step < max_step){
             max_step = step;
           }
@@ -606,6 +622,7 @@ int ParOptMMA::solveDual(){
       // Update the multipliers
       for ( int i = 0; i < m; i++ ){
         lambda[i] += max_step*grad[i];
+        theta[i] += max_step*dtheta[i];
       }
     }
 
@@ -648,6 +665,7 @@ int ParOptMMA::solveDual(){
   delete [] ipiv;
   delete [] pi;
   delete [] qi;
+  delete [] dtheta;
 }
 
 /*

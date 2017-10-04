@@ -62,7 +62,7 @@ class Rosenbrock : public ParOptProblem {
 
     for ( int i = 0; i < nvars-1; i++ ){
       obj += ((1.0 - x[i])*(1.0 - x[i]) + 
-	      100*(x[i+1] - x[i]*x[i])*(x[i+1] - x[i]*x[i]));
+              100*(x[i+1] - x[i]*x[i])*(x[i+1] - x[i]*x[i]));
     }
 
     ParOptScalar con[2];
@@ -97,7 +97,7 @@ class Rosenbrock : public ParOptProblem {
 
     for ( int i = 0; i < nvars-1; i++ ){
       g[i] += (-2.0*(1.0 - x[i]) + 
-	       200*(x[i+1] - x[i]*x[i])*(-2.0*x[i]));
+               200*(x[i+1] - x[i]*x[i])*(-2.0*x[i]));
       g[i+1] += 200*(x[i+1] - x[i]*x[i]);
     }
 
@@ -129,9 +129,8 @@ class Rosenbrock : public ParOptProblem {
 
     for ( int i = 0; i < nvars-1; i++ ){
       hvals[i] += (2.0*px[i] + 
-		   200*(x[i+1] - x[i]*x[i])*(-2.0*px[i]) +
-		   200*(px[i+1] - 2.0*x[i]*px[i])*(-2.0*x[i]));
-
+                   200*(x[i+1] - x[i]*x[i])*(-2.0*px[i]) +
+                   200*(px[i+1] - 2.0*x[i]*px[i])*(-2.0*x[i]));
       hvals[i+1] += 200*(px[i+1] - 2.0*x[i]*px[i]);
     }
 
@@ -277,7 +276,7 @@ int main( int argc, char* argv[] ){
   mma->setOutputFile("mma.out");
 
   // Perform the optimization using MMA
-  int max_mma_iters = 1000;
+  int max_mma_iters = 4000;
   for ( int i = 0; i < max_mma_iters; i++ ){
     mma->update();
 
