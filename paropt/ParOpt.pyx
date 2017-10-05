@@ -721,65 +721,62 @@ cdef class pyParOpt:
       if filename is not None:
          return self.ptr.readSolutionFile(filename)
 
-cdef class pyMMA:
-   cdef ParOptMMA *ptr
+cdef class pyMMA(pyParOptProblemBase):
+   cdef ParOptMMA *mma
    def __cinit__(self, pyParOptProblemBase _prob, use_mma=True):
       cdef int use_true_mma = 0
       if use_mma:
          use_true_mma = 1
-      self.ptr = new ParOptMMA(_prob.ptr, use_true_mma)
-      self.ptr.incref()
+      self.mma = new ParOptMMA(_prob.ptr, use_true_mma)
+      self.mma.incref()
+      self.ptr = self.mma
       return
-      
-   def __dealloc__(self):
-      if self.ptr:
-         self.ptr.decref()
-      
+            
    def update(self):
-      self.ptr.update()
+      self.mma.update()
 
    def getOptimality(self):
       cdef double l1, linfty, infeas
-      self.ptr.computeKKTError(&l1, &linfty, &infeas)
+      self.mma.computeKKTError(&l1, &linfty, &infeas)
       return l1, linfty, infeas
             
    def getOptimizedPoint(self):
       cdef ParOptVec *x
-      self.ptr.getOptimizedPoint(&x)
+      self.mma.getOptimizedPoint(&x)
       return _init_PVec(x)
 
    def getAsymptotes(self):
       cdef ParOptVec *L = NULL
       cdef ParOptVec *U = NULL
-      self.ptr.getAsymptotes(&L, &U)
+      self.mma.getAsymptotes(&L, &U)
       return _init_PVec(L), _init_PVec(U)
 
    def initializeSubProblem(self, PVec vec=None):
       cdef ParOptVec *v = NULL
       if vec is not None:
          v = vec.ptr
-      self.ptr.initializeSubProblem(vec.ptr)
+      self.mma.initializeSubProblem(v)
 
    def setPrintLevel(self, int level):
-      self.ptr.setPrintLevel(level)
+      self.mma.setPrintLevel(level)
 
    def setOutputFile(self, char *filename):
-      self.ptr.setOutputFile(filename)
+      self.mma.setOutputFile(filename)
 
    def setAsymptoteContract(self, double val):
-      self.ptr.setAsymptoteContract(val)
+      self.mma.setAsymptoteContract(val)
 
    def setAsymptoteRelax(self, double val):
-      self.ptr.setAsymptoteRelax(val)
+      self.mma.setAsymptoteRelax(val)
 
    def setInitAsymptoteOffset(self, double val):
-      self.ptr.setInitAsymptoteOffset(val)
+      self.mma.setInitAsymptoteOffset(val)
 
    def setMinAsymptoteOffset(self, double val):
-      self.ptr.setMinAsymptoteOffset(val)
+      self.mma.setMinAsymptoteOffset(val)
 
    def setMaxAsymptoteOffset(self, double val):
-      self.ptr.setMaxAsymptoteOffset(val)
+      self.mma.setMaxAsymptoteOffset(val)
 
    def setBoundRelax(self, double val):
-      self.ptr.setBoundRelax(val)
+      self.mma.setBoundRelax(val)

@@ -3807,12 +3807,14 @@ int ParOpt::optimize( const char *checkpoint ){
 
     // Set the factor to scale the residual
     double nfactor = 1.0;
+    /*
     if (norm_type == PAROPT_L1_NORM){
       nfactor = 1.0/nvars_total;
     }
     else if (norm_type == PAROPT_L2_NORM){
       nfactor = 1.0/sqrt(nvars_total);
     }
+    */
 
     // Set the flag to indicate whether the barrier problem has
     // converged

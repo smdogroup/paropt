@@ -177,7 +177,7 @@ cdef extern from "ParOpt.h":
       int readSolutionFile(const char *filename)
 
 cdef extern from "ParOptQuasiSeparable.h":
-   cdef cppclass ParOptMMA(ParOptBase):
+   cdef cppclass ParOptMMA(ParOptProblem):
       ParOptMMA(ParOptProblem*, int)
       int update()
       void getOptimizedPoint(ParOptVec**)
