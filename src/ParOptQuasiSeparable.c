@@ -25,7 +25,11 @@ inline ParOptScalar max2( ParOptScalar a, ParOptScalar b ){
 /*
   Create the ParOptMMA object
 */
-ParOptMMA::ParOptMMA( ParOptProblem *_prob ){
+ParOptMMA::ParOptMMA( ParOptProblem *_prob, int _use_true_mma ):
+ParOptProblem(_prob->getMPIComm()){
+  use_true_mma = _use_true_mma;
+
+  // Set the problem instance
   prob = _prob;
   prob->incref();
 
@@ -52,12 +56,13 @@ ParOptMMA::ParOptMMA( ParOptProblem *_prob ){
   }
 
   // Get the problem sizes
-  int nwcon, nwblock;
-  prob->getProblemSizes(&n, &m, &nwcon, &nwblock);
-  if (nwcon > 0){
+  int _nwcon, _nwblock;
+  prob->getProblemSizes(&n, &m, &_nwcon, &_nwblock);
+  if (use_true_mma && _nwcon > 0){
     fprintf(stderr, 
             "ParOptMMA warning: Cannot solve probs with weight constraints\n");
   }
+  setProblemSizes(n, m, _nwcon, _nwblock);
 
   // Set the iteration counter
   mma_iter = 0;
@@ -76,10 +81,6 @@ ParOptMMA::~ParOptMMA(){
   }
   prob->decref();
 
-  delete [] c;
-  delete [] lambda;
-  delete [] zlb;
-  delete [] y;
   xvec->decref();
   x1vec->decref();
   x2vec->decref();
@@ -99,13 +100,112 @@ ParOptMMA::~ParOptMMA(){
   betavec->decref();
   p0vec->decref();
   q0vec->decref();
-  for ( int i = 0; i < m; i++ ){
-    pivecs[i]->decref();
-    qivecs[i]->decref();
+
+  if (use_true_mma){
+    delete [] c;
+    delete [] lambda;
+    delete [] zlb;
+    delete [] y;
+
+    for ( int i = 0; i < m; i++ ){
+      pivecs[i]->decref();
+      qivecs[i]->decref();
+    }
+    delete [] qivecs;
+    delete [] pivecs;
+    delete [] b;
   }
-  delete [] qivecs;
-  delete [] pivecs;
-  delete [] b;
+  else {
+    if (cwvec){
+      cwvec->decref();
+    }
+  }
+}
+
+/*
+  Allocate all of the data
+*/
+void ParOptMMA::initialize(){
+  // Incref the reference counts to the design vectors
+  xvec = prob->createDesignVec();  xvec->incref();
+  x1vec = prob->createDesignVec();  x1vec->incref();
+  x2vec = prob->createDesignVec();  x2vec->incref();
+
+  // Create the design variable bounds
+  lbvec = prob->createDesignVec();  lbvec->incref();
+  ubvec = prob->createDesignVec();  ubvec->incref();
+
+  // Allocate the constraint array
+  fobj = 0.0;
+  cons = new ParOptScalar[ m ];
+  memset(cons, 0, m*sizeof(ParOptScalar));
+
+  // Allocate space for the problem gradients
+  gvec = prob->createDesignVec();  gvec->incref();
+  Avecs = new ParOptVec*[ m ];
+  for ( int i = 0; i < m; i++ ){
+    Avecs[i] = prob->createDesignVec();  Avecs[i]->incref();
+  }
+
+  // Create the move limit/asymptote vectors
+  Lvec = prob->createDesignVec();  Lvec->incref();
+  Uvec = prob->createDesignVec();  Uvec->incref();
+  alphavec = prob->createDesignVec();  alphavec->incref();
+  betavec = prob->createDesignVec();  betavec->incref();
+
+  // Create the coefficient vectors
+  p0vec = prob->createDesignVec();  p0vec->incref();
+  q0vec = prob->createDesignVec();  q0vec->incref();
+
+  // Set the sparse constraint vector to NULL 
+  cwvec = NULL;
+
+  if (use_true_mma){
+    // Allocate initial values for the penalty parameters
+    c = new ParOptScalar[ m ];
+
+    // The Lagrange multipliers for the dual problem
+    // and their multipliers for the lower/upper bounds
+    lambda = new ParOptScalar[ m ];
+    zlb = new ParOptScalar[ m ];
+
+    // The constraint infeasibility
+    y = new ParOptScalar[ m ];
+
+    for ( int i = 0; i < m; i++ ){
+      c[i] = 1000.0;
+      lambda[i] = 10.0;
+      zlb[i] = 1.0;
+      y[i] = 0.0;
+    }
+
+    pivecs = new ParOptVec*[ m ];
+    qivecs = new ParOptVec*[ m ];
+    for ( int i = 0; i < m; i++ ){
+      pivecs[i] = prob->createDesignVec();  pivecs[i]->incref();
+      qivecs[i] = prob->createDesignVec();  qivecs[i]->incref();
+    }
+
+    b = new ParOptScalar[ m ];
+    memset(b, 0, m*sizeof(ParOptScalar));
+  }
+  else {
+    c = NULL;
+    lambda = NULL;
+    zlb = NULL;
+    y = NULL;
+    pivecs = NULL;
+    qivecs = NULL;
+    b = NULL;
+
+    cwvec = prob->createConstraintVec();
+    if (cwvec){
+      cwvec->incref();
+    }
+  }
+
+  // Get the design variables and bounds
+  prob->getVarsAndBounds(xvec, lbvec, ubvec);
 }
 
 /*
@@ -180,147 +280,45 @@ void ParOptMMA::setOutputFile( const char *filename ){
 }
 
 /*
-  Allocate all of the data
-*/
-void ParOptMMA::initialize(){
-  // Allocate initial values for the penalty parameters
-  c = new ParOptScalar[ m ];
-
-  // The Lagrange multipliers for the dual problem
-  // and their multipliers for the lower/upper bounds
-  lambda = new ParOptScalar[ m ];
-  zlb = new ParOptScalar[ m ];
-
-  // The constraint infeasibility
-  y = new ParOptScalar[ m ];
-
-  for ( int i = 0; i < m; i++ ){
-    c[i] = 1000.0;
-    lambda[i] = 10.0;
-    zlb[i] = 1.0;
-    y[i] = 0.0;
-  }
-
-  // Incref the reference counts to the design vectors
-  xvec = prob->createDesignVec();  xvec->incref();
-  x1vec = prob->createDesignVec();  x1vec->incref();
-  x2vec = prob->createDesignVec();  x2vec->incref();
-
-  // Create the design variable bounds
-  lbvec = prob->createDesignVec();  lbvec->incref();
-  ubvec = prob->createDesignVec();  ubvec->incref();
-
-  // Allocate the constraint array
-  fobj = 0.0;
-  cons = new ParOptScalar[ m ];
-  memset(cons, 0, m*sizeof(ParOptScalar));
-
-  // Allocate space for the problem gradients
-  gvec = prob->createDesignVec();  gvec->incref();
-  Avecs = new ParOptVec*[ m ];
-  for ( int i = 0; i < m; i++ ){
-    Avecs[i] = prob->createDesignVec();  Avecs[i]->incref();
-  }
-
-  // Create the move limit/asymptote vectors
-  Lvec = prob->createDesignVec();  Lvec->incref();
-  Uvec = prob->createDesignVec();  Uvec->incref();
-  alphavec = prob->createDesignVec();  alphavec->incref();
-  betavec = prob->createDesignVec();  betavec->incref();
-
-  // Create the coefficient vectors
-  p0vec = prob->createDesignVec();  p0vec->incref();
-  q0vec = prob->createDesignVec();  q0vec->incref();
-
-  pivecs = new ParOptVec*[ m ];
-  qivecs = new ParOptVec*[ m ];
-  for ( int i = 0; i < m; i++ ){
-    pivecs[i] = prob->createDesignVec();  pivecs[i]->incref();
-    qivecs[i] = prob->createDesignVec();  qivecs[i]->incref();
-  }
-
-  b = new ParOptScalar[ m ];
-  memset(b, 0, m*sizeof(ParOptScalar));
-}
-
-/*
   Update the problem to find the new values for the design variables
 */
 int ParOptMMA::update(){
-  if (mma_iter == 0){
-    prob->getVarsAndBounds(xvec, lbvec, ubvec);
-  }
+  if (use_true_mma){
+    // Set up the sub-problem
+    initializeSubProblem(xvec);
 
-  // Evaluate the objective/constraint gradients
-  int fail_obj = prob->evalObjCon(xvec, &fobj, cons);
-  if (fail_obj){
-    fprintf(stderr, 
-      "ParOptMMA: Objective evaluation failed\n");
-    return fail_obj;
-  }
+    // Update the newest values of the design variables, and make sure
+    // to store the previous updates
+    x2vec->copyValues(x1vec);
+    x1vec->copyValues(xvec);
 
-  int fail_grad = prob->evalObjConGradient(xvec, gvec, Avecs);
-  if (fail_grad){
-    fprintf(stderr, 
-      "ParOptMMA: Gradient evaluation failed\n");
-    return fail_grad;
-  }
+    // Solve the dual problem
+    int dual_fail = solveDual();
 
-  // Scale the constraints and gradients to match the standard MMA
-  // form for the constraint formation i.e. fi(x) <= 0.0. ParOpt uses
-  // the convention that c(x) >= 0.0, so we multiply by -1.0
-  for ( int i = 0; i < m; i++ ){
-    cons[i] *= -1.0;
-    Avecs[i]->scale(-1.0);
-  }
-
-  // Compute the KKT error, and print it out to a file
-  if (print_level > 0){
-    double l1, linfty, infeas;
-    computeKKTError(&l1, &linfty, &infeas);
-    
     if (fp){
-      double l1_lambda = 0.0;
-      for ( int i = 0; i < m; i++ ){
-        l1_lambda += fabs(RealPart(lambda[i]));
-      }      
-
-      if ((print_level == 1 && mma_iter % 10 == 0) ||
-          (print_level > 1)){
-        fprintf(fp, "\n%5s %8s %15s %9s %9s %9s %9s\n",
-                "MMA", "sub-iter", "fobj", "l1 opt", 
-                "linft opt", "l1 lambd", "infeas");
-      }
-      fprintf(fp, "%5d %8d %15.6e %9.3e %9.3e %9.3e %9.3e\n",
-              mma_iter, subproblem_iter, fobj, l1, 
-              linfty, l1_lambda, infeas);
+      fflush(fp);
     }
+
+    return dual_fail;
   }
 
-  // Set up the sub-problem
-  initSubProblem(mma_iter);
-  mma_iter++;
-
-  // Update the newest values of the design variables, and make sure
-  // to store the previous updates
-  x2vec->copyValues(x1vec);
-  x1vec->copyValues(xvec);
-
-  // Solve the dual problem
-  int dual_fail = solveDual();
-
-  if (fp){
-    fflush(fp);
-  }
-
-  return dual_fail;
+  // This fails, because we're not actually using MM
+  return 1;
 }
 
 /*
   Compute the KKT error
 */
-void ParOptMMA::computeKKTError( double *l1, double *linfty,
+void ParOptMMA::computeKKTError( double *l1, 
+                                 double *linfty,
                                  double *infeas ){
+  if (!use_true_mma){
+    *l1 = 0.0;
+    *linfty = 0.0;
+    *infeas = 0.0;
+    return;
+  }
+
   // Get the objective gradient array
   ParOptScalar *g;
   gvec->getArray(&g);
@@ -763,7 +761,64 @@ int ParOptMMA::solveDual(){
   This code updates the asymptotes, sets the move limits and forms the
   approximations used in the MMA code.
 */
-void ParOptMMA::initSubProblem( int iter ){
+int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
+  if (xv && xv != xvec){
+    xvec->copyValues(xv);
+  }
+
+  // Evaluate the objective/constraint gradients
+  int fail_obj = prob->evalObjCon(xvec, &fobj, cons);
+  if (fail_obj){
+    fprintf(stderr, 
+      "ParOptMMA: Objective evaluation failed\n");
+    return fail_obj;
+  }
+
+  int fail_grad = prob->evalObjConGradient(xvec, gvec, Avecs);
+  if (fail_grad){
+    fprintf(stderr, 
+      "ParOptMMA: Gradient evaluation failed\n");
+    return fail_grad;
+  }
+
+  if (use_true_mma){
+    // Scale the constraints and gradients to match the standard MMA
+    // form for the constraint formation i.e. fi(x) <= 0.0. ParOpt uses
+    // the convention that c(x) >= 0.0, so we multiply by -1.0
+    for ( int i = 0; i < m; i++ ){
+      cons[i] *= -1.0;
+      Avecs[i]->scale(-1.0);
+    }
+
+    // Compute the KKT error, and print it out to a file
+    if (print_level > 0){
+      double l1, linfty, infeas;
+      computeKKTError(&l1, &linfty, &infeas);
+      
+      if (fp){
+        double l1_lambda = 0.0;
+        for ( int i = 0; i < m; i++ ){
+          l1_lambda += fabs(RealPart(lambda[i]));
+        }      
+
+        if ((print_level == 1 && mma_iter % 10 == 0) ||
+            (print_level > 1)){
+          fprintf(fp, "\n%5s %8s %15s %9s %9s %9s %9s\n",
+                  "MMA", "sub-iter", "fobj", "l1 opt", 
+                  "linft opt", "l1 lambd", "infeas");
+        }
+        fprintf(fp, "%5d %8d %15.6e %9.3e %9.3e %9.3e %9.3e\n",
+                mma_iter, subproblem_iter, fobj, l1, 
+                linfty, l1_lambda, infeas);
+      }
+    }
+  }
+  else {
+    if (cwvec){
+      prob->evalSparseCon(xvec, cwvec);
+    }
+  }
+
   // Get the current values of the design variables
   ParOptScalar *x, *x1, *x2;
   xvec->getArray(&x);
@@ -781,7 +836,7 @@ void ParOptMMA::initSubProblem( int iter ){
   ubvec->getArray(&ub);
 
   // Set all of the asymptote values
-  if (iter < 2){
+  if (mma_iter < 2){
     for ( int j = 0; j < n; j++ ){
       L[j] = x[j] - init_asymptote_offset*(ub[j] - lb[j]);
       U[j] = x[j] + init_asymptote_offset*(ub[j] - lb[j]);
@@ -843,14 +898,6 @@ void ParOptMMA::initSubProblem( int iter ){
   p0vec->getArray(&p0);
   q0vec->getArray(&q0);
 
-  // Allocate pointers for the constraint pointers
-  ParOptScalar **pi = new ParOptScalar*[ m ];
-  ParOptScalar **qi = new ParOptScalar*[ m ];
-  for ( int i = 0; i < m; i++ ){
-    pivecs[i]->getArray(&pi[i]);
-    qivecs[i]->getArray(&qi[i]);
-  }
-
   // Get the move limit vectors
   ParOptScalar *alpha, *beta;
   alphavec->getArray(&alpha);
@@ -865,27 +912,29 @@ void ParOptMMA::initSubProblem( int iter ){
     // Compute the coefficients for the objective
     p0[j] = max2(0.0, g[j])*(U[j] - x[j])*(U[j] - x[j]);
     q0[j] = -min2(0.0, g[j])*(x[j] - L[j])*(x[j] - L[j]);
+  }
 
-    // Compute the coefficients for the constraints
+  if (use_true_mma){
+    memset(b, 0, m*sizeof(ParOptScalar));
     for ( int i = 0; i < m; i++ ){
-      pi[i][j] = max2(0.0, A[i][j])*(U[j] - x[j])*(U[j] - x[j]);
-      qi[i][j] = -min2(0.0, A[i][j])*(x[j] - L[j])*(x[j] - L[j]);
+      ParOptScalar *pi, *qi;
+      pivecs[i]->getArray(&pi);
+      qivecs[i]->getArray(&qi);
+
+      // Compute the coefficients for the constraints
+      for ( int j = 0; j < n; j++ ){
+        pi[j] = max2(0.0, A[i][j])*(U[j] - x[j])*(U[j] - x[j]);
+        qi[j] = -min2(0.0, A[i][j])*(x[j] - L[j])*(x[j] - L[j]);
+        b[i] += pi[j]/(U[j] - x[j]) + qi[j]/(x[j] - L[j]);
+      }
     }
-  }
 
-  // Compute the b-coefficients
-  memset(b, 0, m*sizeof(ParOptScalar));
-  for ( int i = 0; i < m; i++ ){
-    for ( int j = 0; j < n; j++ ){
-      b[i] += pi[i][j]/(U[j] - x[j]) + qi[i][j]/(x[j] - L[j]);
+    // All reduce the coefficient values
+    MPI_Allreduce(MPI_IN_PLACE, b, m, PAROPT_MPI_TYPE, MPI_SUM, comm);
+
+    for ( int i = 0; i < m; i++ ){
+      b[i] -= cons[i];
     }
-  }
-
-  // All reduce the coefficient values
-  MPI_Allreduce(MPI_IN_PLACE, b, m, PAROPT_MPI_TYPE, MPI_SUM, comm);
-
-  for ( int i = 0; i < m; i++ ){
-    b[i] -= cons[i];
   }
 
   // Check that the asymptotes, limits and variables are well-defined
@@ -904,8 +953,215 @@ void ParOptMMA::initSubProblem( int iter ){
     }
   }
 
+  // Increment the number of MMA iterations
+  mma_iter++;
+
   // Free the A pointers
   delete [] A;
-  delete [] qi;
-  delete [] pi;
+
+  return 0;
+}
+
+/*
+  Create a design vector
+*/
+ParOptVec *ParOptMMA::createDesignVec(){
+  return prob->createDesignVec(); 
+}
+
+/*
+  Create the sparse constraint vector
+*/
+ParOptVec *ParOptMMA::createConstraintVec(){
+  return prob->createConstraintVec();
+}
+
+/*
+  Get the communicator for the problem
+*/
+MPI_Comm ParOptMMA::getMPIComm(){
+  return prob->getMPIComm();
+}
+
+/*
+  Functions to indicate the type of sparse constraints
+*/
+int ParOptMMA::isDenseInequality(){
+  return prob->isDenseInequality();
+}
+
+int ParOptMMA::isSparseInequality(){
+  return prob->isSparseInequality();
+}
+
+int ParOptMMA::useLowerBounds(){
+  return prob->useLowerBounds();
+}
+
+int ParOptMMA::useUpperBounds(){
+  return prob->useUpperBounds();
+}
+
+// Get the variables and bounds from the problem
+void ParOptMMA::getVarsAndBounds( ParOptVec *x, ParOptVec *lb, 
+                                  ParOptVec *ub ){
+  x->copyValues(xvec);
+  lb->copyValues(alphavec);
+  ub->copyValues(betavec);
+}
+
+/* 
+  Evaluate the objective and constraints
+*/
+int ParOptMMA::evalObjCon( ParOptVec *xv, ParOptScalar *fval, 
+                           ParOptScalar *cvals ){
+  // Get the array of design variable values
+  ParOptScalar *x, *x0;
+  xvec->getArray(&x0);
+  xv->getArray(&x);
+
+  // Get the asymptotes
+  ParOptScalar *L, *U;
+  Lvec->getArray(&L);
+  Uvec->getArray(&U);
+
+  // Get the coefficients for the objective
+  ParOptScalar *p0, *q0;
+  p0vec->getArray(&p0);
+  q0vec->getArray(&q0);
+
+  // Compute the objective
+  ParOptScalar fv = 0.0;
+  for ( int j = 0; j < n; j++ ){
+    fv += p0[j]/(U[j] - x[j]) + q0[j]/(x[j] - L[j]);
+  }
+
+  // Compute the linearized constraint
+  memset(cvals, 0, m*sizeof(ParOptScalar));
+  for ( int i = 0; i < m; i++ ){
+    ParOptScalar *A;
+    Avecs[i]->getArray(&A);
+    for ( int j = 0; j < n; j++ ){
+      cvals[i] += A[j]*(x[j] - x0[j]);
+    }
+  }
+
+  // All reduce the data
+  MPI_Allreduce(&fv, fval, 1, PAROPT_MPI_TYPE, MPI_SUM, comm);
+  MPI_Allreduce(MPI_IN_PLACE, cvals, m, PAROPT_MPI_TYPE, MPI_SUM, comm);
+
+  return 0;
+}
+
+/*
+  Evaluate the objective and constraint gradients
+*/
+int ParOptMMA::evalObjConGradient( ParOptVec *xv, ParOptVec *gv, 
+                                   ParOptVec **Ac ){
+
+  // Evaluate the gradient
+  for ( int i = 0; i < m; i++ ){
+    Ac[i]->copyValues(Avecs[i]);
+  }
+
+  // Get the gradient vector
+  ParOptScalar *g;
+  gv->getArray(&g);
+
+  // Get the array of design variable values
+  ParOptScalar *x;
+  xv->getArray(&x);
+
+  // Get the asymptotes
+  ParOptScalar *L, *U;
+  Lvec->getArray(&L);
+  Uvec->getArray(&U);
+
+  // Get the coefficients for the objective
+  ParOptScalar *p0, *q0;
+  p0vec->getArray(&p0);
+  q0vec->getArray(&q0);
+
+  // Compute the objective
+  ParOptScalar fv = 0.0;
+  for ( int j = 0; j < n; j++ ){
+    ParOptScalar Uinv = 1.0/(U[j] - x[j]);
+    ParOptScalar Linv = 1.0/(x[j] - L[j]);
+    g[j] = Uinv*Uinv*p0[j] - Linv*Linv*q0[j];
+  }
+
+  return 0;
+}
+
+/*
+  Evaluate the product of the Hessian with a given vector
+*/
+int ParOptMMA::evalHvecProduct( ParOptVec *xv, 
+                                ParOptScalar *z, ParOptVec *zw,
+                                ParOptVec *px, ParOptVec *hvec ){
+  // Get the gradient vector
+  ParOptScalar *h;
+  hvec->getArray(&h);
+
+  // Get the array of design variable values
+  ParOptScalar *x;
+  xv->getArray(&x);
+
+  // Get the asymptotes
+  ParOptScalar *L, *U;
+  Lvec->getArray(&L);
+  Uvec->getArray(&U);
+
+  // Get the coefficients for the objective
+  ParOptScalar *p0, *q0;
+  p0vec->getArray(&p0);
+  q0vec->getArray(&q0);
+
+  // Get the components of the vector
+  ParOptScalar *p;
+  px->getArray(&p);
+
+  // Compute the objective
+  ParOptScalar fv = 0.0;
+  for ( int j = 0; j < n; j++ ){
+    ParOptScalar Uinv = 1.0/(U[j] - x[j]);
+    ParOptScalar Linv = 1.0/(x[j] - L[j]);
+    h[j] = 2.0*(Uinv*Uinv*Uinv*p0[j] + Linv*Linv*Linv*q0[j])*p[j];
+  }
+
+  return 0;
+}
+
+/* 
+  Evaluate the constraints
+*/
+void ParOptMMA::evalSparseCon( ParOptVec *x, ParOptVec *out ){
+  out->copyValues(cwvec);
+  prob->addSparseJacobian(1.0, xvec, x, out);
+  prob->addSparseJacobian(-1.0, xvec, xvec, out);
+}
+
+/* 
+  Compute the Jacobian-vector product out = J(x)*px
+*/
+void ParOptMMA::addSparseJacobian( ParOptScalar alpha, ParOptVec *x,
+                                   ParOptVec *px, ParOptVec *out ){
+  prob->addSparseJacobian(alpha, xvec, px, out);
+}
+
+/*
+  Compute the transpose Jacobian-vector product out = J(x)^{T}*pzw
+*/
+void ParOptMMA::addSparseJacobianTranspose( ParOptScalar alpha, ParOptVec *x,
+                                            ParOptVec *pzw, ParOptVec *out ){
+  prob->addSparseJacobianTranspose(alpha, xvec, pzw, out);
+}
+
+/*
+  Add the inner product of the constraints to the matrix such 
+  that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix
+*/
+void ParOptMMA::addSparseInnerProduct( ParOptScalar alpha, ParOptVec *x,
+                                       ParOptVec *cvec, ParOptScalar *A ){
+  prob->addSparseInnerProduct(alpha, xvec, cvec, A);
 }

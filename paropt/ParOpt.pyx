@@ -66,6 +66,8 @@ def unpack_output(str filename):
                line = lines[index]
                index += 1
                counter += 1
+               if len(line.split()) < 12:
+                  break
 
                # Scan through the format list and determine how to
                # convert the object based on the format string
@@ -721,8 +723,11 @@ cdef class pyParOpt:
 
 cdef class pyMMA:
    cdef ParOptMMA *ptr
-   def __cinit__(self, pyParOptProblemBase _prob):
-      self.ptr = new ParOptMMA(_prob.ptr)
+   def __cinit__(self, pyParOptProblemBase _prob, use_mma=True):
+      cdef int use_true_mma = 0
+      if use_mma:
+         use_true_mma = 1
+      self.ptr = new ParOptMMA(_prob.ptr, use_true_mma)
       self.ptr.incref()
       return
       
@@ -748,6 +753,12 @@ cdef class pyMMA:
       cdef ParOptVec *U = NULL
       self.ptr.getAsymptotes(&L, &U)
       return _init_PVec(L), _init_PVec(U)
+
+   def initializeSubProblem(self, PVec vec=None):
+      cdef ParOptVec *v = NULL
+      if vec is not None:
+         v = vec.ptr
+      self.ptr.initializeSubProblem(vec.ptr)
 
    def setPrintLevel(self, int level):
       self.ptr.setPrintLevel(level)

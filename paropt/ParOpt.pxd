@@ -178,11 +178,12 @@ cdef extern from "ParOpt.h":
 
 cdef extern from "ParOptQuasiSeparable.h":
    cdef cppclass ParOptMMA(ParOptBase):
-      ParOptMMA(ParOptProblem*)
+      ParOptMMA(ParOptProblem*, int)
       int update()
       void getOptimizedPoint(ParOptVec**)
       void getAsymptotes(ParOptVec**, ParOptVec**)
       void computeKKTError(double*, double*, double*)
+      int initializeSubProblem(ParOptVec*)
       void setPrintLevel(int)
       void setOutputFile(const char*)
       void setAsymptoteContract(double)

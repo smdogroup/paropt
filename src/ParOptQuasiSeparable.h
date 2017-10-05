@@ -9,20 +9,33 @@
 #include <stdio.h>
 
 /*
-  The following code can be used to set up and solve a quasi-separable
-  approximation of the given ParOptProblem. This code is designed to
-  be used to implement MMA-type methods that also include sparse
-  constraints.  Each separable approximation is convex, enabling the
-  efficient use of Hessian-vector products.
+  The following code is designed to be used to implement 
+  MMA-type methods that also include sparse constraints.
+  There are two modes of operation:
+
+  The first is to run the method of moving asymptotes (MMA), 
+  a sequential, separable convex approximation technique, 
+  developed by Svanberg, that is commonly used in topology
+  optimization. This method cannot incorporate sparse constraints
+  directly and so they are ignored.
+
+  The second purpose is to set up and run a convex sub-problem
+  where the objective is governed by the same approximation
+  technique used in MMA, but the constraints and sparse constraints
+  defined by the original problem class are linearized about
+  the original point.
 */
 
-class ParOptMMA : public ParOptBase {
+class ParOptMMA : public ParOptProblem {
  public:
-  ParOptMMA( ParOptProblem *_prob );
+  ParOptMMA( ParOptProblem *_prob, int _use_true_mma=1 );
   ~ParOptMMA();
 
   // Update the problem
   int update();
+
+  // Initialize data for the subproblem
+  int initializeSubProblem( ParOptVec *x );
 
   // Get the optimized point
   void getOptimizedPoint( ParOptVec **x );
@@ -47,12 +60,57 @@ class ParOptMMA : public ParOptBase {
   // Set the output file (only on the root proc)
   void setOutputFile( const char *filename );
 
+  // Create the design vectors
+  ParOptVec *createDesignVec();
+  ParOptVec *createConstraintVec();
+  
+  // Get the communicator for the problem
+  MPI_Comm getMPIComm();
+
+  // Function to indicate the type of sparse constraints
+  int isDenseInequality();
+  int isSparseInequality();
+  int useLowerBounds();
+  int useUpperBounds();
+
+  // Get the variables and bounds from the problem
+  void getVarsAndBounds( ParOptVec *x, ParOptVec *lb, ParOptVec *ub );
+
+  // Evaluate the objective and constraints
+  int evalObjCon( ParOptVec *x, ParOptScalar *fobj, ParOptScalar *cons );
+
+  // Evaluate the objective and constraint gradients
+  int evalObjConGradient( ParOptVec *x, ParOptVec *g, ParOptVec **Ac );
+
+  // Evaluate the product of the Hessian with a given vector
+  int evalHvecProduct( ParOptVec *x, ParOptScalar *z, ParOptVec *zw,
+                       ParOptVec *px, ParOptVec *hvec );
+
+  // Evaluate the constraints
+  void evalSparseCon( ParOptVec *x, ParOptVec *out );
+  
+  // Compute the Jacobian-vector product out = J(x)*px
+  void addSparseJacobian( ParOptScalar alpha, ParOptVec *x,
+                          ParOptVec *px, ParOptVec *out );
+
+  // Compute the transpose Jacobian-vector product out = J(x)^{T}*pzw
+  // -----------------------------------------------------------------
+  void addSparseJacobianTranspose( ParOptScalar alpha, ParOptVec *x,
+                                   ParOptVec *pzw, ParOptVec *out );
+
+  // Add the inner product of the constraints to the matrix such 
+  // that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix
+  void addSparseInnerProduct( ParOptScalar alpha, ParOptVec *x,
+                              ParOptVec *cvec, ParOptScalar *A );
+
+  // Over-write this function if you'd like to print out
+  // something with the same frequency as the output files
+  // -----------------------------------------------------
+  void writeOutput( int iter, ParOptVec *x ){}
+
  private:
   // Initialize the data
   void initialize();
-
-  // Initialize data for the subproblem
-  void initSubProblem( int iter );
 
   // Solve the dual problem
   int solveDual();
@@ -78,6 +136,9 @@ class ParOptMMA : public ParOptBase {
 
   // Communicator for this problem
   MPI_Comm comm;
+
+  // What is your intention here?? - to use MMA or not...
+  int use_true_mma;
 
   // Parameters used in the problem
   double asymptote_contract; // Contract the asymptotes
@@ -129,6 +190,9 @@ class ParOptMMA : public ParOptBase {
 
   // Penalty parameters within the subproblem 
   ParOptScalar *c;
+
+  // The sparse constraint vector
+  ParOptVec *cwvec;
 };
 
 #endif // PAR_OPT_QUASI_SEPARABLE_H
