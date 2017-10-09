@@ -14,7 +14,7 @@
   each parameter and how you should set it. 
 */
 
-static const int NUM_PAROPT_PARAMETERS = 27;
+static const int NUM_PAROPT_PARAMETERS = 28;
 static const char *paropt_parameter_help[][2] = {
   {"max_qn_size", 
    "Integer: The maximum dimension of the quasi-Newton approximation"},
@@ -43,8 +43,8 @@ static const char *paropt_parameter_help[][2] = {
   {"max_line_iters",
    "Integer: Maximum number of line search iterations"},
   
-  {"armijio_constant",
-   "Float: The Armijio constant for the line search"},
+  {"armijo_constant",
+   "Float: The Armijo constant for the line search"},
   
   {"monotone_barrier_fraction",
    "Float: Factor applied to the barrier update < 1"},
@@ -80,6 +80,9 @@ iteration frequency"},
   {"use_hvec_product", 
    "Boolean: Use or do not use Hessian-vector products"},
   
+  {"use_diag_hessian",
+   "Boolean: Use or do not use the diagonal Hessian computation"},
+
   {"use_qn_gmres_precon", 
    "Boolean: Use or do not use the quasi-Newton method as a preconditioner"},
   
@@ -117,8 +120,9 @@ the quasi-Newton approximation is used"},
   max_qn_size: the number of steps to store in memory
   qn_type:     the type of quasi-Newton method to use
 */
-ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
-                enum QuasiNewtonType qn_type,
+ParOpt::ParOpt( ParOptProblem *_prob, 
+                int max_qn_subspace,
+                ParOptQuasiNewtonType qn_type,
                 double _max_bound_val ){
   prob = _prob;
 
@@ -167,13 +171,18 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   norm_type = PAROPT_INFTY_NORM;
 
   // Allocate the quasi-Newton approximation
-  if (qn_type == BFGS){
+  if (qn_type == PAROPT_BFGS){
     qn = new LBFGS(prob, max_qn_subspace);
+    qn->incref();
+  }
+  else if (qn_type == PAROPT_SR1){
+    qn = new LSR1(prob, max_qn_subspace);
+    qn->incref();
   }
   else {
-    qn = new LSR1(prob, max_qn_subspace);
+    qn = NULL;
+
   }
-  qn->incref();
 
   // Set the default maximum variable bound
   max_bound_val = _max_bound_val;
@@ -284,7 +293,7 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   max_line_iters = 10;
   rho_penalty_search = 0.0;
   penalty_descent_fraction = 0.3;
-  armijio_constant = 1e-3;
+  armijo_constant = 1e-3;
   monotone_barrier_fraction = 0.25;
   monotone_barrier_power = 1.1;
   min_fraction_to_boundary = 0.95;
@@ -296,6 +305,10 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   hessian_reset_freq = 100000000;
   qn_sigma = 0.0;
   merit_func_check_epsilon = 1e-6;
+
+  // Initialize the diagonal Hessian computation
+  use_diag_hessian = 0;
+  hdiag = NULL;
 
   // Initialize the Hessian-vector product information
   use_hvec_product = 0;
@@ -326,7 +339,9 @@ ParOpt::ParOpt( ParOptProblem *_prob, int max_qn_subspace,
   Free the data allocated during the creation of the object
 */
 ParOpt::~ParOpt(){
-  qn->decref();
+  if (qn){
+    qn->decref();
+  }
 
   // Delete the variables and bounds
   x->decref();
@@ -386,6 +401,11 @@ ParOpt::~ParOpt(){
   delete [] var_range;
   delete [] wcon_range;
 
+  // Free the diagonal hessian (if allocated)
+  if (hdiag){
+    hdiag->decref();
+  }
+
   // Delete the constraint/gradient information
   delete [] c;
   g->decref();
@@ -443,47 +463,7 @@ void ParOpt::getProblemSizes( int *_nvars, int *_ncon,
 }
 
 /*
-  Get the multiplier variables used internally in ParOpt so that the
-  user can set the initial guess.
-
-  Note that this call automatically call setInitStartingPoint(0) so
-  that ParOpt does not attempt to guess good initial values for the
-  multipliers (since the user probably knows something about the
-  problem if they are calling this function...)
-*/
-void ParOpt::getInitMultipliers( ParOptScalar **_z,
-                                 ParOptVec **_zw,
-                                 ParOptVec **_zl,
-                                 ParOptVec **_zu ){
-  init_starting_point = 0;
-  if (_z){
-    *_z = NULL;
-    if (ncon > 0){
-      *_z = z;
-    }
-  }
-  if (_zw){
-    *_zw = NULL;
-    if (nwcon > 0){
-      *_zw = zw;
-    }
-  }
-  if (_zl){
-    *_zl = NULL;
-    if (use_lower){
-      *_zl = zl;
-    }
-  }
-  if (_zu){
-    *_zu = NULL;
-    if (use_upper){
-      *_zu = zu;
-    }
-  }
-}
-
-/*
-  Retrieve the optimal values of the design variables and multipliers.
+  Retrieve the values of the design variables and multipliers.
  
   This call can be made during the course of an optimization, but
   changing the values in x/zw/zl/zu is not recommended and the
@@ -533,7 +513,7 @@ void ParOpt::printOptionSummary( FILE *fp ){
   MPI_Comm_rank(comm, &rank);
   if (fp && rank == opt_root){
     int qn_size = 0;
-    if (!sequential_linear_method){
+    if (qn && !sequential_linear_method){
       qn_size = qn->getMaxLimitedMemorySize();
     }
     
@@ -562,7 +542,7 @@ void ParOpt::printOptionSummary( FILE *fp ){
     fprintf(fp, "%-30s %15d\n", "max_line_iters", max_line_iters);
     fprintf(fp, "%-30s %15g\n", "penalty_descent_fraction", 
             penalty_descent_fraction);
-    fprintf(fp, "%-30s %15g\n", "armijio_constant", armijio_constant);
+    fprintf(fp, "%-30s %15g\n", "armijo_constant", armijo_constant);
     fprintf(fp, "%-30s %15g\n", "monotone_barrier_fraction", 
             monotone_barrier_fraction);
     fprintf(fp, "%-30s %15g\n", "monotone_barrier_power", 
@@ -584,6 +564,8 @@ void ParOpt::printOptionSummary( FILE *fp ){
     fprintf(fp, "%-30s %15g\n", "qn_sigma", qn_sigma);
     fprintf(fp, "%-30s %15d\n", "use_hvec_product",
             use_hvec_product);
+    fprintf(fp, "%-30s %15d\n", "use_diag_hessian",
+            use_diag_hessian);
     fprintf(fp, "%-30s %15d\n", "use_qn_gmres_precon",
             use_qn_gmres_precon);
     fprintf(fp, "%-30s %15g\n", "nk_switch_tol", nk_switch_tol);
@@ -939,35 +921,55 @@ void ParOpt::setUseLineSearch( int truth ){
   use_line_search = truth;
 }
 
+/*
+  Set the maximum number of line search iterations
+*/
 void ParOpt::setMaxLineSearchIters( int iters ){
   if (iters > 0){ 
     max_line_iters = iters;
   }
 }
 
+/*
+  Set whether to use a backtracking line search
+*/
 void ParOpt::setBacktrackingLineSearch( int truth ){
   use_backtracking_alpha = truth;
 }
 
-void ParOpt::setArmijioParam( double c1 ){
+/*
+  Set the Armijo parameter
+*/
+void ParOpt::setArmijoParam( double c1 ){
   if (c1 >= 0){
-    armijio_constant = c1;
+    armijo_constant = c1;
   }
 }
 
+/*
+  Set a penalty descent fraction
+*/
 void ParOpt::setPenaltyDescentFraction( double frac ){
   if (frac > 0.0){
     penalty_descent_fraction = frac;
   }
 }
 
+/*
+  Set the type of BFGS update
+*/
 void ParOpt::setBFGSUpdateType( LBFGS::BFGSUpdateType update ){
-  LBFGS *lbfgs = dynamic_cast<LBFGS*>(qn);
-  if (lbfgs){
-    lbfgs->setBFGSUpdateType(update);
-  }  
+  if (qn){
+    LBFGS *lbfgs = dynamic_cast<LBFGS*>(qn);
+    if (lbfgs){
+      lbfgs->setBFGSUpdateType(update);
+    }  
+  }
 }
 
+/*
+  Set whether to use a sequential linear method or not
+*/
 void ParOpt::setSequentialLinearMethod( int truth ){
   sequential_linear_method = truth;
 }
@@ -981,19 +983,65 @@ void ParOpt::setOutputFrequency( int freq ){
   }
 }
 
+/*
+  Set the step at which to check the step
+*/
 void ParOpt::setMajorIterStepCheck( int step ){
   major_iter_step_check = step;
 }
 
+/*
+  Check the gradient information every freq iterations
+*/
 void ParOpt::setGradientCheckFrequency( int freq, double step_size ){
   gradient_check_frequency = freq;
   gradient_check_step = step_size;
 }
 
 /*
+  Set the flag to use a diagonal hessian
+*/
+void ParOpt::setUseDiagHessian( int truth ){
+  if (truth){
+    if (gmres_H){
+      delete [] gmres_H;
+      delete [] gmres_alpha;
+      delete [] gmres_res;
+      delete [] gmres_Q;
+
+      for ( int i = 0; i < gmres_subspace_size; i++ ){
+        gmres_W[i]->decref();
+      }
+      delete [] gmres_W;
+
+      // Null out the subspace data
+      gmres_subspace_size = 0;
+      gmres_H = NULL;
+      gmres_alpha = NULL;
+      gmres_res = NULL;
+      gmres_Q = NULL;
+      gmres_W = NULL;
+    }
+    if (!hdiag){
+      hdiag = prob->createDesignVec();
+      hdiag->incref();
+    }
+    use_hvec_product = 0;
+  }
+  use_diag_hessian = truth;
+}
+
+/*
   Set the flag for whether to use the Hessian-vector products or not
 */
 void ParOpt::setUseHvecProduct( int truth ){
+  if (truth){
+    use_diag_hessian = 0;
+    if (hdiag){
+      hdiag->decref();
+      hdiag = NULL;
+    }
+  }
   use_hvec_product = truth;
 }
 
@@ -1011,6 +1059,9 @@ void ParOpt::setNKSwitchTolerance( double tol ){
   nk_switch_tol = tol;
 }
 
+/*
+  Set the GMRES tolerances
+*/
 void ParOpt::setGMRESTolerances( double rtol, double atol ){
   max_gmres_rtol = rtol;
   gmres_atol = atol;
@@ -1061,14 +1112,13 @@ void ParOpt::setGMRESSubspaceSize( int m ){
     delete [] gmres_Q;
 
     for ( int i = 0; i < m; i++ ){
-      gmres_W[i]->decref();;
+      gmres_W[i]->decref();
     }
     delete [] gmres_W;
   }
 
   if (m > 0){
     gmres_subspace_size = m;
-    
     gmres_H = new ParOptScalar[ (m+1)*(m+2)/2 ];
     gmres_alpha = new ParOptScalar[ m+1 ];
     gmres_res = new ParOptScalar[ m+1 ];
@@ -1422,7 +1472,11 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec *xt,
                                  int use_qn ){
   // Retrive the diagonal entry for the BFGS update
   ParOptScalar b0 = 0.0;
-  if (use_qn){
+  ParOptScalar *h = NULL;
+  if (hdiag && use_diag_hessian){
+    hdiag->getArray(&h);
+  }
+  else if (qn && use_qn){
     const ParOptScalar *d, *M;
     ParOptVec **Z;
     qn->getCompactMat(&b0, &d, &M, &Z);
@@ -1443,8 +1497,8 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec *xt,
 
   // Set the values of the c matrix
   if (use_lower && use_upper){
-    ParOptScalar diag_no_bound = 1.0/(b0 + qn_sigma);
     for ( int i = 0; i < nvars; i++ ){
+      if (h){ b0 = h[i]; }
       if (RealPart(lbvals[i]) > -max_bound_val && 
           RealPart(ubvals[i]) < max_bound_val){
         cvals[i] = 1.0/(b0 + qn_sigma +
@@ -1458,36 +1512,39 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec *xt,
         cvals[i] = 1.0/(b0 + qn_sigma + zuvals[i]/(ubvals[i] - xvals[i]));
       }
       else {
-        cvals[i] = diag_no_bound;
+        cvals[i] = 1.0/(b0 + qn_sigma);
       }
     }
   }
   else if (use_lower){
     ParOptScalar diag_no_bound = 1.0/(b0 + qn_sigma);
     for ( int i = 0; i < nvars; i++ ){
+      if (h){ b0 = h[i]; }
       if (RealPart(lbvals[i]) > -max_bound_val){
         cvals[i] = 1.0/(b0 + qn_sigma + zlvals[i]/(xvals[i] - lbvals[i]));
       }
       else {
-        cvals[i] = diag_no_bound;
+        cvals[i] = 1.0/(b0 + qn_sigma);
       }
     }
   }
   else if (use_upper){
     ParOptScalar diag_no_bound = 1.0/(b0 + qn_sigma);
     for ( int i = 0; i < nvars; i++ ){
+      if (h){ b0 = h[i]; }
       if (RealPart(ubvals[i]) < max_bound_val){
         cvals[i] = 1.0/(b0 + qn_sigma + zuvals[i]/(ubvals[i] - xvals[i]));
       }
       else {
-        cvals[i] = diag_no_bound;
+        cvals[i] = 1.0/(b0 + qn_sigma);
       }
     }
   }
   else {
     ParOptScalar diag_no_bound = 1.0/(b0 + qn_sigma);
     for ( int i = 0; i < nvars; i++ ){
-      cvals[i] = diag_no_bound;
+      if (h){ b0 = h[i]; }
+      cvals[i] = 1.0/(b0 + qn_sigma);
     }
   }
 
@@ -2541,7 +2598,7 @@ void ParOpt::setUpKKTSystem( ParOptScalar *zt,
                              ParOptVec *xt2, 
                              ParOptVec *wt,
                              int use_qn ){
-  if (use_qn){
+  if (qn && use_qn){
     // Get the size of the limited-memory BFGS subspace
     ParOptScalar b0;
     const ParOptScalar *d0, *M;
@@ -2613,7 +2670,7 @@ void ParOpt::computeKKTStep( ParOptScalar *zt,
   const ParOptScalar *d, *M;
   ParOptVec **Z;
   int size = 0;
-  if (use_qn){
+  if (qn && use_qn){
     size = qn->getCompactMat(&b0, &d, &M, &Z);
   }
 
@@ -3414,7 +3471,7 @@ line search, trying new point\n");
 
     // Check the sufficient decrease condition
     if (RealPart(merit) < 
-        RealPart(m0 + armijio_constant*alpha*dm0)){
+        RealPart(m0 + armijo_constant*alpha*dm0)){
       // We have successfully found a point
       fail = 0;
       break;
@@ -3465,7 +3522,7 @@ line search, trying new point\n");
   
   // Compute the negative gradient of the Lagrangian using the
   // old gradient information with the new multiplier estimates
-  if (!sequential_linear_method){
+  if (qn && !sequential_linear_method){
     y_qn->copyValues(g);
     y_qn->scale(-1.0);
     for ( int i = 0; i < ncon; i++ ){
@@ -3493,7 +3550,7 @@ line search, trying new point\n");
 
   // Add the new gradient of the Lagrangian with the new
   // multiplier estimates
-  if (!sequential_linear_method){
+  if (qn && !sequential_linear_method){
     y_qn->axpy(1.0, g);
     for ( int i = 0; i < ncon; i++ ){
       y_qn->axpy(-z[i], Ac[i]);
@@ -3749,7 +3806,7 @@ int ParOpt::optimize( const char *checkpoint ){
   info[0] = '\0';
 
   for ( int k = 0; k < max_major_iters; k++ ){
-    if (!sequential_linear_method){
+    if (qn && !sequential_linear_method){
       if (k > 0 && k % hessian_reset_freq == 0){
         // Reset the quasi-Newton Hessian approximation
         qn->reset();
@@ -4050,6 +4107,15 @@ int ParOpt::optimize( const char *checkpoint ){
       int use_qn = 1;
       if (sequential_linear_method){
         use_qn = 0;
+      }
+      else if (use_diag_hessian){
+        use_qn = 0;
+        int fail = prob->evalHessianDiag(x, z, zw, hdiag);
+        if (fail){
+          fprintf(stderr, 
+                  "ParOpt: Hessian diagonal evaluation failed\n");
+          return fail; 
+        }
       }
       
       // Set up the KKT diagonal system
@@ -4389,12 +4455,12 @@ int ParOpt::optimize( const char *checkpoint ){
 
     // Compute the Quasi-Newton update
     int up_type = 0;
-    if (!sequential_linear_method && !line_fail){
+    if (qn && !sequential_linear_method && !line_fail){
       up_type = qn->update(s_qn, y_qn);
     }
 
     // Reset the quasi-Newton Hessian if there is a line search failure
-    if (line_fail){
+    if (qn && line_fail){
       qn->reset();
     }
 
@@ -4436,234 +4502,6 @@ int ParOpt::optimize( const char *checkpoint ){
 }
 
 /*
-  The following functions create 
-*/
-/*
-void ParOpt::leftSymmTransform( ParOptVec *bx,
-                                ParOptScalar *bc,
-                                ParOptVec *bcw, 
-                                ParOptScalar *bs,
-                                ParOptVec *bsw,
-                                ParOptVec *bzl,
-                                ParOptVec *bzu ){
-  // bs <--  -S^{-1/2}*bs
-  if (dense_inequality && bs){
-    for ( int k = 0; k < ncon; k++ ){
-      if (s[k] != 0.0){
-        bs[k] *= -1.0/sqrt(s[k]);
-      }
-    }
-  }
-
-  // bsw <--  -Sw^{-1/2}*bsw
-  if (sparse_inequality && rsw){
-    ParOptScalar *swvals, *bswvals;
-    zw->getArray(&zwvals);
-    bsw->getArray(&rswvals);
-    
-    for ( int i = 0; i < nwcon; i++ ){
-      bswvals[i] *= -1.0/sqrt(swvals[i]);
-    }
-  }
-
-  // bzl <--  -Zl^{-1/2}*bzl
-  if (use_lower && bzl){
-    ParOptScalar *zlvals, *bzlvals;
-    zl->getArray(&zlvals);
-    bzl->getArray(&bzlvals);
-
-    for ( int i = 0; i < nvars; i++ ){
-      if (zlvals[i] != 0.0){
-        bzlvals[i] *= -1.0/sqrt(zlvals[i]);
-      }
-    }
-  }
-
-  // bzu <--  -Zu^{-1/2}*bzu
-  if (use_upper && bzu){
-    ParOptScalar *zuvals, *bzuvals;
-    zu->getArray(&zuvals);
-    bzu->getArray(&bzuvals);
-
-    for ( int i = 0; i < nvars; i++ ){
-      if (zuvals[i] != 0.0){
-        bzuvals[i] *= -1.0/sqrt(zuvals[i]);
-      }
-    }
-  }
-}
-
-void ParOpt::leftInvSymmTransform( ParOptVec *bx,
-                                   ParOptScalar *bc,
-                                   ParOptVec *bcw, 
-                                   ParOptScalar *bs,
-                                   ParOptVec *bsw,
-                                   ParOptVec *bzl,
-                                   ParOptVec *bzu ){
-  // bs <--  -S^{1/2}*bs
-  if (dense_inequality && bs){
-    for ( int k = 0; k < ncon; k++ ){
-      if (s[k] != 0.0){
-        bs[k] *= -sqrt(s[k]);
-      }
-    }
-  }
-
-  // bsw <--  -Sw^{1/2}*bsw
-  if (sparse_inequality && rsw){
-    ParOptScalar *swvals, *bswvals;
-    zw->getArray(&zwvals);
-    bsw->getArray(&rswvals);
-    
-    for ( int i = 0; i < nwcon; i++ ){
-      bswvals[i] *= -sqrt(swvals[i]);
-    }
-  }
-
-  // bzl <--  -Zl^{1/2}*bzl
-  if (use_lower && bzl){
-    ParOptScalar *zlvals, *bzlvals;
-    zl->getArray(&zlvals);
-    bzl->getArray(&bzlvals);
-
-    for ( int i = 0; i < nvars; i++ ){
-      if (zlvals[i] != 0.0){
-        bzlvals[i] *= -sqrt(zlvals[i]);
-      }
-    }
-  }
-
-  // bzu <--  -Zu^{1/2}*bzu
-  if (use_upper && bzu){
-    ParOptScalar *zuvals, *bzuvals;
-    zu->getArray(&zuvals);
-    bzu->getArray(&bzuvals);
-
-    for ( int i = 0; i < nvars; i++ ){
-      if (zuvals[i] != 0.0){
-        bzuvals[i] *= -sqrt(zuvals[i]);
-      }
-    }
-  }
-}
-
-void ParOpt::rightSymmTransform( ParOptVec *dx,
-                                 ParOptScalar *dz,
-                                 ParOptVec *dzw, 
-                                 ParOptScalar *ds,
-                                 ParOptVec *dsw,
-                                 ParOptVec *dzl,
-                                 ParOptVec *dzu ){
-  for ( int k = 0; k < ncon; k++ ){
-    dz[k] *= -1.0;
-  }
-
-  // ds <--  -S^{1/2}*ds
-  if (dense_inequality && ds){
-    for ( int k = 0; k < ncon; k++ ){
-      if (s[k] != 0.0){
-        ds[k] *= sqrt(s[k]);
-      }
-    }
-  }
-
-  // dsw <--  Sw^{1/2}*dsw
-  if (sparse_inequality && rsw){
-    ParOptScalar *swvals, *dswvals;
-    zw->getArray(&zwvals);
-    dsw->getArray(&rswvals);
-    
-    for ( int i = 0; i < nwcon; i++ ){
-      dswvals[i] *= sqrt(swvals[i]);
-    }
-  }
-
-  // dzl <--  Zl^{1/2}*dzl
-  if (use_lower && dzl){
-    ParOptScalar *zlvals, *dzlvals;
-    zl->getArray(&zlvals);
-    dzl->getArray(&dzlvals);
-
-    for ( int i = 0; i < nvars; i++ ){
-      if (zlvals[i] != 0.0){
-        dzlvals[i] *= sqrt(zlvals[i]);
-      }
-    }
-  }
-
-  // dzu <--  Zu^{1/2}*dzu
-  if (use_upper && dzu){
-    ParOptScalar *zuvals, *dzuvals;
-    zu->getArray(&zuvals);
-    dzu->getArray(&dzuvals);
-
-    for ( int i = 0; i < nvars; i++ ){
-      if (zuvals[i] != 0.0){
-        dzuvals[i] *= sqrt(zuvals[i]);
-      }
-    }
-  }
-}
-
-void ParOpt::rightInvSymmTransform( ParOptVec *dx,
-                                    ParOptScalar *dz,
-                                    ParOptVec *dzw, 
-                                    ParOptScalar *ds,
-                                    ParOptVec *dsw,
-                                    ParOptVec *dzl,
-                                    ParOptVec *dzu ){
-  for ( int k = 0; k < ncon; k++ ){
-    dz[k] *= -1.0;
-  }
-
-  // ds <--  -S^{1/2}*ds
-  if (dense_inequality && ds){
-    for ( int k = 0; k < ncon; k++ ){
-      if (s[k] != 0.0){
-        ds[k] *= 1.0/sqrt(s[k]);
-      }
-    }
-  }
-
-  // dsw <--  Sw^{1/2}*dsw
-  if (sparse_inequality && rsw){
-    ParOptScalar *swvals, *dswvals;
-    zw->getArray(&zwvals);
-    dsw->getArray(&rswvals);
-    
-    for ( int i = 0; i < nwcon; i++ ){
-      dswvals[i] *= 1.0/sqrt(swvals[i]);
-    }
-  }
-
-  // dzl <--  Zl^{1/2}*dzl
-  if (use_lower && dzl){
-    ParOptScalar *zlvals, *dzlvals;
-    zl->getArray(&zlvals);
-    dzl->getArray(&dzlvals);
-
-    for ( int i = 0; i < nvars; i++ ){
-      if (zlvals[i] != 0.0){
-        dzlvals[i] *= 1.0/sqrt(zlvals[i]);
-      }
-    }
-  }
-
-  // dzu <--  Zu^{1/2}*dzu
-  if (use_upper && dzu){
-    ParOptScalar *zuvals, *dzuvals;
-    zu->getArray(&zuvals);
-    dzu->getArray(&dzuvals);
-
-    for ( int i = 0; i < nvars; i++ ){
-      if (zuvals[i] != 0.0){
-        dzuvals[i] *= 1.0/sqrt(zuvals[i]);
-      }
-    }
-  }
-}
-*/
-/*
   This function approximately solves the linearized KKT system with
   Hessian-vector products using right-preconditioned GMRES.  This
   procedure uses a preconditioner formed from a portion of the KKT
@@ -4693,6 +4531,16 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
                                          ParOptVec *wt,
                                          double rtol, double atol,
                                          int use_qn ){
+  // Check that the subspace has been allocated
+  if (gmres_subspace_size <= 0){
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+    if (rank == opt_root){
+      fprintf(stderr, "ParOpt error: gmres_subspace_size not set\n");
+    }
+    return 0;
+  }
+
   // Initialize the data from the gmres object
   ParOptScalar *H = gmres_H;
   ParOptScalar *alpha = gmres_alpha;
@@ -4700,8 +4548,6 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
   ParOptScalar *Qcos = &gmres_Q[0];
   ParOptScalar *Qsin = &gmres_Q[gmres_subspace_size];
   ParOptVec **W = gmres_W;
-
-  int use_symmetrized_newton = 0;
 
   // Compute the beta factor: the product of the diagonal terms
   // after normalization
@@ -4771,7 +4617,7 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
     const ParOptScalar *d, *M;
     ParOptVec **Z;
     int size = 0;
-    if (use_qn){
+    if (qn && use_qn){
       size = qn->getCompactMat(&b0, &d, &M, &Z);
     }
 
@@ -4810,7 +4656,7 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
     nhvec++;
 
     // Add the term -B*W[i]
-    if (!sequential_linear_method){
+    if (qn && !sequential_linear_method){
       qn->multAdd(-1.0, xt1, W[i+1]);
     }
 
@@ -4928,7 +4774,7 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
   const ParOptScalar *d, *M;
   ParOptVec **Z;
   int size = 0;
-  if (use_qn){
+  if (qn && use_qn){
     size = qn->getCompactMat(&b0, &d, &M, &Z);
   }
 
@@ -5291,7 +5137,7 @@ void ParOpt::checkKKTStep( int is_newton ){
     prob->evalHvecProduct(x, z, zw, px, rx);
   }
   else {
-    if (!sequential_linear_method){
+    if (qn && !sequential_linear_method){
       qn->mult(px, rx);
       rx->axpy(qn_sigma, px);
     }

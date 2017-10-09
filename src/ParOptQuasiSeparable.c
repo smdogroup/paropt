@@ -295,6 +295,65 @@ int ParOptMMA::update(){
     // Solve the dual problem
     int dual_fail = solveDual();
 
+    ParOptScalar *rs = new ParOptScalar[ m ];
+    for ( int i = 0; i < m; i++ ){
+      rs[i] = -(y[i] + b[i]);
+    }
+
+    // Get the asymptotes
+    ParOptScalar *L, *U;
+    Lvec->getArray(&L);
+    Uvec->getArray(&U);
+
+    ParOptScalar *p0, *q0;
+    p0vec->getArray(&p0);
+    q0vec->getArray(&q0);
+
+    ParOptScalar *alpha, *beta;
+    alphavec->getArray(&alpha);
+    betavec->getArray(&beta);
+
+    ParOptScalar *x;
+    xvec->getArray(&x);
+
+    // Check the KKT conditions for the dual problem
+    double l1_norm = 0.0;
+    for ( int j = 0; j < n; j++ ){
+      // Compute the first KKT condition
+      ParOptScalar r = 
+        p0[j]/((U[j] - x[j])*(U[j] - x[j])) -
+        q0[j]/((x[j] - L[j])*(x[j] - L[j]));
+
+      for ( int i = 0; i < m; i++ ){
+        ParOptScalar *pi, *qi;
+        pivecs[i]->getArray(&pi);
+        qivecs[i]->getArray(&qi);
+
+        rs[i] += pi[j]/(U[j] - x[j]) + qi[j]/(x[j] - L[j]);
+
+        ParOptScalar a =
+          pi[j]/((U[j] - x[j])*(U[j] - x[j])) -
+          qi[j]/((x[j] - L[j])*(x[j] - L[j]));
+
+        r += a*lambda[i];
+      }
+    
+      if ((x[j] <= alpha[j] + bound_relax) && r >= 0.0){
+        r = 0.0;
+      }
+      if ((x[j] + bound_relax >= beta[j]) && r <= 0.0){
+        r = 0.0;
+      }
+
+      // Add the contribution to the l1/infinity norms
+      double t = fabs(RealPart(r));
+      l1_norm += t;
+    }
+    printf("[%d] l1_norm of dual problem = %10.5e\n", mma_iter, l1_norm);
+    for ( int i = 0; i < m; i++ ){
+      printf("[%d] infeasibility = %10.5e\n", mma_iter, fabs(rs[i]));
+    }
+
     if (fp){
       fflush(fp);
     }
@@ -402,6 +461,56 @@ void ParOptMMA::getAsymptotes( ParOptVec **_L, ParOptVec **_U ){
 }
 
 /*
+  Evaluate the dual objective function
+*/
+ParOptScalar ParOptMMA::evalDualObjective( const ParOptScalar *lam,
+                                           const ParOptScalar *p0,
+                                           const ParOptScalar *q0,
+                                           ParOptScalar **pi,
+                                           ParOptScalar **qi,
+                                           const ParOptScalar *L,
+                                           const ParOptScalar *U,
+                                           const ParOptScalar *alpha,
+                                           const ParOptScalar *beta ){
+  ParOptScalar W = 0.0;
+
+  for ( int j = 0; j < n; j++ ){
+    // Compute the values
+    ParOptScalar sL = p0[j];
+    ParOptScalar sU = q0[j];
+    for ( int i = 0; i < m; i++ ){
+      sL += pi[i][j]*lam[i];
+      sU += qi[i][j]*lam[i];
+    }
+    sL = sqrt(sL);
+    sU = sqrt(sU);
+    ParOptScalar x = (sL*L[j] + sU*U[j])/(sL + sU);
+
+    if (x <= alpha[j]){
+      x = alpha[j];
+    }
+    else if (x >= beta[j]){
+      x = beta[j];
+    }
+
+    W += sL*sL/(U[j] - x) + sU*sU/(x - L[j]);
+  }
+  
+  // Sum up the gradient contribution from all processors
+  MPI_Allreduce(MPI_IN_PLACE, &W, 1, PAROPT_MPI_TYPE, MPI_SUM, comm);
+
+  for ( int i = 0; i < m; i++ ){
+    W -= b[i]*lam[i];
+    if (lam[i] > c[i]){
+      W -= 0.5*lam[i]*lam[i] - c[i]*lam[i];
+    }
+  }
+
+
+  return W;
+}
+
+/*
   Evaluate the gradient and Hessian of the dual sub-problem.
 
   This is collective on all processors. The function overwrites the
@@ -460,15 +569,14 @@ void ParOptMMA::evalDualGradient( ParOptScalar *grad,
       at_bounds = 1;
       x[j] = beta[j];
     }
-
-    ParOptScalar Uinv = 1.0/(U[j] - x[j]);
-    ParOptScalar Linv = 1.0/(x[j] - L[j]);
-    for ( int i = 0; i < m; i++ ){
-      grad[i] += Uinv*pi[i][j] + Linv*qi[i][j];
-      tmp[i] = Uinv*Uinv*pi[i][j] - Linv*Linv*qi[i][j];
-    }
-    
-    if (!at_bounds){
+    else {
+      ParOptScalar Uinv = 1.0/(U[j] - x[j]);
+      ParOptScalar Linv = 1.0/(x[j] - L[j]);
+      for ( int i = 0; i < m; i++ ){
+        grad[i] += Uinv*pi[i][j] + Linv*qi[i][j];
+        tmp[i] = Uinv*Uinv*pi[i][j] - Linv*Linv*qi[i][j];
+      }
+      
       ParOptScalar scale = 
         -0.5/(sL*sL*Uinv*Uinv*Uinv + sU*sU*Linv*Linv*Linv);
       for ( int ii = 0; ii < m; ii++ ){
@@ -540,6 +648,7 @@ int ParOptMMA::solveDual(){
   // Set the gradient and Hessian
   ParOptScalar *grad = new ParOptScalar[ m ];
   ParOptScalar *H = new ParOptScalar[ m*m ];
+  ParOptScalar *lam = new ParOptScalar[ m ];
 
   // Allocate the multiplier step
   ParOptScalar *pzlb = new ParOptScalar[ m ];
@@ -612,7 +721,7 @@ int ParOptMMA::solveDual(){
         break;
       }
 
-      if (print_level > 3){
+      if (mma_iter == 56 || print_level > 3){
         if (fp){
           fprintf(fp, "\n%4s %15s\n", " ", "grad");
           for ( int i = 0; i < m; i++ ){
@@ -654,18 +763,6 @@ int ParOptMMA::solveDual(){
       // Use the factorization
       LAPACKdgetrs("N", &m, &one, H, &m, ipiv, grad, &m, &info);
 
-      // Check the norm of the step
-      double step_norm = 0.0;
-      for ( int i = 0; i < m; i++ ){
-        double t = fabs(RealPart(grad[i])); 
-        if (i == 0){
-          step_norm = t;
-        }
-        else if (t > res_norm){
-          step_norm = t;
-        }
-      }
-
       // Increase the number of sub-iterations
       subproblem_iter++;
 
@@ -691,6 +788,31 @@ int ParOptMMA::solveDual(){
             max_step = step;
           }
         }
+      }
+
+      // Now perform a line search step
+      int max_line_search_iters = 10;
+      ParOptScalar W0 = evalDualObjective(lambda, p0, q0, pi, qi, 
+                                          L, U, alpha, beta);
+      for ( int j = 0; j < m; j++ ){
+        W0 += barrier*log(lambda[j]);
+      }
+
+      for ( int i = 0; i < max_line_search_iters; i++ ){
+        for ( int j = 0; j < m; j++ ){
+          lam[j] = lambda[j] + max_step*grad[j];
+        }
+        ParOptScalar W = evalDualObjective(lam, p0, q0, pi, qi, 
+                                           L, U, alpha, beta);
+        for ( int j = 0; j < m; j++ ){
+          W += barrier*log(lam[j]);
+        }
+        // Just search for a simple increase
+        if (W >= W0){
+          break;
+        }
+        printf("Line search iteraiton %d  W0 = %10.5e  W = %10.5e\n", i, W0, W);
+        max_step *= 0.5;
       }
 
       if (fp && print_level > 1){
@@ -747,6 +869,7 @@ int ParOptMMA::solveDual(){
 
   delete [] grad;
   delete [] H;
+  delete [] lam;
   delete [] ipiv;
   delete [] pi;
   delete [] qi;
@@ -910,8 +1033,9 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
     beta[j] = min2(ub[j], 0.9*U[j] + 0.1*x[j]);
 
     // Compute the coefficients for the objective
-    p0[j] = max2(0.0, g[j])*(U[j] - x[j])*(U[j] - x[j]);
-    q0[j] = -min2(0.0, g[j])*(x[j] - L[j])*(x[j] - L[j]);
+    double eps = 1e-6;
+    p0[j] = max2(0.0, g[j])*(U[j] - x[j])*(U[j] - x[j]) + eps/(U[j] - L[j]);
+    q0[j] = max2(0.0, -g[j])*(x[j] - L[j])*(x[j] - L[j]) + eps/(U[j] - L[j]);
   }
 
   if (use_true_mma){
@@ -924,7 +1048,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
       // Compute the coefficients for the constraints
       for ( int j = 0; j < n; j++ ){
         pi[j] = max2(0.0, A[i][j])*(U[j] - x[j])*(U[j] - x[j]);
-        qi[j] = -min2(0.0, A[i][j])*(x[j] - L[j])*(x[j] - L[j]);
+        qi[j] = max2(0.0, -A[i][j])*(x[j] - L[j])*(x[j] - L[j]);
         b[i] += pi[j]/(U[j] - x[j]) + qi[j]/(x[j] - L[j]);
       }
     }

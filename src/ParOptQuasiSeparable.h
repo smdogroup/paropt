@@ -115,6 +115,17 @@ class ParOptMMA : public ParOptProblem {
   // Solve the dual problem
   int solveDual();
 
+  // Evaluate the dual objective
+  ParOptScalar evalDualObjective( const ParOptScalar *lam,
+                                  const ParOptScalar *p0,
+                                  const ParOptScalar *q0,
+                                  ParOptScalar **pi,
+                                  ParOptScalar **qi,
+                                  const ParOptScalar *L,
+                                  const ParOptScalar *U,
+                                  const ParOptScalar *alpha,
+                                  const ParOptScalar *beta );
+
   // Evaluate the dual gradient/hessian
   void evalDualGradient( ParOptScalar *grad, ParOptScalar *H,
                          ParOptScalar *x, ParOptScalar *ys,

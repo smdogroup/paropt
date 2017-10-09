@@ -99,9 +99,10 @@ cdef extern from "ParOptQuasiNewton.h":
 
 cdef extern from "ParOpt.h":
    # Set the quasi-Newton type to use
-   enum QuasiNewtonType"ParOpt::QuasiNewtonType": 
-      PAROPT_BFGS"ParOpt::BFGS"
-      PAROPT_SR1"ParOpt::SR1"
+   enum ParOptQuasiNewtonType:
+      PAROPT_BFGS
+      PAROPT_SR1
+      PAROPT_NO_HESSIAN_APPROX
 
    enum ParOptNormType:
       PAROPT_INFTY_NORM
@@ -109,8 +110,9 @@ cdef extern from "ParOpt.h":
       PAROPT_L2_NORM
 
    cppclass ParOpt(ParOptBase):
-      ParOpt(ParOptProblem *_prob, int _max_lbfgs_subspace, 
-             QuasiNewtonType qn_type) except +
+      ParOpt(ParOptProblem *_prob, 
+             int _max_lbfgs_subspace, 
+             ParOptQuasiNewtonType qn_type) except +
 
       # Perform the optimiztion
       int optimize(const char *checkpoint)
@@ -155,10 +157,11 @@ cdef extern from "ParOpt.h":
       void setUseLineSearch(int truth)
       void setMaxLineSearchIters(int iters)
       void setBacktrackingLineSearch(int truth)
-      void setArmijioParam(double c1)
+      void setArmijoParam(double c1)
       void setPenaltyDescentFraction(double frac)
 
       # Set parameters for the internal GMRES algorithm
+      void setUseDiagHessian(int truth)
       void setUseHvecProduct(int truth)
       void setUseQNGMRESPreCon(int truth)
       void setNKSwitchTolerance(double tol)

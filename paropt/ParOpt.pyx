@@ -25,6 +25,12 @@ include "ParOptDefs.pxi"
 cdef extern from "mpi-compat.h":
    pass
 
+# The quasi-Newton hessian approximation
+BFGS = PAROPT_BFGS
+SR1 = PAROPT_SR1
+NO_HESSIAN_APPROX = PAROPT_NO_HESSIAN_APPROX
+
+# The ParOpt norm type
 INFTY_NORM = PAROPT_INFTY_NORM
 L1_NORM = PAROPT_L1_NORM
 L2_NORM = PAROPT_L2_NORM
@@ -544,8 +550,9 @@ cdef class PVec:
 # Python class for corresponding instance ParOpt
 cdef class pyParOpt:
    cdef ParOpt *ptr
-   def __cinit__(self, pyParOptProblemBase _prob, int max_qn_subspace, 
-                 QuasiNewtonType qn_type):
+   def __cinit__(self, pyParOptProblemBase _prob, 
+                 int max_qn_subspace, 
+                 ParOptQuasiNewtonType qn_type):
       self.ptr = new ParOpt(_prob.ptr, max_qn_subspace, qn_type)
       self.ptr.incref()
       return
@@ -673,8 +680,8 @@ cdef class pyParOpt:
    def setBacktrackingLineSearch(self, int truth):
       self.ptr.setBacktrackingLineSearch(truth)
       
-   def setArmijioParam(self, double c1):
-      self.ptr.setArmijioParam(c1)
+   def setArmijoParam(self, double c1):
+      self.ptr.setArmijoParam(c1)
       
    def setPenaltyDescentFraction(self, double frac):
       self.ptr.setPenaltyDescentFraction(frac)
@@ -682,6 +689,10 @@ cdef class pyParOpt:
    # Set parameters for the interal GMRES algorithm
    def setUseHvecProduct(self, int truth):
       self.ptr.setUseHvecProduct(truth)
+
+   # Set the use of an exact diagonal hessian
+   def setUseDiagHessian(self, int truth):
+      self.ptr.setUseDiagHessian(truth)
       
    def setUseQNGMRESPreCon(self, int truth):
       self.ptr.setUseQNGMRESPreCon(truth)

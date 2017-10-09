@@ -122,6 +122,12 @@ class ParOptProblem : public ParOptBase {
                                ParOptScalar *z, ParOptVec *zw,
                                ParOptVec *px, ParOptVec *hvec ) = 0;
 
+  // Evaluate the diagonal of the Hessian
+  // ------------------------------------
+  virtual int evalHessianDiag( ParOptVec *x, 
+                               ParOptScalar *z, ParOptVec *zw, 
+                               ParOptVec *hdiag ){}
+
   // Evaluate the constraints
   // ------------------------
   virtual void evalSparseCon( ParOptVec *x, ParOptVec *out ) = 0;

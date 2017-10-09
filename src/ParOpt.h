@@ -14,6 +14,10 @@ enum ParOptNormType { PAROPT_INFTY_NORM,
                       PAROPT_L1_NORM,
                       PAROPT_L2_NORM };
 
+enum ParOptQuasiNewtonType { PAROPT_BFGS, 
+                             PAROPT_SR1, 
+                             PAROPT_NO_HESSIAN_APPROX };
+
 /*
   ParOpt is a parallel optimizer implemented in C++ for large-scale 
   constrained optimization.
@@ -116,11 +120,9 @@ enum ParOptNormType { PAROPT_INFTY_NORM,
 */
 class ParOpt : public ParOptBase {
  public:
-  enum QuasiNewtonType { BFGS, SR1 };
-
   ParOpt( ParOptProblem *_prob,
-          int _max_qn_subspace,
-          QuasiNewtonType qn_type=BFGS,
+          int _max_qn_subspace=10,
+          ParOptQuasiNewtonType qn_type=PAROPT_BFGS,
           double _max_bound_val=1e20 );
   ~ParOpt();
 
@@ -136,11 +138,6 @@ class ParOpt : public ParOptBase {
   // -------------------------------------------------------
   void getProblemSizes( int *_nvars, int *_ncon, 
                         int *_nwcon, int *_nwblock );
-
-  // Get the initial internal values of the multipliers
-  // --------------------------------------------------
-  void getInitMultipliers( ParOptScalar **_z, ParOptVec **_zw,
-                           ParOptVec **_zl, ParOptVec **_zu );
   
   // Retrieve the values of the design variables and multipliers
   // -----------------------------------------------------------
@@ -181,8 +178,12 @@ class ParOpt : public ParOptBase {
   void setUseLineSearch( int truth );
   void setMaxLineSearchIters( int iters );
   void setBacktrackingLineSearch( int truth );
-  void setArmijioParam( double c1 );
+  void setArmijoParam( double c1 );
   void setPenaltyDescentFraction( double frac );
+
+  // Set the parameter to set/use a diagonal Hessian
+  // -----------------------------------------------
+  void setUseDiagHessian( int truth );
 
   // Set parameters for the internal GMRES algorithm
   // -----------------------------------------------
@@ -231,7 +232,7 @@ class ParOpt : public ParOptBase {
                       double *max_infeas );
 
   // Set up the diagonal KKT system
-  void setUpKKTDiagSystem( ParOptVec *xt, ParOptVec *wt, int use_bfgs );
+  void setUpKKTDiagSystem( ParOptVec *xt, ParOptVec *wt, int use_qn );
 
   // Solve the diagonal KKT system
   void solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bc, 
@@ -412,13 +413,17 @@ class ParOpt : public ParOptBase {
   int max_line_iters;
   int use_line_search, use_backtracking_alpha;
   double rho_penalty_search;
-  double penalty_descent_fraction, armijio_constant;
+  double penalty_descent_fraction, armijo_constant;
 
   // Parameters for controling the barrier update
   double monotone_barrier_fraction, monotone_barrier_power;
  
   // The minimum step to the boundary;
   double min_fraction_to_boundary;
+
+  // Control of exact diagonal Hessian
+  int use_diag_hessian;
+  ParOptVec *hdiag;
 
   // Control of exact Hessian-vector products
   int use_hvec_product;
