@@ -184,6 +184,7 @@ cdef extern from "ParOptMMA.h":
       ParOptMMA(ParOptProblem*, int)
       void getOptimizedPoint(ParOptVec**)
       void getAsymptotes(ParOptVec**, ParOptVec**)
+      void setMultipliers(ParOptScalar*, ParOptVec*)
       int initializeSubProblem(ParOptVec*)
       void setPrintLevel(int)
       void setOutputFile(const char*)

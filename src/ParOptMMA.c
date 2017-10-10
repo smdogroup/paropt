@@ -58,10 +58,6 @@ ParOptProblem(_prob->getMPIComm()){
   // Get the problem sizes
   int _nwcon, _nwblock;
   prob->getProblemSizes(&n, &m, &_nwcon, &_nwblock);
-  if (use_true_mma && _nwcon > 0){
-    fprintf(stderr, 
-            "ParOptMMA warning: Cannot solve probs with weight constraints\n");
-  }
   setProblemSizes(n, m, _nwcon, _nwblock);
 
   // Set the iteration counter
@@ -115,6 +111,10 @@ ParOptMMA::~ParOptMMA(){
       cwvec->decref();
     }
   }
+
+  delete [] z;
+  zwvec->decref();
+  rvec->decref();
 }
 
 /*
@@ -181,6 +181,15 @@ void ParOptMMA::initialize(){
 
   // Get the design variables and bounds
   prob->getVarsAndBounds(xvec, lbvec, ubvec);
+
+  // Set the initial multipliers/values to zero
+  z = new ParOptScalar[ m ];
+  memset(z, 0, m*sizeof(ParOptScalar));
+  zwvec = prob->createConstraintVec();
+
+  // Create a sparse constraint vector
+  rvec = prob->createDesignVec();
+  rvec->incref();
 }
 
 /*
@@ -255,30 +264,26 @@ void ParOptMMA::setOutputFile( const char *filename ){
 }
 
 /*
-  Compute the KKT error
+  Set the new values of the multipliers
 */
+void ParOptMMA::setMultipliers( ParOptScalar *_z, ParOptVec *_zw ){
+  // Copy over the values of the multipliers
+  memcpy(z, _z, m*sizeof(ParOptScalar));
+
+  // Copy over the values of the constraint multipliers
+  if (_zw){
+    zwvec->copyValues(_zw);
+  }
+}
+
 /*
+  Compute the KKT error based on the current values of the multipliers
+  set in ParOptMMA. If you do not update the multipliers, you will not
+  get the correct KKT error.
+*/
 void ParOptMMA::computeKKTError( double *l1, 
                                  double *linfty,
                                  double *infeas ){
-  if (!use_true_mma){
-    *l1 = 0.0;
-    *linfty = 0.0;
-    *infeas = 0.0;
-    return;
-  }
-
-  // Get the objective gradient array
-  ParOptScalar *g;
-  gvec->getArray(&g);
-
-  // Allocate a temp array to store the pointers
-  // to the constraint vector
-  ParOptScalar **A = new ParOptScalar*[ m ];
-  for ( int i = 0; i < m; i++ ){
-    Avecs[i]->getArray(&A[i]);
-  }
-  
   // Get the lower/upper bounds for the variables
   ParOptScalar *lb, *ub;
   lbvec->getArray(&lb);
@@ -288,30 +293,39 @@ void ParOptMMA::computeKKTError( double *l1,
   ParOptScalar *x;
   xvec->getArray(&x);
 
+  // Compute the KKT residual r = g - A^{T}*z
+  rvec->copyValues(gvec);
+  for ( int i = 0; i < m; i++ ){
+    rvec->axpy(-z[i], Avecs[i]);
+  }
+
+  // If zw exists, compute r = r - Aw^{T}*zw
+  if (zwvec){
+    prob->addSparseJacobianTranspose(-1.0, xvec, zwvec, rvec);
+  }
+
   // Set the infinity norms
   double l1_norm = 0.0;
   double infty_norm = 0.0;
 
+  // Get the vector of values
+  ParOptScalar *r;
+  rvec->getArray(&r);
+
   for ( int j = 0; j < n; j++ ){
-    // Compute the first KKT condition
-    ParOptScalar r = g[j];
-    for ( int i = 0; i < m; i++ ){
-      r += A[i][j]*lambda[i];
-    }
-    
     // Check whether the bound multipliers would eliminate this
     // residual or not. If we're at the lower bound and the KKT
     // residual is negative or if we're at the upper bound and the KKT
     // residual is positive.
-    if ((x[j] <= lb[j] + bound_relax) && r >= 0.0){
-      r = 0.0;
+    if ((x[j] <= lb[j] + bound_relax) && r[j] >= 0.0){
+      r[j] = 0.0;
     }
-    if ((x[j] + bound_relax >= ub[j]) && r <= 0.0){
-      r = 0.0;
+    if ((x[j] + bound_relax >= ub[j]) && r[j] <= 0.0){
+      r[j] = 0.0;
     }
 
     // Add the contribution to the l1/infinity norms
-    double t = fabs(RealPart(r));
+    double t = fabs(RealPart(r[j]));
     l1_norm += t;
     if (t >= infty_norm){
       infty_norm = t;
@@ -321,16 +335,14 @@ void ParOptMMA::computeKKTError( double *l1,
   // Measure the infeasibility using the l1 norm
   *infeas = 0.0;
   for ( int i = 0; i < m; i++ ){
-    *infeas += fabs(RealPart(max2(0.0, cons[i])));
+    *infeas += fabs(RealPart(min2(0.0, cons[i])));
   }
 
   // All-reduce the norms across all processors
   MPI_Allreduce(&l1_norm, l1, 1, MPI_DOUBLE, MPI_SUM, comm);
   MPI_Allreduce(&infty_norm, linfty, 1, MPI_DOUBLE, MPI_MAX, comm);
-  
-  delete [] A;
 }
-*/
+
 /*
   Get the optimized point
 */
@@ -382,6 +394,30 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
 
   if (cwvec){
     prob->evalSparseCon(xvec, cwvec);
+  }
+  
+  // Compute the KKT error, and print it out to a file
+  if (print_level > 0){
+    double l1, linfty, infeas;
+    computeKKTError(&l1, &linfty, &infeas);
+
+    if (fp){
+      double l1_lambda = 0.0;
+      for ( int i = 0; i < m; i++ ){
+        l1_lambda += fabs(RealPart(z[i]));
+      }      
+
+      if ((print_level == 1 && mma_iter % 10 == 0) ||
+          (print_level > 1)){
+        fprintf(fp, "\n%5s %8s %15s %9s %9s %9s %9s\n",
+                "MMA", "sub-iter", "fobj", "l1 opt", 
+                "linft opt", "l1 lambd", "infeas");
+      }
+      fprintf(fp, "%5d %8d %15.6e %9.3e %9.3e %9.3e %9.3e\n",
+              mma_iter, subproblem_iter, fobj, l1, 
+              linfty, l1_lambda, infeas);
+      fflush(fp);
+    }
   }
 
   // Get the current values of the design variables
@@ -652,6 +688,9 @@ int ParOptMMA::evalObjCon( ParOptVec *xv, ParOptScalar *fval,
 */
 int ParOptMMA::evalObjConGradient( ParOptVec *xv, ParOptVec *gv, 
                                    ParOptVec **Ac ){
+  // Keep track of the number of subproblem gradient evaluations
+  subproblem_iter++;
+
   // Get the gradient vector
   ParOptScalar *g;
   gv->getArray(&g);

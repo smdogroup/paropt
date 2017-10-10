@@ -754,6 +754,14 @@ cdef class pyMMA(pyParOptProblemBase):
       self.mma.getAsymptotes(&L, &U)
       return _init_PVec(L), _init_PVec(U)
 
+   def setMultipliers(self, np.ndarray[ParOptScalar, ndim=1, mode='c'] z,
+                      PVec zw=None):
+      cdef ParOptVec *v = NULL
+      if zw is not None:
+         v = zw.ptr
+      self.mma.setMultipliers(<ParOptScalar*>z.data, v)
+      return
+
    def initializeSubProblem(self, PVec vec=None):
       cdef ParOptVec *v = NULL
       if vec is not None:

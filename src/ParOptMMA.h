@@ -31,6 +31,9 @@ class ParOptMMA : public ParOptProblem {
   ParOptMMA( ParOptProblem *_prob, int _use_true_mma=1 );
   ~ParOptMMA();
 
+  // Set the new values of the multipliers
+  void setMultipliers( ParOptScalar *_z, ParOptVec *_zw=NULL );
+
   // Initialize data for the subproblem
   int initializeSubProblem( ParOptVec *x );
 
@@ -39,9 +42,6 @@ class ParOptMMA : public ParOptProblem {
 
   // Get the asymptotes
   void getAsymptotes( ParOptVec **_L, ParOptVec **_U );
-
-  // Compute the KKT error
-  // void computeKKTError( double *l1, double *linfty, double *infeas );
 
   // Set the print level
   void setPrintLevel( int _print_level );
@@ -110,6 +110,9 @@ class ParOptMMA : public ParOptProblem {
   void writeOutput( int iter, ParOptVec *x ){}
 
  private:
+  // Compute the KKT error
+  void computeKKTError( double *l1, double *linfty, double *infeas );
+
   // Initialize the data
   void initialize();
 
@@ -122,7 +125,8 @@ class ParOptMMA : public ParOptProblem {
   // Communicator for this problem
   MPI_Comm comm;
 
-  // What is your intention here?? - to use MMA or not...
+  // What is your intention here?? - to use full MMA or the linearized
+  // version of MMA.
   int use_true_mma;
 
   // Parameters used in the problem
@@ -168,6 +172,13 @@ class ParOptMMA : public ParOptProblem {
 
   // The sparse constraint vector
   ParOptVec *cwvec;
+
+  // Additional data required for computing the KKT conditions
+  ParOptVec *rvec;
+
+  // The multipliers/constraints
+  ParOptScalar *z;
+  ParOptVec *zwvec;
 };
 
 #endif // PAR_OPT_QUASI_SEPARABLE_H
