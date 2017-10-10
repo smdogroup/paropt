@@ -743,14 +743,6 @@ cdef class pyMMA(pyParOptProblemBase):
       self.ptr = self.mma
       return
             
-   def update(self):
-      self.mma.update()
-
-   def getOptimality(self):
-      cdef double l1, linfty, infeas
-      self.mma.computeKKTError(&l1, &linfty, &infeas)
-      return l1, linfty, infeas
-            
    def getOptimizedPoint(self):
       cdef ParOptVec *x
       self.mma.getOptimizedPoint(&x)

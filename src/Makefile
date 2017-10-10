@@ -4,7 +4,7 @@ include ../ParOpt_Common.mk
 OBJS = ParOpt.o \
 	ParOptVec.o \
 	ParOptQuasiNewton.o \
-	ParOptQuasiSeparable.o \
+	ParOptMMA.o \
 	CyParOptProblem.o
 
 default: ${OBJS}

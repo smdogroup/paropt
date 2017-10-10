@@ -31,9 +31,6 @@ class ParOptMMA : public ParOptProblem {
   ParOptMMA( ParOptProblem *_prob, int _use_true_mma=1 );
   ~ParOptMMA();
 
-  // Update the problem
-  int update();
-
   // Initialize data for the subproblem
   int initializeSubProblem( ParOptVec *x );
 
@@ -44,7 +41,7 @@ class ParOptMMA : public ParOptProblem {
   void getAsymptotes( ParOptVec **_L, ParOptVec **_U );
 
   // Compute the KKT error
-  void computeKKTError( double *l1, double *linfty, double *infeas );
+  // void computeKKTError( double *l1, double *linfty, double *infeas );
 
   // Set the print level
   void setPrintLevel( int _print_level );
@@ -86,6 +83,10 @@ class ParOptMMA : public ParOptProblem {
   int evalHvecProduct( ParOptVec *x, ParOptScalar *z, ParOptVec *zw,
                        ParOptVec *px, ParOptVec *hvec );
 
+  // Evaluate the diagonal Hessian
+  int evalHessianDiag( ParOptVec *x, ParOptScalar *z, ParOptVec *zw, 
+                       ParOptVec *hdiag );
+
   // Evaluate the constraints
   void evalSparseCon( ParOptVec *x, ParOptVec *out );
   
@@ -111,33 +112,6 @@ class ParOptMMA : public ParOptProblem {
  private:
   // Initialize the data
   void initialize();
-
-  // Solve the dual problem
-  int solveDual();
-
-  // Evaluate the dual objective
-  ParOptScalar evalDualObjective( const ParOptScalar *lam,
-                                  const ParOptScalar *p0,
-                                  const ParOptScalar *q0,
-                                  ParOptScalar **pi,
-                                  ParOptScalar **qi,
-                                  const ParOptScalar *L,
-                                  const ParOptScalar *U,
-                                  const ParOptScalar *alpha,
-                                  const ParOptScalar *beta );
-
-  // Evaluate the dual gradient/hessian
-  void evalDualGradient( ParOptScalar *grad, ParOptScalar *H,
-                         ParOptScalar *x, ParOptScalar *ys,
-                         const ParOptScalar *lambda,
-                         const ParOptScalar *p0,
-                         const ParOptScalar *q0,
-                         ParOptScalar **pi,
-                         ParOptScalar **qi,
-                         const ParOptScalar *L,
-                         const ParOptScalar *U,
-                         const ParOptScalar *alpha,
-                         const ParOptScalar *beta );
 
   // File pointer for the summary file - depending on the settings
   FILE *fp;
@@ -189,18 +163,8 @@ class ParOptMMA : public ParOptProblem {
   ParOptVec *p0vec, *q0vec; // The objective coefs
   ParOptVec **pivecs, **qivecs; // The constraint coefs
 
-  // The multiplier variables
-  ParOptScalar *lambda;
-  ParOptScalar *zlb;
-  
-  // The slack variables
-  ParOptScalar *y;
-
   // The right-hand side for the constraints in the subproblem
   ParOptScalar *b;
-
-  // Penalty parameters within the subproblem 
-  ParOptScalar *c;
 
   // The sparse constraint vector
   ParOptVec *cwvec;
