@@ -37,6 +37,9 @@ class ParOptMMA : public ParOptProblem {
   // Initialize data for the subproblem
   int initializeSubProblem( ParOptVec *x );
 
+  // Compute the KKT error based on the current multiplier estimates
+  void computeKKTError( double *l1, double *linfty, double *infeas );
+
   // Get the optimized point
   void getOptimizedPoint( ParOptVec **x );
 
@@ -110,9 +113,6 @@ class ParOptMMA : public ParOptProblem {
   void writeOutput( int iter, ParOptVec *x ){}
 
  private:
-  // Compute the KKT error
-  void computeKKTError( double *l1, double *linfty, double *infeas );
-
   // Initialize the data
   void initialize();
 

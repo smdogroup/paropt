@@ -246,7 +246,7 @@ void ParOptMMA::setMaxAsymptoteOffset( double val ){
   Set the bound relaxation factor
 */
 void ParOptMMA::setBoundRelax( double val ){
-  bound_relax;
+  bound_relax = val;
 }
 
 /*
@@ -407,8 +407,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
         l1_lambda += fabs(RealPart(z[i]));
       }      
 
-      if ((print_level == 1 && mma_iter % 10 == 0) ||
-          (print_level > 1)){
+      if (mma_iter % 10 == 0){
         fprintf(fp, "\n%5s %8s %15s %9s %9s %9s %9s\n",
                 "MMA", "sub-iter", "fobj", "l1 opt", 
                 "linft opt", "l1 lambd", "infeas");
@@ -511,7 +510,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
     beta[j] = min2(ub[j], 0.9*U[j] + 0.1*x[j]);
 
     // Compute the coefficients for the objective
-    double eps = 1e-5;
+    double eps = 0.0;
     p0[j] = max2(0.0, g[j])*(U[j] - x[j])*(U[j] - x[j]) + eps/(U[j] - L[j]);
     q0[j] = max2(0.0, -g[j])*(x[j] - L[j])*(x[j] - L[j]) + eps/(U[j] - L[j]);
   }

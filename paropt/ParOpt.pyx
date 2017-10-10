@@ -742,17 +742,6 @@ cdef class pyMMA(pyParOptProblemBase):
       self.mma.incref()
       self.ptr = self.mma
       return
-            
-   def getOptimizedPoint(self):
-      cdef ParOptVec *x
-      self.mma.getOptimizedPoint(&x)
-      return _init_PVec(x)
-
-   def getAsymptotes(self):
-      cdef ParOptVec *L = NULL
-      cdef ParOptVec *U = NULL
-      self.mma.getAsymptotes(&L, &U)
-      return _init_PVec(L), _init_PVec(U)
 
    def setMultipliers(self, np.ndarray[ParOptScalar, ndim=1, mode='c'] z,
                       PVec zw=None):
@@ -768,6 +757,24 @@ cdef class pyMMA(pyParOptProblemBase):
          v = vec.ptr
       self.mma.initializeSubProblem(v)
 
+   def computeKKTError(self):
+      cdef double l1 = 0.0
+      cdef double linfty = 0.0
+      cdef double infeas = 0.0
+      self.mma.computeKKTError(&l1, &linfty, &infeas)
+      return l1, linfty, infeas
+
+   def getOptimizedPoint(self):
+      cdef ParOptVec *x
+      self.mma.getOptimizedPoint(&x)
+      return _init_PVec(x)
+
+   def getAsymptotes(self):
+      cdef ParOptVec *L = NULL
+      cdef ParOptVec *U = NULL
+      self.mma.getAsymptotes(&L, &U)
+      return _init_PVec(L), _init_PVec(U)
+      
    def setPrintLevel(self, int level):
       self.mma.setPrintLevel(level)
 
