@@ -147,6 +147,8 @@ void ParOptMMA::initialize(){
   Uvec = prob->createDesignVec();  Uvec->incref();
   alphavec = prob->createDesignVec();  alphavec->incref();
   betavec = prob->createDesignVec();  betavec->incref();
+  alphavec->set(0.0);
+  betavec->set(1.0);
 
   // Create the coefficient vectors
   p0vec = prob->createDesignVec();  p0vec->incref();
@@ -357,6 +359,8 @@ void ParOptMMA::getAsymptotes( ParOptVec **_L, ParOptVec **_U ){
   approximations used in the MMA code.
 */
 int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
+  x2vec->copyValues(x1vec);
+  x1vec->copyValues(xvec);
   if (xv && xv != xvec){
     xvec->copyValues(xv);
   }

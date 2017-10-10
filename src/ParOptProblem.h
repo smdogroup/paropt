@@ -126,7 +126,9 @@ class ParOptProblem : public ParOptBase {
   // ------------------------------------
   virtual int evalHessianDiag( ParOptVec *x, 
                                ParOptScalar *z, ParOptVec *zw, 
-                               ParOptVec *hdiag ){}
+                               ParOptVec *hdiag ){
+    return 0;
+  }
 
   // Evaluate the constraints
   // ------------------------
