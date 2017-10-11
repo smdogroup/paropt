@@ -182,6 +182,14 @@ void ParOptMMA::initialize(){
   // Get the design variables and bounds
   prob->getVarsAndBounds(xvec, lbvec, ubvec);
 
+  // Set artificial bounds if none are provided
+  if (!prob->useUpperBounds()){
+    ubvec->set(10.0);
+  }
+  if (!prob->useLowerBounds()){
+    lbvec->set(-9.0);
+  }
+
   // Set the initial multipliers/values to zero
   z = new ParOptScalar[ m ];
   memset(z, 0, m*sizeof(ParOptScalar));
@@ -598,11 +606,11 @@ int ParOptMMA::isSparseInequality(){
 }
 
 int ParOptMMA::useLowerBounds(){
-  return prob->useLowerBounds();
+  return 1;
 }
 
 int ParOptMMA::useUpperBounds(){
-  return prob->useUpperBounds();
+  return 1;
 }
 
 // Get the variables and bounds from the problem
