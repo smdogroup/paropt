@@ -472,7 +472,7 @@ void ParOpt::getProblemSizes( int *_nvars, int *_ncon,
   use_lower == False, then NULL is assigned to the output.
 */
 void ParOpt::getOptimizedPoint( ParOptVec **_x, 
-                                const ParOptScalar **_z, 
+                                ParOptScalar **_z, 
                                 ParOptVec **_zw,
                                 ParOptVec **_zl, 
                                 ParOptVec **_zu ){

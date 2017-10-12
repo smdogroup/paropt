@@ -573,7 +573,7 @@ cdef class pyParOpt:
       Get the optimized solution in PVec form for interpolation purposes
       '''
       cdef int ncon = 0
-      cdef const ParOptScalar *_z = NULL
+      cdef ParOptScalar *_z = NULL
       cdef ParOptVec *_x = NULL
       cdef ParOptVec *_zw = NULL
       cdef ParOptVec *_zl = NULL

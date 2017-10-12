@@ -123,7 +123,7 @@ cdef extern from "ParOpt.h":
       
       # Retrieve the optimized point
       void getOptimizedPoint(ParOptVec **_x,
-                             const ParOptScalar **_z, ParOptVec **_zw,
+                             ParOptScalar **_z, ParOptVec **_zw,
                              ParOptVec **_zl, ParOptVec **_zu)
 
       # Check objective and constraint gradients

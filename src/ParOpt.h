@@ -142,7 +142,7 @@ class ParOpt : public ParOptBase {
   // Retrieve the values of the design variables and multipliers
   // -----------------------------------------------------------
   void getOptimizedPoint( ParOptVec **_x, 
-                          const ParOptScalar **_z, ParOptVec **_zw,
+                          ParOptScalar **_z, ParOptVec **_zw,
                           ParOptVec **_zl, ParOptVec **_zu );
 
   // Check the objective and constraint gradients
