@@ -716,8 +716,7 @@ int ParOptMMA::evalObjConGradient( ParOptVec *xv, ParOptVec *gv,
   p0vec->getArray(&p0);
   q0vec->getArray(&q0);
 
-  // Compute the objective
-  ParOptScalar fv = 0.0;
+  // Compute the gradient of the objective
   for ( int j = 0; j < n; j++ ){
     ParOptScalar Uinv = 1.0/(U[j] - x[j]);
     ParOptScalar Linv = 1.0/(x[j] - L[j]);
@@ -778,8 +777,7 @@ int ParOptMMA::evalHvecProduct( ParOptVec *xv,
   ParOptScalar *p;
   px->getArray(&p);
 
-  // Compute the objective
-  ParOptScalar fv = 0.0;
+  // Compute the hessian of the objective
   for ( int j = 0; j < n; j++ ){
     ParOptScalar Uinv = 1.0/(U[j] - x[j]);
     ParOptScalar Linv = 1.0/(x[j] - L[j]);
@@ -813,8 +811,7 @@ int ParOptMMA::evalHessianDiag( ParOptVec *xv,
   p0vec->getArray(&p0);
   q0vec->getArray(&q0);
 
-  // Compute the objective
-  ParOptScalar fv = 0.0;
+  // Compute the Hessian diagonal
   for ( int j = 0; j < n; j++ ){
     ParOptScalar Uinv = 1.0/(U[j] - x[j]);
     ParOptScalar Linv = 1.0/(x[j] - L[j]);

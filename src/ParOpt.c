@@ -1517,7 +1517,6 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec *xt,
     }
   }
   else if (use_lower){
-    ParOptScalar diag_no_bound = 1.0/(b0 + qn_sigma);
     for ( int i = 0; i < nvars; i++ ){
       if (h){ b0 = h[i]; }
       if (RealPart(lbvals[i]) > -max_bound_val){
@@ -1529,7 +1528,6 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec *xt,
     }
   }
   else if (use_upper){
-    ParOptScalar diag_no_bound = 1.0/(b0 + qn_sigma);
     for ( int i = 0; i < nvars; i++ ){
       if (h){ b0 = h[i]; }
       if (RealPart(ubvals[i]) < max_bound_val){
@@ -1541,7 +1539,6 @@ void ParOpt::setUpKKTDiagSystem( ParOptVec *xt,
     }
   }
   else {
-    ParOptScalar diag_no_bound = 1.0/(b0 + qn_sigma);
     for ( int i = 0; i < nvars; i++ ){
       if (h){ b0 = h[i]; }
       cvals[i] = 1.0/(b0 + qn_sigma);
@@ -4596,7 +4593,6 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
   alpha[0] = 1.0;
 
   // Keep track of the actual number of iterations
-  int solve_flag = 0;
   int niters = 0;
 
   // Print out the results on the root processor
@@ -4719,7 +4715,6 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
     // Check for convergence
     if (fabs(RealPart(res[i+1])) < atol ||
         fabs(RealPart(res[i+1])) < rtol*RealPart(bnorm)){
-      solve_flag = 1;
       break;
     }
   }
@@ -5065,9 +5060,9 @@ Err: %8.2e  Rel err: %8.2e\n",
     prob->addSparseJacobian(1.0, x, rx, rcw);
     d1 = rcw->dot(pzw);
 
+    // Set the pointer into the Cw 
     d2 = 0.0;
     ParOptScalar *cw = Cw;
-    const int incr = ((nwblock+1)*nwblock)/2;
 
     ParOptScalar *pzwvals;
     pzw->getArray(&pzwvals);
