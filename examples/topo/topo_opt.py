@@ -80,7 +80,7 @@ def get_global_stiffness(E1, E2, nu12, G12, thetas):
 
 class TACSAnalysis(ParOpt.pyParOptProblem):
     def __init__(self, comm, props, tacs, const, num_materials,
-                 xpts=None, conn=None, m_fixed=1.0):
+                 xpts=None, conn=None, m_fixed=1.0, min_mat_fraction=-1.0):
         '''
         Analysis problem
         '''
@@ -101,14 +101,27 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         self.xpts = xpts
         self.conn = conn
 
+        # Set the target fixed mass
+        self.m_fixed = m_fixed
+
+        # Set a fixed material fraction
+        self.min_mat_fraction = min_mat_fraction
+
+        # Set an upper bound for the lower bound
+        self.delta = 0.0
+
+        # Set the number of constraints
+        self.ncon = 1
+        if self.min_mat_fraction > 0.0:
+            self.ncon += self.num_materials
+
         # Set the number of design variables
-        ncon = 1
         nwblock = 1
         self.num_design_vars = (self.num_materials+1)*self.num_elements
 
         # Initialize the super class
         super(TACSAnalysis, self).__init__(comm,
-                                           self.num_design_vars, ncon,
+                                           self.num_design_vars, self.ncon,
                                            self.num_elements, nwblock)
 
         # Set the size of the design variable 'blocks'
@@ -143,12 +156,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         self.tacs.evalDVSens(self.mass_func, self.gmass)
 
         # Set the initial variable values
-        self.xinit = np.zeros(self.num_design_vars)
-        self.xinit[:] = 1.0
-        self.xinit[::self.nblock] = 1.0
-
-        # Set the target fixed mass
-        self.m_fixed = m_fixed
+        self.xinit = np.ones(self.num_design_vars)
 
         # Set the initial design variable values
         xi = self.m_fixed/np.dot(self.gmass, self.xinit)
@@ -196,7 +204,6 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         self.props.setPenalization(self.RAMP_penalty)
         for con in self.const:
             con.setLinearization(self.xinit)
-            
         return
 
     def getDiscreteInfeas(self, x):
@@ -207,7 +214,6 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         for i in xrange(self.num_elements):
             tnum = self.nblock*i
             d[i] = 1.0 - (x[tnum] - 1.0)**2 - sum(x[tnum+1:tnum+self.nblock]**2)
-            
         return d
 
     def getVarsAndBounds(self, x, lb, ub):
@@ -222,7 +228,10 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
             if ptype == 'ramp':
                 lb[:] = q/(q + 1.0)*self.xinit[:]**2
             else:
-                lb[:] = (2.0/3.0)*self.xinit[:] 
+                lb[:] = (2.0/3.0)*self.xinit[:]
+            for i in range(len(lb)):
+                ub[i] = min(1.0, 1.0 - self.delta)
+
         ub[::self.nblock] = 1.0
         lb[::self.nblock] = -1e30
         return
@@ -244,9 +253,9 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
     def addSparseJacobianTranspose(self, alpha, x, pz, out):
         '''Compute the transpose Jacobian-vector product alpha*J^{T}*pz'''
         n = self.nblock*self.num_elements
-        out[:n:self.nblock] += alpha*pz
-        for k in xrange(1,self.nblock):
-            out[k:n:self.nblock] -= alpha*pz
+        out[:n:self.nblock] += alpha*pz[:]
+        for k in xrange(1, self.nblock):
+            out[k:n:self.nblock] -= alpha*pz[:]
         return
 
     def addSparseInnerProduct(self, alpha, x, c, A):
@@ -259,8 +268,8 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         '''Compute the full objective'''
 
         # Set the design variable values
-        self.tacs.setDesignVars(x)
-        self.setNewInitPointPenalty(x)
+        self.tacs.setDesignVars(x[:])
+        self.setNewInitPointPenalty(x[:])
 
         # Assemble the Jacobian
         self.tacs.zeroVariables()
@@ -279,7 +288,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
 
     def getMass(self, x):
         '''Return the mass'''
-        return np.dot(self.gmass, x)
+        return np.dot(self.gmass, x[:])
 
     def evalObjCon(self, x):
         '''
@@ -289,7 +298,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         self.fevals += 1
 
         # Set the design variable values
-        self.tacs.setDesignVars(x)
+        self.tacs.setDesignVars(x[:])
 
         # Assemble the Jacobian
         self.tacs.zeroVariables()
@@ -311,7 +320,17 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         mass = np.dot(self.gmass, x)
 
         # Create the constraint c(x) >= 0.0 for the mass
-        con = np.array([mass/self.m_fixed - 1.0])
+        if self.min_mat_fraction > 0.0:
+            con = np.zeros(self.ncon)
+            con[0] = 1.0 - mass/self.m_fixed
+
+            # Compute the mass fraction constraints
+            n = self.nblock*self.num_elements
+            for i in range(self.num_materials):
+                con[i+1] = np.sum(x[1+i:n:self.nwblock])/self.num_elements 
+                con[i+1] -= self.min_mat_fraction
+        else:
+            con = np.array([1.0 - mass/self.m_fixed])
 
         fail = 0
         return fail, obj, con
@@ -325,13 +344,20 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         self.gevals += 1
 
         # Evaluate the derivative
-        self.tacs.evalAdjointResProduct(self.u, gobj)
+        g = np.zeros(len(gobj))
+        self.tacs.evalAdjointResProduct(self.u, g)
 
         # Scale the objective gradient
-        gobj[:] /= -self.obj_scale
+        gobj[:] = -(1.0/self.obj_scale)*g
 
         # Add the contribution to the constraint
-        Acon[0,:] = self.gmass/self.m_fixed
+        Acon[0][:] = -self.gmass/self.m_fixed
+
+        if self.min_mat_fraction > 0.0:
+            n = self.nblock*self.num_elements
+            for i in range(self.num_materials):
+                Acon[i+1][:] = 0.0
+                Acon[i+1][1+i:n:self.nwblock] += 1.0/self.num_elements 
 
         # Return the 
         fail = 0
@@ -346,23 +372,18 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         # Add the number of function evaluations
         self.hevals += 1
         
-        # Zero the hessian-vector product
-        hvec[:] = 0.0
-        self.hvec_tmp[:] = 0.0
-
         # Assemble the residual
-        multitopo.assembleProjectDVSens(self.tacs, px,
+        self.hvec_tmp[:] = 0.0
+        multitopo.assembleProjectDVSens(self.tacs, px[:],
                                         self.hvec_tmp, self.res)
+        hvec[:] = self.hvec_tmp
 
         # Solve K(x)*psi = res
         self.ksm.solve(self.res, self.psi)
 
         # Evaluate the adjoint-residual product
-        self.tacs.evalAdjointResProduct(self.psi, hvec)
-        hvec[:] *= 2.0
-
-        # Add the contribution to the derivative
-        hvec[:] += self.hvec_tmp[:]
+        self.tacs.evalAdjointResProduct(self.psi, self.hvec_tmp)
+        hvec[:] += 2.0*self.hvec_tmp
 
         # Scale the result to the correct range
         hvec[:] /= self.obj_scale
@@ -411,15 +432,20 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
                     tikz += '\\definecolor{mycolor}{RGB}{%d,%d,%d}\n'%(
                         int(r), int(g), int(b))
                     tikz += '\\fill[mycolor] (%f,%f) -- (%f,%f)'%(
-                        self.xpts[self.conn[i,0],0], self.xpts[self.conn[i,0],1],
-                        self.xpts[self.conn[i,1],0], self.xpts[self.conn[i,1],1])
+                        self.xpts[self.conn[i,0],0], 
+                        self.xpts[self.conn[i,0],1],
+                        self.xpts[self.conn[i,1],0], 
+                        self.xpts[self.conn[i,1],1])
                     tikz += '-- (%f,%f) -- (%f,%f) -- cycle;\n'%(
-                        self.xpts[self.conn[i,3],0], self.xpts[self.conn[i,3],1],
-                        self.xpts[self.conn[i,2],0], self.xpts[self.conn[i,2],1])
+                        self.xpts[self.conn[i,3],0], 
+                        self.xpts[self.conn[i,3],1],
+                        self.xpts[self.conn[i,2],0], 
+                        self.xpts[self.conn[i,2],1])
             else:
                 # Compute the angles
-                thetas = (np.pi/180.0)*np.linspace(-90, 90, self.num_materials+1)[1:]
-                
+                thetas = np.linspace(-90, 90, self.num_materials+1)[1:]
+                thetas *= (np.pi/180.0)
+
                 for i in xrange(self.conn.shape[0]):
                     xf = self.const[i].getFilteredDesignVars()
 
@@ -431,14 +457,20 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
                     tikz += '\\definecolor{mycolor}{RGB}{%d,%d,%d}\n'%(
                         int(r), int(g), int(b))
                     tikz += '\\fill[mycolor] (%f,%f) -- (%f,%f)'%(
-                        self.xpts[self.conn[i,0],0], self.xpts[self.conn[i,0],1],
-                        self.xpts[self.conn[i,1],0], self.xpts[self.conn[i,1],1])
+                        self.xpts[self.conn[i,0],0], 
+                        self.xpts[self.conn[i,0],1],
+                        self.xpts[self.conn[i,1],0], 
+                        self.xpts[self.conn[i,1],1])
                     tikz += '-- (%f,%f) -- (%f,%f) -- cycle;\n'%(
-                        self.xpts[self.conn[i,3],0], self.xpts[self.conn[i,3],1],
-                        self.xpts[self.conn[i,2],0], self.xpts[self.conn[i,2],1])
+                        self.xpts[self.conn[i,3],0], 
+                        self.xpts[self.conn[i,3],1],
+                        self.xpts[self.conn[i,2],0], 
+                        self.xpts[self.conn[i,2],1])
 
-                    dx = self.xpts[self.conn[i,1],0] - self.xpts[self.conn[i,0],0]
-                    dy = self.xpts[self.conn[i,1],1] - self.xpts[self.conn[i,0],1]
+                    dx = (self.xpts[self.conn[i,1],0] - 
+                          self.xpts[self.conn[i,0],0])
+                    dy = (self.xpts[self.conn[i,1],1] - 
+                          self.xpts[self.conn[i,0],1])
                     l = np.sqrt(dx*dx + dy*dy)
 
                     # Compute the line width and scale the dimension of
@@ -521,7 +553,8 @@ def rectangular_domain(nx, ny, Ly=100.0):
         
     return xpts, conn, bcs, aux, area
 
-def create_structure(comm, props, xpts, conn, bcs, aux, m_fixed, r0=4):
+def create_structure(comm, props, xpts, conn, bcs, aux, m_fixed, 
+                     r0=4, min_mat_fraction=-1.0):
     '''
     Create a structure with the speicified number of nodes along the
     x/y directions, respectively.
@@ -608,7 +641,8 @@ def create_structure(comm, props, xpts, conn, bcs, aux, m_fixed, r0=4):
     # Create the analysis object
     analysis = TACSAnalysis(comm, props, tacs, const, nmats,
                             conn=conn, xpts=xpts,
-                            m_fixed=m_fixed)
+                            m_fixed=m_fixed, 
+                            min_mat_fraction=min_mat_fraction)
 
     return analysis
 
@@ -619,7 +653,7 @@ def create_paropt(analysis, use_hessian=False,
     '''
 
     # Set the inequality options
-    analysis.setInequalityOptions(dense_ineq=False, 
+    analysis.setInequalityOptions(dense_ineq=True, 
                                   sparse_ineq=False,
                                   use_lower=True,
                                   use_upper=True)
@@ -642,7 +676,7 @@ def create_paropt(analysis, use_hessian=False,
         opt.setUseHvecProduct(0)
 
     # Set optimization parameters
-    opt.setArmijioParam(1e-5)
+    opt.setArmijoParam(1e-5)
     opt.setMaxMajorIterations(2500)
 
     # Perform a quick check of the gradient (and Hessian)
@@ -778,6 +812,9 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
     # Make sure that the directory exists
     if not os.path.exists(prefix):
         os.makedirs(prefix)
+
+    # Set the lower bound
+    analysis.delta = 0.75*(1.0 - 1.0/analysis.num_materials)
        
     # Set up the optimization problem in ParOpt
     opt = create_paropt(analysis,
@@ -829,7 +866,13 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
         if k > 0 and optimizer == 'paropt':
             opt.setInitStartingPoint(0)
 
-            # Reset the design variables and bounds
+            # Set the new value of delta
+            eps = 1e-10
+            d1 = 0.7*analysis.delta
+            d2 = max(eps, analysis.delta)**1.25
+            analysis.delta = min(d1, d2)
+
+            # Reset the design variable and bounds
             opt.resetDesignAndBounds()
 
             # Get the new complementarity
@@ -840,7 +883,7 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
         opt.optimize()
 
         # Get the optimized point
-        x = opt.getOptimizedPoint()
+        x, z, zw, zl, zu = opt.getOptimizedPoint()
 
         # Get the discrete infeasibility measure
         d = analysis.getDiscreteInfeas(x)
@@ -861,18 +904,22 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
         comp = analysis.getCompliance(x)
 
         # Compute the KKT error based on the original problem
-        x = opt.getOptimizedPoint()
-        z, zw, zl, zu = opt.getOptimizedMultipliers()
+        x, z, zw, zl, zu = opt.getOptimizedPoint()
 
         # Evaluate the objective and constraints
-        gobj1 = np.zeros(x.shape)
-        Acon1 = np.zeros((1, x.shape[0]))
+        gobj1 = analysis.createDesignVec()
+        Acon1 = []
+        for i in range(len(z)):
+            Acon1.append(analysis.createDesignVec())
+        product = analysis.createDesignVec()
         fail, obj1, con1 = analysis.evalObjCon(x)
         analysis.evalObjConGradient(x, gobj1, Acon1)
-        
+        analysis.addSparseJacobianTranspose(-1.0, x, zw, product)
+
         # Compute the KKT error
-        kkt = gobj1 - Acon1[0,:]*z[0] - zl + zu
-        analysis.addSparseJacobianTranspose(-1.0, x, zw, kkt)
+        kkt = gobj1[:] + product[:] - zl[:] + zu[:]
+        for i in range(len(z)):
+            kkt[:] -= Acon1[i][:]*z[i]
 
         # Compute the maximum error contribution
         kkt_max_err = np.amax(np.fabs(kkt))
@@ -883,10 +930,12 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
 
         # Print out the iteration information to the screen
         if k % 10 == 0:
-            print '%4s %10s %10s %10s %10s %10s'%(
-                'Iter', 'tau', 'KKT infty', 'KKT l2', 'Rel infty', 'Rel l2')
-        print '%4d %10.4e %10.4e %10.4e %10.4e %10.4e'%(
-            niters, np.sum(d), kkt_max_err, kkt_l2_err, kkt_max_err/g_max, kkt_l2_err/g_l2)
+            print '%4s %10s %10s %10s %10s %10s %10s'%(
+                'Iter', 'tau', 'KKT infty', 'KKT l2', 
+                'Rel infty', 'Rel l2', 'delta')
+        print '%4d %10.4e %10.4e %10.4e %10.4e %10.4e %10.4e'%(
+            niters, np.sum(d), kkt_max_err, kkt_l2_err, 
+            kkt_max_err/g_max, kkt_l2_err/g_l2, analysis.delta)
 
         # Print out the
         s = '%d %e %e %e %e '%(niters, comp, np.min(d), np.max(d), np.sum(d))
@@ -899,8 +948,8 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
         # Increase the iteration counter
         niters += 1        
 
-        # Quit when the relative KKT error is less than 10^{-2}
-        if kkt_l2_err/g_l2 < 1e-2:
+        # Quit when the relative KKT error is less than 10^{-3}
+        if kkt_max_err < 1e-3:
             break        
 
     # Print out the design
@@ -927,8 +976,7 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
     opt.optimize()
        
     # Compute the KKT error based on the original problem
-    x = opt.getOptimizedPoint()
-    z, zw, zl, zu = opt.getOptimizedMultipliers()
+    x, z, zw, zl, zu = opt.getOptimizedPoint()
 
     # Get the discrete infeasibility measure
     d = analysis.getDiscreteInfeas(x)
@@ -939,19 +987,24 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
     comp = analysis.getCompliance(x)
 
     # Evaluate the objective and constraints
-    gobj1 = np.zeros(x.shape)
-    Acon1 = np.zeros((1, x.shape[0]))
+    gobj1 = analysis.createDesignVec()
+    Acon1 = []
+    for i in range(len(z)):
+        Acon1.append(analysis.createDesignVec())
+    product = analysis.createDesignVec()
     fail, obj1, con1 = analysis.evalObjCon(x)
     analysis.evalObjConGradient(x, gobj1, Acon1)
-        
+    analysis.addSparseJacobianTranspose(-1.0, x, zw, product)
+
     # Compute the KKT error
-    kkt = gobj1 - Acon1[0,:]*z[0] - zl + zu
-    analysis.addSparseJacobianTranspose(-1.0, x, zw, kkt)
-    
+    kkt = gobj1[:] + product[:] - zl[:] + zu[:]
+    for i in range(len(z)):
+        kkt[:] -= Acon1[i][:]*z[i]
+
     # Compute the maximum error contribution
     kkt_max_err = np.amax(np.fabs(kkt))
     kkt_l2_err = np.sqrt(np.dot(kkt, kkt))
-    
+
     g_max = np.amax(np.fabs(gobj1))
     g_l2 = np.sqrt(np.dot(gobj1, gobj1))
     
@@ -959,7 +1012,8 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
     print '%4s %10s %10s %10s %10s %10s'%(
         'Iter', 'tau', 'KKT infty', 'KKT l2', 'Rel infty', 'Rel l2')
     print '%4d %10.4e %10.4e %10.4e %10.4e %10.4e'%(
-        niters, np.sum(d), kkt_max_err, kkt_l2_err, kkt_max_err/g_max, kkt_l2_err/g_l2)
+        niters, np.sum(d), kkt_max_err, kkt_l2_err, 
+        kkt_max_err/g_max, kkt_l2_err/g_l2)
 
     s = '%d %e %e %e %e '%(niters, comp, np.min(d), np.max(d), np.sum(d))
     s += '%d %d %d %e %e %e\n'%(
@@ -971,7 +1025,7 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
     fp.close()
 
     # Get the final, optimzied point
-    x = opt.getOptimizedPoint()
+    x, z, zw, zl, zu = opt.getOptimizedPoint()
 
     # Print out the design variables
     filename = 'final_opt_struct.tex'
@@ -984,13 +1038,13 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
 
     # Save the final optimized point
     fname = os.path.join(prefix, 'x_opt.dat')
-    x = opt.getOptimizedPoint()
     np.savetxt(fname, x)
 
     return
 
 def optimize_plane_stress_full(comm, analysis, root_dir='results',
-                               parameter=5.0, optimizer='paropt', case='isotropic',
+                               parameter=5.0, optimizer='paropt', 
+                               case='isotropic',
                                use_hessian=False, start_strategy='point',
                                ptype='ramp'):
     # Optimize the structure
@@ -1047,7 +1101,7 @@ def optimize_plane_stress_full(comm, analysis, root_dir='results',
         opt.optimize()
 
         # Get the optimized point
-        x = opt.getOptimizedPoint()
+        x, z, zw, zl, zu = opt.getOptimizedPoint()
 
         # Make sure that all of the variables are strictly positive
         for i in xrange(len(x)):
@@ -1101,7 +1155,7 @@ def optimize_plane_stress_full(comm, analysis, root_dir='results',
     opt.optimize()
 
     # Get the optimized point
-    x = opt.getOptimizedPoint()
+    x, z, zw, zl, zu = opt.getOptimizedPoint()
 
     # Get the discrete infeasibility measure
     d = analysis.getDiscreteInfeas(x)
@@ -1126,8 +1180,7 @@ def optimize_plane_stress_full(comm, analysis, root_dir='results',
 
     # Save the final optimized point
     fname = os.path.join(prefix, 'x_opt.dat')
-    x = opt.getOptimizedPoint()
-    np.savetxt(fname, x)
+    np.savetxt(fname, x[:])
 
     return
 
@@ -1235,8 +1288,14 @@ props.setPenalization(parameter)
 # Create the analysis object
 r0 = np.sqrt(4.99)*np.sqrt(area/len(conn))
 print 'r0 = ', r0
+
+min_mat_fraction = -1.0
+if args.case is 'isotropic':
+    min_mat_fraction = 0.1
+
 analysis = create_structure(comm, props, xpts, conn,
-                            bcs, aux, m_fixed, r0=r0)
+                            bcs, aux, m_fixed, r0=r0,
+                            min_mat_fraction=min_mat_fraction)
 
 if args.full_penalty:
     # Optimize the plane stress problem

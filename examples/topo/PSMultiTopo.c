@@ -462,14 +462,15 @@ void assembleResProjectDVSens( TACSAssembler *tacs,
           elem->evalStrain(strain, J, Na, Nb, vars);
 
           // Add the contribution -u^{T}*d^2K/dx^2*u to the derivative
-          con->addStress2ndDVSensProduct(pt, strain, -h, strain, px, fdvSens, dvLen);
+          con->addStress2ndDVSensProduct(pt, strain, -h, strain, 
+                                         px, fdvSens, dvLen);
 
           // Compute the corresponding stress
           TacsScalar stress[NUM_STRESSES];
           con->calcStressDVProject(pt, strain, px, dvLen, stress);
 
           // Get the derivative of the strain with respect to the
-	  // nodal displacements
+          // nodal displacements
           elem->getBmat(B, J, Na, Nb, vars);
 
           TacsScalar *b = B;
@@ -479,20 +480,20 @@ void assembleResProjectDVSens( TACSAssembler *tacs,
           }
         }
 
-	// Get the local element ordering
-	int len;
-	const int *nodes;
-	tacs->getElement(k, &nodes, &len);
+        // Get the local element ordering
+        int len;
+        const int *nodes;
+        tacs->getElement(k, &nodes, &len);
 
         // Add the residual values
-        residual->setValues(len, nodes, res, ADD_VALUES);
+        residual->setValues(len, nodes, res, TACS_ADD_VALUES);
       }
     }    
   }
 
   // Add the residual values
-  residual->beginSetValues(ADD_VALUES);
-  residual->endSetValues(ADD_VALUES);
+  residual->beginSetValues(TACS_ADD_VALUES);
+  residual->endSetValues(TACS_ADD_VALUES);
 
   // Set the boundary conditions
   tacs->applyBCs(residual);
@@ -504,7 +505,7 @@ void assembleResProjectDVSens( TACSAssembler *tacs,
   O(log(n)) time roughly, rather than O(n) time.
 */ 
 LocatePoint::LocatePoint( const TacsScalar *_Xpts, int _npts, 
-			  int _max_num_points ){
+                          int _max_num_points ){
   Xpts = _Xpts;
   npts = _npts;
   max_num_points = _max_num_points;
@@ -562,7 +563,7 @@ LocatePoint::~LocatePoint(){
   the plane-splitting method.
 */
 void LocatePoint::locateKClosest( int K, int indx[], TacsScalar dist[], 
-				  const TacsScalar xpt[] ){
+                                  const TacsScalar xpt[] ){
   int nk = 0; // Length of the array
   int root = 0;
 
@@ -599,7 +600,7 @@ void LocatePoint::locateKClosest( int K, int indx[], TacsScalar dist[],
   given point
 */
 void LocatePoint::insertIndex( TacsScalar *dist, int *indx, int *nk, 
-			       TacsScalar d, int dindex, int K ){
+                               TacsScalar d, int dindex, int K ){
 
   if (*nk == 0){
     dist[*nk] = d;
@@ -644,7 +645,7 @@ void LocatePoint::insertIndex( TacsScalar *dist, int *indx, int *nk,
   nk    == The actual number of points in the list nk <= K
 */
 void LocatePoint::locateKClosest( int K, int root, const TacsScalar xpt[], 
-				  TacsScalar *dist, int *indx, int *nk ){  
+                                  TacsScalar *dist, int *indx, int *nk ){  
   int start = indices_ptr[root];
   int left_node = nodes[2*root];
   int right_node = nodes[2*root+1];
@@ -661,7 +662,7 @@ void LocatePoint::locateKClosest( int K, int root, const TacsScalar xpt[],
                       (Xpts[3*n+2] - xpt[2])*(Xpts[3*n+2] - xpt[2]));
 
       if ((*nk < K) || (t < dist[K-1])){
-	insertIndex(dist, indx, nk, t, n, K );
+        insertIndex(dist, indx, nk, t, n, K );
       }
     }
   }
@@ -681,7 +682,7 @@ void LocatePoint::locateKClosest( int K, int root, const TacsScalar xpt[],
       // distance then search the other branch too - there could be a
       // point on that branch that lies closer than *dist
       if (*nk < K || ndist*ndist < dist[*nk-1]){ 
-	locateKClosest(K, right_node, xpt, dist, indx, nk);
+        locateKClosest(K, right_node, xpt, dist, indx, nk);
       }
     }
     else { // The point lies to the 'right' of the plane
@@ -691,7 +692,7 @@ void LocatePoint::locateKClosest( int K, int root, const TacsScalar xpt[],
       // distance then search the other branch too - there could be a
       // point on that branch that lies closer than *dist
       if (*nk < K || ndist*ndist < dist[*nk-1]){
-	locateKClosest(K, left_node, xpt, dist, indx, nk);
+        locateKClosest(K, left_node, xpt, dist, indx, nk);
       }
     }
   }
@@ -729,7 +730,7 @@ int LocatePoint::split(int start, int end ){
   num_indices[root] = 0;  
 
   int mid = splitList(&node_xav[3*root], &node_normal[3*root], 
-		       &indices[start], end-start);
+                       &indices[start], end-start);
 
   if (mid == 0 || mid == end-start ){
     fprintf(stderr, "LocatePoint: Error, splitting points did nothing. \
@@ -812,7 +813,7 @@ int LocatePoint::splitList(TacsScalar xav[], TacsScalar normal[],
   const char *uplo = "U";
 
   LAPACKsyevd(jobz, uplo, &N, I, &N,
-	      eigs, work, &lwork, iwork, &liwork, &info);
+              eigs, work, &lwork, iwork, &liwork, &info);
 
   normal[0] = I[0];
   normal[1] = I[1];
@@ -824,7 +825,7 @@ int LocatePoint::splitList(TacsScalar xav[], TacsScalar normal[],
   // Now, split the index array such that 
   while (high > low){
     // (dot(Xpts[ind] - xav, n ) < 0 ) < 0.0 for i < low
-    while (high > low &&	    
+    while (high > low &&            
            ((Xpts[3*ind[low]]   - xav[0] )*normal[0] +
             (Xpts[3*ind[low]+1] - xav[1] )*normal[1] +
             (Xpts[3*ind[low]+2] - xav[2] )*normal[2]) < 0.0){
@@ -891,7 +892,7 @@ int *LocatePoint::newIntArray( int *array, int old_len, int new_len ){
   array to the newly created array
 */
 TacsScalar *LocatePoint::newDoubleArray( TacsScalar *array, int old_len, 
-					  int new_len ){
+                                          int new_len ){
   TacsScalar *temp = new TacsScalar[ new_len ];
 
   for ( int i = 0; i < old_len; i++ ){

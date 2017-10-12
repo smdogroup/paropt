@@ -492,14 +492,17 @@ cdef class PVec:
          return array[k]
       elif isinstance(k, slice):
          start, stop, step = k.indices(size)
-         arr = np.zeros((stop - start)/step, dtype=dtype)
+         d = (stop-1 - start)/step + 1
+         arr = np.zeros(d, dtype=dtype)
+         index = 0
          for i in range(start, stop, step):
             if i < 0:
                i = size+i
             if i >= 0 and i < size:
-               arr[i] = array[i]
+               arr[index] = array[i]
             else:
                raise IndexError('Index %d out of range [0,%d)'%(i, size))
+            index += 1
          return arr
       else:
          errmsg = 'Index must be of type int or slice'
