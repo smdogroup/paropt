@@ -16,11 +16,11 @@ cdef extern from "ParOptVec.h":
 
    cppclass ParOptVec(ParOptBase):
       ParOptVec()
-      ParOptVec(MPI_Comm comm, int n)      
-      # Retrieve the values from the array
-      int getArray(ParOptScalar **array)
+      ParOptVec(MPI_Comm, int)
+      int getArray(ParOptScalar**)
       void copyValues(ParOptVec*)
       ParOptScalar norm()
+      ParOptScalar dot(ParOptVec*)
 
 cdef class PVec:
    cdef ParOptVec *ptr

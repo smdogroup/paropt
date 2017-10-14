@@ -59,7 +59,7 @@ ParOptProblem(_prob->getMPIComm()){
   int _nwcon, _nwblock;
   prob->getProblemSizes(&n, &m, &_nwcon, &_nwblock);
   setProblemSizes(n, m, _nwcon, _nwblock);
-
+ 
   // Set the iteration counter
   mma_iter = 0;
   subproblem_iter = 0;
@@ -400,6 +400,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
     return fail_grad;
   }
 
+  // Evaluate the sparse constraints
   if (cwvec){
     prob->evalSparseCon(xvec, cwvec);
   }

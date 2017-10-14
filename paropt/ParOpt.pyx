@@ -550,6 +550,9 @@ cdef class PVec:
    def norm(self):
       return self.ptr.norm()
 
+   def dot(self, PVec vec):
+      return self.ptr.dot(vec.ptr)
+
 # Python class for corresponding instance ParOpt
 cdef class pyParOpt:
    cdef ParOpt *ptr
