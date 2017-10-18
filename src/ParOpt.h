@@ -18,6 +18,10 @@ enum ParOptQuasiNewtonType { PAROPT_BFGS,
                              PAROPT_SR1, 
                              PAROPT_NO_HESSIAN_APPROX };
 
+enum ParOptBarrierStrategy { PAROPT_MONOTONE,
+                             PAROPT_MEHROTRA,
+                             PAROPT_COMPLEMENTARITY_FRACTION };
+
 /*
   ParOpt is a parallel optimizer implemented in C++ for large-scale 
   constrained optimization.
@@ -156,6 +160,7 @@ class ParOpt : public ParOptBase {
   // Set optimizer parameters
   // ------------------------
   void setNormType( ParOptNormType _norm_type );
+  void setBarrierStrategy( ParOptBarrierStrategy strategy );
   void setInitStartingPoint( int init );
   void setMaxMajorIterations( int iters );
   void setAbsOptimalityTol( double tol );
@@ -164,7 +169,7 @@ class ParOpt : public ParOptBase {
   void setBarrierPower( double power );
   void setHessianResetFreq( int freq );
   void setQNDiagonalFactor( double sigma );
-  void setBFGSUpdateType( LBFGS::BFGSUpdateType bfgs_update );
+  void setBFGSUpdateType( ParOptBFGSUpdateType bfgs_update );
   void setSequentialLinearMethod( int truth );
 
   // Set/get the barrier parameter
@@ -227,7 +232,8 @@ class ParOpt : public ParOptBase {
 
   // Compute the negative of the KKT residuals - return
   // the maximum primal, dual residuals and the max infeasibility
-  void computeKKTRes( double *max_prime,
+  void computeKKTRes( double barrier,
+                      double *max_prime,
                       double *max_dual, 
                       double *max_infeas );
 
@@ -319,6 +325,9 @@ class ParOpt : public ParOptBase {
   MPI_Comm comm;
   int opt_root;
 
+  // THe type of barrier strategy to use
+  ParOptBarrierStrategy barrier_strategy;
+
   // Set the norm type to use
   ParOptNormType norm_type;
 
@@ -394,10 +403,6 @@ class ParOpt : public ParOptBase {
   // Parameters for the periodic gradient check option
   int gradient_check_frequency;
   double gradient_check_step;
-
-  // Flag to indicate whether this is the final barrier problem or not
-  // (e.g. if barrier_param = 0.1*abs_res_tol)
-  int final_barrier_problem;
 
   // The barrier parameter
   double barrier_param;

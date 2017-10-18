@@ -181,7 +181,6 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   }
   else {
     qn = NULL;
-
   }
 
   // Set the default maximum variable bound
@@ -278,9 +277,8 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   // Zero the number of evals
   neval = ngeval = nhvec = 0;
 
-  // Set the flag to indicate that this is not the final barrier
-  // problem
-  final_barrier_problem = 0;
+  // Set the barrier strategy
+  barrier_strategy = PAROPT_MONOTONE;
 
   // Initialize the parameters with default values
   max_major_iters = 1000;
@@ -821,6 +819,13 @@ void ParOpt::setNormType( ParOptNormType _norm_type ){
 }
 
 /*
+  Set the type of barrier strategy to use
+*/
+void ParOpt::setBarrierStrategy( ParOptBarrierStrategy strategy ){
+  barrier_strategy = strategy;
+}
+
+/*
   Set optimizer parameters
 */
 void ParOpt::setInitStartingPoint( int init ){
@@ -958,7 +963,7 @@ void ParOpt::setPenaltyDescentFraction( double frac ){
 /*
   Set the type of BFGS update
 */
-void ParOpt::setBFGSUpdateType( LBFGS::BFGSUpdateType update ){
+void ParOpt::setBFGSUpdateType( ParOptBFGSUpdateType update ){
   if (qn){
     LBFGS *lbfgs = dynamic_cast<LBFGS*>(qn);
     if (lbfgs){
@@ -1176,7 +1181,8 @@ void ParOpt::setOutputFile( const char *filename ){
   rzu = -((x - xl)*zl - mu*e)
   rzl = -((ub - x)*zu - mu*e)
 */
-void ParOpt::computeKKTRes( double *max_prime,
+void ParOpt::computeKKTRes( double barrier, 
+                            double *max_prime,
                             double *max_dual, 
                             double *max_infeas ){
   // Zero the values of the maximum residuals 
@@ -1234,7 +1240,7 @@ void ParOpt::computeKKTRes( double *max_prime,
   if (dense_inequality){
     for ( int i = 0; i < ncon; i++ ){
       rc[i] = -(c[i] - s[i]);
-      rs[i] = -(s[i]*z[i] - barrier_param);
+      rs[i] = -(s[i]*z[i] - barrier);
     }
   }
   else {
@@ -1285,7 +1291,7 @@ void ParOpt::computeKKTRes( double *max_prime,
 
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(lbvals[i]) > -max_bound_val){
-        rzlvals[i] = -((xvals[i] - lbvals[i])*zlvals[i] - barrier_param);
+        rzlvals[i] = -((xvals[i] - lbvals[i])*zlvals[i] - barrier);
       }
       else {
         rzlvals[i] = 0.0;
@@ -1313,7 +1319,7 @@ void ParOpt::computeKKTRes( double *max_prime,
 
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(ubvals[i]) < max_bound_val){
-        rzuvals[i] = -((ubvals[i] - xvals[i])*zuvals[i] - barrier_param);
+        rzuvals[i] = -((ubvals[i] - xvals[i])*zuvals[i] - barrier);
       }
       else {
         rzuvals[i] = 0.0;
@@ -1344,7 +1350,7 @@ void ParOpt::computeKKTRes( double *max_prime,
     rsw->getArray(&rswvals);
     
     for ( int i = 0; i < nwcon; i++ ){
-      rswvals[i] = -(swvals[i]*zwvals[i] - barrier_param);
+      rswvals[i] = -(swvals[i]*zwvals[i] - barrier);
     }
     
     if (norm_type == PAROPT_INFTY_NORM){
@@ -3690,9 +3696,6 @@ int ParOpt::optimize( const char *checkpoint ){
   if (gradient_check_frequency > 0){
     checkGradients(gradient_check_step);
   }
-  
-  // This is not the final barrier problem
-  final_barrier_problem = 0;
 
   // Zero out the number of function/gradient evaluations
   neval = ngeval = nhvec = 0;
@@ -3838,157 +3841,116 @@ int ParOpt::optimize( const char *checkpoint ){
       checkGradients(gradient_check_step);
     }
 
-    // Compute the complementarity
-    ParOptScalar comp = computeComp();
-    
-    // Compute the residual of the KKT system 
-    double max_prime, max_dual, max_infeas;
-    computeKKTRes(&max_prime, &max_dual, &max_infeas);
-
-    // Compute the norm of the residuals
-    double res_norm = max_prime;
-    if (max_dual > res_norm){ res_norm = max_dual; }
-    if (max_infeas > res_norm){ res_norm = max_infeas; }
-    if (k == 0){
-      res_norm_prev = res_norm;
-    }
-
     // Determine if we should switch to a new barrier problem or not
     int rel_function_test = 
       (alpha_xprev == 1.0 && alpha_zprev == 1.0 &&
        (fabs(RealPart(fobj - fobj_prev)) < 
         rel_func_tol*fabs(RealPart(fobj_prev))));
 
-    // Set the factor to scale the residual
-    double nfactor = 1.0;
-    /*
-    if (norm_type == PAROPT_L1_NORM){
-      nfactor = 1.0/nvars_total;
-    }
-    else if (norm_type == PAROPT_L2_NORM){
-      nfactor = 1.0/sqrt(nvars_total);
-    }
-    */
+    // Compute the complementarity
+    ParOptScalar comp = computeComp();
 
-    // Set the flag to indicate whether the barrier problem has
-    // converged
-    int barrier_converged = 0;
-    if (k > 0 && ((nfactor*res_norm < 10.0*barrier_param) || 
-                  rel_function_test)){
-      barrier_converged = 1;
-    }
+    // Keep track of the norm of the different parts of the
+    // KKT conditions
+    double max_prime = 0.0, max_dual = 0.0, max_infeas = 0.0;
 
-    // Keep track of the new barrier parameter (if any). Only set the
-    // new barrier parameter after we've check for convergence of the
-    // overall algorithm. This ensures that the previous barrier
-    // parameter is saved if we successfully converge.
-    double new_barrier_param = 0.0;
+    // Compute the overall norm
+    double res_norm = 0.0;
 
-    // Broadcast the result of the test from the root processor
-    MPI_Bcast(&barrier_converged, 1, MPI_INT, opt_root, comm);
+    if (barrier_strategy == PAROPT_MONOTONE){
+      // Compute the residual of the KKT system 
+      computeKKTRes(barrier_param, 
+                    &max_prime, &max_dual, &max_infeas);
 
-    if (barrier_converged){
-      // Record the value of the old barrier function
-      double mu_old = barrier_param;
-
-      // Compute the new barrier parameter: It is either:
-      // 1. A fixed fraction of the old value
-      // 2. A function mu**exp for some exp > 1.0
-      // Point 2 ensures superlinear convergence (eventually)
-      double mu_frac = monotone_barrier_fraction*barrier_param;
-      double mu_pow = pow(barrier_param, monotone_barrier_power);
-
-      new_barrier_param = mu_frac;
-      if (mu_pow < mu_frac){
-        new_barrier_param = mu_pow;
-      }
-
-      // Truncate the barrier parameter at 0.1*abs_res_tol. If this
-      // truncation occurs, set the flag that this is the final
-      // barrier problem
-      if (new_barrier_param < 0.1*abs_res_tol){
-        final_barrier_problem = 1;
-        new_barrier_param = 0.1*abs_res_tol;
-      }
-
-      // Now, that we have adjusted the barrier parameter, we have
-      // to modify the residuals to match
-      max_dual = 0.0;
-      if (dense_inequality){
-        for ( int i = 0; i < ncon; i++ ){
-          rs[i] -= (mu_old - new_barrier_param);
-        
-          if (fabs(RealPart(rs[i])) > max_dual){
-            max_dual = fabs(RealPart(rs[i]));
-          }
-        }
-      }
-
-      if (nwcon > 0 && sparse_inequality){
-        // Set the values of the perturbed complementarity
-        // constraints for the sparse slack variables
-        ParOptScalar  *rswvals;
-        rsw->getArray(&rswvals);
-    
-        for ( int i = 0; i < nwcon; i++ ){
-          rswvals[i] -= (mu_old - new_barrier_param);
-        }
-    
-        double dual_zw = rsw->maxabs();
-        if (dual_zw > max_dual){
-          max_dual = dual_zw;
-        }
-      }
-
-      // Adjust the lower-bound residuals if required
-      if (use_lower){
-        ParOptScalar *lbvals, *rzlvals;
-        lb->getArray(&lbvals);
-        rzl->getArray(&rzlvals);
-
-        for ( int i = 0; i < nvars; i++ ){
-          if (RealPart(lbvals[i]) > -max_bound_val){
-            rzlvals[i] -= (mu_old - new_barrier_param);
-          }
-          else {
-            rzlvals[i] = 0.0;
-          }
-        }
-
-        double dual_zl = rzl->maxabs();
-        if (RealPart(dual_zl) > RealPart(max_dual)){
-          max_dual = dual_zl;
-        }
-      }
-
-      // Adjust the upper-bound residuals if required
-      if (use_upper){
-        ParOptScalar *ubvals, *rzuvals;
-        lb->getArray(&ubvals);
-        rzu->getArray(&rzuvals);
-
-        for ( int i = 0; i < nvars; i++ ){
-          if (RealPart(ubvals[i]) < max_bound_val){
-            rzuvals[i] -= (mu_old - new_barrier_param);
-          }
-          else {
-            rzuvals[i] = 0.0;
-          }
-        }
-
-        double dual_zu = rzu->maxabs();
-        if (dual_zu > max_dual){
-          max_dual = dual_zu;
-        }
-      }
-
-      // Reset the penalty parameter to zero
-      rho_penalty_search = 0.0;
-
-      // Recompute the maximum residual norm after the update
+      // Compute the norm of the residuals
       res_norm = max_prime;
       if (max_dual > res_norm){ res_norm = max_dual; }
       if (max_infeas > res_norm){ res_norm = max_infeas; }
+      if (k == 0){
+        res_norm_prev = res_norm;
+      }
+
+      // Set the flag to indicate whether the barrier problem has
+      // converged
+      int barrier_converged = 0;
+      if (k > 0 && ((res_norm < 10.0*barrier_param) || 
+                    rel_function_test)){
+        barrier_converged = 1;
+      }
+
+      // Keep track of the new barrier parameter (if any). Only set the
+      // new barrier parameter after we've check for convergence of the
+      // overall algorithm. This ensures that the previous barrier
+      // parameter is saved if we successfully converge.
+      double new_barrier_param = 0.0;
+
+      // Broadcast the result of the test from the root processor
+      MPI_Bcast(&barrier_converged, 1, MPI_INT, opt_root, comm);
+
+      if (barrier_converged){
+        // Compute the new barrier parameter: It is either:
+        // 1. A fixed fraction of the old value
+        // 2. A function mu**exp for some exp > 1.0
+        // Point 2 ensures superlinear convergence (eventually)
+        double mu_frac = monotone_barrier_fraction*barrier_param;
+        double mu_pow = pow(barrier_param, monotone_barrier_power);
+
+        new_barrier_param = mu_frac;
+        if (mu_pow < mu_frac){
+          new_barrier_param = mu_pow;
+        }
+
+        // Truncate the barrier parameter at 0.1*abs_res_tol. If this
+        // truncation occurs, set the flag that this is the final
+        // barrier problem
+        if (new_barrier_param < 0.1*abs_res_tol){
+          new_barrier_param = 0.09999*abs_res_tol;
+        }
+
+        // Compute the new barrier parameter value
+        computeKKTRes(new_barrier_param, 
+                      &max_prime, &max_dual, &max_infeas);
+
+        // Reset the penalty parameter to zero
+        rho_penalty_search = 0.0;
+
+        // Recompute the maximum residual norm after the update
+        res_norm = max_prime;
+        if (max_dual > res_norm){ res_norm = max_dual; }
+        if (max_infeas > res_norm){ res_norm = max_infeas; }
+
+        // Set the new barrier parameter
+        barrier_param = new_barrier_param;
+      }
+    }
+    else if (barrier_strategy == PAROPT_MEHROTRA){
+      // Compute the residual of the KKT system 
+      computeKKTRes(barrier_param, 
+                    &max_prime, &max_dual, &max_infeas);
+
+      res_norm = max_prime;
+      if (max_dual > res_norm){ res_norm = max_dual; }
+      if (max_infeas > res_norm){ res_norm = max_infeas; }
+      if (k == 0){
+        res_norm_prev = res_norm;
+      }
+    }
+    else if (barrier_strategy == PAROPT_COMPLEMENTARITY_FRACTION){
+      barrier_param = monotone_barrier_fraction*comp;
+      if (barrier_param < 0.01*abs_res_tol){
+        barrier_param = 0.01*abs_res_tol;
+      }
+
+      // Compute the residual of the KKT system 
+      computeKKTRes(barrier_param, 
+                    &max_prime, &max_dual, &max_infeas);
+
+      res_norm = max_prime;
+      if (max_dual > res_norm){ res_norm = max_dual; }
+      if (max_infeas > res_norm){ res_norm = max_infeas; }
+      if (k == 0){
+        res_norm_prev = res_norm;
+      }
     }
 
     // Print all the information we can to the screen...
@@ -4023,22 +3985,11 @@ int ParOpt::optimize( const char *checkpoint ){
     }
 
     // Check for convergence. We apply two different convergence
-    // criteria at this point: the first based on the infinity norm of
+    // criteria at this point: the first based on the norm of
     // the KKT condition residuals, and the second based on the
     // difference between subsequent calls.
-
-    // Check if the barrier term has converged. This is required for
-    // both convergence checks
-    int barrier_term = (final_barrier_problem || 
-                        (barrier_param <= 0.1*abs_res_tol));
-    if (barrier_converged){
-      barrier_term = (final_barrier_problem ||
-                      (new_barrier_param <= 0.1*abs_res_tol));
-    }
-
-    // Check either of the two convergence criteria
     int converged = 0;
-    if (k > 0 && barrier_term && 
+    if (k > 0 && (barrier_param <= 0.1*abs_res_tol) && 
         (res_norm < abs_res_tol || rel_function_test)){
       converged = 1;
     }
@@ -4050,11 +4001,6 @@ int ParOpt::optimize( const char *checkpoint ){
     // Everybody quit altogether if we've converged
     if (converged){
       break;
-    }
-
-    // Set/store the new barrier parameter now.
-    if (barrier_converged){
-      barrier_param = new_barrier_param;
     }
 
     // Compute the relative GMRES tolerance given the residuals
@@ -4114,6 +4060,12 @@ int ParOpt::optimize( const char *checkpoint ){
           return fail; 
         }
       }
+
+      // Compute the affine residual with barrier = 0.0 if we are using
+      // the Mehrotra probing barrier strategy
+      if (barrier_strategy == PAROPT_MEHROTRA){
+        computeKKTRes(0.0, &max_prime, &max_dual, &max_infeas);
+      }
       
       // Set up the KKT diagonal system
       setUpKKTDiagSystem(s_qn, wtemp, use_qn);
@@ -4123,6 +4075,32 @@ int ParOpt::optimize( const char *checkpoint ){
       
       // Solve for the KKT step
       computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_qn);
+
+      if (barrier_strategy == PAROPT_MEHROTRA){
+        // Compute the affine step to the boundary, allowing 
+        // the variables to go right to zero
+        double max_x, max_z;
+        computeMaxStep(1.0, &max_x, &max_z);
+
+        // Compute the compleme
+        ParOptScalar comp_affine = computeCompStep(max_x, max_z);
+
+        // Use the Mehrotra rule
+        ParOptScalar s1 = (comp_affine/comp);
+        ParOptScalar sigma = s1*s1*s1; 
+
+        // Compute the new adaptive barrier parameter
+        barrier_param = sigma*comp; 
+        if (barrier_param < 0.09999*abs_res_tol){
+          barrier_param = 0.09999*abs_res_tol;
+        }
+
+        // Compute the residual with the new barrier parameter
+        computeKKTRes(barrier_param, &max_prime, &max_dual, &max_infeas);
+
+        // Compute the KKT Step
+        computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_qn);
+      }
     }
 
     // Check the KKT step

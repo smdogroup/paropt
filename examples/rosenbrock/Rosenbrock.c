@@ -1,5 +1,5 @@
 #include "ParOpt.h"
-#include "ParOptQuasiSeparable.h"
+#include "ParOptMMA.h"
 #include "time.h"
 
 /*
@@ -18,10 +18,10 @@ ParOptScalar min2( ParOptScalar a, ParOptScalar b ){
 class Rosenbrock : public ParOptProblem {
  public:
   Rosenbrock( MPI_Comm comm, int _nvars,
-	      int _nwcon, int _nwstart, 
-	      int _nw, int _nwskip ): 
+              int _nwcon, int _nwstart, 
+              int _nw, int _nwskip ): 
   ParOptProblem(comm, _nvars, 2,
-		_nwcon, 1){
+                _nwcon, 1){
     nwcon = _nwcon;
     nwstart = _nwstart;
     nw = _nw;
@@ -37,8 +37,8 @@ class Rosenbrock : public ParOptProblem {
 
   // Get the variables/bounds
   void getVarsAndBounds( ParOptVec *xvec,
-			 ParOptVec *lbvec, 
-			 ParOptVec *ubvec ){
+                         ParOptVec *lbvec, 
+                         ParOptVec *ubvec ){
     ParOptScalar *x, *lb, *ub;
     xvec->getArray(&x);
     lbvec->getArray(&lb);
@@ -137,6 +137,8 @@ class Rosenbrock : public ParOptProblem {
     for ( int i = 0; i < nvars; i++ ){
       hvals[i] += 2.0*scale*z[0]*px[i];
     }
+
+    return 0;
   }
 
   // Evaluate the sparse constraints
@@ -157,7 +159,7 @@ class Rosenbrock : public ParOptProblem {
   // Compute the Jacobian-vector product out = J(x)*px
   // --------------------------------------------------
   void addSparseJacobian( ParOptScalar alpha, ParOptVec *x,
-			  ParOptVec *px, ParOptVec *out ){
+                          ParOptVec *px, ParOptVec *out ){
     ParOptScalar *pxvals, *outvals; 
     px->getArray(&pxvals);
     out->getArray(&outvals);
@@ -246,11 +248,8 @@ int main( int argc, char* argv[] ){
   ParOpt *opt = new ParOpt(rosen, max_lbfgs);
   opt->incref();
 
-  opt->setGMRESSubspaceSize(30);
-  opt->setNKSwitchTolerance(1e3);
-  opt->setGMRESTolerances(1.0, 1e-30);
-  opt->setUseHvecProduct(1);
   opt->setMaxMajorIterations(1500);
+  opt->setBarrierStrategy(PAROPT_MEHROTRA);
   opt->setOutputFrequency(1);
   opt->setOutputFile("paropt.out");
   
@@ -270,15 +269,34 @@ int main( int argc, char* argv[] ){
     printf("ParOpt time: %f seconds \n", diff);
   }
 
+  // Create the MMA object
   ParOptMMA *mma = new ParOptMMA(rosen);
   mma->incref();
   mma->setPrintLevel(1);
   mma->setOutputFile("mma.out");
 
+  // Create the ParOpt interior point optimizer
+  ParOpt *mma_opt = new ParOpt(mma, max_lbfgs);
+  mma_opt->incref();
+
+  mma_opt->setUseDiagHessian(1);
+  mma_opt->setAbsOptimalityTol(1e-5);
+  mma_opt->setOutputFrequency(1);
+  mma_opt->setOutputFile("mma_paropt.out");
+  
   // Perform the optimization using MMA
-  int max_mma_iters = 4000;
+  int max_mma_iters = 500;
   for ( int i = 0; i < max_mma_iters; i++ ){
-    mma->update();
+    ParOptScalar *z;
+    ParOptVec *xvec, *zwvec;
+    mma_opt->getOptimizedPoint(&xvec, &z, &zwvec, NULL, NULL);
+    mma->setMultipliers(z, zwvec);
+    mma->initializeSubProblem(xvec);
+
+    // Optimize the sub-problem
+    mma_opt->resetDesignAndBounds();
+    mma_opt->setInitBarrierParameter(0.1);
+    mma_opt->optimize();
 
     double l1, linfty, infeas;
     mma->computeKKTError(&l1, &linfty, &infeas);
@@ -287,7 +305,6 @@ int main( int argc, char* argv[] ){
     }
   }
   
-  ParOptScalar *x1, *x2;
   ParOptVec *xvec1, *xvec2;
   mma->getOptimizedPoint(&xvec1);
   opt->getOptimizedPoint(&xvec2, NULL, NULL, NULL, NULL);
@@ -314,6 +331,7 @@ int main( int argc, char* argv[] ){
 
   opt->decref(); 
   mma->decref();
+  mma_opt->decref();
   rosen->decref();
 
   MPI_Finalize();

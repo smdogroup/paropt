@@ -35,6 +35,15 @@ INFTY_NORM = PAROPT_INFTY_NORM
 L1_NORM = PAROPT_L1_NORM
 L2_NORM = PAROPT_L2_NORM
 
+# The ParOpt barrier strategies
+MONOTONE = PAROPT_MONOTONE
+MEHROTRA = PAROPT_MEHROTRA
+COMPLEMENTARITY_FRACTION = PAROPT_COMPLEMENTARITY_FRACTION
+
+# Set the update type
+SKIP_NEGATIVE_CURVATURE = PAROPT_SKIP_NEGATIVE_CURVATURE
+DAMPED_UPDATE = PAROPT_DAMPED_UPDATE
+
 def unpack_output(str filename):
    '''
    Unpack the parameters from the paropt output file and return them
@@ -624,6 +633,9 @@ cdef class pyParOpt:
    def setNormType(self, ParOptNormType norm_typ):
       self.ptr.setNormType(norm_typ)
 
+   def setBarrierStrategy(self, ParOptBarrierStrategy strategy):
+      self.ptr.setBarrierStrategy(strategy)
+
    def setInitStartingPoint(self, int init):
       self.ptr.setInitStartingPoint(init)
       
@@ -648,12 +660,8 @@ cdef class pyParOpt:
    def setQNDiagonalFactor(self, double sigma):
       self.ptr.setQNDiagonalFactor(sigma)
 
-   def setBFGSUpdateType(self, str update):
-      if update == 'damped':
-         self.ptr.setBFGSUpdateType(DAMPED_UPDATE)
-      elif update == 'skip':
-         self.ptr.setBFGSUpdateType(SKIP_NEGATIVE_CURVATURE)
-      return
+   def setBFGSUpdateType(self, ParOptBFGSUpdateType update):
+      self.ptr.setBFGSUpdateType(update)
       
    def setSequentialLinearMethod(self, int truth):
       self.ptr.setSequentialLinearMethod(truth)

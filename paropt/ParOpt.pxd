@@ -93,9 +93,9 @@ cdef extern from "CyParOptProblem.h":
       void setAddSparseInnerProduct(addsparseinnerproduct usr_func)
 
 cdef extern from "ParOptQuasiNewton.h":
-   enum BFGSUpdateType"LBFGS::BFGSUpdateType":
-      SKIP_NEGATIVE_CURVATURE"LBFGS::SKIP_NEGATIVE_CURVATURE"
-      DAMPED_UPDATE"LBFGS::DAMPED_UPDATE"
+   enum ParOptBFGSUpdateType:
+      PAROPT_SKIP_NEGATIVE_CURVATURE
+      PAROPT_DAMPED_UPDATE
 
 cdef extern from "ParOpt.h":
    # Set the quasi-Newton type to use
@@ -108,6 +108,11 @@ cdef extern from "ParOpt.h":
       PAROPT_INFTY_NORM
       PAROPT_L1_NORM
       PAROPT_L2_NORM
+
+   enum ParOptBarrierStrategy:
+      PAROPT_MONOTONE
+      PAROPT_MEHROTRA
+      PAROPT_COMPLEMENTARITY_FRACTION
 
    cppclass ParOpt(ParOptBase):
       ParOpt(ParOptProblem *_prob, 
@@ -131,6 +136,7 @@ cdef extern from "ParOpt.h":
       
       # Set optimizer parameters
       void setNormType(ParOptNormType)
+      void setBarrierStrategy(ParOptBarrierStrategy)
       void setInitStartingPoint(int init)
       void setMaxMajorIterations(int iters)
       void setAbsOptimalityTol(double tol)
@@ -139,7 +145,7 @@ cdef extern from "ParOpt.h":
       void setBarrierPower(double power)
       void setHessianResetFreq(int freq)
       void setQNDiagonalFactor(double sigma)
-      void setBFGSUpdateType(BFGSUpdateType)
+      void setBFGSUpdateType(ParOptBFGSUpdateType)
       void setSequentialLinearMethod(int truth)
 
       # Set/obtain the barrier parameter

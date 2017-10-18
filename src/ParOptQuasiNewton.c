@@ -26,7 +26,7 @@ LBFGS::LBFGS( ParOptProblem *prob,
   b0 = 1.0;
 
   // Set the default Hessian update
-  hessian_update_type = SKIP_NEGATIVE_CURVATURE;
+  hessian_update_type = PAROPT_SKIP_NEGATIVE_CURVATURE;
 
   // Allocate space for the vectors
   S = new ParOptVec*[ msub_max ];
@@ -105,7 +105,7 @@ LBFGS::~LBFGS(){
 /*
   Set the Hessian update type
 */
-void LBFGS::setBFGSUpdateType( BFGSUpdateType _hessian_update_type ){
+void LBFGS::setBFGSUpdateType( ParOptBFGSUpdateType _hessian_update_type ){
   hessian_update_type = _hessian_update_type;
 }
 
@@ -159,7 +159,7 @@ int LBFGS::update( ParOptVec *s, ParOptVec *y ){
   ParOptScalar yTy = y->dot(y);
   ParOptScalar sTy = s->dot(y);
 
-  if (hessian_update_type == SKIP_NEGATIVE_CURVATURE){
+  if (hessian_update_type == PAROPT_SKIP_NEGATIVE_CURVATURE){
     // Compute dot products that are required for the matrix
     // updating scheme
     ParOptScalar sTs = s->dot(s);
@@ -169,6 +169,8 @@ int LBFGS::update( ParOptVec *s, ParOptVec *y ){
     // Skip the update
     if (RealPart(sTy) <= epsilon*sqrt(RealPart(sTs*yTy))){
       update_type = 2;
+      reset();
+      b0 = fabs(RealPart(sTy))/RealPart(sTs);
       return update_type;
     }
 
@@ -178,7 +180,7 @@ int LBFGS::update( ParOptVec *s, ParOptVec *y ){
     // Set the pointer to the new y value
     new_y = y;
   }
-  else if (hessian_update_type == DAMPED_UPDATE){
+  else if (hessian_update_type == PAROPT_DAMPED_UPDATE){
     // If the Hessian approximation has not been initialized, 
     // guess an initial value for the b0 value
     if (msub == 0){

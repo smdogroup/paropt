@@ -8,6 +8,9 @@
 #include "ParOptVec.h"
 #include "ParOptProblem.h"
 
+enum ParOptBFGSUpdateType { PAROPT_SKIP_NEGATIVE_CURVATURE, 
+                            PAROPT_DAMPED_UPDATE };
+
 /*
   This is the abstract base class for compact limited-memory
   quasi-Newton update schemes.
@@ -65,14 +68,12 @@ class CompactQuasiNewton : public ParOptBase {
 */
 class LBFGS : public CompactQuasiNewton {
  public:
-  enum BFGSUpdateType { SKIP_NEGATIVE_CURVATURE, DAMPED_UPDATE };
-
   LBFGS( ParOptProblem *prob, int _subspace_size );
   ~LBFGS();
 
   // Set the curvature update type
   // -----------------------------
-  void setBFGSUpdateType( BFGSUpdateType _hessian_update_type );
+  void setBFGSUpdateType( ParOptBFGSUpdateType _hessian_update_type );
 
   // Reset the internal data
   // -----------------------
@@ -98,7 +99,7 @@ class LBFGS : public CompactQuasiNewton {
 
  private:
   // Store the type of curvature handling update
-  BFGSUpdateType hessian_update_type;
+  ParOptBFGSUpdateType hessian_update_type;
 
   // The size of the BFGS subspace
   int msub, msub_max;

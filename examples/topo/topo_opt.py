@@ -675,6 +675,9 @@ def create_paropt(analysis, use_hessian=False,
     else:
         opt.setUseHvecProduct(0)
 
+    # Set the barrier strategy to use
+    opt.setBarrierStrategy(ParOpt.COMPLEMENTARITY_FRACTION)
+
     # Set optimization parameters
     opt.setArmijoParam(1e-5)
     opt.setMaxMajorIterations(2500)
@@ -1061,10 +1064,11 @@ def optimize_plane_stress_full(comm, analysis, root_dir='results',
        
     # Set up the optimization problem in ParOpt
     if optimizer == 'paropt':
-        opt = create_paropt(analysis,
-                            use_hessian=use_hessian,
+        opt = create_paropt(analysis, use_hessian=use_hessian,
                             qn_type=ParOpt.BFGS)
-        
+    opt.setBarrierStrategy(ParOpt.MEHROTRA)
+    opt.setInitBarrierParameter(10.0)
+
     # Log the optimization file
     log_filename = os.path.join(prefix, 'log_file.dat')
     fp = open(log_filename, 'w')
@@ -1142,11 +1146,14 @@ def optimize_plane_stress_full(comm, analysis, root_dir='results',
     else:
         opt = create_paropt(analysis,
                             use_hessian=use_hessian,
-                            qn_type=ParOpt.BFGS)
+                            qn_type=ParOpt.BFGS,
+                            max_qn_subspace=2)
         opt.setUseHvecProduct(0)
         opt.setUseLineSearch(1)
-        opt.setBFGSUpdateType('skip')
-        
+        opt.setBarrierStrategy(ParOpt.MEHROTRA)
+        opt.setHessianResetFreq(1000)
+        opt.setMaxMajorIterations(500)
+
     # Set the output file to use
     fname = os.path.join(prefix, 'history_iter%d.out'%(iteration)) 
     opt.setOutputFile(fname)

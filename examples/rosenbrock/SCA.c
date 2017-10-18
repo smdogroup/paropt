@@ -1,5 +1,5 @@
 #include "ParOpt.h"
-#include "ParOptQuasiSeparable.h"
+#include "ParOptMMA.h"
 #include "time.h"
 
 /*
@@ -18,10 +18,10 @@ ParOptScalar min2( ParOptScalar a, ParOptScalar b ){
 class Rosenbrock : public ParOptProblem {
  public:
   Rosenbrock( MPI_Comm comm, int _nvars,
-	      int _nwcon, int _nwstart, 
-	      int _nw, int _nwskip ): 
+              int _nwcon, int _nwstart, 
+              int _nw, int _nwskip ): 
   ParOptProblem(comm, _nvars, 2,
-		_nwcon, 1){
+                _nwcon, 1){
     nwcon = _nwcon;
     nwstart = _nwstart;
     nw = _nw;
@@ -37,8 +37,8 @@ class Rosenbrock : public ParOptProblem {
 
   // Get the variables/bounds
   void getVarsAndBounds( ParOptVec *xvec,
-			 ParOptVec *lbvec, 
-			 ParOptVec *ubvec ){
+                         ParOptVec *lbvec,
+                         ParOptVec *ubvec ){
     ParOptScalar *x, *lb, *ub;
     xvec->getArray(&x);
     lbvec->getArray(&lb);
@@ -137,6 +137,8 @@ class Rosenbrock : public ParOptProblem {
     for ( int i = 0; i < nvars; i++ ){
       hvals[i] += 2.0*scale*z[0]*px[i];
     }
+
+    return 0;
   }
 
   // Evaluate the sparse constraints
@@ -157,7 +159,7 @@ class Rosenbrock : public ParOptProblem {
   // Compute the Jacobian-vector product out = J(x)*px
   // --------------------------------------------------
   void addSparseJacobian( ParOptScalar alpha, ParOptVec *x,
-			  ParOptVec *px, ParOptVec *out ){
+                          ParOptVec *px, ParOptVec *out ){
     ParOptScalar *pxvals, *outvals; 
     px->getArray(&pxvals);
     out->getArray(&outvals);
