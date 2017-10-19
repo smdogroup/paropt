@@ -283,6 +283,7 @@ int main( int argc, char* argv[] ){
   mma_opt->setAbsOptimalityTol(1e-5);
   mma_opt->setOutputFrequency(1);
   mma_opt->setOutputFile("mma_paropt.out");
+  mma_opt->setBarrierStrategy(PAROPT_MEHROTRA);
   
   // Perform the optimization using MMA
   int max_mma_iters = 500;

@@ -3372,7 +3372,12 @@ void ParOpt::evalMeritInitDeriv( double max_x,
 
   // Compute the projected derivative
   ParOptScalar proj = g->dot(px);
-  
+  if (dense_inequality){
+    for ( int i = 0; i < ncon; i++ ){
+      proj += penalty_gamma*pt[i];
+    }
+  }
+
   // Perform the computations only on the root processor
   int rank = 0;
   MPI_Comm_rank(comm, &rank);
@@ -3499,7 +3504,6 @@ void ParOpt::evalMeritInitDeriv( double max_x,
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
         merit += penalty_gamma*t[i];
-        pmerit += penalty_gamma*pt[i];
       }
     }
   }

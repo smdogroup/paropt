@@ -519,7 +519,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
     beta[j] = min2(ub[j], 0.9*U[j] + 0.1*x[j]);
 
     // Compute the coefficients for the objective
-    double eps = 1e-8;
+    double eps = 1e-6;
     double eta = 1e-3;
     ParOptScalar gpos = max2(0.0, g[j]);
     ParOptScalar gneg = max2(0.0, -g[j]);
