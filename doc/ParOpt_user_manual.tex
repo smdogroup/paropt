@@ -63,7 +63,7 @@ is a block-diagonal matrix whenever $\mb{S}$ is a diagonal matrix.
 This structure arises in many topology and multimaterial optimization problems that employ weighting constraints for each element within the problem. 
 
 An interior point algorithm approximately solves a sequence of barrier problems that are designed to approach the true constrained minimizer in the limit.
-The barrier problem is formed by adding inequality constraints to the objective through a lob barrier penalty function. 
+The barrier problem is formed by adding inequality constraints to the objective through a log barrier penalty function. 
 This barrier function is designed to keep the iterates strictly in the interior of the feasible region. 
 The barrier problem corresponding to~\eqref{eqn:opt-problem} is the following
 \begin{equation}
@@ -265,7 +265,7 @@ The solution procedure begins by obtaining the solution for the slack variables 
     \mb{p}_{z_{l}} &= (\mb{X} - \mb{L})^{-1}(\mb{b}_{z_{l}} - \mb{Z}_{l} \mb{p}_{x} ), \\
     \mb{p}_{z_{u}} &= (\mb{U} - \mb{X})^{-1}(\mb{b}_{z_{u}} + \mb{Z}_{u} \mb{p}_{x} ), \\
     \mb{p}_{s} &= \mb{Z}^{-1}(\mb{b}_{s} - \mb{S}\mb{p}_{z}), \\
-    \mb{p}_{t} &= \mb{Z}_{t}^{-1}(\mb{b_{z_{t}} + \mb{T}\mb{p}_{z} + \mb{T}\mb{b}_{t} )\\
+    \mb{p}_{t} &= \mb{Z}_{t}^{-1}(\mb{b}_{z_{t}} + \mb{T}(\mb{p}_{z} + \mb{b}_{t}))\\
     \mb{p}_{s_{w}} &= \mb{Z}_{w}^{-1}(\mb{b}_{s_{w}} - \mb{S}_{w} \mb{p}_{z_{w}}),
   \end{aligned}
 \end{equation}
@@ -286,8 +286,8 @@ Substituting the expressions for the slack and Lagrange multiplier updates~\eqre
     \mb{D} \mb{p}_{x} - \mb{A}^{T}\mb{p}_{z} - \mb{A}_{w}^{T}\mb{p}_{z_{w}} &= 
     \mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}}, \\
     %
-    \mb{A}\mb{p}_{x} &= \mb{b}_{z} \\
-    \mb{A}_{w} \mb{p}_{x} & = \mb{b}_{z_{w}} \\
+    \mb{A}\mb{p}_{x} + (\mb{Z}^{-1}\mb{S} + \mb{Z}_{t}^{-1}\mb{T}) \mb{p}_{z} &= \mb{b}_{z} + \mb{Z}^{-1}\mb{b}_{s} - \mb{Z}_{t}^{-1}(\mb{b}_{z_{t}} + \mb{T}\mb{b}_{t})\\
+    \mb{A}_{w} \mb{p}_{x} + \mb{Z}_{w}^{-1}\mb{S}_{w} \mb{p}_{z_{w}} & = \mb{b}_{z_{w}} + \mb{Z}_{w}^{-1}\mb{b}_{s_{w}} \\
     \end{aligned}
 \end{equation}
 where the diagonal matrix $\mb{D}$ is defined as follows:
@@ -298,18 +298,22 @@ where the diagonal matrix $\mb{D}$ is defined as follows:
 Finally, $\mb{p}_{x}$ can be eliminated for $\mb{p}_{z}$ and $\mb{p}_{z_{w}}$ as follows
 \begin{equation}
   \begin{aligned}
-    \mb{A}_{w}\mb{D}^{-1}\mb{A}_{w}^{T} \mb{p}_{z_{w}} + \mb{A}_{w}\mb{D}^{-1}\mb{A}^{T}\mb{p}_{z} &= \mb{b}_{z_{w}} - \mb{A}_{w}\mb{D}^{-1}\left(\mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}} \right), \\
-    \mb{A}\mb{D}^{-1}\mb{A}_{w}^{T} \mb{p}_{z_{w}} + \mb{A}\mb{D}^{-1}\mb{A}^{T}\mb{p}_{z} &= \mb{b}_{z} - \mb{A}\mb{D}^{-1}\left(\mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}} \right),
+    (\mb{Z}_{w}^{-1}\mb{S}_{w} + \mb{A}_{w}\mb{D}^{-1}\mb{A}_{w}^{T})\mb{p}_{z_{w}} + \mb{A}_{w}\mb{D}^{-1}\mb{A}^{T}\mb{p}_{z} &= \mb{d}_{z_{w}}, \\
+    \mb{A}\mb{D}^{-1}\mb{A}_{w}^{T} \mb{p}_{z_{w}} + (\mb{Z}^{-1}\mb{S} + \mb{Z}_{t}^{-1}\mb{T} + \mb{A}\mb{D}^{-1}\mb{A}^{T})\mb{p}_{z} &= \mb{d}_{z}, \\
   \end{aligned}
 \end{equation}
 %
-Finally, noting that $\mb{E} \triangleq \mb{A}_{w}\mb{D}^{-1}\mb{A}_{w}^{T}$ is block diagonal, and defining $\mb{F} \triangleq \mb{A}\mb{D}^{-1}\mb{A}_{w}^{T}$, gives the following equation
+The right hand sides, $\mb{d}_{z_{w}}$ and $\mb{d}_{z}$ are 
 \begin{equation*}
   \begin{aligned}
-    \left[\mb{A}\mb{D}^{-1}\mb{A}^{T} - \mb{F}\mb{E}^{-1}\mb{F}^{T} \right]\mb{p}_{z} =& 
-    \mb{b}_{z} - \mb{A}\mb{D}^{-1}\left(\mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}} \right) \\
-    & - \mb{E}^{-1}\left( \mb{b}_{z_{w}} - \mb{A}_{w}\mb{D}^{-1}\left(\mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}} \right) \right)
+    \mb{d}_{z_{w}} &\triangleq \mb{b}_{z_{w}} + \mb{Z}_{w}^{-1}\mb{b}_{s_{w}} - \mb{A}_{w}\mb{D}^{-1}\left(\mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}} \right), \\
+    \mb{d}_{z} &\triangleq \mb{b}_{z} + \mb{Z}^{-1}\mb{b}_{s} - \mb{Z}_{t}^{-1}(\mb{b}_{z_{t}} + \mb{T}\mb{b}_{t}) - \mb{A}\mb{D}^{-1}\left(\mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}} \right). \\
   \end{aligned}
+\end{equation*}
+%
+Finally, defining the matrix $\mb{E} \triangleq (\mb{Z}_{w}^{-1}\mb{S}_{w} + \mb{A}_{w}\mb{D}^{-1}\mb{A}_{w}^{T})$, which is block diagonal, and introducing $\mb{F} \triangleq \mb{A}\mb{D}^{-1}\mb{A}_{w}^{T}$, gives the following equation
+\begin{equation*}
+  \left[\mb{Z}^{-1}\mb{S} + \mb{Z}_{t}^{-1}\mb{T} + \mb{A}\mb{D}^{-1}\mb{A}^{T} - \mb{F}\mb{E}^{-1}\mb{F}^{T} \right]\mb{p}_{z} = \mb{d}_{z} - \mb{E}^{-1} \mb{d}_{z_{w}}
 \end{equation*}
 
 This solution procedure is invoked each time a solution of the form $\mb{K}_{0}\mb{p} = \mb{b}$ is required. 

@@ -137,19 +137,20 @@ cdef extern from "ParOpt.h":
       # Set optimizer parameters
       void setNormType(ParOptNormType)
       void setBarrierStrategy(ParOptBarrierStrategy)
-      void setInitStartingPoint(int init)
-      void setMaxMajorIterations(int iters)
-      void setAbsOptimalityTol(double tol)
-      void setRelFunctionTol(double tol)
-      void setBarrierFraction(double frac)
-      void setBarrierPower(double power)
-      void setHessianResetFreq(int freq)
-      void setQNDiagonalFactor(double sigma)
+      void setInitStartingPoint(int)
+      void setMaxMajorIterations(int)
+      void setAbsOptimalityTol(double)
+      void setRelFunctionTol(double)
+      void setPenaltyGamma(double)
+      void setBarrierFraction(double)
+      void setBarrierPower(double)
+      void setHessianResetFreq(int)
+      void setQNDiagonalFactor(double)
       void setBFGSUpdateType(ParOptBFGSUpdateType)
-      void setSequentialLinearMethod(int truth)
+      void setSequentialLinearMethod(int)
 
       # Set/obtain the barrier parameter
-      void setInitBarrierParameter(double mu)
+      void setInitBarrierParameter(double)
       double getBarrierParameter()
       ParOptScalar getComplementarity()
 
@@ -160,30 +161,30 @@ cdef extern from "ParOpt.h":
       void resetDesignAndBounds()
       
       # Set parameters associated with the line search
-      void setUseLineSearch(int truth)
-      void setMaxLineSearchIters(int iters)
-      void setBacktrackingLineSearch(int truth)
-      void setArmijoParam(double c1)
-      void setPenaltyDescentFraction(double frac)
+      void setUseLineSearch(int)
+      void setMaxLineSearchIters(int)
+      void setBacktrackingLineSearch(int)
+      void setArmijoParam(double)
+      void setPenaltyDescentFraction(double)
 
       # Set parameters for the internal GMRES algorithm
-      void setUseDiagHessian(int truth)
-      void setUseHvecProduct(int truth)
-      void setUseQNGMRESPreCon(int truth)
-      void setNKSwitchTolerance(double tol)
-      void setEisenstatWalkerParameters(double gamma, double alpha)
-      void setGMRESTolerances(double rtol, double atol)
-      void setGMRESSubspaceSize(int _gmres_subspace_size)
+      void setUseDiagHessian(int)
+      void setUseHvecProduct(int)
+      void setUseQNGMRESPreCon(int)
+      void setNKSwitchTolerance(double)
+      void setEisenstatWalkerParameters(double, double)
+      void setGMRESTolerances(double, double)
+      void setGMRESSubspaceSize(int)
 
       # Set other parameters
-      void setOutputFrequency(int freq)
-      void setMajorIterStepCheck(int step)
-      void setOutputFile(const char *filename)
-      void setGradientCheckFrequency(int freq, double step_size)
+      void setOutputFrequency(int)
+      void setMajorIterStepCheck(int)
+      void setOutputFile(const char*)
+      void setGradientCheckFrequency(int, double)
 
       # Write out the design variables to binary format (fast MPI/IO)
-      int writeSolutionFile(const char *filename)
-      int readSolutionFile(const char *filename)
+      int writeSolutionFile(const char*)
+      int readSolutionFile(const char*)
 
 cdef extern from "ParOptMMA.h":
    cdef cppclass ParOptMMA(ParOptProblem):

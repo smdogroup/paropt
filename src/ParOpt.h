@@ -165,6 +165,7 @@ class ParOpt : public ParOptBase {
   void setMaxMajorIterations( int iters );
   void setAbsOptimalityTol( double tol );
   void setRelFunctionTol( double tol );
+  void setPenaltyGamma( double gamma );
   void setBarrierFraction( double frac );
   void setBarrierPower( double power );
   void setHessianResetFreq( int freq );

@@ -270,7 +270,7 @@ int main( int argc, char* argv[] ){
   }
 
   // Create the MMA object
-  ParOptMMA *mma = new ParOptMMA(rosen, 0);
+  ParOptMMA *mma = new ParOptMMA(rosen, 1);
   mma->incref();
   mma->setPrintLevel(1);
   mma->setOutputFile("mma.out");

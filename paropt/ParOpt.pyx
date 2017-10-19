@@ -647,7 +647,10 @@ cdef class pyParOpt:
 
    def setRelFunctionTol(self, double tol):
       self.ptr.setRelFunctionTol(tol)
-      
+
+   def setPenaltyGamma(self, double gamma):
+      self.ptr.setPenaltyGamma(gamma)
+
    def setBarrierFraction(self, double frac):
       self.ptr.setBarrierFraction(frac)
       

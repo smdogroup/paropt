@@ -14,7 +14,7 @@
   each parameter and how you should set it. 
 */
 
-static const int NUM_PAROPT_PARAMETERS = 28;
+static const int NUM_PAROPT_PARAMETERS = 29;
 static const char *paropt_parameter_help[][2] = {
   {"max_qn_size", 
    "Integer: The maximum dimension of the quasi-Newton approximation"},
@@ -28,6 +28,9 @@ static const char *paropt_parameter_help[][2] = {
   {"barrier_param",
    "Float: The initial value of the barrier parameter"},
   
+  {"penalty_gamma",
+   "Float: l1 penalty parameter applied to slack variables"},
+
   {"abs_res_tol",
    "Float: Absolute stopping criterion"},
 
@@ -545,6 +548,7 @@ void ParOpt::printOptionSummary( FILE *fp ){
     else {
       fprintf(fp, "%-30s %15s\n", "norm_type", "L2_NORM");
     }
+    fprintf(fp, "%-30s %15g\n", "penalty_gamma", penalty_gamma);
     fprintf(fp, "%-30s %15d\n", "max_major_iters", max_major_iters);
     fprintf(fp, "%-30s %15d\n", "init_starting_point", 
             init_starting_point);
@@ -915,6 +919,15 @@ void ParOpt::setBarrierFraction( double frac ){
 void ParOpt::setBarrierPower( double power ){
   if (power >= 1.0 && power < 10.0){
     monotone_barrier_power = power;
+  }
+}
+
+/*
+  Set the penalty parameter
+*/
+void ParOpt::setPenaltyGamma( double gamma ){
+  if (gamma >= 0.0){
+    penalty_gamma = gamma;
   }
 }
 
@@ -2560,7 +2573,8 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
       // and solve for the Lagrange multipliers
       if (dense_inequality){
         for ( int i = 0; i < ncon; i++ ){
-          yz[i] = alpha*(bc[i] + bs[i]/z[i] - (bzt[i] + t[i]*bt[i])/zt[i]) - yz[i];
+          yz[i] = alpha*(bc[i] + bs[i]/z[i] - 
+                         (bzt[i] + t[i]*bt[i])/zt[i]) - yz[i];
         }
       }
       else {
@@ -5310,7 +5324,8 @@ void ParOpt::checkKKTStep( int is_newton ){
 
     max_val = 0.0;
     for ( int i = 0; i < ncon; i++ ){
-      ParOptScalar val = t[i]*pzt[i] + zt[i]*pt[i] + (t[i]*zt[i] - barrier_param);
+      ParOptScalar val = t[i]*pzt[i] + zt[i]*pt[i] + 
+        (t[i]*zt[i] - barrier_param);
       if (fabs(RealPart(val)) > max_val){
         max_val = fabs(RealPart(val));
       }
