@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import numpy as np
 from mpi4py import MPI
 
@@ -680,7 +681,7 @@ def create_paropt(analysis, use_hessian=False,
 
     # Set optimization parameters
     opt.setArmijoParam(1e-5)
-    opt.setMaxMajorIterations(2500)
+    opt.setMaxMajorIterations(5000)
 
     # Perform a quick check of the gradient (and Hessian)
     opt.checkGradients(1e-8)
@@ -804,7 +805,7 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
                           parameter=5.0, max_iters=1000,
                           optimizer='paropt', case='isotropic',
                           use_hessian=False, start_strategy='point',
-                          ptype='ramp'):
+                          ptype='ramp', final_full_opt=False):
     # Optimize the structure
     optimizer = optimizer.lower()
     penalization = ptype.upper()
@@ -816,8 +817,11 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
     if not os.path.exists(prefix):
         os.makedirs(prefix)
 
+    # Write out the stdout output to a file
+    sys.stdout = open(os.path.join(prefix, 'stdout.out'), 'w')
+
     # Set the lower bound
-    analysis.delta = 0.75*(1.0 - 1.0/analysis.num_materials)
+    analysis.delta = 0.95*(1.0 - 1.0/analysis.num_materials)
        
     # Set up the optimization problem in ParOpt
     opt = create_paropt(analysis,
@@ -870,10 +874,10 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
             opt.setInitStartingPoint(0)
 
             # Set the new value of delta
-            eps = 1e-10
-            d1 = 0.7*analysis.delta
-            d2 = max(eps, analysis.delta)**1.25
-            analysis.delta = min(d1, d2)
+            if k % 2 == 0:
+                d0 = 0.95*(1.0 - 1.0/analysis.num_materials)
+                d1 = analysis.delta - d0/20.0
+                analysis.delta = max(d1, 0.0)
 
             # Reset the design variable and bounds
             opt.resetDesignAndBounds()
@@ -926,19 +930,21 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
 
         # Compute the maximum error contribution
         kkt_max_err = np.amax(np.fabs(kkt))
+        kkt_l1_err = np.sum(np.fabs(kkt))
         kkt_l2_err = np.sqrt(np.dot(kkt, kkt))
 
         g_max = np.amax(np.fabs(gobj1))
+        g_l1 = np.sum(np.fabs(gobj1))
         g_l2 = np.sqrt(np.dot(gobj1, gobj1))
 
         # Print out the iteration information to the screen
         if k % 10 == 0:
-            print '%4s %10s %10s %10s %10s %10s %10s'%(
-                'Iter', 'tau', 'KKT infty', 'KKT l2', 
-                'Rel infty', 'Rel l2', 'delta')
-        print '%4d %10.4e %10.4e %10.4e %10.4e %10.4e %10.4e'%(
-            niters, np.sum(d), kkt_max_err, kkt_l2_err, 
-            kkt_max_err/g_max, kkt_l2_err/g_l2, analysis.delta)
+            print '%4s %10s %10s %10s %10s %10s %10s %10s %10s'%(
+                'Iter', 'tau', 'KKT infty', 'KKT l1', 'KKT l2', 
+                'Rel infty', 'Rel l1', 'Rel l2', 'delta')
+        print '%4d %10.4e %10.4e %10.4e %10.4e %10.4e %10.4e %10.4e %10.4e'%(
+            niters, np.sum(d), kkt_max_err, kkt_l1_err, kkt_l2_err, 
+            kkt_max_err/g_max, kkt_l1_err/g_l1, kkt_l2_err/g_l2, analysis.delta)
 
         # Print out the
         s = '%d %e %e %e %e '%(niters, comp, np.min(d), np.max(d), np.sum(d))
@@ -946,13 +952,16 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
             analysis.fevals, analysis.gevals, analysis.hevals,
             MPI.Wtime() - init_time, kkt_max_err, kkt_l2_err)
         fp.write(s)
+
+        # Flush the file/stdout
         fp.flush()
+        sys.stdout.flush()
         
         # Increase the iteration counter
         niters += 1        
 
-        # Quit when the relative KKT error is less than 10^{-3}
-        if kkt_max_err < 1e-3:
+        # Quit when the relative KKT error is less than 10^{-4}
+        if kkt_l1_err/g_l1 < 1e-3 and analysis.delta <= 1e-3:
             break        
 
     # Print out the design
@@ -960,69 +969,70 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
     output = os.path.join(prefix, filename)
     analysis.writeTikzFile(x, output)
 
-    # Set the penalty parameter
-    analysis.RAMP_penalty = parameter
-    analysis.props.setPenaltyType('full', ptype=ptype)
+    if final_full_opt:
+        # Set the penalty parameter
+        analysis.RAMP_penalty = parameter
+        analysis.props.setPenaltyType('full', ptype=ptype)
 
-    # Get the new complementarity
-    opt.resetDesignAndBounds()
-    mu = opt.getComplementarity()
-    opt.setInitBarrierParameter(mu)
-    opt.setUseHvecProduct(0)
-    opt.setUseLineSearch(1)
+        # Get the new complementarity
+        opt.resetDesignAndBounds()
+        mu = opt.getComplementarity()
+        opt.setInitBarrierParameter(mu)
+        opt.setUseHvecProduct(0)
+        opt.setUseLineSearch(1)
 
-    # Set the output file to use
-    fname = os.path.join(prefix, 'history_iter%d.out'%(niters)) 
-    opt.setOutputFile(fname)
+        # Set the output file to use
+        fname = os.path.join(prefix, 'history_iter%d.out'%(niters)) 
+        opt.setOutputFile(fname)
     
-    # Optimize the new point
-    opt.optimize()
-       
-    # Compute the KKT error based on the original problem
-    x, z, zw, zl, zu = opt.getOptimizedPoint()
-
-    # Get the discrete infeasibility measure
-    d = analysis.getDiscreteInfeas(x)
-
-    # Get the compliance and objective values
-    analysis.RAMP_penalty = parameter
-    analysis.setNewInitPointPenalty(x)       
-    comp = analysis.getCompliance(x)
-
-    # Evaluate the objective and constraints
-    gobj1 = analysis.createDesignVec()
-    Acon1 = []
-    for i in range(len(z)):
-        Acon1.append(analysis.createDesignVec())
-    product = analysis.createDesignVec()
-    fail, obj1, con1 = analysis.evalObjCon(x)
-    analysis.evalObjConGradient(x, gobj1, Acon1)
-    analysis.addSparseJacobianTranspose(-1.0, x, zw, product)
-
-    # Compute the KKT error
-    kkt = gobj1[:] + product[:] - zl[:] + zu[:]
-    for i in range(len(z)):
-        kkt[:] -= Acon1[i][:]*z[i]
-
-    # Compute the maximum error contribution
-    kkt_max_err = np.amax(np.fabs(kkt))
-    kkt_l2_err = np.sqrt(np.dot(kkt, kkt))
-
-    g_max = np.amax(np.fabs(gobj1))
-    g_l2 = np.sqrt(np.dot(gobj1, gobj1))
+        # Optimize the new point
+        opt.optimize()
     
-    # Print out the iteration information to the screen
-    print '%4s %10s %10s %10s %10s %10s'%(
-        'Iter', 'tau', 'KKT infty', 'KKT l2', 'Rel infty', 'Rel l2')
-    print '%4d %10.4e %10.4e %10.4e %10.4e %10.4e'%(
-        niters, np.sum(d), kkt_max_err, kkt_l2_err, 
-        kkt_max_err/g_max, kkt_l2_err/g_l2)
+        # Compute the KKT error based on the original problem
+        x, z, zw, zl, zu = opt.getOptimizedPoint()
+        
+        # Get the discrete infeasibility measure
+        d = analysis.getDiscreteInfeas(x)
+        
+        # Get the compliance and objective values
+        analysis.RAMP_penalty = parameter
+        analysis.setNewInitPointPenalty(x)       
+        comp = analysis.getCompliance(x)
 
-    s = '%d %e %e %e %e '%(niters, comp, np.min(d), np.max(d), np.sum(d))
-    s += '%d %d %d %e %e %e\n'%(
-        analysis.fevals, analysis.gevals, analysis.hevals,
-        MPI.Wtime() - init_time, kkt_max_err, kkt_l2_err)
-    fp.write(s)
+        # Evaluate the objective and constraints
+        gobj1 = analysis.createDesignVec()
+        Acon1 = []
+        for i in range(len(z)):
+            Acon1.append(analysis.createDesignVec())
+        product = analysis.createDesignVec()
+        fail, obj1, con1 = analysis.evalObjCon(x)
+        analysis.evalObjConGradient(x, gobj1, Acon1)
+        analysis.addSparseJacobianTranspose(-1.0, x, zw, product)
+
+        # Compute the KKT error
+        kkt = gobj1[:] + product[:] - zl[:] + zu[:]
+        for i in range(len(z)):
+            kkt[:] -= Acon1[i][:]*z[i]
+
+        # Compute the maximum error contribution
+        kkt_max_err = np.amax(np.fabs(kkt))
+        kkt_l2_err = np.sqrt(np.dot(kkt, kkt))
+
+        g_max = np.amax(np.fabs(gobj1))
+        g_l2 = np.sqrt(np.dot(gobj1, gobj1))
+        
+        # Print out the iteration information to the screen
+        print '%4s %10s %10s %10s %10s %10s'%(
+            'Iter', 'tau', 'KKT infty', 'KKT l2', 'Rel infty', 'Rel l2')
+        print '%4d %10.4e %10.4e %10.4e %10.4e %10.4e'%(
+            niters, np.sum(d), kkt_max_err, kkt_l2_err, 
+            kkt_max_err/g_max, kkt_l2_err/g_l2)
+
+        s = '%d %e %e %e %e '%(niters, comp, np.min(d), np.max(d), np.sum(d))
+        s += '%d %d %d %e %e %e\n'%(
+            analysis.fevals, analysis.gevals, analysis.hevals,
+            MPI.Wtime() - init_time, kkt_max_err, kkt_l2_err)
+        fp.write(s)
     
     # Close the log file
     fp.close()

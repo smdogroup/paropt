@@ -20,6 +20,8 @@ cdef extern from "ParOptVec.h":
       int getArray(ParOptScalar**)
       void copyValues(ParOptVec*)
       ParOptScalar norm()
+      ParOptScalar l1norm()
+      ParOptScalar maxabs()
       ParOptScalar dot(ParOptVec*)
 
 cdef class PVec:

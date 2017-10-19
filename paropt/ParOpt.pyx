@@ -559,6 +559,12 @@ cdef class PVec:
    def norm(self):
       return self.ptr.norm()
 
+   def l1norm(self):
+      return self.ptr.l1norm()
+
+   def maxabs(self):
+      return self.ptr.maxabs()
+
    def dot(self, PVec vec):
       return self.ptr.dot(vec.ptr)
 
