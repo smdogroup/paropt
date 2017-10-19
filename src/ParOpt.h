@@ -241,21 +241,24 @@ class ParOpt : public ParOptBase {
   void setUpKKTDiagSystem( ParOptVec *xt, ParOptVec *wt, int use_qn );
 
   // Solve the diagonal KKT system
-  void solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bc, 
-                           ParOptVec *bcw, ParOptScalar *bs,
-                           ParOptVec *bsw,
+  void solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bt,
+                           ParOptScalar *bc, ParOptVec *bcw, 
+                           ParOptScalar *bs, ParOptVec *bsw,
+                           ParOptScalar *bzt,
                            ParOptVec *bzl, ParOptVec *bzu,
-                           ParOptVec *yx, ParOptScalar *yz, 
-                           ParOptVec *yzw, ParOptScalar *ys,
-                           ParOptVec *ysw,
+                           ParOptVec *yx, ParOptScalar *yt,
+                           ParOptScalar *yz, ParOptVec *yzw, 
+                           ParOptScalar *ys, ParOptVec *ysw,
+                           ParOptScalar *yzt,
                            ParOptVec *yzl, ParOptVec *yzu,
                            ParOptVec *xt, ParOptVec *wt );
   
   // Solve the diagonal KKT system with a specific RHS structure
   void solveKKTDiagSystem( ParOptVec *bx, 
-                           ParOptVec *yx, ParOptScalar *yz, 
-                           ParOptVec *yzw, ParOptScalar *ys,
-                           ParOptVec *ysw,
+                           ParOptVec *yx, ParOptScalar *yt,
+                           ParOptScalar *yz, ParOptVec *yzw, 
+                           ParOptScalar *ys, ParOptVec *ysw,
+                           ParOptScalar *yzt,
                            ParOptVec *yzl, ParOptVec *yzu,
                            ParOptVec *xt, ParOptVec *wt );
 
@@ -267,9 +270,10 @@ class ParOpt : public ParOptBase {
 
   // Solve the diagonal system
   void solveKKTDiagSystem( ParOptVec *bx, 
-                           ParOptScalar alpha, ParOptScalar *bc, 
+                           ParOptScalar alpha, 
+                           ParOptScalar *bt, ParOptScalar *bc, 
                            ParOptVec *bcw, ParOptScalar *bs,
-                           ParOptVec *bsw,
+                           ParOptVec *bsw, ParOptScalar *bzt,
                            ParOptVec *bzl, ParOptVec *bzu,
                            ParOptVec *yx, ParOptScalar *yz,
                            ParOptVec *xt, ParOptVec *wt );
@@ -301,12 +305,14 @@ class ParOpt : public ParOptBase {
                   ParOptScalar m0, ParOptScalar dm0 );
 
   // Evaluate the merit function
-  ParOptScalar evalMeritFunc( ParOptVec *xk, ParOptScalar *sk, 
+  ParOptScalar evalMeritFunc( ParOptVec *xk, 
+                              const ParOptScalar *sk, 
+                              const ParOptScalar *tk,
                               ParOptVec *swk );
 
   // Evaluate the merit function, its derivative and the new penalty
   // parameter
-  void evalMeritInitDeriv( double max_x, 
+  void evalMeritInitDeriv( double max_x,
                            ParOptScalar *_merit, ParOptScalar *_pmerit,
                            int inexact_step, ParOptVec *wt1, ParOptVec *wt2 );
   
@@ -350,18 +356,18 @@ class ParOpt : public ParOptBase {
 
   // The variables in the optimization problem
   ParOptVec *x, *zl, *zu, *zw, *sw;
-  ParOptScalar *z, *s;
+  ParOptScalar *z, *s, *zt, *t;
 
   // The lower/upper bounds on the variables
   ParOptVec *lb, *ub;
 
   // The steps in the variables
   ParOptVec *px, *pzl, *pzu, *pzw, *psw;
-  ParOptScalar *pz, *ps;
+  ParOptScalar *pz, *ps, *pzt, *pt;
 
   // The residuals
   ParOptVec *rx, *rzl, *rzu, *rcw, *rsw;
-  ParOptScalar *rc, *rs;
+  ParOptScalar *rc, *rs, *rzt, *rt;
 
   // The objective, gradient, constraints, and constraint gradients
   ParOptScalar fobj, *c;
@@ -394,6 +400,9 @@ class ParOpt : public ParOptBase {
 
   // Flags to indicate whether to use the upper/lower bounds
   int use_lower, use_upper;
+
+  // The l1-penalty parameter
+  double penalty_gamma;
 
   // Parameters for optimization
   int max_major_iters;

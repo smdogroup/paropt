@@ -69,12 +69,12 @@ The barrier problem corresponding to~\eqref{eqn:opt-problem} is the following
 \begin{equation}
   \label{eqn:barrier-problem}
   \begin{aligned}
-    \min_{\mb{x}, \mb{s}, \mb{s}_{w}} \qquad &  \varphi(\mb{x}, \mb{s}, \mb{s}_{w}; \mu) = f(\mb{x}) - \mu \left[ \log \mb{s} + \log \mb{s}_{w} + \log (\mb{x} - \mb{l}) + \log (\mb{u} - \mb{x})  \right] \\
-    \text{such that} \qquad & \mb{c}(\mb{x}) = \mb{s} \\
+    \min_{\mb{x}, \mb{s}, \mb{t}, \mb{s}_{w}} \qquad &  \varphi(\mb{x}, \mb{s}, \mb{t}, \mb{s}_{w}; \mu) = f(\mb{x}) + \gamma \mb{e}^{T}\mb{t} - \mu \left[ \log \mb{s} + \log \mb{t} + \log \mb{s}_{w} + \log (\mb{x} - \mb{l}) + \log (\mb{u} - \mb{x})  \right] \\
+    \text{such that} \qquad & \mb{c}(\mb{x}) = \mb{s} - \mb{t} \\
     & \mb{c}_{w}(\mb{x}) = \mb{s}_{w} \\
   \end{aligned}
 \end{equation}
-where $\mb{s}$ and $\mb{s}_{w}$ are slack variables associated with the dense and sparse constraints, respectively. 
+where $\mb{s}$, $\mb{t}$ and $\mb{s}_{w}$ are slack variables associated with the dense and sparse constraints, respectively. 
 The function $\log$ is the component-wise sum of the logarithms of the vector components, i.e. $\log \mb{s} = \sum_{i} \ln s_{i}$.
 As the barrier parameter, $\mu$, decreases, the minimizer of the barrier problem~\eqref{eqn:barrier-problem} approaches the KKT solution.
 
@@ -85,11 +85,13 @@ Introducing dual variables for the dense constraints $\mb{z}$, the sparse constr
   \label{eqn:perturbed-kkt}
   \begin{aligned}
     \mb{r}_{x} \triangleq    & \mb{g} - \mb{A}^{T}\mb{z} - \mb{A}_{w} \mb{z}_{w} - \mb{z}_{l} + \mb{z}_{u} = 0 \\
-    \mb{r}_{z} \triangleq    & \mb{c} - \mb{s} = 0 \\
+    \mb{r}_{t} \triangleq    & \gamma \mb{e} - \mb{z} - \mb{z}_{t} = 0 \\
+    \mb{r}_{z} \triangleq    & \mb{c} - \mb{s} + \mb{t} = 0 \\
     \mb{r}_{z_{w}} \triangleq & \mb{c}_{w} - \mb{s}_{w} = 0 \\
     \mb{r}_{s} \triangleq    & \mb{S} \mb{z} - \mu \mb{e} = 0 \\
-    \mb{r}_{s_{w}} \triangleq & \mb{S}_{w} \mb{z}_{w} - \mu \mb{e} = 0\\
-    \mb{r}_{z_{l}} \triangleq & (\mb{X} - \mb{L})\mb{z}_{l} - \mu \mb{e} = 0\\
+    \mb{r}_{z_{t}} \triangleq & \mb{T}\mb{z}_{t} - \mu \mb{e} = 0 \\
+    \mb{r}_{s_{w}} \triangleq & \mb{S}_{w} \mb{z}_{w} - \mu \mb{e} = 0 \\
+    \mb{r}_{z_{l}} \triangleq & (\mb{X} - \mb{L})\mb{z}_{l} - \mu \mb{e} = 0 \\
     \mb{r}_{z_{u}} \triangleq & (\mb{U} - \mb{X})\mb{z}_{u} - \mu \mb{e} = 0
   \end{aligned}
 \end{equation}
@@ -110,19 +112,23 @@ The approximate KKT matrix is
   \label{eqn:kkt-update}
   \mb{K}_{B}\mb{p} =
   \begin{bmatrix}
-    \mb{B}    & -\mb{A}^{T} & \mb{A}_{w} &       0 &      0 & -\mb{I} & \mb{I} \\
-    \mb{A}    &           0 &         0 & -\mb{I} &      0 &       0 & 0 \\
-    \mb{A}_{w} &           0 &         0 &      0 & -\mb{I} &       0 & 0 \\
-    0 &               \mb{S} &        0 & \mb{Z} &       0 &       0 & 0 \\
-    0 &                    0 & \mb{S}_{w} &      0 & \mb{Z}_{w} &  0 & 0 \\
-    \mb{Z}_{l} &           0 &          0 &      0 & 0 & (\mb{X} - \mb{L}) & 0 \\
-    -\mb{Z}_{u} &          0 &          0 &      0 & 0 & 0 & (\mb{U} - \mb{X}) \\
+    \mb{B}    &      0 & -\mb{A}^{T} & \mb{A}_{w} &       0 &       0 &      0 & -\mb{I} & \mb{I} \\
+    0 &              0 &     -\mb{I} &          0 &       0 & -\mb{I} &      0 &      0 &  0 \\
+    \mb{A}    & \mb{I} &           0 &         0 & -\mb{I} &       0 &      0 &       0 & 0 \\
+    \mb{A}_{w} &      0 &           0 &         0 &      0 &        0 & -\mb{I} &       0 & 0 \\
+    0 &              0 &       \mb{S} &        0 & \mb{Z} &        0 &       0 &       0 & 0 \\
+    0 &      \mb{Z}_{t} &           0 &        0 &       0 &   \mb{T} &       0 &       0 & 0 \\
+    0 &              0 &                    0 & \mb{S}_{w} &      0 &       0 & \mb{Z}_{w} &  0 & 0 \\
+    \mb{Z}_{l}  &     0 &           0 &          0 &      0 &       0 & 0 & (\mb{X} - \mb{L}) & 0 \\
+    -\mb{Z}_{u} &     0 &          0 &          0 &      0 &       0 & 0 & 0 & (\mb{U} - \mb{X}) \\
   \end{bmatrix}
   \begin{bmatrix}
     \mb{p}_{x} \\
+    \mb{p}_{t} \\
     \mb{p}_{z} \\
     \mb{p}_{z_{w}} \\
     \mb{p}_{s} \\
+    \mb{p}_{z_{t}} \\
     \mb{p}_{s_{w}} \\
     \mb{p}_{z_{l}} \\
     \mb{p}_{z_{u}}
@@ -158,7 +164,7 @@ The line search is based on the following $\ell_{2}$ merit function:
   \label{eqn:merit-function}
   \begin{aligned}
     \phi(\alpha) = & \varphi(\mb{x} + \alpha\mb{p}_{x}^{s}, \mb{s} + \alpha\mb{p}_{s}^{s}, \mb{s}_{w}^{s} + \alpha\mb{p}^{s}_{s_{w}}; \mu) + \\
-    & \nu ||\mb{c}(\mb{x} + \alpha\mb{p}_{s}^{s}) - \mb{s} - \alpha \mb{p}_{s}^{s}||_{2} +
+    & \nu ||\mb{c}(\mb{x} + \alpha\mb{p}_{s}^{s}) - \mb{s} + \mb{t}  - \alpha (\mb{p}_{s}^{s} - \mb{p}_{t}^{s})||_{2} +
     \nu ||\mb{c}_{w}(\mb{x} + \alpha\mb{p}^{s}_{s_{w}}) - \mb{s}_{w} - \alpha\mb{p}_{s_{w}}^{s}||_{2},
   \end{aligned}
 \end{equation}
@@ -220,7 +226,7 @@ where the matrix $\mb{Y}$ is
 %
 \begin{equation*}
   \mb{Y}^{T} = \begin{bmatrix} \mb{W}^T & 0 & 0 & 
-    0 & 0 & 0 & 0 \end{bmatrix}, 
+    0 & 0 & 0 & 0 & 0 & 0 \end{bmatrix}, 
 \end{equation*}
 and the matrices $\mb{W}$ and $\mb{M}$ are from the compact BFGS representation.
 Note that the terms in $\mb{K}_{0}$ represent the diagonal term $b_{0}$ from the compact BFGS representation and all other first-order terms from the linearized KKT system.
@@ -259,6 +265,7 @@ The solution procedure begins by obtaining the solution for the slack variables 
     \mb{p}_{z_{l}} &= (\mb{X} - \mb{L})^{-1}(\mb{b}_{z_{l}} - \mb{Z}_{l} \mb{p}_{x} ), \\
     \mb{p}_{z_{u}} &= (\mb{U} - \mb{X})^{-1}(\mb{b}_{z_{u}} + \mb{Z}_{u} \mb{p}_{x} ), \\
     \mb{p}_{s} &= \mb{Z}^{-1}(\mb{b}_{s} - \mb{S}\mb{p}_{z}), \\
+    \mb{p}_{t} &= \mb{Z}_{t}^{-1}(\mb{b_{z_{t}} + \mb{T}\mb{p}_{z} + \mb{T}\mb{b}_{t} )\\
     \mb{p}_{s_{w}} &= \mb{Z}_{w}^{-1}(\mb{b}_{s_{w}} - \mb{S}_{w} \mb{p}_{z_{w}}),
   \end{aligned}
 \end{equation}
@@ -267,8 +274,8 @@ Next, using the first three equations gives
   \label{eqn:kkt-first-elim}
   \begin{aligned}
     b_{0} \mb{p}_{x} - \mb{A}^{T}\mb{p}_{z} - \mb{A}_{w}^{T}\mb{p}_{z_{w}} - \mb{p}_{z_{l}} + \mb{p}_{z_{u}} & = \mb{b}_{x}, \\
-    \mb{A} \mb{p}_{x} &= \mb{b}_{z}, \\
-    \mb{A}_{w} \mb{p}_{x} & = \mb{b}_{z_{w}}.
+    \mb{A} \mb{p}_{x} - \mb{p}_{s} + \mb{p}_{t} &= \mb{b}_{z}, \\
+    \mb{A}_{w} \mb{p}_{x} - \mb{p}_{s_{w}} & = \mb{b}_{z_{w}}.
   \end{aligned}
 \end{equation}
 Substituting the expressions for the slack and Lagrange multiplier updates~\eqref{eqn:slack-var-elim} into the expression for the first three linearized KKT conditions~\eqref{eqn:kkt-first-elim} yields the following

@@ -40,7 +40,7 @@ ParOptProblem(_prob->getMPIComm()){
   asymptote_contract = 0.7;
   asymptote_relax = 1.2;
   init_asymptote_offset = 0.25;
-  min_asymptote_offset = 1e-8;
+  min_asymptote_offset = 1e-4;
   max_asymptote_offset = 100.0;
   bound_relax = 1e-5;
 
@@ -519,9 +519,14 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
     beta[j] = min2(ub[j], 0.9*U[j] + 0.1*x[j]);
 
     // Compute the coefficients for the objective
-    double eps = 0.0;
-    p0[j] = max2(0.0, g[j])*(U[j] - x[j])*(U[j] - x[j]) + eps/(U[j] - L[j]);
-    q0[j] = max2(0.0, -g[j])*(x[j] - L[j])*(x[j] - L[j]) + eps/(U[j] - L[j]);
+    double eps = 1e-8;
+    double eta = 1e-3;
+    ParOptScalar gpos = max2(0.0, g[j]);
+    ParOptScalar gneg = max2(0.0, -g[j]);
+    p0[j] = (U[j] - x[j])*(U[j] - x[j])*((1.0 + eta)*gpos + 
+                                         eta*gneg + eps/(U[j] - L[j]));
+    q0[j] = (x[j] - L[j])*(x[j] - L[j])*((1.0 + eta)*gneg +
+                                         eta*gpos + eps/(U[j] - L[j]));
   }
 
   if (use_true_mma){

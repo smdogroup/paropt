@@ -237,7 +237,7 @@ int main( int argc, char* argv[] ){
   }
 
   // Allocate the Rosenbrock function
-  int nwcon = 0, nw = 5;
+  int nwcon = 5, nw = 5;
   int nwstart = 1, nwskip = 1;  
   Rosenbrock *rosen = new Rosenbrock(comm, nvars-1,
                                      nwcon, nwstart, nw, nwskip);
@@ -270,7 +270,7 @@ int main( int argc, char* argv[] ){
   }
 
   // Create the MMA object
-  ParOptMMA *mma = new ParOptMMA(rosen);
+  ParOptMMA *mma = new ParOptMMA(rosen, 0);
   mma->incref();
   mma->setPrintLevel(1);
   mma->setOutputFile("mma.out");
@@ -295,7 +295,7 @@ int main( int argc, char* argv[] ){
 
     // Optimize the sub-problem
     mma_opt->resetDesignAndBounds();
-    mma_opt->setInitBarrierParameter(0.1);
+    mma_opt->setInitBarrierParameter(100.0);
     mma_opt->optimize();
 
     double l1, linfty, infeas;
