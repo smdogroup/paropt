@@ -55,24 +55,24 @@ cdef extern from "CyParOptProblem.h":
                                    ParOptVec *x, ParOptScalar *z,
                                    ParOptVec *zw, ParOptVec *px,
                                    ParOptVec *hvec)
+   ctypedef int (*evalhessiandiag)(void *_self, int nvars, int ncon, int nwcon,
+                                   ParOptVec *x, ParOptScalar *z,
+                                   ParOptVec *zw, ParOptVec *hdiag)
    ctypedef void (*evalsparsecon)(void *_self, int nvars, int nwcon,
                                   ParOptVec *x, ParOptVec *out)
    ctypedef void (*addsparsejacobian)(void *_self, int nvars, int nwcon,
                                       ParOptScalar alpha, 
-                                      ParOptVec *x, 
-                                      ParOptVec *px, 
+                                      ParOptVec *x, ParOptVec *px, 
                                       ParOptVec *out)
    ctypedef void (*addsparsejacobiantranspose)(void *_self, 
                                                int nvars, int nwcon,
                                                ParOptScalar alpha, 
-                                               ParOptVec *x, 
-                                               ParOptVec *px, 
+                                               ParOptVec *x, ParOptVec *px, 
                                                ParOptVec *out)
    ctypedef void (*addsparseinnerproduct)(void *_self, int nvars, 
                                           int nwcon, int nwblock,
                                           ParOptScalar alpha, 
-                                          ParOptVec *x, 
-                                          ParOptVec *c, 
+                                          ParOptVec *x, ParOptVec *c, 
                                           ParOptScalar *out)
 
    cdef cppclass CyParOptProblem(ParOptProblem):
@@ -89,6 +89,7 @@ cdef extern from "CyParOptProblem.h":
       void setEvalObjCon(evalobjcon usr_func)
       void setEvalObjConGradient(evalobjcongradient usr_func)
       void setEvalHvecProduct(evalhvecproduct usr_func)
+      void setEvalHessianDiag(evalhessiandiag usr_func)
       void setEvalSparseCon(evalsparsecon usr_func)
       void setAddSparseJacobian(addsparsejacobian usr_func)
       void setAddSparseJacobianTranspose(addsparsejacobiantranspose usr_func)
