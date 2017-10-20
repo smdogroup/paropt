@@ -180,7 +180,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         # Evaluate the objective at the initial point
         self.obj_scale = 1.0
         fail, obj, con = self.evalObjCon(self.xinit)
-        self.obj_scale = obj/10.0
+        self.obj_scale = 100*obj
 
         print 'objective scaling = ', self.obj_scale
 
@@ -409,7 +409,8 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
             tikz += '\\usepackage[active,tightpage]{preview}\n'
             tikz += '\\PreviewEnvironment{tikzpicture}\n'
             tikz += '\\setlength\PreviewBorder{5pt}%\n\\begin{document}\n'
-            tikz += '\\begin{figure}\n\\begin{tikzpicture}[x=0.25cm, y=0.25cm]\n'
+            tikz += '\\begin{figure}\n\\begin{tikzpicture}'
+            tikz += '[x=0.25cm, y=0.25cm]\n'
             tikz += '\\sffamily\n'
 
             grey = [225, 225, 225]
@@ -504,6 +505,146 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
                 fp.close()
 
         return
+
+class TACSQuadratic(ParOpt.pyParOptProblem):
+    def __init__(self, analysis):
+        self.analysis = analysis
+
+        comm = analysis.comm
+        ndvs = analysis.num_design_vars
+        ncon = analysis.ncon
+        nwcon = analysis.num_elements
+        nwblock = 1
+
+        # Initialize the super class
+        super(TACSQuadratic, self).__init__(comm, ndvs, ncon, nwcon, nwblock)
+
+        self.props = self.analysis.props
+        self.gmass = self.analysis.gmass
+        self.num_elements = self.analysis.num_elements
+        self.num_materials = self.analysis.num_materials
+        self.nblock = self.analysis.nblock
+        self.ncon = self.analysis.ncon
+
+        self.z = np.zeros(self.ncon)
+        self.Acon = []
+        for i in range(self.ncon):
+            self.Acon.append(self.createDesignVec())
+
+        self.x = self.createDesignVec()
+        self.px = self.createDesignVec()
+        self.gobj = self.createDesignVec()
+        self.hdiag = self.createDesignVec()
+        self.hvec = self.createDesignVec()
+        self.zw = self.createConstraintVec()
+        return
+
+    def setNewPoint(self, x):
+        self.x[:] = x[:]
+        fail, obj, self.con = self.analysis.evalObjCon(self.x)
+        self.analysis.evalObjConGradient(self.x, self.gobj, self.Acon)
+
+        # # Evaluate the "diagonal" of the hessian
+        # self.hdiag[:] = 0.0
+        # for i in range(self.num_materials):
+        #     self.px[:] = 0.0
+        #     self.px[1+i::self.nblock] = 1.0
+        #     self.analysis.evalHvecProduct(self.x, self.z, self.zw, 
+        #                                   self.px, self.hvec)
+        #     self.hdiag[1+i::self.nblock] = self.hvec[1+i::self.nblock]
+
+        self.px[:] = 1.0
+        self.analysis.evalHvecProduct(self.x, self.z, self.zw, 
+                                      self.px, self.hdiag)
+
+        return
+
+    def getVarsAndBounds(self, x, lb, ub):
+        '''Get the design variable values and the bounds'''
+        q = self.analysis.props.getPenalization()        
+        x[:] = self.analysis.xinit[:]
+        ub[:] = 1e30
+        lb[:] = 0.0
+        ub[::self.nblock] = 1.0
+        lb[::self.nblock] = -1e30
+
+        # penalty, ptype = self.analysis.props.getPenaltyType()        
+        # if penalty == 'convex':
+        #     if ptype == 'ramp':
+        #         lb[:] = q/(q + 1.0)*x[:]**2
+        #     else:
+        #         lb[:] = (2.0/3.0)*x[:]
+        #     for i in range(len(lb)):
+        #         ub[i] = min(1.0, 1.0 - self.analysis.delta)
+
+        for i in range(len(lb)):
+            lb[i] = 0.0
+            ub[i] = 1.0
+
+        return
+        
+    def evalSparseCon(self, x, con):
+        '''Evaluate the sparse constraints'''
+        n = self.nblock*self.num_elements
+        con[:] = (2.0*x[:n:self.nblock] - 
+                  np.sum(x[:n].reshape(-1, self.nblock), axis=1))
+        return
+
+    def addSparseJacobian(self, alpha, x, px, con):
+        '''Compute the Jacobian-vector product con = alpha*J(x)*px'''
+        n = self.nblock*self.num_elements
+        con[:] += alpha*(2.0*px[:n:self.nblock] - 
+                         np.sum(px[:n].reshape(-1, self.nblock), axis=1))
+        return
+
+    def addSparseJacobianTranspose(self, alpha, x, pz, out):
+        '''Compute the transpose Jacobian-vector product alpha*J^{T}*pz'''
+        n = self.nblock*self.num_elements
+        out[:n:self.nblock] += alpha*pz[:]
+        for k in xrange(1, self.nblock):
+            out[k:n:self.nblock] -= alpha*pz[:]
+        return
+
+    def addSparseInnerProduct(self, alpha, x, c, A):
+        '''Add the results from the product J(x)*C*J(x)^{T} to A'''
+        n = self.nblock*self.num_elements
+        A[:] += alpha*np.sum(c[:n].reshape(-1, self.nblock), axis=1)        
+        return
+
+    def evalObjCon(self, x):
+        dx = x[:] - self.x[:]
+        fobj = (np.dot(self.gobj[:], dx) + 0.5*np.dot(dx, self.hdiag[:]*dx))
+        con = np.zeros(self.ncon)
+        for i in range(self.ncon):
+            con[i] = self.con[i] + np.dot(self.Acon[i][:], dx)
+
+        fail = 0
+        return fail, fobj, con
+
+    def evalObjConGradient(self, x, gobj, Acon):
+        # Scale the objective gradient
+        dx = x[:] - self.x[:]
+        gobj[:] = self.gobj[:] + self.hdiag[:]*dx
+
+        # Add the contribution to the constraint
+        Acon[0][:] = -self.gmass/self.analysis.m_fixed
+
+        if self.analysis.min_mat_fraction > 0.0:
+            n = self.nblock*self.num_elements
+            for i in range(self.num_materials):
+                Acon[i+1][:] = 0.0
+                Acon[i+1][1+i:n:self.nblock] += 1.0/self.num_elements 
+
+        return 0
+
+    def evalHvecProduct(self, x, z, zw, px, hvec):
+        hvec[:] = px[:]*self.hdiag[:]
+        return 0
+
+    def evalHessianDiag(self, x, z, zw, hdiag):
+        hdiag[:] = self.hdiag[:]
+        return 0
+
 
 def rectangular_domain(nx, ny, Ly=100.0):
 
@@ -667,7 +808,7 @@ def create_paropt(analysis, use_hessian=False,
     
     # Set the Hessian-vector product iterations
     if use_hessian:
-        opt.setUseLineSearch(0)
+        opt.setUseLineSearch(1)
         opt.setUseHvecProduct(1)
         opt.setGMRESSubspaceSize(100)
         opt.setNKSwitchTolerance(1.0)
@@ -677,7 +818,7 @@ def create_paropt(analysis, use_hessian=False,
         opt.setUseHvecProduct(0)
 
     # Set the barrier strategy to use
-    opt.setBarrierStrategy(ParOpt.COMPLEMENTARITY_FRACTION)
+    opt.setBarrierStrategy(ParOpt.MONOTONE)
 
     # Set optimization parameters
     opt.setArmijoParam(1e-5)
@@ -1201,6 +1342,222 @@ def optimize_plane_stress_full(comm, analysis, root_dir='results',
 
     return
 
+def optimize_plane_stress_quad(comm, analysis, root_dir='results',
+                               parameter=5.0, max_iters=1000,
+                               optimizer='paropt', case='isotropic',
+                               start_strategy='point', ptype='ramp'):
+    # Optimize the structure
+    optimizer = optimizer.lower()
+    penalization = ptype.upper()
+    heuristic = '%s%.0f_%s_%s'%(penalization, parameter,
+                                case, start_strategy)
+    prefix = os.path.join(root_dir, optimizer + '_quad', 
+                          '%dx%d'%(nx, ny), heuristic)
+    
+    # Make sure that the directory exists
+    if not os.path.exists(prefix):
+        os.makedirs(prefix)
+
+    # Write out the stdout output to a file
+    # sys.stdout = open(os.path.join(prefix, 'stdout.out'), 'w')
+
+    # Set the lower bound
+    analysis.delta = 0.99*(1.0 - 1.0/analysis.num_materials)
+    
+    # Create the problem
+    prob = TACSQuadratic(analysis)
+
+    # Set the inequality options
+    prob.setInequalityOptions(dense_ineq=True, 
+                              sparse_ineq=False,
+                              use_lower=True,
+                              use_upper=True)
+    
+    # Create the optimizer
+    max_qn_subspace = 10
+    opt = ParOpt.pyParOpt(prob, max_qn_subspace, ParOpt.BFGS)
+
+    # Set the optimality tolerance
+    opt.setAbsOptimalityTol(1e-5)
+    
+    # Set an approach that uses only the diagonal of the Hessian
+    opt.setUseDiagHessian(1)
+
+    # Set the barrier strategy to use
+    opt.setBarrierStrategy(ParOpt.MONOTONE)
+
+    # opt.setGradientCheckFrequency(1, 1e-6)
+
+    # Set optimization parameters
+    opt.setArmijoParam(1e-5)
+    opt.setMaxMajorIterations(100)
+
+    # Log the optimization file
+    log_filename = os.path.join(prefix, 'log_file.dat')
+    fp = open(log_filename, 'w')
+
+    # Write the header out to the file
+    s = 'Variables = iteration, "compliance" '
+    s += '"min d", "max d", "tau", '
+    s += 'feval, geval, hvec, time, "kkt error infty", "kkt error l2"\n'
+    s += 'Zone T = %s\n'%(heuristic)
+    fp.write(s)
+
+    # Set the penalty parameter
+    analysis.RAMP_penalty = parameter
+
+    # Set the penalty parameter
+    if start_strategy == 'convex':
+        # Set the optimality tolerance
+        analysis.RAMP_penalty = 0.0
+        analysis.props.setPenaltyType(penalty='convex', ptype='ramp')
+        analysis.setNewInitPointPenalty(analysis.xinit)        
+    elif start_strategy == 'uniform':
+        analysis.xinit[:] = 1.0/analysis.num_materials
+        analysis.xinit[::(analysis.num_materials+1)] = 1.0
+        analysis.props.setPenaltyType(penalty='convex', ptype=ptype)
+        analysis.setNewInitPointPenalty(analysis.xinit)        
+    else:
+        # Set the initial starting point strategy
+        analysis.props.setPenaltyType(penalty='convex', ptype=ptype)
+        analysis.setNewInitPointPenalty(analysis.xinit)
+
+    prob.setNewPoint(analysis.xinit)
+
+    # Keep track of the ellapsed CPU time
+    init_time = MPI.Wtime()
+
+    # Keep track of the number of iterations
+    niters = 0
+
+    for k in xrange(max_iters):
+        # Set the output file to use
+        fname = os.path.join(prefix, 'history_iter%d.out'%(niters)) 
+        opt.setOutputFile(fname)
+
+        # Optimize
+        if k > 0 and optimizer == 'paropt':
+            opt.setInitStartingPoint(0)
+
+            # Set the new value of delta
+            if k % 2 == 0:
+                d0 = 0.99*(1.0 - 1.0/analysis.num_materials)
+                d1 = analysis.delta - d0/100.0
+                analysis.delta = max(d1, 0.0)
+
+            # Reset the design variable and bounds
+            opt.resetDesignAndBounds()
+
+            # Get the new complementarity
+            mu = opt.getComplementarity()
+            opt.setInitBarrierParameter(1.0)
+
+        # Optimize the new point
+        opt.optimize()
+
+        # Get the optimized point
+        x, z, zw, zl, zu = opt.getOptimizedPoint()
+
+        # Get the discrete infeasibility measure
+        d = analysis.getDiscreteInfeas(x)
+
+        # Compute the discrete infeasibility measure
+        tau = np.sum(d)
+
+        # Print the output to the file
+        if k % 10 == 0:
+            # Print out the design
+            filename = 'opt_struct_iter%d.tex'%(niters)
+            output = os.path.join(prefix, filename)
+            analysis.writeTikzFile(x, output)
+
+        # Get the compliance and objective values
+        analysis.RAMP_penalty = parameter
+        analysis.props.setPenaltyType(penalty='full', ptype=ptype)
+        analysis.setNewInitPointPenalty(x)
+        prob.setNewPoint(analysis.xinit)
+        comp = analysis.getCompliance(x)
+
+        # Compute the KKT error based on the original problem
+        x, z, zw, zl, zu = opt.getOptimizedPoint()
+
+        # Evaluate the objective and constraints
+        gobj1 = analysis.createDesignVec()
+        Acon1 = []
+        for i in range(len(z)):
+            Acon1.append(analysis.createDesignVec())
+        product = analysis.createDesignVec()
+        fail, obj1, con1 = analysis.evalObjCon(x)
+        analysis.evalObjConGradient(x, gobj1, Acon1)
+        analysis.addSparseJacobianTranspose(-1.0, x, zw, product)
+
+        # Compute the KKT error
+        kkt = gobj1[:] + product[:] - zl[:] + zu[:]
+        for i in range(len(z)):
+            kkt[:] -= Acon1[i][:]*z[i]
+
+        # Compute the maximum error contribution
+        kkt_max_err = np.amax(np.fabs(kkt))
+        kkt_l1_err = np.sum(np.fabs(kkt))
+        kkt_l2_err = np.sqrt(np.dot(kkt, kkt))
+
+        g_max = np.amax(np.fabs(gobj1))
+        g_l1 = np.sum(np.fabs(gobj1))
+        g_l2 = np.sqrt(np.dot(gobj1, gobj1))
+
+        # Print out the iteration information to the screen
+        if k % 10 == 0:
+            print '%4s %10s %10s %10s %10s %10s %10s %10s %10s'%(
+                'Iter', 'tau', 'KKT infty', 'KKT l1', 'KKT l2', 
+                'Rel infty', 'Rel l1', 'Rel l2', 'delta')
+        print '%4d %10.4e %10.4e %10.4e %10.4e %10.4e %10.4e %10.4e %10.4e'%(
+            niters, np.sum(d), kkt_max_err, kkt_l1_err, kkt_l2_err, 
+            kkt_max_err/g_max, kkt_l1_err/g_l1, kkt_l2_err/g_l2, analysis.delta)
+
+        # Print out the
+        s = '%d %e %e %e %e '%(niters, comp, np.min(d), np.max(d), np.sum(d))
+        s += '%d %d %d %e %e %e\n'%(
+            analysis.fevals, analysis.gevals, analysis.hevals,
+            MPI.Wtime() - init_time, kkt_max_err, kkt_l2_err)
+        fp.write(s)
+
+        # Flush the file/stdout
+        fp.flush()
+        sys.stdout.flush()
+        
+        # Increase the iteration counter
+        niters += 1        
+
+        # Quit when the relative KKT error is less than 10^{-4}
+        if kkt_l1_err/g_l1 < 1e-3 and analysis.delta <= 1e-3:
+            break        
+
+    # Print out the design
+    filename = 'opt_struct_iter%d.tex'%(niters)
+    output = os.path.join(prefix, filename)
+    analysis.writeTikzFile(x, output)
+    
+    # Close the log file
+    fp.close()
+
+    # Get the final, optimzied point
+    x, z, zw, zl, zu = opt.getOptimizedPoint()
+
+    # Print out the design variables
+    filename = 'final_opt_struct.tex'
+    output = os.path.join(prefix, filename)
+    analysis.writeTikzFile(x, output)
+    
+    filename = 'final_opt_struct.f5'
+    output = os.path.join(prefix, filename)
+    analysis.writeOutput(output)
+
+    # Save the final optimized point
+    fname = os.path.join(prefix, 'x_opt.dat')
+    np.savetxt(fname, x)
+
+    return
+
 # Parse the command line arguments 
 parser = argparse.ArgumentParser()
 parser.add_argument('--start_strategy', type=str, default='point',
@@ -1217,6 +1574,8 @@ parser.add_argument('--optimizer', type=str, default='paropt',
                     help='Optimizer name')
 parser.add_argument('--full_penalty', default=False, action='store_true',
                     help='Use the full RAMP penalization')
+parser.add_argument('--quad_approx', default=False, action='store_true',
+                    help='Use a quadratic approximation')
 parser.add_argument('--use_hessian', default=False, action='store_true',
                     help='Use hessian-vector products')
 parser.add_argument('--case', type=str, default='isotropic',
@@ -1320,6 +1679,11 @@ if args.full_penalty:
                                parameter=parameter, optimizer=optimizer,
                                start_strategy=start_strategy,
                                use_hessian=use_hessian,
+                               case=args.case, ptype=ptype)
+elif args.quad_approx:
+    optimize_plane_stress_quad(comm, analysis, root_dir=root_dir,
+                               parameter=parameter, optimizer=optimizer,
+                               start_strategy=start_strategy,
                                case=args.case, ptype=ptype)
 else:
     # Optimize the plane stress problem

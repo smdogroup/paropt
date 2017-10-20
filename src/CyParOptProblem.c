@@ -24,6 +24,7 @@ ParOptProblem(_comm, _nvars, _ncon, _nwcon, _nwblock){
   evalobjcon = NULL;
   evalobjcongradient = NULL;
   evalhvecproduct = NULL;
+  evalhessiandiag = NULL;
   evalsparsecon = NULL;
   addsparsejacobian = NULL;
   addsparsejacobiantranspose = NULL;
@@ -98,6 +99,14 @@ void CyParOptProblem::setEvalHvecProduct( int (*func)(void *, int, int, int,
   evalhvecproduct = func;
 }
 
+void CyParOptProblem::setEvalHessianDiag( int (*func)(void *, int, int, int,
+                                                      ParOptVec*, 
+                                                      ParOptScalar*,
+                                                      ParOptVec*, 
+                                                      ParOptVec*) ){
+  evalhessiandiag = func;
+}
+
 void CyParOptProblem::setEvalSparseCon( void (*func)(void *, int, int,
                                                      ParOptVec*, 
                                                      ParOptVec*) ){
@@ -112,7 +121,8 @@ void CyParOptProblem::setAddSparseJacobian( void (*func)(void *, int, int,
   addsparsejacobian = func;
 }
 
-void CyParOptProblem::setAddSparseJacobianTranspose( void (*func)(void *, int, int,
+void CyParOptProblem::setAddSparseJacobianTranspose( void (*func)(void *, 
+                                                                  int, int,
                                                                   ParOptScalar, 
                                                                   ParOptVec*, 
                                                                   ParOptVec*, 
@@ -120,7 +130,8 @@ void CyParOptProblem::setAddSparseJacobianTranspose( void (*func)(void *, int, i
   addsparsejacobiantranspose = func;
 }
 
-void CyParOptProblem::setAddSparseInnerProduct( void (*func)(void *, int, int, int,
+void CyParOptProblem::setAddSparseInnerProduct( void (*func)(void *,
+                                                             int, int, int,
                                                              ParOptScalar, 
                                                              ParOptVec*, 
                                                              ParOptVec*, 
@@ -191,6 +202,23 @@ int CyParOptProblem::evalHvecProduct( ParOptVec *x,
   // Evaluate the Hessian-vector callback
   int fail = evalhvecproduct(self, nvars, ncon, nwcon,
                              x, z, zw, px, hvec);
+  return fail;
+}
+
+/*
+  Evaluate the diagonal of the Hessian
+*/
+int CyParOptProblem::evalHessianDiag( ParOptVec *x,
+                                      ParOptScalar *z, ParOptVec *zw, 
+                                      ParOptVec *hdiag ){
+  if (!evalhessiandiag){
+    fprintf(stderr, "evalhessiandiag callback not defined\n");
+    return 1;
+  }
+  
+  // Evaluate the Hessian-vector callback
+  int fail = evalhessiandiag(self, nvars, ncon, nwcon,
+                             x, z, zw, hdiag);
   return fail;
 }
 

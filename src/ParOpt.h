@@ -306,7 +306,9 @@ class ParOpt : public ParOptBase {
                   ParOptScalar m0, ParOptScalar dm0 );
 
   // Evaluate the merit function
-  ParOptScalar evalMeritFunc( ParOptVec *xk, 
+  ParOptScalar evalMeritFunc( ParOptScalar fk,
+                              const ParOptScalar *ck,
+                              ParOptVec *xk, 
                               const ParOptScalar *sk, 
                               const ParOptScalar *tk,
                               ParOptVec *swk );

@@ -189,7 +189,8 @@ void PSMultiTopo::addStressDVSens( const double pt[], const TacsScalar e[],
       s[2] = C[2]*e[0] + C[4]*e[1] + C[5]*e[2];
 
       // Compute the contribution to the derivative
-      TacsScalar scale = alpha*xlin[j]*(psi[0]*s[0] + psi[1]*s[1] + psi[2]*s[2]);
+      TacsScalar scale = 
+        alpha*xlin[j]*(psi[0]*s[0] + psi[1]*s[1] + psi[2]*s[2]);
 
       // Add the dependency on the filter
       for ( int i = 0; i < nweights; i++ ){
@@ -237,9 +238,8 @@ void PSMultiTopo::addStressDVSens( const double pt[], const TacsScalar e[],
 }
 
 /* 
-   Calculate the derivative of the stress projected onto the design
-   variable values. This is required for second derivative
-   computations.
+  Calculate the derivative of the stress projected onto the design
+  variable values. This is required for second derivative computations.
 */
 void PSMultiTopo::calcStressDVProject( const double pt[],
                                        const TacsScalar e[],
@@ -309,10 +309,13 @@ void PSMultiTopo::calcStressDVProject( const double pt[],
 /*
   Add the term from the second derivative of the inner product
 */
-void PSMultiTopo::addStress2ndDVSensProduct( const double pt[], const TacsScalar e[],
-                                             TacsScalar alpha, const TacsScalar psi[],
+void PSMultiTopo::addStress2ndDVSensProduct( const double pt[], 
+                                             const TacsScalar e[],
+                                             TacsScalar alpha, 
+                                             const TacsScalar psi[],
                                              const TacsScalar px[],
-                                             TacsScalar fdvSens[], int dvLen ){
+                                             TacsScalar fdvSens[], 
+                                             int dvLen ){
   const int vars_per_node = mats->num_materials+1;
   if (mats->penalty == PSMultiTopoProperties::PS_RAMP_FULL){
     const double q = mats->q;
@@ -752,8 +755,8 @@ Problem with your nodes?\n");
   Split the array of indices into two sets: those indices that correspond
   to points on either side of a plane in three-space.
 */
-int LocatePoint::splitList(TacsScalar xav[], TacsScalar normal[], 
-                           int *ind, int np ){
+int LocatePoint::splitList( TacsScalar xav[], TacsScalar normal[], 
+                            int *ind, int np ){
   xav[0] = xav[1] = xav[2] = TacsScalar(0.0);
   normal[0] = normal[1] = normal[2] = TacsScalar(0.0);
 
@@ -892,7 +895,7 @@ int *LocatePoint::newIntArray( int *array, int old_len, int new_len ){
   array to the newly created array
 */
 TacsScalar *LocatePoint::newDoubleArray( TacsScalar *array, int old_len, 
-                                          int new_len ){
+                                         int new_len ){
   TacsScalar *temp = new TacsScalar[ new_len ];
 
   for ( int i = 0; i < old_len; i++ ){

@@ -2309,7 +2309,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   case when solving systems used w
 */
 void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
-                                 ParOptScalar *zt, 
+                                 ParOptScalar *ztmp, 
                                  ParOptVec *xt, ParOptVec *wt ){
   // Compute the terms from the weighting constraints
   // Compute xt = C^{-1}*bx
@@ -2332,7 +2332,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
   }
 
   // Compute ztemp = (S*Z^{-1} - A*C0^{-1}*bx)
-  memset(zt, 0, ncon*sizeof(ParOptScalar));
+  memset(ztmp, 0, ncon*sizeof(ParOptScalar));
 
   // Compute the contribution from the weighing constraints
   if (nwcon > 0){
@@ -2342,7 +2342,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
       int one = 1;
       ParOptScalar *ewvals;
       Ew[i]->getArray(&ewvals);
-      zt[i] = BLASddot(&size, wvals, &one, ewvals, &one);
+      ztmp[i] = BLASddot(&size, wvals, &one, ewvals, &one);
     }
   }
 
@@ -2366,7 +2366,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
       avals += 4; dvals += 4;
     }
 
-    zt[i] += ydot;
+    ztmp[i] += ydot;
   }
 
   if (ncon > 0){
@@ -2375,25 +2375,25 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
     MPI_Comm_rank(comm, &rank);
     
     if (rank == opt_root){
-      MPI_Reduce(MPI_IN_PLACE, zt, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
+      MPI_Reduce(MPI_IN_PLACE, ztmp, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
                  opt_root, comm);
     }
     else {
-      MPI_Reduce(zt, NULL, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
+      MPI_Reduce(ztmp, NULL, ncon, PAROPT_MPI_TYPE, MPI_SUM, 
                  opt_root, comm);
     }
     
     if (rank == opt_root){
       for ( int i = 0; i < ncon; i++ ){
-        zt[i] *= -1.0;
+        ztmp[i] *= -1.0;
       }
       
       int one = 1, info = 0;
       LAPACKdgetrs("N", &ncon, &one, 
-                   Dmat, &ncon, dpiv, zt, &ncon, &info);
+                   Dmat, &ncon, dpiv, ztmp, &ncon, &info);
     }
     
-    MPI_Bcast(zt, ncon, PAROPT_MPI_TYPE, opt_root, comm);
+    MPI_Bcast(ztmp, ncon, PAROPT_MPI_TYPE, opt_root, comm);
   }
 
   if (nwcon > 0){
@@ -2401,7 +2401,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
     // First set wt <- - Ew*yz
     wt->zeroEntries();
     for ( int i = 0; i < ncon; i++ ){
-      wt->axpy(-zt[i], Ew[i]);
+      wt->axpy(-ztmp[i], Ew[i]);
     }
 
     // Compute yzw <- - Cw^{-1}*Aw*C^{-1}*d);
@@ -2413,7 +2413,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
   // therefore yx = C^{-1}*(A^{T}*yz + Aw^{T}*yzw) + xt
   yx->zeroEntries();
   for ( int i = 0; i < ncon; i++ ){
-    yx->axpy(zt[i], Ac[i]);
+    yx->axpy(ztmp[i], Ac[i]);
   }
   
   // Add the term yx += Aw^{T}*wt
@@ -2421,7 +2421,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx, ParOptVec *yx,
     prob->addSparseJacobianTranspose(1.0, x, wt, yx);
   }
 
-  // Apply the factor C^{-1}*(A^{T}*zt + Aw^{T}*wt)
+  // Apply the factor C^{-1}*(A^{T}*ztmp + Aw^{T}*wt)
   ParOptScalar *yxvals;
   yx->getArray(&yxvals);
   Cvec->getArray(&cvals);
@@ -2660,7 +2660,7 @@ void ParOpt::solveKKTDiagSystem( ParOptVec *bx,
   Note that Z only has contributions in components corresponding to
   the design variables.  
 */
-void ParOpt::setUpKKTSystem( ParOptScalar *zt,
+void ParOpt::setUpKKTSystem( ParOptScalar *ztmp,
                              ParOptVec *xt1,
                              ParOptVec *xt2, 
                              ParOptVec *wt,
@@ -2679,7 +2679,7 @@ void ParOpt::setUpKKTSystem( ParOptScalar *zt,
       for ( int i = 0; i < size; i++ ){
         // Compute K^{-1}*Z[i]
         solveKKTDiagSystem(Z[i], xt1, 
-                           zt, xt2, wt);
+                           ztmp, xt2, wt);
         
         // Compute the dot products Z^{T}*K^{-1}*Z[i]
         xt1->mdot(Z, size, &Ce[i*size]);
@@ -2729,7 +2729,7 @@ void ParOpt::setUpKKTSystem( ParOptScalar *zt,
   4. rx = Z^{T}*ztemp
   5. p -= K^{-1}*rx
 */
-void ParOpt::computeKKTStep( ParOptScalar *zt,
+void ParOpt::computeKKTStep( ParOptScalar *ztmp,
                              ParOptVec *xt1, ParOptVec *xt2, 
                              ParOptVec *wt, int use_qn ){
   // Get the size of the limited-memory BFGS subspace
@@ -2748,17 +2748,17 @@ void ParOpt::computeKKTStep( ParOptScalar *zt,
 
   if (size > 0){
     // dz = Z^{T}*px
-    px->mdot(Z, size, zt);
+    px->mdot(Z, size, ztmp);
     
     // Compute dz <- Ce^{-1}*dz
     int one = 1, info = 0;
     LAPACKdgetrs("N", &size, &one, 
-                 Ce, &size, cpiv, zt, &size, &info);
+                 Ce, &size, cpiv, ztmp, &size, &info);
     
     // Compute rx = Z^{T}*dz
     xt1->zeroEntries();
     for ( int i = 0; i < size; i++ ){
-      xt1->axpy(zt[i], Z[i]);
+      xt1->axpy(ztmp[i], Z[i]);
     }
     
     // Solve the digaonal system again, this time simplifying
@@ -3100,7 +3100,9 @@ void ParOpt::computeMaxStep( double tau,
 
   output: The value of the merit function
 */
-ParOptScalar ParOpt::evalMeritFunc( ParOptVec *xk, 
+ParOptScalar ParOpt::evalMeritFunc( ParOptScalar fk,
+                                    const ParOptScalar *ck,
+                                    ParOptVec *xk,
                                     const ParOptScalar *sk,
                                     const ParOptScalar *tk,
                                     ParOptVec *swk ){
@@ -3207,18 +3209,18 @@ ParOptScalar ParOpt::evalMeritFunc( ParOptVec *xk,
     ParOptScalar infeas = 0.0;
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
-        infeas += (c[i] - sk[i] + tk[i])*(c[i] - sk[i] + tk[i]);
+        infeas += (ck[i] - sk[i] + tk[i])*(ck[i] - sk[i] + tk[i]);
       }
     }
     else {
       for ( int i = 0; i < ncon; i++ ){
-        infeas += c[i]*c[i];
+        infeas += ck[i]*ck[i];
       }
     }
     infeas = sqrt(infeas) + weight_infeas;
-    
+
     // Add the contribution from the constraints
-    merit = (fobj - barrier_param*(pos_result + neg_result) +
+    merit = (fk - barrier_param*(pos_result + neg_result) +
              rho_penalty_search*infeas);
 
     if (dense_inequality){
@@ -3416,7 +3418,7 @@ void ParOpt::evalMeritInitDeriv( double max_x,
   
   // Compute the projection depending on whether this is
   // for an exact or inexact step
-  if (inexact_step){
+  if (1){ // inexact_step){
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
         dense_proj += (c[i] - s[i] + t[i])*(Ac[i]->dot(px) - ps[i] + pt[i]);
@@ -3491,7 +3493,7 @@ void ParOpt::evalMeritInitDeriv( double max_x,
     //      infeas_proj = -max_x*infeas
 
     double rho_hat = 0.0;
-    if (RealPart(infeas) > 0.0){
+    if (RealPart(infeas) > abs_res_tol){
       rho_hat = -RealPart(numer)/
         RealPart(infeas_proj + penalty_descent_fraction*max_x*infeas);
     }
@@ -3590,7 +3592,7 @@ line search, trying new point\n");
     }
 
     // Evaluate the merit function
-    ParOptScalar merit = evalMeritFunc(rx, rs, rt, rsw);
+    ParOptScalar merit = evalMeritFunc(fobj, c, rx, rs, rt, rsw);
 
     // Check the sufficient decrease condition
     if (RealPart(merit) < 
@@ -4369,7 +4371,7 @@ int ParOpt::optimize( const char *checkpoint ){
                   "ParOpt: Function and constraint evaluation failed\n");
           return fail_obj;
         }
-        ParOptScalar m1 = evalMeritFunc(rx, rs, rt, rsw);
+        ParOptScalar m1 = evalMeritFunc(fobj, c, rx, rs, rt, rsw);
 
         if (rank == opt_root){
           ParOptScalar fd = (m1 - m0)/dh;
@@ -4632,7 +4634,7 @@ int ParOpt::optimize( const char *checkpoint ){
   {[ I; 0 ] + [ H - B; 0 ]*M^{-1}}[ ux ] = [ bx ] 
   {[ 0; I ] + [     0; 0 ]       }[ uy ]   [ by ]
 */
-int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt, 
+int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *ztmp, 
                                          ParOptVec *xt1, ParOptVec *xt2,
                                          ParOptVec *wt,
                                          double rtol, double atol,
@@ -4731,28 +4733,28 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
     // At this point the residuals are no longer required.
     solveKKTDiagSystem(W[i], alpha[i]/bnorm, 
                        rt, rc, rcw, rs, rsw, rzt, rzl, rzu,
-                       xt1, zt, xt2, wt);
+                       xt1, ztmp, xt2, wt);
 
     if (size > 0){
       // dz = Z^{T}*xt1
-      xt1->mdot(Z, size, zt);
+      xt1->mdot(Z, size, ztmp);
     
       // Compute dz <- Ce^{-1}*dz
       int one = 1, info = 0;
       LAPACKdgetrs("N", &size, &one, 
-                   Ce, &size, cpiv, zt, &size, &info);
+                   Ce, &size, cpiv, ztmp, &size, &info);
     
       // Compute rx = Z^{T}*dz
       xt2->zeroEntries();
       for ( int k = 0; k < size; k++ ){
-        xt2->axpy(zt[k], Z[k]);
+        xt2->axpy(ztmp[k], Z[k]);
       }
     
       // Solve the digaonal system again, this time simplifying the
       // result due to the structure of the right-hand-side.  Note
       // that this call uses W[i+1] as a temporary vector.
       solveKKTDiagSystem(xt2, px,
-                         zt, W[i+1], wt);
+                         ztmp, W[i+1], wt);
 
       // Add the final contributions 
       xt1->axpy(-1.0, px);
@@ -4886,17 +4888,17 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
 
   if (size > 0){
     // dz = Z^{T}*px
-    px->mdot(Z, size, zt);
+    px->mdot(Z, size, ztmp);
     
     // Compute dz <- Ce^{-1}*dz
     int one = 1, info = 0;
     LAPACKdgetrs("N", &size, &one, 
-                 Ce, &size, cpiv, zt, &size, &info);
+                 Ce, &size, cpiv, ztmp, &size, &info);
     
     // Compute rx = Z^{T}*dz
     xt1->zeroEntries();
     for ( int i = 0; i < size; i++ ){
-      xt1->axpy(zt[i], Z[i]);
+      xt1->axpy(ztmp[i], Z[i]);
     }
     
     // Solve the digaonal system again, this time simplifying
@@ -4915,6 +4917,8 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *zt,
     for ( int i = 0; i < ncon; i++ ){
       pz[i] -= rc[i];
       ps[i] -= rs[i];
+      pt[i] -= rt[i];
+      pzt[i] -= rzt[i];
     }
   }
 

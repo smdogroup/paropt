@@ -228,10 +228,25 @@ cdef int _evalhvecproduct(void *_self, int nvars, int ncon, int nwcon,
    px = _init_PVec(_px)
    hvec = _init_PVec(_hvec)
    
-   z = inplace_array_1d(PAROPT_NPY_SCALAR, nvars, <void*>_z)
+   z = inplace_array_1d(PAROPT_NPY_SCALAR, ncon, <void*>_z)
 
    # Call the objective function
    fail = (<object>_self).evalHvecProduct(x, z, zw, px, hvec)
+   return fail
+
+cdef int _evalhessiandiag(void *_self, int nvars, int ncon, int nwcon,
+                          ParOptVec *_x, ParOptScalar *_z, ParOptVec *_zw,
+                          ParOptVec *_hdiag):
+   x = _init_PVec(_x)
+   zw = None
+   if _zw != NULL:
+      zw = _init_PVec(_zw)
+   hdiag = _init_PVec(_hdiag)
+   
+   z = inplace_array_1d(PAROPT_NPY_SCALAR, ncon, <void*>_z)
+
+   # Call the objective function
+   fail = (<object>_self).evalHessianDiag(x, z, zw, hdiag)
    return fail
 
 cdef void _evalsparsecon(void *_self, int nvars, int nwcon,
@@ -304,6 +319,7 @@ cdef class pyParOptProblem(pyParOptProblemBase):
       self.me.setEvalObjCon(_evalobjcon)
       self.me.setEvalObjConGradient(_evalobjcongradient)
       self.me.setEvalHvecProduct(_evalhvecproduct)
+      self.me.setEvalHessianDiag(_evalhessiandiag)
       self.me.setEvalSparseCon(_evalsparsecon)
       self.me.setAddSparseJacobian(_addsparsejacobian)
       self.me.setAddSparseJacobianTranspose(_addsparsejacobiantranspose)

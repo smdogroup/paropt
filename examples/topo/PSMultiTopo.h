@@ -121,12 +121,12 @@ class LocatePoint {
 
  private:
   // The recursive versions of the above functions
-  void locateKClosest( int K, int root, const TacsScalar xpt[], 
-		       TacsScalar *dist, int *indices, int *nk );
+  void locateKClosest( int K, int root, const TacsScalar xpt[],
+                       TacsScalar *dist, int *indices, int *nk );
 
   // Insert the index into the sorted list of indices
-  void insertIndex( TacsScalar *dist, int *indices, int *nk, 
-		    TacsScalar d, int dindex, int K );
+  void insertIndex( TacsScalar *dist, int *indices, int *nk,
+                    TacsScalar d, int dindex, int K );
 
   // Sort the list of initial indices into the tree data structure
   int split( int start, int end );

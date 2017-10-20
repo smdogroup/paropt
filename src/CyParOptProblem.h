@@ -56,6 +56,9 @@ class CyParOptProblem : public ParOptProblem {
                                        ParOptVec*, ParOptScalar*,
                                        ParOptVec*, ParOptVec*,
                                        ParOptVec*) );
+  void setEvalHessianDiag( int (*func)(void*, int, int, int, ParOptVec*,
+                                       ParOptScalar*, ParOptVec*, 
+                                       ParOptVec*) );
   void setEvalSparseCon( void (*func)(void*, int, int,
                                       ParOptVec*, ParOptVec*) );
   void setAddSparseJacobian( void (*func)(void*, int, int,
@@ -92,6 +95,12 @@ class CyParOptProblem : public ParOptProblem {
   int evalHvecProduct( ParOptVec *x,
                        ParOptScalar *z, ParOptVec *zw,
                        ParOptVec *px, ParOptVec *hvec );
+
+  // Evaluate the diagonal of the Hessian
+  // ------------------------------------
+  int evalHessianDiag( ParOptVec *x,
+                       ParOptScalar *z, ParOptVec *zw, 
+                       ParOptVec *hdiag );
 
   // Evaluate the constraints
   // ------------------------
@@ -131,6 +140,9 @@ class CyParOptProblem : public ParOptProblem {
                           ParOptVec *x, ParOptScalar *z,
                           ParOptVec *zw, ParOptVec *px,
                           ParOptVec *hvec );
+  int (*evalhessiandiag)( void *self, int nvars, int ncon, int nwcon,
+                          ParOptVec *x, ParOptScalar *z,
+                          ParOptVec *zw, ParOptVec *hdiag );
   void (*evalsparsecon)( void *self, int nvars, int nwcon,
                          ParOptVec *x, ParOptVec *out );
   void (*addsparsejacobian)( void *self, int nvars, int nwcon,
