@@ -5257,6 +5257,17 @@ void ParOpt::checkKKTStep( int is_newton ){
   if (is_newton){
     prob->evalHvecProduct(x, z, zw, px, rx);
   }
+  else if (use_diag_hessian){
+    prob->evalHessianDiag(x, z, zw, hdiag);
+    
+    // Retrieve the components of px and hdiag
+    ParOptScalar *rxvals, *hvals;
+    rx->getArray(&rxvals);
+    hdiag->getArray(&hvals);
+    for ( int i = 0; i < nvars; i++ ){
+      rxvals[i] = pxvals[i]*hvals[i];
+    }
+  }
   else {
     if (qn && !sequential_linear_method){
       qn->mult(px, rx);
