@@ -298,7 +298,7 @@ class ParOpt : public ParOptBase {
                                    double rtol, double atol, int use_bfgs );
 
   // Check that the KKT step is computed correctly
-  void checkKKTStep( int is_newton );
+  void checkKKTStep( int iteration, int is_newton );
 
   // Compute the maximum step length to maintain positivity of 
   // all components of the design variables 
@@ -323,10 +323,11 @@ class ParOpt : public ParOptBase {
                            ParOptScalar *_merit, ParOptScalar *_pmerit,
                            int inexact_step, ParOptVec *wt1, ParOptVec *wt2 );
   
-  // Compute the average of the complementarity products at the current point
+  // Compute the average of the complementarity products at the
+  // current point: Complementarity at (x + p)
   ParOptScalar computeComp();
   ParOptScalar computeCompStep( double alpha_x,
-                                double alpha_z ); // Complementarity at (x + p)
+                                double alpha_z );
 
   // Check the step
   void checkStep();

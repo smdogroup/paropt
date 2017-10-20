@@ -314,7 +314,7 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   sequential_linear_method = 0;
   hessian_reset_freq = 100000000;
   qn_sigma = 0.0;
-  merit_func_check_epsilon = 1e-6;
+  merit_func_check_epsilon = 5e-8;
 
   // Initialize the diagonal Hessian computation
   use_diag_hessian = 0;
@@ -2989,16 +2989,17 @@ void ParOpt::computeMaxStep( double tau,
           max_x = alpha;
         }
       }
-      if (RealPart(pz[i]) < 0.0){
-        double alpha = -tau*RealPart(z[i])/RealPart(pz[i]);
-        if (alpha < max_z){
-          max_z = alpha;
-        }
-      }
       if (RealPart(pt[i]) < 0.0){
         double alpha = -tau*RealPart(t[i])/RealPart(pt[i]);
         if (alpha < max_x){
           max_x = alpha;
+        }
+      }
+      // Check the step for the Lagrange multipliers
+      if (RealPart(pz[i]) < 0.0){
+        double alpha = -tau*RealPart(z[i])/RealPart(pz[i]);
+        if (alpha < max_z){
+          max_z = alpha;
         }
       }
       if (RealPart(pzt[i]) < 0.0){
@@ -3007,10 +3008,6 @@ void ParOpt::computeMaxStep( double tau,
           max_z = alpha;
         }
       }
-    }
-    
-    // Check the step for the Lagrange multipliers
-    for ( int i = 0; i < ncon; i++ ){
     }
   }
 
@@ -3301,7 +3298,7 @@ void ParOpt::evalMeritInitDeriv( double max_x,
         }
         
         if (RealPart(pxvals[i]) > 0.0){
-          neg_presult -= pxvals[i]/(ubvals[i] - xvals[i]);
+        neg_presult -= pxvals[i]/(ubvals[i] - xvals[i]);
         }
         else {
           pos_presult -= pxvals[i]/(ubvals[i] - xvals[i]);
@@ -3418,7 +3415,7 @@ void ParOpt::evalMeritInitDeriv( double max_x,
   
   // Compute the projection depending on whether this is
   // for an exact or inexact step
-  if (1){ // inexact_step){
+  if (inexact_step){
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
         dense_proj += (c[i] - s[i] + t[i])*(Ac[i]->dot(px) - ps[i] + pt[i]);
@@ -3443,20 +3440,21 @@ void ParOpt::evalMeritInitDeriv( double max_x,
   // Add the contribution from the slack variables
   if (dense_inequality){
     for ( int i = 0; i < ncon; i++ ){
+      // Add the terms from the s-slack variables
       if (RealPart(s[i]) > 1.0){
         pos_result += log(s[i]);
       }
       else {
         neg_result += log(s[i]);
       }
-      
       if (RealPart(ps[i]) > 0.0){
         pos_presult += ps[i]/s[i];
       }
       else {
         neg_presult += ps[i]/s[i];
       }
-
+ 
+      // Add the terms from the t-slack variables
       if (RealPart(t[i]) > 1.0){
         pos_result += log(t[i]);
       }
@@ -4242,7 +4240,7 @@ int ParOpt::optimize( const char *checkpoint ){
     // Check the KKT step
     if (major_iter_step_check > 0 && 
         ((k % major_iter_step_check) == 0)){
-      checkKKTStep(gmres_iters > 0);
+      checkKKTStep(k, gmres_iters > 0);
     }
 
     // Compute the maximum permitted line search lengths
@@ -4357,7 +4355,8 @@ int ParOpt::optimize( const char *checkpoint ){
       // Check that the merit function derivative is correct and print
       // the derivative to the screen on the optimization-root
       // processor
-      if (k == major_iter_step_check){
+      if (major_iter_step_check > 0 && 
+          ((k % major_iter_step_check) == 0)){
         double dh = merit_func_check_epsilon;
         rx->copyValues(x);
         rx->axpy(dh, px);
@@ -5231,7 +5230,7 @@ Err: %8.2e  Rel err: %8.2e\n",
   zl*px + (x - lb)*pzl + (zl*(x - lb) - mu) = 0
   zu*px + (ub - x)*pzu + (zu*(ub - x) - mu) = 0
 */
-void ParOpt::checkKKTStep( int is_newton ){
+void ParOpt::checkKKTStep( int iteration, int is_newton ){
   // Retrieve the values of the design variables, lower/upper bounds
   // and the corresponding lagrange multipliers
   ParOptScalar *xvals, *lbvals, *ubvals, *zlvals, *zuvals;
@@ -5250,7 +5249,7 @@ void ParOpt::checkKKTStep( int is_newton ){
   int rank;
   MPI_Comm_rank(comm, &rank);
   if (rank == opt_root){
-    printf("Residual step check:\n");
+    printf("\nResidual step check for iteration %d:\n", iteration);
   }
 
   // Check the first residual equation
