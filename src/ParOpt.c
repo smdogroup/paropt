@@ -3897,10 +3897,20 @@ int ParOpt::optimize( const char *checkpoint ){
 
         // Keep the Lagrange multipliers if they are within 
         // a reasonable range and they are positive.
-        for ( int i = 0; i < ncon; i++ ){
-          if (RealPart(z[i]) < 0.01 || 
-              RealPart(z[i]) > penalty_gamma){
-            z[i] = 1.0;
+        if (dense_inequality){
+          for ( int i = 0; i < ncon; i++ ){
+            if (RealPart(z[i]) < 0.01 || 
+                RealPart(z[i]) > penalty_gamma){
+              z[i] = 1.0;
+            }
+          }
+        }
+        else {
+          for ( int i = 0; i < ncon; i++ ){
+            if (RealPart(z[i]) < -penalty_gamma ||
+                RealPart(z[i]) > penalty_gamma){
+              z[i] = 1.0;
+            }
           }
         }
       }
@@ -4230,7 +4240,8 @@ int ParOpt::optimize( const char *checkpoint ){
     }
 
     // Check the KKT step
-    if (k == major_iter_step_check){
+    if (major_iter_step_check > 0 && 
+        ((k % major_iter_step_check) == 0)){
       checkKKTStep(gmres_iters > 0);
     }
 

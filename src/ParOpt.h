@@ -45,9 +45,11 @@ enum ParOptBarrierStrategy { PAROPT_MONOTONE,
   respectively. The perturbed KKT conditions for this problem are:
 
   g(x) - A(x)^{T}*z - Aw^{T}*zw - zl + zu = 0
+  gamma - z - zt = 0
   c(x) - s = 0
   cw(x) - sw = 0
   S*z - mu*e = 0
+  T*zt - mu*e = 0
   Sw*zw - mu*e = 0
   (X - Xl)*zl - mu*e = 0
   (Xu - X)*zu - mu*e = 0
@@ -83,13 +85,15 @@ enum ParOptBarrierStrategy { PAROPT_MONOTONE,
   
   The full KKT system can be written as follows:
   
-  [  B   -Ac^{T} -Aw^{T}  0   0  -I         I        ][ px  ]
-  [  Ac   0       0      -I   0   0         0        ][ pz  ]
-  [  Aw   0       0       0  -I   0         0        ][ pzw ]
-  [  0    S       0       Z   0   0         0        ][ ps  ] = -r
-  [  0    0       Sw      0  Zw   0         0        ][ psw ]
-  [  Zl   0       0       0   0   (X - Xl)  0        ][ pzl ]
-  [ -Zu   0       0       0   0   0         (Xu - X) ][ pzu ]
+  [  B    0 -Ac^{T} -Aw^{T}   0   0   0  -I         I        ][ px  ]
+  [  0    0      -I       0   0  -I   0   0         0        ][ pt  ]
+  [  Ac   I       0       0  -I   0   0   0         0        ][ pz  ]
+  [  Aw   0       0       0   0   0  -I   0         0        ][ pzw ]
+  [  0    0       S       0   Z   0   0   0         0        ][ ps  ] = -r
+  [  0   Zt       0       0   0   T   0   0         0        ][ pzt ]
+  [  0    0       0       Sw  0   0  Zw   0         0        ][ psw ]
+  [  Zl   0       0       0   0   0  0    (X - Xl)  0        ][ pzl ]
+  [ -Zu   0       0       0   0   0  0    0         (Xu - X) ][ pzu ]
 
   where B is a quasi-Newton Hessian approximation. 
 
