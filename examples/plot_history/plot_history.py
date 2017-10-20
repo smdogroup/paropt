@@ -1,5 +1,6 @@
 import matplotlib
 import matplotlib.pylab as plt
+import numpy as np
 import argparse
 
 # Import ParOpt so that we can read the ParOpt output file
@@ -22,6 +23,9 @@ iteration = values[0]
 objective = values[7]
 opt = values[8]
 barrier = values[11]
+
+# Just make the iteration linear
+iteration = np.linspace(1, len(iteration), len(iteration))
 
 # Make the subplots
 fig, ax1 = plt.subplots()
