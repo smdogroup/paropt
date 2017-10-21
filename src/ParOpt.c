@@ -3635,7 +3635,7 @@ line search, trying new point\n");
 
     // Print out the merit function and step at the current iterate
     if (rank == opt_root && output_level > 0){
-      fprintf(outfp, "%5d %12.5e %12.5e\n", j+1, alpha, m0);
+      fprintf(outfp, "%5d %12.5e %12.5e\n", j+1, alpha, merit);
     }
 
     // Check the sufficient decrease condition
