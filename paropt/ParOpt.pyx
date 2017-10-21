@@ -758,6 +758,9 @@ cdef class pyParOpt:
    def setOutputFile(self, char *filename):
       if filename is not None:
          self.ptr.setOutputFile(filename)
+
+   def setOutputLevel(self, int level):
+      self.ptr.setOutputLevel(level)
          
    def setGradientCheckFrequency(self, int freq, double step_size):
        self.ptr.setGradientCheckFrequency(freq, step_size)

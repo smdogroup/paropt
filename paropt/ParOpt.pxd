@@ -182,8 +182,11 @@ cdef extern from "ParOpt.h":
       # Set other parameters
       void setOutputFrequency(int)
       void setMajorIterStepCheck(int)
-      void setOutputFile(const char*)
       void setGradientCheckFrequency(int, double)
+
+      # Set the output file/print level
+      void setOutputFile(const char*)
+      void setOutputLevel(int)
 
       # Write out the design variables to binary format (fast MPI/IO)
       int writeSolutionFile(const char*)

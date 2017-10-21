@@ -216,8 +216,12 @@ class ParOpt : public ParOptBase {
   // --------------------
   void setOutputFrequency( int freq );
   void setMajorIterStepCheck( int step );
-  void setOutputFile( const char *filename );
   void setGradientCheckFrequency( int freq, double step_size );
+
+  // Set the output print level
+  // --------------------------
+  void setOutputFile( const char *filename );
+  void setOutputLevel( int level );
 
   // Write out the design variables to a binary format (fast MPI/IO)
   // ---------------------------------------------------------------
@@ -321,7 +325,8 @@ class ParOpt : public ParOptBase {
   // parameter
   void evalMeritInitDeriv( double max_x,
                            ParOptScalar *_merit, ParOptScalar *_pmerit,
-                           int inexact_step, ParOptVec *wt1, ParOptVec *wt2 );
+                           int inexact_step, ParOptVec *xtmp,
+                           ParOptVec *wtmp1, ParOptVec *wtmp2 );
   
   // Compute the average of the complementarity products at the
   // current point: Complementarity at (x + p)
@@ -471,6 +476,7 @@ class ParOpt : public ParOptBase {
 
   // The file pointer to use for printing things out
   FILE *outfp;
+  int output_level;
 };
 
 #endif
