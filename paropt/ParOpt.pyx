@@ -783,11 +783,17 @@ cdef class pyMMA(pyParOptProblemBase):
       return
 
    def setMultipliers(self, np.ndarray[ParOptScalar, ndim=1, mode='c'] z,
-                      PVec zw=None):
+                      PVec zw=None, PVec zl=None, PVec zu=None):
       cdef ParOptVec *v = NULL
+      cdef ParOptVec *vl = NULL
+      cdef ParOptVec *vu = NULL
       if zw is not None:
          v = zw.ptr
-      self.mma.setMultipliers(<ParOptScalar*>z.data, v)
+      if zl is not None:
+         vl = zl.ptr
+      if zu is not None:
+         vu = zu.ptr
+      self.mma.setMultipliers(<ParOptScalar*>z.data, v, vl, vu)
       return
 
    def initializeSubProblem(self, PVec vec=None):

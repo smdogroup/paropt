@@ -32,7 +32,8 @@ class ParOptMMA : public ParOptProblem {
   ~ParOptMMA();
 
   // Set the new values of the multipliers
-  void setMultipliers( ParOptScalar *_z, ParOptVec *_zw=NULL );
+  void setMultipliers( ParOptScalar *_z, ParOptVec *_zw=NULL,
+                       ParOptVec *_zlvec=NULL, ParOptVec *_zuvec=NULL );
 
   // Initialize data for the subproblem
   int initializeSubProblem( ParOptVec *x );
@@ -179,6 +180,7 @@ class ParOptMMA : public ParOptProblem {
   // The multipliers/constraints
   ParOptScalar *z;
   ParOptVec *zwvec;
+  ParOptVec *zlvec, *zuvec;
 };
 
 #endif // PAR_OPT_QUASI_SEPARABLE_H

@@ -192,7 +192,7 @@ cdef extern from "ParOpt.h":
 cdef extern from "ParOptMMA.h":
    cdef cppclass ParOptMMA(ParOptProblem):
       ParOptMMA(ParOptProblem*, int)
-      void setMultipliers(ParOptScalar*, ParOptVec*)
+      void setMultipliers(ParOptScalar*, ParOptVec*, ParOptVec*, ParOptVec*)
       int initializeSubProblem(ParOptVec*)
       void computeKKTError(double*, double*, double*)
       void getOptimizedPoint(ParOptVec**)

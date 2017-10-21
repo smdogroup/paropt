@@ -114,6 +114,8 @@ ParOptMMA::~ParOptMMA(){
 
   delete [] z;
   zwvec->decref();
+  zlvec->decref();
+  zuvec->decref();
   rvec->decref();
 }
 
@@ -195,6 +197,12 @@ void ParOptMMA::initialize(){
   memset(z, 0, m*sizeof(ParOptScalar));
   zwvec = prob->createConstraintVec();
 
+  // Set the bound multipliers
+  zlvec = prob->createDesignVec();
+  zuvec = prob->createDesignVec();
+  zlvec->incref();
+  zuvec->incref();
+
   // Create a sparse constraint vector
   rvec = prob->createDesignVec();
   rvec->incref();
@@ -274,13 +282,20 @@ void ParOptMMA::setOutputFile( const char *filename ){
 /*
   Set the new values of the multipliers
 */
-void ParOptMMA::setMultipliers( ParOptScalar *_z, ParOptVec *_zw ){
+void ParOptMMA::setMultipliers( ParOptScalar *_z, ParOptVec *_zw,
+                                ParOptVec *_zl, ParOptVec *_zu ){
   // Copy over the values of the multipliers
   memcpy(z, _z, m*sizeof(ParOptScalar));
 
   // Copy over the values of the constraint multipliers
   if (_zw){
     zwvec->copyValues(_zw);
+  }
+  if (_zl){
+    zlvec->copyValues(_zl);
+  }
+  if (_zu){
+    zuvec->copyValues(_zu);
   }
 }
 
@@ -312,6 +327,10 @@ void ParOptMMA::computeKKTError( double *l1,
     prob->addSparseJacobianTranspose(-1.0, xvec, zwvec, rvec);
   }
 
+  // Add r = r - zl + zu
+  rvec->axpy(-1.0, zlvec);
+  rvec->axpy(1.0, zuvec);
+
   // Set the infinity norms
   double l1_norm = 0.0;
   double infty_norm = 0.0;
@@ -321,6 +340,7 @@ void ParOptMMA::computeKKTError( double *l1,
   rvec->getArray(&r);
 
   for ( int j = 0; j < n; j++ ){
+    /*
     // Check whether the bound multipliers would eliminate this
     // residual or not. If we're at the lower bound and the KKT
     // residual is negative or if we're at the upper bound and the KKT
@@ -331,7 +351,7 @@ void ParOptMMA::computeKKTError( double *l1,
     if ((x[j] + bound_relax >= ub[j]) && r[j] <= 0.0){
       r[j] = 0.0;
     }
-
+    */
     // Add the contribution to the l1/infinity norms
     double t = fabs(RealPart(r[j]));
     l1_norm += t;
@@ -519,14 +539,14 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
     beta[j] = min2(ub[j], 0.9*U[j] + 0.1*x[j]);
 
     // Compute the coefficients for the objective
-    double eps = 1e-6;
+    double eps = 1e-5;
     double eta = 1e-3;
     ParOptScalar gpos = max2(0.0, g[j]);
     ParOptScalar gneg = max2(0.0, -g[j]);
     p0[j] = (U[j] - x[j])*(U[j] - x[j])*((1.0 + eta)*gpos + 
-                                         eta*gneg + eps/(U[j] - L[j]));
+                                         eta*gneg + eps/(ub[j] - lb[j]));
     q0[j] = (x[j] - L[j])*(x[j] - L[j])*((1.0 + eta)*gneg +
-                                         eta*gpos + eps/(U[j] - L[j]));
+                                         eta*gpos + eps/(ub[j] - lb[j]));
   }
 
   if (use_true_mma){
@@ -540,8 +560,14 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
       // a min here since the constraints in paropt are forumlated as
       // c(x) >= 0 -- so we need concave constraints
       for ( int j = 0; j < n; j++ ){
-        pi[j] = min2(0.0, A[i][j])*(U[j] - x[j])*(U[j] - x[j]);
-        qi[j] = min2(0.0, -A[i][j])*(x[j] - L[j])*(x[j] - L[j]);
+        double eps = 1e-5;
+        double eta = 1e-3;
+        ParOptScalar Aneg = min2(0.0, A[i][j]);
+        ParOptScalar Apos = min2(0.0, -A[i][j]);
+        pi[j] = (U[j] - x[j])*(U[j] - x[j])*((1.0 + eta)*Aneg + 
+                                             eta*Apos + eps/(ub[j] - lb[j]));
+        qi[j] = (x[j] - L[j])*(x[j] - L[j])*((1.0 + eta)*Apos +
+                                             eta*Aneg + eps/(ub[j] - lb[j]));
         b[i] += pi[j]/(U[j] - x[j]) + qi[j]/(x[j] - L[j]);
       }
     }
