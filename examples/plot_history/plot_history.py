@@ -19,7 +19,7 @@ font = {'family': 'sans-serif', 'weight': 'normal', 'size': 17}
 matplotlib.rc('font', **font)
 
 # You can get more stuff out of this array
-iteration = values[0]
+iteration = np.linspace(1, len(values[0]), len(values[0]))
 objective = values[7]
 opt = values[8]
 barrier = values[11]
