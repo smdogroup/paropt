@@ -785,6 +785,9 @@ cdef class pyMMA(pyParOptProblemBase):
       self.ptr = self.mma
       return
 
+   def setIteration(self, int mma_iter):
+      self.mma.setIteration(mma_iter)
+
    def setMultipliers(self, np.ndarray[ParOptScalar, ndim=1, mode='c'] z,
                       PVec zw=None, PVec zl=None, PVec zu=None):
       cdef ParOptVec *v = NULL
@@ -822,6 +825,12 @@ cdef class pyMMA(pyParOptProblemBase):
       cdef ParOptVec *U = NULL
       self.mma.getAsymptotes(&L, &U)
       return _init_PVec(L), _init_PVec(U)
+
+   def getDesignHistory(self):
+      cdef ParOptVec* x1 = NULL
+      cdef ParOptVec *x2 = NULL
+      self.mma.getDesignHistory(&x1, &x2)
+      return _init_PVec(x1), _init_PVec(x2)
       
    def setPrintLevel(self, int level):
       self.mma.setPrintLevel(level)

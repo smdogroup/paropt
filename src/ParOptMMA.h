@@ -31,6 +31,9 @@ class ParOptMMA : public ParOptProblem {
   ParOptMMA( ParOptProblem *_prob, int _use_true_mma=1 );
   ~ParOptMMA();
 
+  // Set the MMA iteration
+  void setIteration( int _mma_iter );
+
   // Set the new values of the multipliers
   void setMultipliers( ParOptScalar *_z, ParOptVec *_zw=NULL,
                        ParOptVec *_zlvec=NULL, ParOptVec *_zuvec=NULL );
@@ -46,6 +49,9 @@ class ParOptMMA : public ParOptProblem {
 
   // Get the asymptotes
   void getAsymptotes( ParOptVec **_L, ParOptVec **_U );
+
+  // Get the previous design iterations
+  void getDesignHistory( ParOptVec **_x1, ParOptVec **_x2 );
 
   // Set the print level
   void setPrintLevel( int _print_level );

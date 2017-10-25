@@ -280,6 +280,13 @@ void ParOptMMA::setOutputFile( const char *filename ){
 }
 
 /*
+  Set the iteration count for the MMA
+*/
+void ParOptMMA::setIteration( int _mma_iter ){
+  mma_iter = _mma_iter;
+}
+
+/*
   Set the new values of the multipliers
 */
 void ParOptMMA::setMultipliers( ParOptScalar *_z, ParOptVec *_zw,
@@ -387,6 +394,18 @@ void ParOptMMA::getAsymptotes( ParOptVec **_L, ParOptVec **_U ){
   }
   if (_U){
     *_U = Uvec;
+  }
+}
+
+/*
+  Get the design history
+*/
+void ParOptMMA::getDesignHistory( ParOptVec **_x1, ParOptVec **_x2 ){
+  if (_x1){
+    *_x1 = x1vec;
+  }
+  if (_x2){
+    *_x2 = x2vec;
   }
 }
 
