@@ -41,6 +41,20 @@ cdef extern from "ParOptProblem.h":
       ParOptVec *createDesignVec()
       ParOptVec *createConstraintVec()
 
+cdef extern from "ParOptQuasiNewton.h":
+   cdef cppclass ParOptCompactQuasiNewton(ParOptBase):
+      ParOptCompactQuasiNewton()
+      void reset()
+      int update(ParOptVec*, ParOptVec*)
+      void mult(ParOptVec*, ParOptVec*)
+      void multAdd(ParOptScalar, ParOptVec*, ParOptVec*)
+
+   cdef cppclass ParOptLBFGS(ParOptCompactQuasiNewton):
+      ParOptLBFGS(ParOptProblem*, int)
+
+   cdef cppclass ParOptLSR1(ParOptCompactQuasiNewton):
+      ParOptLSR1(ParOptProblem*, int)
+
 cdef extern from "CyParOptProblem.h":
    # Define the callback types
    ctypedef void (*getvarsandbounds)(void *_self, int nvars, ParOptVec *x,
@@ -157,7 +171,9 @@ cdef extern from "ParOpt.h":
       double getBarrierParameter()
       ParOptScalar getComplementarity()
 
-      # Reset the quasi-Newton approximation
+      # Advanced quasi-Newton options
+      void setQuasiNewton(ParOptCompactQuasiNewton*)
+      void setUseQuasiNewtonUpdates(int)
       void resetQuasiNewtonHessian()
 
       # Reset the design variables and the bounds

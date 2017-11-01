@@ -519,6 +519,12 @@ class TACSQuadratic(ParOpt.pyParOptProblem):
         # Initialize the super class
         super(TACSQuadratic, self).__init__(comm, ndvs, ncon, nwcon, nwblock)
 
+        # Create a quasi-Newton approximation for the
+        # positive-definite part of the Hessian
+        self.qn_pd = ParOpt.LBFGS(self, 10)
+
+        # Pull out information from the analysis class that will be
+        # needed at a future time
         self.props = self.analysis.props
         self.gmass = self.analysis.gmass
         self.num_elements = self.analysis.num_elements
@@ -526,6 +532,7 @@ class TACSQuadratic(ParOpt.pyParOptProblem):
         self.nblock = self.analysis.nblock
         self.ncon = self.analysis.ncon
 
+        # Create the vectors needed for the analysis/optimization
         self.z = np.zeros(self.ncon)
         self.Acon = []
         for i in range(self.ncon):
@@ -540,6 +547,7 @@ class TACSQuadratic(ParOpt.pyParOptProblem):
         return
 
     def setNewPoint(self, x):
+        '''Set a new point'''
         self.x[:] = x[:]
         fail, obj, self.con = self.analysis.evalObjCon(self.x)
         self.analysis.evalObjConGradient(self.x, self.gobj, self.Acon)
@@ -1342,10 +1350,10 @@ def optimize_plane_stress_full(comm, analysis, root_dir='results',
 
     return
 
-def optimize_plane_stress_quad(comm, analysis, root_dir='results',
-                               parameter=5.0, max_iters=1000,
-                               optimizer='paropt', case='isotropic',
-                               start_strategy='point', ptype='ramp'):
+def optimize_plane_stress_tr(comm, analysis, root_dir='results',
+                             parameter=5.0, max_iters=1000,
+                             optimizer='paropt', case='isotropic',
+                             start_strategy='point', ptype='ramp'):
     # Optimize the structure
     optimizer = optimizer.lower()
     penalization = ptype.upper()
@@ -1681,10 +1689,10 @@ if args.full_penalty:
                                use_hessian=use_hessian,
                                case=args.case, ptype=ptype)
 elif args.quad_approx:
-    optimize_plane_stress_quad(comm, analysis, root_dir=root_dir,
-                               parameter=parameter, optimizer=optimizer,
-                               start_strategy=start_strategy,
-                               case=args.case, ptype=ptype)
+    optimize_plane_stress_tr(comm, analysis, root_dir=root_dir,
+                             parameter=parameter, optimizer=optimizer,
+                             start_strategy=start_strategy,
+                             case=args.case, ptype=ptype)
 else:
     # Optimize the plane stress problem
     optimize_plane_stress(comm, analysis, root_dir=root_dir,

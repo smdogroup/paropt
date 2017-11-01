@@ -14,7 +14,7 @@
   each parameter and how you should set it. 
 */
 
-static const int NUM_PAROPT_PARAMETERS = 29;
+static const int NUM_PAROPT_PARAMETERS = 30;
 static const char *paropt_parameter_help[][2] = {
   {"max_qn_size", 
    "Integer: The maximum dimension of the quasi-Newton approximation"},
@@ -76,6 +76,9 @@ necessarily the exact Hessian)"},
   {"hessian_reset_freq", 
    "Integer: Do a hard reset of the Hessian at this specified major \
 iteration frequency"},
+
+  {"use_quasi_newton_update",
+   "Boolean: Update the quasi-Newton approximation at each iteration"},
 
   {"qn_sigma",
    "Float: Scalar added to the diagonal of the quasi-Newton approximation > 0"},
@@ -175,11 +178,11 @@ ParOpt::ParOpt( ParOptProblem *_prob,
 
   // Allocate the quasi-Newton approximation
   if (qn_type == PAROPT_BFGS){
-    qn = new LBFGS(prob, max_qn_subspace);
+    qn = new ParOptLBFGS(prob, max_qn_subspace);
     qn->incref();
   }
   else if (qn_type == PAROPT_SR1){
-    qn = new LSR1(prob, max_qn_subspace);
+    qn = new ParOptLSR1(prob, max_qn_subspace);
     qn->incref();
   }
   else {
@@ -313,6 +316,7 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   major_iter_step_check = -1;
   sequential_linear_method = 0;
   hessian_reset_freq = 100000000;
+  use_quasi_newton_update = 1;
   qn_sigma = 0.0;
   merit_func_check_epsilon = 5e-8;
 
@@ -581,6 +585,8 @@ void ParOpt::printOptionSummary( FILE *fp ){
             sequential_linear_method);
     fprintf(fp, "%-30s %15d\n", "hessian_reset_freq",
             hessian_reset_freq);
+    fprintf(fp, "%-30s %15d\n", "use_quasi_newton_update",
+            use_quasi_newton_update);
     fprintf(fp, "%-30s %15g\n", "qn_sigma", qn_sigma);
     fprintf(fp, "%-30s %15d\n", "use_hvec_product",
             use_hvec_product);
@@ -996,7 +1002,7 @@ void ParOpt::setPenaltyDescentFraction( double frac ){
 */
 void ParOpt::setBFGSUpdateType( ParOptBFGSUpdateType update ){
   if (qn){
-    LBFGS *lbfgs = dynamic_cast<LBFGS*>(qn);
+    ParOptLBFGS *lbfgs = dynamic_cast<ParOptLBFGS*>(qn);
     if (lbfgs){
       lbfgs->setBFGSUpdateType(update);
     }  
@@ -1120,12 +1126,33 @@ void ParOpt::setEisenstatWalkerParameters( double gamma, double alpha ){
 }
 
 /*
+  Set the quasi-Newton update object
+*/
+void ParOpt::setQuasiNewton( ParOptCompactQuasiNewton *_qn ){
+  if (_qn){
+    _qn->incref();
+  }
+  if (qn){ 
+    qn->decref();
+  }
+  qn = _qn;
+}
+
+/*
   Reset the Quasi-Newton Hessian approximation if it is used
 */
 void ParOpt::resetQuasiNewtonHessian(){
   if (qn){
     qn->reset();
   }
+}
+
+/*
+  Set the flag to indicate whether quasi-Newton updates should be used
+  or not.
+*/
+void ParOpt::setUseQuasiNewtonUpdates( int truth ){
+  use_quasi_newton_update = truth;
 }
 
 /*
@@ -4619,12 +4646,13 @@ int ParOpt::optimize( const char *checkpoint ){
 
     // Compute the Quasi-Newton update
     int up_type = 0;
-    if (qn && !sequential_linear_method && !line_fail){
+    if (qn && !sequential_linear_method && !line_fail &&
+        use_quasi_newton_update){
       up_type = qn->update(s_qn, y_qn);
     }
 
     // Reset the quasi-Newton Hessian if there is a line search failure
-    if (qn && line_fail){
+    if (qn && line_fail && use_quasi_newton_update){
       qn->reset();
     }
 

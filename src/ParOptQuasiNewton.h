@@ -18,10 +18,10 @@ enum ParOptBFGSUpdateType { PAROPT_SKIP_NEGATIVE_CURVATURE,
   This class can be used to implement both limited-memory BFGS and SR1
   update schemes for quasi-Newton optimization methods.
 */
-class CompactQuasiNewton : public ParOptBase {
+class ParOptCompactQuasiNewton : public ParOptBase {
  public:
-  CompactQuasiNewton(){}
-  virtual ~CompactQuasiNewton(){}
+  ParOptCompactQuasiNewton(){}
+  virtual ~ParOptCompactQuasiNewton(){}
 
   // Reset the internal data
   // -----------------------
@@ -66,10 +66,10 @@ class CompactQuasiNewton : public ParOptBase {
   Note that this class implements a damped update when the curvature
   condition is violated.
 */
-class LBFGS : public CompactQuasiNewton {
+class ParOptLBFGS : public ParOptCompactQuasiNewton {
  public:
-  LBFGS( ParOptProblem *prob, int _subspace_size );
-  ~LBFGS();
+  ParOptLBFGS( ParOptProblem *prob, int _subspace_size );
+  ~ParOptLBFGS();
 
   // Set the curvature update type
   // -----------------------------
@@ -140,10 +140,10 @@ class LBFGS : public CompactQuasiNewton {
   Here b0 is a scalar, M is a matrix and Z is a rectagular matrix
   stored as a series of vectors.
 */
-class LSR1 : public CompactQuasiNewton {
+class ParOptLSR1 : public ParOptCompactQuasiNewton {
  public:
-  LSR1( ParOptProblem *prob, int _subspace_size );
-  ~LSR1();
+  ParOptLSR1( ParOptProblem *prob, int _subspace_size );
+  ~ParOptLSR1();
 
   // Reset the internal data
   // -----------------------

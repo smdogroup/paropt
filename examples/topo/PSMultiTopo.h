@@ -15,6 +15,16 @@ void assembleResProjectDVSens( TACSAssembler *tacs,
                                int dvLen,
                                TacsScalar *fdvSens,
                                TACSBVec *residual );
+/*
+  The following function computes the matrix-vector product
+  contribution from the negative semi-definite part of the Hessian of
+  the compliance.  This term is computed exactly.
+*/
+void addNegdefiniteHessianProduct( TACSAssembler *tacs,
+                                   const TacsScalar *px,
+                                   int dvLen,
+                                   TacsScalar *fdvSens );
+
 
 class PSMultiTopoProperties : public TACSObject {
  public:

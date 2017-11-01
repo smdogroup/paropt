@@ -50,6 +50,9 @@ cdef extern from "PSMultiTopo.h":
     cdef void assembleResProjectDVSens(TACSAssembler*,
                                        const TacsScalar*, int,
                                        TacsScalar*, TACSBVec*)
+    cdef void addNegdefiniteHessianProduct(TACSAssembler*,
+                                           const TacsScalar*, int,
+                                           TacsScalar*)
 
 cdef class Locator:
     cdef LocatePoint *ptr
@@ -153,4 +156,13 @@ def assembleProjectDVSens(Assembler assembler,
                              <TacsScalar*>px.data, len(px),
                              <TacsScalar*>deriv.data,
                              residual.ptr)
+    return
+
+def addNegHessianProduct(Assembler assembler,
+                         np.ndarray[TacsScalar, ndim=1, mode='c'] px,
+                         np.ndarray[TacsScalar, ndim=1, mode='c'] deriv):
+    assert(len(deriv) == len(px))
+    addNegdefiniteHessianProduct(assembler.ptr,
+                                 <TacsScalar*>px.data, len(px),
+                                 <TacsScalar*>deriv.data)
     return

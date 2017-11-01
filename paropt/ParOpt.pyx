@@ -584,6 +584,38 @@ cdef class PVec:
    def dot(self, PVec vec):
       return self.ptr.dot(vec.ptr)
 
+# Python classes for the ParOptCompactQuasiNewton methods
+cdef class CompactQuasiNewton:
+   cdef ParOptCompactQuasiNewton *ptr
+   def __cinit__(self):
+      self.ptr = NULL
+
+   def __dealloc__(self):
+      if self.ptr:
+         self.ptr.decref()
+
+   def update(self, PVec s, PVec y):
+      if self.ptr:
+         self.ptr.update(s.ptr, y.ptr)
+
+   def mult(self, PVec x, PVec y):
+      if self.ptr:
+         self.ptr.mult(x.ptr, y.ptr)
+
+   def multAdd(self, ParOptScalar alpha, PVec x, PVec y):
+      if self.ptr:
+         self.ptr.multAdd(alpha, x.ptr, y.ptr)
+
+cdef class LBFGS(CompactQuasiNewton):
+   def __cinit__(self, pyParOptProblemBase prob, int subspace=10):
+      self.ptr = new ParOptLBFGS(prob.ptr, subspace)
+      self.ptr.incref()
+
+cdef class LSR1(CompactQuasiNewton):
+   def __cinit__(self, pyParOptProblemBase prob, int subspace=10):
+      self.ptr = new ParOptLSR1(prob.ptr, subspace)
+      self.ptr.incref()
+
 # Python class for corresponding instance ParOpt
 cdef class pyParOpt:
    cdef ParOpt *ptr
@@ -706,6 +738,12 @@ cdef class pyParOpt:
       self.ptr.resetQuasiNewtonHessian()
 
    # Reset the design variables and bounds
+   def setQuasiNewton(self, CompactQuasiNewton qn):
+      self.ptr.setQuasiNewton(qn.ptr)
+
+   def setUseQuasiNewtonUpdates(self, int truth):
+      self.ptr.setUseQuasiNewtonUpdates(truth)
+      
    def resetDesignAndBounds(self):
       self.ptr.resetDesignAndBounds()
 

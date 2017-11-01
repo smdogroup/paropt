@@ -503,6 +503,84 @@ void assembleResProjectDVSens( TACSAssembler *tacs,
 }
 
 /*
+  The following function computes the matrix-vector product
+  contribution from the negative semi-definite part of the Hessian of
+  the compliance.  This term is computed exactly.
+*/
+void addNegdefiniteHessianProduct( TACSAssembler *tacs,
+                                   const TacsScalar *px,
+                                   int dvLen,
+                                   TacsScalar *fdvSens ){
+  static const int NUM_NODES = 4;
+  static const int NUM_STRESSES = 3;
+  static const int NUM_VARIABLES = 2*NUM_NODES;
+  
+  // Get the residual vector
+  int num_elements = tacs->getNumElements();
+  for ( int k = 0; k < num_elements; k++ ){
+    TACSElement *element = tacs->getElement(k, NULL, NULL, 
+                                            NULL, NULL);
+
+    // Dynamically cast the element to the 2D element type
+    TACS2DElement<NUM_NODES> *elem = 
+      dynamic_cast<TACS2DElement<NUM_NODES>*>(element);
+
+    if (elem){
+      TacsScalar Xpts[3*NUM_NODES];
+      TacsScalar vars[2*NUM_NODES], dvars[2*NUM_NODES];
+      TacsScalar ddvars[2*NUM_NODES];
+      tacs->getElement(k, Xpts, vars, dvars, ddvars);
+
+      TACSConstitutive *constitutive = 
+        elem->getConstitutive();
+      
+      PSMultiTopo *con = dynamic_cast<PSMultiTopo*>(constitutive);
+      if (con){
+        TacsScalar res[2*NUM_NODES];
+        memset(res, 0, 2*NUM_NODES*sizeof(TacsScalar));
+
+        // The shape functions associated with the element
+        double N[NUM_NODES];
+        double Na[NUM_NODES], Nb[NUM_NODES];
+  
+        // The derivative of the stress with respect to the strain
+        TacsScalar B[NUM_STRESSES*NUM_VARIABLES];
+        
+        // Get the number of quadrature points
+        int numGauss = elem->getNumGaussPts();
+
+        for ( int n = 0; n < numGauss; n++ ){
+          // Retrieve the quadrature points and weight
+          double pt[3];
+          double weight = elem->getGaussWtsPts(n, pt);
+
+          // Compute the element shape functions
+          elem->getShapeFunctions(pt, N, Na, Nb);
+
+          // Compute the derivative of X with respect to the
+          // coordinate directions
+          TacsScalar X[3], Xa[9];
+          elem->planeJacobian(X, Xa, N, Na, Nb, Xpts);
+
+          // Compute the determinant of Xa and the transformation
+          TacsScalar J[4];
+          TacsScalar h = FElibrary::jacobian2d(Xa, J);
+          h = h*weight;
+
+          // Compute the strain
+          TacsScalar strain[NUM_STRESSES];
+          elem->evalStrain(strain, J, Na, Nb, vars);
+
+          // Add the contribution -u^{T}*d^2K/dx^2*u to the derivative
+          con->addStress2ndDVSensProduct(pt, strain, -h, strain, 
+                                         px, fdvSens, dvLen);
+        }
+      }
+    }    
+  }
+}
+
+/*
   Create an object that can rapidly locate the closest point within a
   cloud of points to the specified input point.  This works in
   O(log(n)) time roughly, rather than O(n) time.

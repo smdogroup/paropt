@@ -204,8 +204,10 @@ class ParOpt : public ParOptBase {
   void setGMRESTolerances( double rtol, double atol );
   void setGMRESSubspaceSize( int _gmres_subspace_size );
 
-  // Force a quasi-Newton Hessian reset
-  // ----------------------------------
+  // Quasi-Newton options
+  // --------------------
+  void setQuasiNewton( ParOptCompactQuasiNewton *_qn );
+  void setUseQuasiNewtonUpdates( int truth );
   void resetQuasiNewtonHessian();
 
   // Reset the design point and the bounds using the problem instance
@@ -396,7 +398,7 @@ class ParOpt : public ParOptBase {
   int *dpiv, *cpiv;
 
   // Storage for the Quasi-Newton updates
-  CompactQuasiNewton *qn;
+  ParOptCompactQuasiNewton *qn;
   ParOptVec *y_qn, *s_qn;
 
   // Diagonal factor added to the Hessian to promote descent
@@ -435,6 +437,10 @@ class ParOpt : public ParOptBase {
 
   // Parameter for controlling the Hessian reset
   int hessian_reset_freq;
+
+  // Parameter that controls whether quasi-Newton updates are applied
+  // at all
+  int use_quasi_newton_update;
 
   // Parameters for the line search
   int max_line_iters;
@@ -479,4 +485,4 @@ class ParOpt : public ParOptBase {
   int output_level;
 };
 
-#endif
+#endif // PAR_OPT_OPTIMIZER_H

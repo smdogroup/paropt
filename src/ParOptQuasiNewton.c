@@ -18,8 +18,8 @@
   prob:      the ParOptProblem class
   msub_max:  the maximum subspace size
 */
-LBFGS::LBFGS( ParOptProblem *prob,
-              int _msub_max ){
+ParOptLBFGS::ParOptLBFGS( ParOptProblem *prob,
+                          int _msub_max ){
   msub_max = _msub_max;
   msub = 0;
 
@@ -78,7 +78,7 @@ LBFGS::LBFGS( ParOptProblem *prob,
 /*
   Free the memory allocated by the BFGS update
 */
-LBFGS::~LBFGS(){
+ParOptLBFGS::~ParOptLBFGS(){
   // Delete the vectors
   for ( int i = 0; i < msub_max; i++ ){
     Y[i]->decref();
@@ -105,21 +105,21 @@ LBFGS::~LBFGS(){
 /*
   Set the Hessian update type
 */
-void LBFGS::setBFGSUpdateType( ParOptBFGSUpdateType _hessian_update_type ){
+void ParOptLBFGS::setBFGSUpdateType( ParOptBFGSUpdateType _hessian_update_type ){
   hessian_update_type = _hessian_update_type;
 }
 
 /*
   Get the maximum size of the limited-memory BFGS update
 */
-int LBFGS::getMaxLimitedMemorySize(){
+int ParOptLBFGS::getMaxLimitedMemorySize(){
   return msub_max;
 }
 
 /*
   Reset the Hessian approximation
 */
-void LBFGS::reset(){
+void ParOptLBFGS::reset(){
   msub = 0;
   b0 = 1.0;
 
@@ -151,7 +151,7 @@ void LBFGS::reset(){
   returns:
   update type: 0 = normal, 1 = damped update, 2 = skipped update
 */
-int LBFGS::update( ParOptVec *s, ParOptVec *y ){
+int ParOptLBFGS::update( ParOptVec *s, ParOptVec *y ){
   int update_type = 0;
 
   // Set the pointer for the new value of y
@@ -323,11 +323,11 @@ int LBFGS::update( ParOptVec *s, ParOptVec *y ){
   Given the input vector, multiply the BFGS approximation by the input
   vector
 
-  This code computes the product of the LBFGS matrix with the vector x:
+  This code computes the product of the ParOptLBFGS matrix with the vector x:
 
   y <- b0*x - Z*diag{d}*M^{-1}*diag{d}*Z^{T}*x
 */
-void LBFGS::mult( ParOptVec *x, ParOptVec *y ){
+void ParOptLBFGS::mult( ParOptVec *x, ParOptVec *y ){
   // Set y = b0*x
   y->copyValues(x);
   y->scale(b0);
@@ -367,7 +367,7 @@ void LBFGS::mult( ParOptVec *x, ParOptVec *y ){
 
   y <- y + alpha*(b0*x - Z*diag{d}*M^{-1}*diag{d}*Z^{T}*x)
 */
-void LBFGS::multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ){
+void ParOptLBFGS::multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ){
   // Set y = b0*x
   y->axpy(b0*alpha, x);
 
@@ -402,10 +402,10 @@ void LBFGS::multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ){
   Retrieve the internal data for the limited-memory BFGS
   representation
 */
-int LBFGS::getCompactMat( ParOptScalar *_b0,
-                          const ParOptScalar **_d,
-                          const ParOptScalar **_M,
-                          ParOptVec ***_Z ){
+int ParOptLBFGS::getCompactMat( ParOptScalar *_b0,
+                                const ParOptScalar **_d,
+                                const ParOptScalar **_M,
+                                ParOptVec ***_Z ){
   if (_b0){ *_b0 = b0; }
   if (_d){ *_d = d0; }
   if (_M){ *_M = M; }
@@ -425,7 +425,7 @@ int LBFGS::getCompactMat( ParOptScalar *_b0,
   prob:      the ParOptProblem class
   msub_max:  the maximum subspace size
 */
-LSR1::LSR1( ParOptProblem *prob, int _msub_max ){
+ParOptLSR1::ParOptLSR1( ParOptProblem *prob, int _msub_max ){
   msub_max = _msub_max;
   msub = 0;
 
@@ -483,7 +483,7 @@ LSR1::LSR1( ParOptProblem *prob, int _msub_max ){
 /*
   Free the memory allocated by the BFGS update
 */
-LSR1::~LSR1(){
+ParOptLSR1::~ParOptLSR1(){
   // Delete the vectors
   for ( int i = 0; i < msub_max; i++ ){
     Y[i]->decref();
@@ -511,14 +511,14 @@ LSR1::~LSR1(){
 /*
   Get the maximum size of the limited-memory BFGS update
 */
-int LSR1::getMaxLimitedMemorySize(){
+int ParOptLSR1::getMaxLimitedMemorySize(){
   return msub_max;
 }
 
 /*
   Reset the Hessian approximation
 */
-void LSR1::reset(){
+void ParOptLSR1::reset(){
   msub = 0;
   b0 = 1.0;
 
@@ -549,7 +549,7 @@ void LSR1::reset(){
   returns:
   update type: 0 = normal, 1 = damped update
 */
-int LSR1::update( ParOptVec *s, ParOptVec *y ){
+int ParOptLSR1::update( ParOptVec *s, ParOptVec *y ){
   int update_type = 0;
 
   // Set the diagonal entries of the matrix
@@ -664,7 +664,7 @@ int LSR1::update( ParOptVec *s, ParOptVec *y ){
 
   y <- b0*x - Z*M^{-1}*Z^{T}*x
 */
-void LSR1::mult( ParOptVec *x, ParOptVec *y ){
+void ParOptLSR1::mult( ParOptVec *x, ParOptVec *y ){
   // Set y = b0*x
   y->copyValues(x);
   y->scale(b0);
@@ -694,7 +694,7 @@ void LSR1::mult( ParOptVec *x, ParOptVec *y ){
 
   y <- y + alpha*(b0*x - Z*M^{-1}*Z^{T}*x)
 */
-void LSR1::multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ){
+void ParOptLSR1::multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ){
   // Set y = b0*x
   y->axpy(b0*alpha, x);
 
@@ -719,10 +719,10 @@ void LSR1::multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ){
   Retrieve the internal data for the limited-memory BFGS
   representation
 */
-int LSR1::getCompactMat( ParOptScalar *_b0,
-                         const ParOptScalar **_d,
-                         const ParOptScalar **_M,
-                         ParOptVec ***_Z ){
+int ParOptLSR1::getCompactMat( ParOptScalar *_b0,
+                               const ParOptScalar **_d,
+                               const ParOptScalar **_M,
+                               ParOptVec ***_Z ){
   if (_b0){ *_b0 = b0; }
   if (_d){ *_d = d0; }
   if (_M){ *_M = M; }
