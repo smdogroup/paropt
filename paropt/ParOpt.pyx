@@ -81,7 +81,7 @@ def unpack_output(str filename):
                line = lines[index]
                index += 1
                counter += 1
-               if len(line.split()) < 12:
+               if len(line.split()) < 10:
                   break
 
                # Scan through the format list and determine how to
