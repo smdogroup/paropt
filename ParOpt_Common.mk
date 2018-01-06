@@ -16,8 +16,8 @@ PAROPT_LD_FLAGS = ${PAROPT_LD_CMD} ${PAROPT_EXTERN_LIBS}
 
 # This is the one rule that is used to compile all the
 # source code in TACS
-%.o: %.c
+%.o: %.cpp
 	${CXX} ${PAROPT_CC_FLAGS} -c $< -o $*.o
 	@echo
-	@echo "        --- Compiled $*.c successfully ---"
+	@echo "        --- Compiled $*.cpp successfully ---"
 	@echo

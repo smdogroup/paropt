@@ -257,7 +257,8 @@ void PSMultiTopo::calcStressDVProject( const double pt[],
       s0[2] = C[2]*e[0] + C[4]*e[1] + C[5]*e[2];
 
       for ( int i = 0; i < nweights; i++ ){
-        const TacsScalar wx = weights[i]*xlin[j]*px[vars_per_node*nodes[i] + j+1];
+        const TacsScalar wx = 
+          weights[i]*xlin[j]*px[vars_per_node*nodes[i] + j+1];
         s[0] += wx*s0[0];
         s[1] += wx*s0[1];
         s[2] += wx*s0[2];
@@ -278,7 +279,8 @@ void PSMultiTopo::calcStressDVProject( const double pt[],
         (q + 1.0)/((1.0 + q*(1.0 - x[j+1]))*(1.0 + q*(1.0 - x[j+1])));
 
       for ( int i = 0; i < nweights; i++ ){
-        const TacsScalar wx = scale*weights[i]*px[vars_per_node*nodes[i] + j+1];
+        const TacsScalar wx = 
+          scale*weights[i]*px[vars_per_node*nodes[i] + j+1];
         s[0] += wx*s0[0];
         s[1] += wx*s0[1];
         s[2] += wx*s0[2];
@@ -297,7 +299,8 @@ void PSMultiTopo::calcStressDVProject( const double pt[],
       const TacsScalar scale = 3.0*x[j+1]*x[j+1];
 
       for ( int i = 0; i < nweights; i++ ){
-        const TacsScalar wx = scale*weights[i]*px[vars_per_node*nodes[i] + j+1];
+        const TacsScalar wx = 
+          scale*weights[i]*px[vars_per_node*nodes[i] + j+1];
         s[0] += wx*s0[0];
         s[1] += wx*s0[1];
         s[2] += wx*s0[2];
@@ -388,7 +391,8 @@ void PSMultiTopo::addPointwiseMassDVSens( const double pt[],
   const int vars_per_node = mats->num_materials+1;
   for ( int i = 0; i < nweights; i++ ){
     for ( int j = 0; j < mats->num_materials; j++ ){
-      fdvSens[vars_per_node*nodes[i] + 1+j] += weights[i]*alpha[0]*mats->rho[j];
+      fdvSens[vars_per_node*nodes[i] + 1+j] += 
+        weights[i]*alpha[0]*mats->rho[j];
     }
   }
 }

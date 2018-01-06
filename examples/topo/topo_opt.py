@@ -1483,11 +1483,8 @@ def optimize_plane_stress_tr(comm, analysis, root_dir='results',
         analysis.RAMP_penalty = parameter
         analysis.props.setPenaltyType(penalty='full', ptype=ptype)
         analysis.setNewInitPointPenalty(x)
-        prob.setNewPoint(analysis.xinit)
+        prob.setNewPoint(x)
         comp = analysis.getCompliance(x)
-
-        # Compute the KKT error based on the original problem
-        x, z, zw, zl, zu = opt.getOptimizedPoint()
 
         # Evaluate the objective and constraints
         gobj1 = analysis.createDesignVec()

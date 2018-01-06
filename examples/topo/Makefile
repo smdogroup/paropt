@@ -1,4 +1,4 @@
-TACS_DIR=${HOME}/hg/tacs
+TACS_DIR=${HOME}/git/tacs
 include ${TACS_DIR}/Makefile.in
 include ${TACS_DIR}/TACS_Common.mk
 include ../../Makefile.in
