@@ -1,10 +1,6 @@
 #ifndef PAR_OPT_QUASI_SEPARABLE_H
 #define PAR_OPT_QUASI_SEPARABLE_H
 
-/*
-  Copyright (c) 2014-2017 Graeme Kennedy. All rights reserved
-*/
-
 #include "ParOptProblem.h"
 #include <stdio.h>
 
@@ -13,13 +9,13 @@
   MMA-type methods that also include sparse constraints.
   There are two modes of operation:
 
-  The first is to run the method of moving asymptotes (MMA), 
+  The first mode is to run the method of moving asymptotes (MMA), 
   a sequential, separable convex approximation technique, 
   developed by Svanberg, that is commonly used in topology
   optimization. This method cannot incorporate sparse constraints
   directly and so they are ignored.
 
-  The second purpose is to set up and run a convex sub-problem
+  The second mode is can be used to set up and run a convex sub-problem
   where the objective is governed by the same approximation
   technique used in MMA, but the constraints and sparse constraints
   defined by the original problem class are linearized about

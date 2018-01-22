@@ -4,10 +4,6 @@
 #include "ParOptQuasiNewton.h"
 
 /*
-  Copyright (c) 2014-2016 Graeme Kennedy. All rights reserved
-*/
-
-/*
   The following class implements the limited-memory BFGS update.  
 
   The limited-memory BFGS formula takes the following form:

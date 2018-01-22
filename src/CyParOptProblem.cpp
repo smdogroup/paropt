@@ -2,10 +2,6 @@
 #include "CyParOptProblem.h"
 
 /*
-  Copyright (c) 2014-2016 Graeme Kennedy. All rights reserved
-*/
-
-/*
   The constructor for the ParOptProblem wrapper
 */ 
 CyParOptProblem::CyParOptProblem( MPI_Comm _comm,

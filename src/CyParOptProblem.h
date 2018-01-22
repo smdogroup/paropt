@@ -1,10 +1,6 @@
 #ifndef PAR_OPT_CYTHON_PROBLEM_H
 #define PAR_OPT_CYTHON_PROBLEM_H
 
-/*
-  Copyright (c) 2014-2016 Graeme Kennedy. All rights reserved
-*/
-
 #include "ParOptProblem.h"
 
 /*

@@ -160,7 +160,6 @@ void PSMultiTopo::calculateStress( const double pt[],
     }
   }
   else {
-    const double q = mats->q;
     for ( int k = 0; k < mats->num_materials; k++ ){
       const TacsScalar *C = &mats->C[6*k];
       const TacsScalar w = x[k+1]*x[k+1]*x[k+1] + mats->eps;
@@ -546,10 +545,7 @@ void addNegdefiniteHessianProduct( TACSAssembler *tacs,
         // The shape functions associated with the element
         double N[NUM_NODES];
         double Na[NUM_NODES], Nb[NUM_NODES];
-  
-        // The derivative of the stress with respect to the strain
-        TacsScalar B[NUM_STRESSES*NUM_VARIABLES];
-        
+
         // Get the number of quadrature points
         int numGauss = elem->getNumGaussPts();
 

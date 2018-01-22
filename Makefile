@@ -7,8 +7,8 @@ include ParOpt_Common.mk
 
 PAROPT_SUBDIRS = src
 
-SEARCH_PATTERN=$(addsuffix /*.c, ${PAROPT_SUBDIRS})
-PAROPT_OBJS := $(patsubst %.c,%.o,$(wildcard ${SEARCH_PATTERN}))
+SEARCH_PATTERN=$(addsuffix /*.cpp, ${PAROPT_SUBDIRS})
+PAROPT_OBJS := $(patsubst %.cpp,%.o,$(wildcard ${SEARCH_PATTERN}))
 
 default:
 	@for subdir in ${PAROPT_SUBDIRS}; do \

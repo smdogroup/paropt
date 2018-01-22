@@ -1,10 +1,6 @@
 #ifndef PAR_OPT_OPTIMIZER_H
 #define PAR_OPT_OPTIMIZER_H
 
-/*
-  Copyright (c) 2014-2016 Graeme Kennedy. All rights reserved
-*/
-
 #include <stdio.h>
 #include "ParOptVec.h"
 #include "ParOptQuasiNewton.h"

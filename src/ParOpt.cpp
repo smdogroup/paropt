@@ -5,10 +5,6 @@
 #include "ParOptBlasLapack.h"
 
 /*
-  Copyright (c) 2014-2015 Graeme Kennedy. All rights reserved
-*/
-
-/*
   The following are the help-strings for each of the parameters
   in the file. These provide some description of the purpose of
   each parameter and how you should set it. 

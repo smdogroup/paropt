@@ -1,10 +1,6 @@
 #ifndef PAROPT_QUASI_NEWTON_H
 #define PAROPT_QUASI_NEWTON_H
 
-/*
-  Copyright (c) 2014-2016 Graeme Kennedy. All rights reserved
-*/
-
 #include "ParOptVec.h"
 #include "ParOptProblem.h"
 
