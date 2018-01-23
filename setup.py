@@ -24,7 +24,12 @@ def get_mpi_flags():
 
     # Determine whether the output is an include/link/lib command
     inc_dirs, lib_dirs, libs = [], [], []
-    for flag in args:
+    for flag_ in args:
+        try:
+            flag = flag_.decode('utf-8')
+        except:
+            flag = flag_
+
         if flag[:2] == '-I':
             inc_dirs.append(flag[2:])
         elif flag[:2] == '-L':
