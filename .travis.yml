@@ -1,0 +1,60 @@
+language: 
+  - generic
+
+branches:
+  only:
+  - master
+
+os:
+  - linux
+
+env:
+  matrix:
+    - PY=2.7 MPI=1
+    - PY=3.6 MPI=1
+
+sudo: 
+  - required
+
+dist:
+  - trusty
+
+group: 
+  - edge
+
+notifications:
+    email: false
+
+git:
+  depth: 2
+
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - libblas-dev
+    - liblapack-dev
+    - libopenmpi-dev
+    - openmpi-bin
+
+before_install:
+  # Need Cython for generating C/python wrapper
+  - pip install --upgrade pip;
+  - pip install Cython --user
+
+  # Setup directory structure
+  - INSTALL_PREFIX=/home/$USER
+  - mkdir $INSTALL_PREFIX/git
+
+install: 
+  - cd git
+  - git clone https://github.com/komahanb/paropt.git
+  - cd paropt
+  - cp Makefile.in.info Makefile.in
+  - make
+  - make install
+  - python setup.py install --user
+
+script: 
+  - true
