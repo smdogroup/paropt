@@ -11,7 +11,6 @@ os:
 env:
   matrix:
     - PY=2.7 MPI=1
-    - PY=3.6 MPI=1
 
 sudo: 
   - required
@@ -54,7 +53,11 @@ install:
   - cp Makefile.in.info Makefile.in
   - make
   - make install
-  - python setup.py install --user
+  
+  # Currently assume inplace installation
+  - make interface
+
+  #- python setup.py install --user
 
 script: 
-  - true
+  - python examples/python/toy.py
