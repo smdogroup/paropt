@@ -1,4 +1,7 @@
+[![Build Status](https://travis-ci.org/komahanb/paropt.svg?branch=master)](https://travis-ci.org/komahanb/paropt)
+
 # ParOpt: A parallel interior-point optimizer #
+------------------------------------------------
 
 ParOpt is a parallel optimizer for use in general large-scale optimization applications, but is often specifically used for topology and multi-material optimization problems. The optimizer has the capability to handle large numbers of weighting constraints that arise in the parametrization of multi-material problems. 
 
