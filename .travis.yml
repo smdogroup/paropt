@@ -8,10 +8,6 @@ branches:
 os:
   - linux
 
-env:
-  matrix:
-    - PY=2.7 MPI=1
-
 sudo: 
   - required
 
@@ -39,7 +35,7 @@ addons:
 
 before_install:
   # Need Cython for generating C/python wrapper
-  - pip install --upgrade pip;
+  - pip install --upgrade pip
   - pip install Cython --user
 
   # Setup directory structure
