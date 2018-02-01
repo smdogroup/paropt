@@ -29,11 +29,12 @@ before_install:
   - pip install Cython
 
   # Setup directory structure
+  - echo $USER
   - INSTALL_PREFIX=/home/$USER
   - mkdir $INSTALL_PREFIX/git
+  - ls
 
 install: 
-  - cd git
   - git clone https://github.com/komahanb/paropt.git
   - cd paropt
   - cp Makefile.in.info Makefile.in
