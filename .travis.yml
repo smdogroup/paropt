@@ -31,11 +31,11 @@ before_install:
   - pip install matplotlib
 
   # Setup directory structure
-  - echo $USER
   - INSTALL_PREFIX=/home/$USER
+  - PAROPT_PATH=INSTALL_PREFIX=/home/$USER/paropt
+  - export PYTHONPATH=${PYTHONPATH}:PAROPT_PATH
   - mkdir -p $INSTALL_PREFIX/git
   - cd $INSTALL_PREFIX/git
-  - ls
 
 install: 
   - git clone https://github.com/komahanb/paropt.git
