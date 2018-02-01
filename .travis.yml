@@ -1,28 +1,22 @@
-language: 
-  - python
+language: fortran
 
-branches:
-  only:
-  - master
+fortran:
+  - 7.0
 
 os:
   - linux
 
-sudo: 
-  - required
-
-dist:
-  - trusty
-
-group: 
-  - edge
+sudo: required
+dist: trusty
+group: edge
 
 notifications:
     email: false
 
 git:
-  depth: 2
+  depth: 1
 
+# gfortran >= 7 required
 addons:
   apt:
     sources:
@@ -38,22 +32,6 @@ before_install:
   - pip install --upgrade pip
   - pip install Cython --user
 
-  # Setup directory structure
-  - INSTALL_PREFIX=/home/$USER
-  - mkdir $INSTALL_PREFIX/git
+install: make
 
-install: 
-  - cd git
-  - git clone https://github.com/komahanb/paropt.git
-  - cd paropt
-  - cp Makefile.in.info Makefile.in
-  - make
-  - make install
-  
-  # Currently assume inplace installation
-  - make interface
-
-  #- python setup.py install --user
-
-script: 
-  - python examples/python/toy.py
+script: ./test_list
