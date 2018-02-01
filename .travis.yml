@@ -51,3 +51,4 @@ install:
 
 script: 
   - python examples/python/toy.py
+  - mpirun -np 2 python examples/python/toy.py
