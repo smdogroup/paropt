@@ -28,6 +28,7 @@ before_install:
   - pip install --upgrade pip
   - pip install Cython
   - pip install mpi4py
+  - pip install matplotlib
 
   # Setup directory structure
   - echo $USER
