@@ -27,6 +27,7 @@ before_install:
   # Need Cython for generating C/python wrapper
   - pip install --upgrade pip
   - pip install Cython
+  - pip install mpi4py
 
   # Setup directory structure
   - echo $USER
