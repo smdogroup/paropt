@@ -31,7 +31,8 @@ before_install:
   # Setup directory structure
   - echo $USER
   - INSTALL_PREFIX=/home/$USER
-  - mkdir $INSTALL_PREFIX/git
+  - mkdir -p $INSTALL_PREFIX/git
+  - cd $INSTALL_PREFIX/git
   - ls
 
 install: 
