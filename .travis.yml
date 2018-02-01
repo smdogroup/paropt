@@ -26,7 +26,7 @@ addons:
 before_install:
   # Need Cython for generating C/python wrapper
   - pip install --upgrade pip
-  - pip install Cython --user
+  - pip install Cython
 
   # Setup directory structure
   - INSTALL_PREFIX=/home/$USER
