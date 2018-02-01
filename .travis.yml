@@ -40,7 +40,7 @@ install:
   - cd paropt
   - cp Makefile.in.info Makefile.in
   - make
-  - make install
+  - make interface
   
   # Currently assume inplace installation
   - make interface
