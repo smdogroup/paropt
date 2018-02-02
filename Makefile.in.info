@@ -1,7 +1,7 @@
 # This is the Makefile.in file for the parallel optimizer. 
 
 # This is the default location for ParOpt
-PAROPT_DIR=${HOME}/hg/paropt
+PAROPT_DIR=${HOME}/git/paropt
 
 # Which compiler to use
 CXX = mpicxx
