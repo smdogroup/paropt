@@ -38,7 +38,7 @@ before_install:
   - cd $INSTALL_PREFIX/git
 
 install: 
-  - git clone https://github.com/komahanb/paropt.git
+  - git clone https://github.com/gjkennedy/paropt.git
   - cd paropt
   - cp Makefile.in.info Makefile.in
   - make

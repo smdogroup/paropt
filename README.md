@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/komahanb/paropt.svg?branch=master)](https://travis-ci.org/komahanb/paropt)
+[![Build Status](https://travis-ci.org/gjkennedy/paropt.svg?branch=master)](https://travis-ci.org/gjkennedy/paropt)
 
 # ParOpt: A parallel interior-point optimizer #
 ------------------------------------------------
