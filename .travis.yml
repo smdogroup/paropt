@@ -42,13 +42,11 @@ install:
   - cd paropt
   - cp Makefile.in.info Makefile.in
   - make
-  - make interface
   
-  # Currently assume inplace installation
+  # Currently assume inplace installation and setting python path
   - make interface
-
-  #- python setup.py install --user
 
 script: 
   - python examples/python/toy.py
   - mpirun -np 2 python examples/python/toy.py
+  - cd $INSTALL_PREFIX/git/paropt/examples/rosenbrock/; make; mpirun -np 8 ./rosenbrock; cd -;
