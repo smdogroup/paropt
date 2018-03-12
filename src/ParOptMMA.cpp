@@ -532,8 +532,8 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
   betavec->getArray(&beta);
 
   // Parameters used in the computation of the objective/constraint approximations
-  const double eps = 1e-5;
-  const double eta = 1e-3;
+  const double eps = 1e-10;
+  const double eta = 1e-5;
   
   // Compute the values of the lower/upper assymptotes
   for ( int j = 0; j < n; j++ ){
