@@ -42,7 +42,6 @@ ParOptProblem(_prob->getMPIComm()){
   init_asymptote_offset = 0.25;
   min_asymptote_offset = 1e-4;
   max_asymptote_offset = 100.0;
-  bound_relax = 1e-5;
 
   // Set the file pointer to NULL
   fp = NULL;
@@ -257,13 +256,6 @@ void ParOptMMA::setMaxAsymptoteOffset( double val ){
     max_asymptote_offset = val;
   }
 }
- 
-/*
-  Set the bound relaxation factor
-*/
-void ParOptMMA::setBoundRelax( double val ){
-  bound_relax = val;
-}
 
 /*
   Set the output file (only on the root proc)
@@ -347,18 +339,6 @@ void ParOptMMA::computeKKTError( double *l1,
   rvec->getArray(&r);
 
   for ( int j = 0; j < n; j++ ){
-    /*
-    // Check whether the bound multipliers would eliminate this
-    // residual or not. If we're at the lower bound and the KKT
-    // residual is negative or if we're at the upper bound and the KKT
-    // residual is positive.
-    if ((x[j] <= lb[j] + bound_relax) && r[j] >= 0.0){
-      r[j] = 0.0;
-    }
-    if ((x[j] + bound_relax >= ub[j]) && r[j] <= 0.0){
-      r[j] = 0.0;
-    }
-    */
     // Add the contribution to the l1/infinity norms
     double t = fabs(RealPart(r[j]));
     l1_norm += t;
@@ -457,8 +437,8 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
 
       if (mma_iter % 10 == 0){
         fprintf(fp, "\n%5s %8s %15s %9s %9s %9s %9s\n",
-                "MMA", "sub-iter", "fobj", "l1 opt", 
-                "linft opt", "l1 lambd", "infeas");
+                "MMA", "sub-iter", "fobj", "l1-opt", 
+                "linft-opt", "l1-lambd", "infeas");
       }
       fprintf(fp, "%5d %8d %15.6e %9.3e %9.3e %9.3e %9.3e\n",
               mma_iter, subproblem_iter, fobj, l1, 
@@ -551,15 +531,17 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
   alphavec->getArray(&alpha);
   betavec->getArray(&beta);
 
+  // Parameters used in the computation of the objective/constraint approximations
+  const double eps = 1e-5;
+  const double eta = 1e-3;
+  
   // Compute the values of the lower/upper assymptotes
   for ( int j = 0; j < n; j++ ){
     // Compute the move limits to avoid division by zero
-    alpha[j] = max2(lb[j], 0.9*L[j] + 0.1*x[j]);
-    beta[j] = min2(ub[j], 0.9*U[j] + 0.1*x[j]);
+    alpha[j] = max2(max2(lb[j], 0.9*L[j] + 0.1*x[j]), x[j] - 0.5*(ub[j] - lb[j]));
+    beta[j] = min2(min2(ub[j], 0.9*U[j] + 0.1*x[j]), x[j] + 0.5*(ub[j] - lb[j]));
 
     // Compute the coefficients for the objective
-    double eps = 1e-5;
-    double eta = 1e-3;
     ParOptScalar gpos = max2(0.0, g[j]);
     ParOptScalar gneg = max2(0.0, -g[j]);
     p0[j] = (U[j] - x[j])*(U[j] - x[j])*((1.0 + eta)*gpos + 
@@ -579,14 +561,12 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
       // a min here since the constraints in paropt are forumlated as
       // c(x) >= 0 -- so we need concave constraints
       for ( int j = 0; j < n; j++ ){
-        double eps = 1e-5;
-        double eta = 1e-3;
         ParOptScalar Aneg = min2(0.0, A[i][j]);
         ParOptScalar Apos = min2(0.0, -A[i][j]);
         pi[j] = (U[j] - x[j])*(U[j] - x[j])*((1.0 + eta)*Aneg + 
-                                             eta*Apos + eps/(ub[j] - lb[j]));
+                                             eta*Apos - eps/(ub[j] - lb[j]));
         qi[j] = (x[j] - L[j])*(x[j] - L[j])*((1.0 + eta)*Apos +
-                                             eta*Aneg + eps/(ub[j] - lb[j]));
+                                             eta*Aneg - eps/(ub[j] - lb[j]));
         b[i] += pi[j]/(U[j] - x[j]) + qi[j]/(x[j] - L[j]);
       }
     }
