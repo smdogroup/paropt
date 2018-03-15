@@ -59,6 +59,7 @@ class ParOptMMA : public ParOptProblem {
   void setMinAsymptoteOffset( double val );
   void setMaxAsymptoteOffset( double val );
   void setBoundRelax( double val );
+  void setRegularization( double eps, double delta );
 
   // Set the output file (only on the root proc)
   void setOutputFile( const char *filename );
@@ -139,6 +140,10 @@ class ParOptMMA : public ParOptProblem {
   double min_asymptote_offset; // Enforce a minimum fraction offset
   double max_asymptote_offset; // Enforce a minimum fraction offset
   double bound_relax; // Relax the bounds when computing the KKT error
+
+  // Set the regularization parameters for the convexification
+  double eps_regularization;
+  double delta_regularization;
 
   // Keep track of the number of iterations
   int mma_iter;

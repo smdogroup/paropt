@@ -43,6 +43,8 @@ ParOptProblem(_prob->getMPIComm()){
   min_asymptote_offset = 0.01;
   max_asymptote_offset = 10.0;
   bound_relax = 0.0;
+  eps_regularization = 1e-3;
+  delta_regularization = 1e-5;
 
   // Set the file pointer to NULL
   fp = NULL;
@@ -263,6 +265,14 @@ void ParOptMMA::setMaxAsymptoteOffset( double val ){
 */
 void ParOptMMA::setBoundRelax( double val ){
   bound_relax = val;
+}
+
+/*
+  Set the regularization parameters
+*/
+void ParOptMMA::setRegularization( double eps, double delta ){
+  eps_regularization = eps;
+  delta_regularization = delta;
 }
 
 /*
@@ -565,8 +575,8 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
 
   // Parameters used in the computation of the objective/constraint
   // approximations
-  const double eps = 1e-5;
-  const double eta = 1e-3;
+  const double eps = eps_regularization;
+  const double eta = delta_regularization;
   
   // Compute the values of the lower/upper assymptotes
   for ( int j = 0; j < n; j++ ){
