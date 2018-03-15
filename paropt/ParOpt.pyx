@@ -963,4 +963,4 @@ cdef class pyMMA(pyParOptProblemBase):
       self.mma.setBoundRelax(val)
 
    def setRegularization(self, double eps, double delta):
-      self.mmat.setRegularization(eps, delta)
+      self.mma.setRegularization(eps, delta)
