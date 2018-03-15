@@ -958,3 +958,6 @@ cdef class pyMMA(pyParOptProblemBase):
 
    def setMaxAsymptoteOffset(self, double val):
       self.mma.setMaxAsymptoteOffset(val)
+
+   def setBoundRelax(self, double val):
+      self.mma.setBoundRelax(val)
