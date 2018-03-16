@@ -47,6 +47,7 @@ ParOptProblem(_prob->getMPIComm()){
   delta_regularization = 1e-5;
 
   // Set the file pointer to NULL
+  first_print = 1;
   fp = NULL;
   print_level = 1;
   
@@ -290,6 +291,28 @@ void ParOptMMA::setOutputFile( const char *filename ){
 }
 
 /*
+  Write the parameters to the output file
+*/
+void ParOptMMA::printOptionsSummary( FILE *fp ){
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+  if (rank == 0){
+    fprintf(fp, "ParOptMMA options summary:\n");
+    fprintf(fp, "%-30s %15d\n", "print_level", print_level);
+    fprintf(fp, "%-30s %15d\n", "use_true_mma", use_true_mma);
+    fprintf(fp, "%-30s %15g\n", "asymptote_contract", asymptote_contract);
+    fprintf(fp, "%-30s %15g\n", "asymptote_relax", asymptote_relax);
+    fprintf(fp, "%-30s %15g\n", "init_asymptote_offset", init_asymptote_offset);
+    fprintf(fp, "%-30s %15g\n", "min_asymptote_offset", min_asymptote_offset);
+    fprintf(fp, "%-30s %15g\n", "max_asymptote_offset", max_asymptote_offset);
+    fprintf(fp, "%-30s %15g\n", "bound_relax", bound_relax);
+    fprintf(fp, "%-30s %15g\n", "eps_regularization", eps_regularization);
+    fprintf(fp, "%-30s %15g\n", "delta_regularization", delta_regularization);
+    fprintf(fp, "\n");
+  }
+}
+
+/*
   Set the iteration count for the MMA
 */
 void ParOptMMA::setIteration( int _mma_iter ){
@@ -475,9 +498,12 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
       double l1_lambda = 0.0;
       for ( int i = 0; i < m; i++ ){
         l1_lambda += fabs(RealPart(z[i]));
-      }      
+      }
 
-      if (mma_iter % 10 == 0){
+      if (first_print){
+        printOptionsSummary(fp);
+      }
+      if (first_print || mma_iter % 10 == 0){
         fprintf(fp, "\n%5s %8s %15s %9s %9s %9s %9s\n",
                 "MMA", "sub-iter", "fobj", "l1-opt", 
                 "linft-opt", "l1-lambd", "infeas");
@@ -486,6 +512,9 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
               mma_iter, subproblem_iter, fobj, l1, 
               linfty, l1_lambda, infeas);
       fflush(fp);
+
+      // Set the first print flag to false
+      first_print = 0;
     }
   }
 

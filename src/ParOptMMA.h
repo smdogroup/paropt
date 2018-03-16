@@ -120,8 +120,12 @@ class ParOptMMA : public ParOptProblem {
   // Initialize the data
   void initialize();
 
+  // Print the options summary
+  void printOptionsSummary( FILE *fp );
+
   // File pointer for the summary file - depending on the settings
   FILE *fp;
+  int first_print;
 
   // Settings for what to write out to a file or not...
   int print_level; // == 0 => no print, 1 MMA iters, 2 MMA+subproblem
