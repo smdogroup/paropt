@@ -40,10 +40,14 @@ ParOptProblem(_prob->getMPIComm()){
   asymptote_contract = 0.7;
   asymptote_relax = 1.2;
   init_asymptote_offset = 0.25;
-  min_asymptote_offset = 1e-4;
-  max_asymptote_offset = 100.0;
+  min_asymptote_offset = 0.01;
+  max_asymptote_offset = 10.0;
+  bound_relax = 0.0;
+  eps_regularization = 1e-3;
+  delta_regularization = 1e-5;
 
   // Set the file pointer to NULL
+  first_print = 1;
   fp = NULL;
   print_level = 1;
   
@@ -258,6 +262,21 @@ void ParOptMMA::setMaxAsymptoteOffset( double val ){
 }
 
 /*
+  Set the relaxation on the bounds for the KKT error computation
+*/
+void ParOptMMA::setBoundRelax( double val ){
+  bound_relax = val;
+}
+
+/*
+  Set the regularization parameters
+*/
+void ParOptMMA::setRegularization( double eps, double delta ){
+  eps_regularization = eps;
+  delta_regularization = delta;
+}
+
+/*
   Set the output file (only on the root proc)
 */
 void ParOptMMA::setOutputFile( const char *filename ){
@@ -268,6 +287,28 @@ void ParOptMMA::setOutputFile( const char *filename ){
       fclose(fp);
     }
     fp = fopen(filename, "w");
+  }
+}
+
+/*
+  Write the parameters to the output file
+*/
+void ParOptMMA::printOptionsSummary( FILE *fp ){
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+  if (rank == 0){
+    fprintf(fp, "ParOptMMA options summary:\n");
+    fprintf(fp, "%-30s %15d\n", "print_level", print_level);
+    fprintf(fp, "%-30s %15d\n", "use_true_mma", use_true_mma);
+    fprintf(fp, "%-30s %15g\n", "asymptote_contract", asymptote_contract);
+    fprintf(fp, "%-30s %15g\n", "asymptote_relax", asymptote_relax);
+    fprintf(fp, "%-30s %15g\n", "init_asymptote_offset", init_asymptote_offset);
+    fprintf(fp, "%-30s %15g\n", "min_asymptote_offset", min_asymptote_offset);
+    fprintf(fp, "%-30s %15g\n", "max_asymptote_offset", max_asymptote_offset);
+    fprintf(fp, "%-30s %15g\n", "bound_relax", bound_relax);
+    fprintf(fp, "%-30s %15g\n", "eps_regularization", eps_regularization);
+    fprintf(fp, "%-30s %15g\n", "delta_regularization", delta_regularization);
+    fprintf(fp, "\n");
   }
 }
 
@@ -326,10 +367,6 @@ void ParOptMMA::computeKKTError( double *l1,
     prob->addSparseJacobianTranspose(-1.0, xvec, zwvec, rvec);
   }
 
-  // Add r = r - zl + zu
-  rvec->axpy(-1.0, zlvec);
-  rvec->axpy(1.0, zuvec);
-
   // Set the infinity norms
   double l1_norm = 0.0;
   double infty_norm = 0.0;
@@ -338,12 +375,40 @@ void ParOptMMA::computeKKTError( double *l1,
   ParOptScalar *r;
   rvec->getArray(&r);
 
-  for ( int j = 0; j < n; j++ ){
-    // Add the contribution to the l1/infinity norms
-    double t = fabs(RealPart(r[j]));
-    l1_norm += t;
-    if (t >= infty_norm){
-      infty_norm = t;
+  if (bound_relax <= 0.0){
+    // Add r = r - zl + zu
+    rvec->axpy(-1.0, zlvec);
+    rvec->axpy(1.0, zuvec);
+
+    for ( int j = 0; j < n; j++ ){
+      // Find the contribution to the l1/infinity norms
+      double t = fabs(RealPart(r[j]));
+      l1_norm += t;
+      if (t >= infty_norm){
+        infty_norm = t;
+      }
+    }
+  }
+  else {
+    for ( int j = 0; j < n; j++ ){
+      double w = RealPart(r[j]);
+      
+      // Check if we're on the lower bound
+      if ((x[j] <= lb[j] + bound_relax) && w > 0.0){
+        w = 0.0;
+      }
+      
+      // Check if we're on the upper bound
+      if ((x[j] >= ub[j] - bound_relax) && w < 0.0){
+        w = 0.0;
+      }
+      
+      // Add the contribution to the l1/infinity norms
+      double t = fabs(w);
+      l1_norm += t;
+      if (t >= infty_norm){
+        infty_norm = t;
+      }
     }
   }
 
@@ -433,9 +498,12 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
       double l1_lambda = 0.0;
       for ( int i = 0; i < m; i++ ){
         l1_lambda += fabs(RealPart(z[i]));
-      }      
+      }
 
-      if (mma_iter % 10 == 0){
+      if (first_print){
+        printOptionsSummary(fp);
+      }
+      if (first_print || mma_iter % 10 == 0){
         fprintf(fp, "\n%5s %8s %15s %9s %9s %9s %9s\n",
                 "MMA", "sub-iter", "fobj", "l1-opt", 
                 "linft-opt", "l1-lambd", "infeas");
@@ -444,6 +512,9 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
               mma_iter, subproblem_iter, fobj, l1, 
               linfty, l1_lambda, infeas);
       fflush(fp);
+
+      // Set the first print flag to false
+      first_print = 0;
     }
   }
 
@@ -498,7 +569,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
       }
 
       // Ensure that the asymptotes do not converge entirely on the
-      // design value
+      // design variable value
       L[j] = min2(L[j], x[j] - min_asymptote_offset*intrvl);
       U[j] = max2(U[j], x[j] + min_asymptote_offset*intrvl);
 
@@ -531,9 +602,10 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
   alphavec->getArray(&alpha);
   betavec->getArray(&beta);
 
-  // Parameters used in the computation of the objective/constraint approximations
-  const double eps = 1e-10;
-  const double eta = 1e-5;
+  // Parameters used in the computation of the objective/constraint
+  // approximations
+  const double eps = eps_regularization;
+  const double eta = delta_regularization;
   
   // Compute the values of the lower/upper assymptotes
   for ( int j = 0; j < n; j++ ){
@@ -557,16 +629,16 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
       pivecs[i]->getArray(&pi);
       qivecs[i]->getArray(&qi);
 
-      // Compute the coefficients for the constraints. Note that we use
-      // a min here since the constraints in paropt are forumlated as
-      // c(x) >= 0 -- so we need concave constraints
+      // Compute the coefficients for the constraints.  Here we form a
+      // convex approximation for -c(x) since the constraints are
+      // formulated as c(x) >= 0.
       for ( int j = 0; j < n; j++ ){
-        ParOptScalar Aneg = min2(0.0, A[i][j]);
-        ParOptScalar Apos = min2(0.0, -A[i][j]);
-        pi[j] = (U[j] - x[j])*(U[j] - x[j])*((1.0 + eta)*Aneg + 
-                                             eta*Apos - eps/(ub[j] - lb[j]));
-        qi[j] = (x[j] - L[j])*(x[j] - L[j])*((1.0 + eta)*Apos +
-                                             eta*Aneg - eps/(ub[j] - lb[j]));
+        ParOptScalar gpos = max2(0.0, -A[i][j]);
+        ParOptScalar gneg = max2(0.0, A[i][j]);
+        pi[j] = (U[j] - x[j])*(U[j] - x[j])*((1.0 + eta)*gpos +
+                                             eta*gneg + eps/(ub[j] - lb[j]));
+        qi[j] = (x[j] - L[j])*(x[j] - L[j])*((1.0 + eta)*gneg +
+                                             eta*gpos + eps/(ub[j] - lb[j]));
         b[i] += pi[j]/(U[j] - x[j]) + qi[j]/(x[j] - L[j]);
       }
     }
@@ -575,7 +647,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
     MPI_Allreduce(MPI_IN_PLACE, b, m, PAROPT_MPI_TYPE, MPI_SUM, comm);
 
     for ( int i = 0; i < m; i++ ){
-      b[i] -= cons[i];
+      b[i] = -(cons[i] + b[i]);
     }
   }
 
@@ -709,7 +781,7 @@ int ParOptMMA::evalObjCon( ParOptVec *xv, ParOptScalar *fval,
 
   if (use_true_mma){
     for ( int i = 0; i < m; i++ ){
-      cvals[i] -= b[i];
+      cvals[i] = -(cvals[i] + b[i]);
     }
   }
   else {
@@ -767,7 +839,7 @@ int ParOptMMA::evalObjConGradient( ParOptVec *xv, ParOptVec *gv,
       for ( int j = 0; j < n; j++ ){
         ParOptScalar Uinv = 1.0/(U[j] - x[j]);
         ParOptScalar Linv = 1.0/(x[j] - L[j]);
-        A[j] = Uinv*Uinv*pi[j] - Linv*Linv*qi[j];
+        A[j] = Linv*Linv*qi[j] - Uinv*Uinv*pi[j];
       }
     }
   }
@@ -858,7 +930,7 @@ int ParOptMMA::evalHessianDiag( ParOptVec *xv,
       for ( int j = 0; j < n; j++ ){
         ParOptScalar Uinv = 1.0/(U[j] - x[j]);
         ParOptScalar Linv = 1.0/(x[j] - L[j]);
-        h[j] -= 2.0*z[i]*(Uinv*Uinv*Uinv*pi[j] + Linv*Linv*Linv*qi[j]);
+        h[j] += 2.0*z[i]*(Uinv*Uinv*Uinv*pi[j] + Linv*Linv*Linv*qi[j]);
       }
     }
   }

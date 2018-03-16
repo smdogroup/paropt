@@ -82,7 +82,7 @@ def unpack_output(str filename):
                index += 1
                counter += 1
                if len(line.split()) < len(args):
-                  break
+                  continue
 
                # Scan through the format list and determine how to
                # convert the object based on the format string
@@ -150,7 +150,7 @@ def unpack_mma_output(str filename):
                index += 1
                counter += 1
                if len(line.split()) < len(args):
-                  break
+                  continue
 
                # Scan through the format list and determine how to
                # convert the object based on the format string
@@ -958,3 +958,9 @@ cdef class pyMMA(pyParOptProblemBase):
 
    def setMaxAsymptoteOffset(self, double val):
       self.mma.setMaxAsymptoteOffset(val)
+
+   def setBoundRelax(self, double val):
+      self.mma.setBoundRelax(val)
+
+   def setRegularization(self, double eps, double delta):
+      self.mma.setRegularization(eps, delta)

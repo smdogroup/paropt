@@ -225,7 +225,8 @@ cdef extern from "ParOptMMA.h":
       void setInitAsymptoteOffset(double)
       void setMinAsymptoteOffset(double)
       void setMaxAsymptoteOffset(double)
+      void setBoundRelax(double)
+      void setRegularization(double, double)
 
 cdef class pyParOptProblemBase:
    cdef ParOptProblem *ptr
-

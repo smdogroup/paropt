@@ -58,6 +58,8 @@ class ParOptMMA : public ParOptProblem {
   void setInitAsymptoteOffset( double val );
   void setMinAsymptoteOffset( double val );
   void setMaxAsymptoteOffset( double val );
+  void setBoundRelax( double val );
+  void setRegularization( double eps, double delta );
 
   // Set the output file (only on the root proc)
   void setOutputFile( const char *filename );
@@ -118,8 +120,12 @@ class ParOptMMA : public ParOptProblem {
   // Initialize the data
   void initialize();
 
+  // Print the options summary
+  void printOptionsSummary( FILE *fp );
+
   // File pointer for the summary file - depending on the settings
   FILE *fp;
+  int first_print;
 
   // Settings for what to write out to a file or not...
   int print_level; // == 0 => no print, 1 MMA iters, 2 MMA+subproblem
@@ -137,6 +143,11 @@ class ParOptMMA : public ParOptProblem {
   double init_asymptote_offset; // The initial asymptote offset
   double min_asymptote_offset; // Enforce a minimum fraction offset
   double max_asymptote_offset; // Enforce a minimum fraction offset
+  double bound_relax; // Relax the bounds when computing the KKT error
+
+  // Set the regularization parameters for the convexification
+  double eps_regularization;
+  double delta_regularization;
 
   // Keep track of the number of iterations
   int mma_iter;
