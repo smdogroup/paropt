@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 # Import this for directory creation
 import os
 
@@ -227,9 +229,9 @@ def optimize_truss(N, M, root_dir='results', penalization='SIMP',
         comp = truss.getCompliance(x)
 
         # Print out the iteration information to the screen
-        print 'Iteration %d'%(k)
-        print 'Min/max d:     %15.5e %15.5e  Total: %15.5e'%(
-            np.min(d), np.max(d), np.sum(d))
+        print('Iteration %d'%(k))
+        print('Min/max d:     %15.5e %15.5e  Total: %15.5e'%(
+            np.min(d), np.max(d), np.sum(d)))
 
         s = '%d %e %e %e %e '%(k, comp, np.min(d), np.max(d), np.sum(d))
         s += '%d %d %d %e\n'%(truss.fevals, truss.gevals, truss.hevals, 

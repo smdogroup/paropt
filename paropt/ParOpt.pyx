@@ -1,5 +1,6 @@
 #distuils: language = c++
 #distuils: sources = ParOpt.c
+from __future__ import print_function, division
 
 # For the use of MPI
 from mpi4py.MPI cimport *
@@ -25,6 +26,11 @@ include "ParOptDefs.pxi"
 cdef extern from "mpi-compat.h":
    pass
 
+cdef char* convert_to_chars(s):
+   if isinstance(s, unicode):
+      s = (<unicode>s).encode('utf8')
+   return s
+
 # The quasi-Newton hessian approximation
 BFGS = PAROPT_BFGS
 SR1 = PAROPT_SR1
@@ -44,7 +50,7 @@ COMPLEMENTARITY_FRACTION = PAROPT_COMPLEMENTARITY_FRACTION
 SKIP_NEGATIVE_CURVATURE = PAROPT_SKIP_NEGATIVE_CURVATURE
 DAMPED_UPDATE = PAROPT_DAMPED_UPDATE
 
-def unpack_output(str filename):
+def unpack_output(filename):
    '''
    Unpack the parameters from the paropt output file and return them
    in a list of numpy arrays. This also returns a small string
@@ -118,12 +124,13 @@ def unpack_output(str filename):
                   
    return args, objs
 
-def unpack_mma_output(str filename):
+def unpack_mma_output(filename):
    '''
    Unpack the parameters from a file output from MMA
    '''
 
-   args = ['MMA', 'sub-iter', 'fobj', 'l1-opt', 'linft-opt', 'l1-lambd', 'infeas']
+   args = ['MMA', 'sub-iter', 'fobj', 'l1-opt', 
+           'linft-opt', 'l1-lambd', 'infeas']
    fmt = ['5d', '8d', '15e', '9e', '9e', '9e', '9e']
 
    # Loop over the file until the end
@@ -187,7 +194,7 @@ def unpack_mma_output(str filename):
    return args, objs
 
 # Read in a ParOpt checkpoint file and produce python variables
-def unpack_checkpoint(str filename):
+def unpack_checkpoint(filename):
    '''Convert the checkpoint file to usable python objects'''
 
    # Open the file in read-only binary mode
@@ -585,7 +592,7 @@ cdef class PVec:
          return array[k]
       elif isinstance(k, slice):
          start, stop, step = k.indices(size)
-         d = (stop-1 - start)/step + 1
+         d = (stop-1 - start)//step + 1
          arr = np.zeros(d, dtype=dtype)
          index = 0
          for i in range(start, stop, step):
@@ -699,11 +706,11 @@ cdef class pyParOpt:
          self.ptr.decref()
       
    # Perform the optimization
-   def optimize(self, char *checkpoint=''):
+   def optimize(self, bytes checkpoint=None):
       if checkpoint is None: 
          return self.ptr.optimize(NULL)
       else:
-         return self.ptr.optimize(&checkpoint[0])
+         return self.ptr.optimize(checkpoint)
       
    def getOptimizedPoint(self):
       '''
@@ -861,7 +868,8 @@ cdef class pyParOpt:
    def setMajorIterStepCheck(self, int step):
       self.ptr.setMajorIterStepCheck(step)
       
-   def setOutputFile(self, char *filename):
+   def setOutputFile(self, fname):
+      cdef char *filename = convert_to_chars(fname)
       if filename is not None:
          self.ptr.setOutputFile(filename)
 
@@ -872,11 +880,13 @@ cdef class pyParOpt:
        self.ptr.setGradientCheckFrequency(freq, step_size)
          
    # Write out the design variables to binary format (fast MPI/IO)
-   def writeSolutionFile(self, char *filename):
+   def writeSolutionFile(self, fname):
+      cdef char *filename = convert_to_chars(fname)
       if filename is not None:
          return self.ptr.writeSolutionFile(filename)
   
-   def readSolutionFile(self, char *filename):
+   def readSolutionFile(self, fname):
+      cdef char *filename = convert_to_chars(fname)
       if filename is not None:
          return self.ptr.readSolutionFile(filename)
 
@@ -941,7 +951,8 @@ cdef class pyMMA(pyParOptProblemBase):
    def setPrintLevel(self, int level):
       self.mma.setPrintLevel(level)
 
-   def setOutputFile(self, char *filename):
+   def setOutputFile(self, fname):
+      cdef char *filename = convert_to_chars(fname)
       self.mma.setOutputFile(filename)
 
    def setAsymptoteContract(self, double val):
