@@ -115,7 +115,7 @@ cdef class MultiTopoProperties:
             return 'convex', 'ramp'
         elif self.ptr.getPenaltyType() == PS_RAMP_FULL:
             return 'full', 'ramp'
-        elif self.ptr.getPenaltyType() == PS_SIMP_FULL:
+        elif self.ptr.getPenaltyType() == PS_SIMP_CONVEX:
             return 'convex', 'simp'
         else:
             return 'full', 'simp'
