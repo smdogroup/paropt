@@ -59,8 +59,8 @@ def get_ground_structure(N=4, M=4, L=2.5, P=1e4, n=10):
 
     # Set up the connectivity array
     conn = []
-    for i in xrange(N):
-        for j in xrange(M):
+    for i in range(N):
+        for j in range(M):
             n1 = i + N*j
             for d in grid:
                 if ((i + d[0] < N) and (j + d[1] < M) and
@@ -70,8 +70,8 @@ def get_ground_structure(N=4, M=4, L=2.5, P=1e4, n=10):
 
     # Set the positions of all the nodes
     xpos = []
-    for j in xrange(M):
-        for i in xrange(N):
+    for j in range(M):
+        for i in range(N):
             xpos.extend([i*L, j*L])
 
     # Set the node locations
@@ -79,7 +79,7 @@ def get_ground_structure(N=4, M=4, L=2.5, P=1e4, n=10):
     loads[N-1] = [0, -P]
 
     bcs = {}
-    for j in xrange(M):
+    for j in range(M):
         bcs[j*N] = [0, 1]
 
     return conn, xpos, loads, bcs
@@ -206,7 +206,7 @@ def optimize_truss(N, M, root_dir='results', penalization='SIMP',
     
     # Keep track of the number of iterations
     niters = 0
-    for k in xrange(max_iters):
+    for k in range(max_iters):
         # Set the output file to use
         fname = os.path.join(prefix, 'truss_paropt_iter%d.out'%(k)) 
         opt.setOutputFile(fname)
@@ -360,10 +360,10 @@ def create_pyopt(analysis, optimizer='snopt', options={}):
     ncols = num_design_vars
 
     nblock = num_materials+1
-    for i in xrange(num_elements):
+    for i in range(num_elements):
         data.append(1.0)
         cols.append(i*nblock)
-        for j in xrange(i*nblock+1, (i+1)*nblock):
+        for j in range(i*nblock+1, (i+1)*nblock):
             data.append(-1.0)
             cols.append(j)
         rowp.append(len(cols))

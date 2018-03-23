@@ -119,7 +119,7 @@ hvecs = np.ones((len(problems), len(heuristics)))
 
 # Read in all the data required for each problem
 iheur = 0
-for k in xrange(len(heuristics)):
+for k in range(len(heuristics)):
     heuristic = heuristics[k]
     itruss = 0
     for prob in problems:
@@ -153,7 +153,7 @@ for k in xrange(len(heuristics)):
 nprob = len(problems)
 r = np.zeros(perform.shape)
 
-for i in xrange(nprob):
+for i in range(nprob):
     best = 1.0*min(perform[i, :])
     r[i, :] = perform[i, :]/best
 
@@ -162,7 +162,7 @@ if tikz is None:
     fig = plt.figure(facecolor='w')
     tau_max = 10.0
     colours = ['g', 'b', 'r', 'k']
-    for k in xrange(len(heuristics)):
+    for k in range(len(heuristics)):
         tau, rho = get_performance_profile(r[:, k], tau_max)
         plt.plot(tau, rho, colours[k], linewidth=2, label=heuristics[k])
 
@@ -211,7 +211,7 @@ else:
                           xticks=xticks, yticks=yticks,
                           xlabel='$\\alpha$', ylabel='Fraction of problems')
 
-    for k in xrange(len(heuristics)):
+    for k in range(len(heuristics)):
         tau, rho = get_performance_profile(r[:, k], 1.5*xmax)
         s += tikz.get_2d_plot(tau, rho, xscale=xscale, yscale=yscale,
                               color=colors[k], line_dim='ultra thick',
@@ -224,7 +224,7 @@ else:
     s += '\\draw[fill=white] (%f,%f) rectangle (%f,%f);'%(
         (xlegend - 0.15)*xscale, (ylegend + 0.04)*yscale,
         (xlegend + xlegend_len)*xscale, (ylegend - ylegend_len - 0.04)*yscale)
-    for k in xrange(len(heuristics)):
+    for k in range(len(heuristics)):
         s += tikz.get_legend_entry(xlegend, ylegend - 0.06*k, length,
                                    xscale=xscale, yscale=yscale,
                                    color=colors[k], line_dim='ultra thick',
@@ -258,18 +258,18 @@ else:
     elif merit == 'compliance':
         ylabel = 'Compliance/Best'
 
-        for i in xrange(len(problems)):
+        for i in range(len(problems)):
             best_iso = 1e20
             best_ortho = 1e20
 
-            for k in xrange(len(heuristics)):
+            for k in range(len(heuristics)):
                 if 'iso' in heuristics[k]:
                     if perform[i,k] < best_iso:
                         best_iso = perform[i,k]
                 else:
                     if perform[i,k] < best_ortho:
                         best_ortho = perform[i,k]
-            for k in xrange(len(heuristics)):
+            for k in range(len(heuristics)):
                 if 'iso' in heuristics[k]:
                     perform[i,k] /= best_iso
                 else:
@@ -360,7 +360,7 @@ else:
                               color='gray', line_dim='thin',
                               xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
 
-    for k in xrange(len(heuristics)):
+    for k in range(len(heuristics)):
         xlist = []
         ylist = []
         for i in range(len(problems)):
@@ -393,7 +393,7 @@ else:
         (xlegend - length)*xscale, (ylegend + 0.6*delta_y)*yscale,
         (xlegend + xlegend_len)*xscale, (ylegend - ylegend_len - 0.5*delta_y)*yscale)
 
-    for k in xrange(len(heuristics)):
+    for k in range(len(heuristics)):
         # Add a label to the legend
         line_dim = 'ultra thick'
         # if 'paropt' not in heuristics[k]:
@@ -446,7 +446,7 @@ else:
                                    gevals[:, iheur], 
                                    hvecs[:, iheur])).T)
 
-        for i in xrange(6):
+        for i in range(6):
             s += tikz.get_2d_plot([xmin, xmax], [i, i],
                                   xscale=xscale, yscale=yscale,
                                   color='gray', line_dim='thin',
@@ -469,7 +469,7 @@ else:
 
         # Draw the legend
         labels = ['Function evaluations', 'Gradient evaluations', 'Hessian-vector products']
-        for i in xrange(len(labels)):
+        for i in range(len(labels)):
             s += r'\draw[thick, color=%s, fill=%s, fill opacity=0.3] (%f, %f) rectangle (%f, %f);'%(
                 colors[i], colors[i],
                 xscale*10, yscale*(5.125 - 0.5*i), xscale*10.5, yscale*(5.125 - 0.5*i) + xscale*0.5)

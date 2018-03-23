@@ -136,7 +136,7 @@ eigs_linear = np.linspace(eig_min, eig_max, n)
 
 # Solve the problem with a clustered spacing of the eigenvalues
 eigs_clustered = np.zeros(n)
-for i in xrange(1,n+1):
+for i in range(1,n+1):
     u = (1.0*n)/(n-1)*(1.0/(n + 1 - i) - 1.0/n)
     eigs_clustered[i-1] = eig_min + (eig_max - eig_min)*u**0.9
 

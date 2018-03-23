@@ -201,8 +201,8 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             
             # Add the product to the derivative of the compliance
             v = 0.0
-            for i in xrange(4):
-                for j in xrange(4):
+            for i in range(4):
+                for j in range(4):
                     v += self.u[elem_vars[i]]*self.u[elem_vars[j]]*Ke[i, j]
             gobj[index] = gobj[index] - v
             index += 1
@@ -267,8 +267,8 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             elem_vars = [2*n1, 2*n1+1, 2*n2, 2*n2+1]
             
             # Add the product to the derivative of the compliance
-            for i in xrange(4):
-                for j in xrange(4):
+            for i in range(4):
+                for j in range(4):
                     hvec[index] += \
                         2.0*self.phi[elem_vars[i]]*self.u[elem_vars[j]]*Ke[i, j]
             
@@ -319,8 +319,8 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         
             # Add the element stiffness matrix to the global stiffness
             # matrix
-            for i in xrange(4):
-                for j in xrange(4):
+            for i in range(4):
+                for j in range(4):
                     K[elem_vars[i], elem_vars[j]] += Ke[i, j]
                     
         return

@@ -105,7 +105,7 @@ class PlateOpt(ParOpt.pyParOptProblem):
         g[:] = self.gradVals[0:self.nvars]
 
         # Set the constraint gradient
-        for c in xrange(self.ncon):
+        for c in range(self.ncon):
             A[c][:] = self.gradVals[(c+1)*(self.nvars):(c+2)*(self.nvars)]
         
         return fail
@@ -143,7 +143,7 @@ mesh = TACS.MeshLoader(MPI.COMM_WORLD)
 mesh.scanBDFFile(bdfFileName)
 
 num_components  = mesh.getNumComponents()
-for i in xrange(num_components):
+for i in range(num_components):
     descriptor  = mesh.getElementDescript(i)
     stiff       = constitutive.isoFSDT(rho, E, nu, kcorr, ys,
                                        init_thickness, i,

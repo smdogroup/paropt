@@ -156,8 +156,8 @@ def plot_it_all(problem):
     x1 = np.linspace(xlow, xhigh, n)
     r = np.zeros((n, n))
 
-    for j in xrange(n):
-        for i in xrange(n):
+    for j in range(n):
+        for i in range(n):
             fail, fobj, con = problem.evalObjCon([x1[i], x1[j]])
             r[j, i] = fobj
 
@@ -171,7 +171,7 @@ def plot_it_all(problem):
     colours = ['-bo', '-ko', '-co', '-mo', '-yo',
                '-bx', '-kx', '-cx', '-mx', '-yx' ]
 
-    for k in xrange(len(colours)):
+    for k in range(len(colours)):
         # Optimize the problem
         problem.x_hist = []
         opt.resetQuasiNewtonHessian()
@@ -181,7 +181,7 @@ def plot_it_all(problem):
 
         # Copy out the steepest descent points
         sd = np.zeros((2, len(problem.x_hist)))
-        for i in xrange(len(problem.x_hist)):
+        for i in range(len(problem.x_hist)):
             sd[0, i] = problem.x_hist[i][0]
             sd[1, i] = problem.x_hist[i][1]
 

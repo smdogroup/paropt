@@ -1,4 +1,5 @@
 # Create the toy example that is used in Svanberg MMA
+from __future__ import print_function
 
 # Import some utilities
 import numpy as np
@@ -6,10 +7,10 @@ import mpi4py.MPI as MPI
 import matplotlib.pyplot as plt
 import argparse
 import os
+
 # Import ParOpt
 from paropt import ParOpt
 
-#
 class Toy(ParOpt.pyParOptProblem):
     def __init__(self, comm):
         # Set the communicator pointer
@@ -43,11 +44,11 @@ class Toy(ParOpt.pyParOptProblem):
         fail = 0
         con = np.zeros(self.ncon)
         fobj = x[0]**2+x[1]**2+x[2]**2
-        print "x is ",np.array(x)
-        print "Objective is ",fobj
+        print("x is ", np.array(x))
+        print("Objective is ", fobj)
         con[0] = 9-(x[0]-5.)**2-(x[1]-2)**2-(x[2]-1)**2
         con[1] = 9-(x[0]-3.)**2-(x[1]-4)**2-(x[2]-3)**2
-        print "constraint values are ",np.array(con)
+        print("constraint values are ", np.array(con))
         return fail, fobj, con
 
     def evalObjConGradient(self, x, g, A):
@@ -116,7 +117,7 @@ opt.setUseDiagHessian(1)
 
 # Set the starting point using the mass fraction
 x = mma.getOptimizedPoint()
-print 'Initial x = ',np.array(x)
+print('Initial x = ', np.array(x))
 #problem.setInitDesignVars(x)
 
 # Initialize the subproblem
@@ -124,9 +125,10 @@ mma.initializeSubProblem()
 opt.resetDesignAndBounds()
 filename = os.path.join(args.prefix, 'paropt.out')
 opt.setOutputFile(filename)
+
 # Enter the optimization loop
 for i in range (max_mma_iters):
-    print 'Iteration number: ',i
+    print('Iteration number: ', i)
     opt.setInitBarrierParameter(0.1)
     opt.optimize()
         
@@ -140,10 +142,10 @@ for i in range (max_mma_iters):
     # Compute the KKT error
     l1_norm, linfty_norm, infeas = mma.computeKKTError()
     if comm.rank == 0:
-        print 'z = ', z
-        print 'l1_norm = ', l1_norm
-        print 'linfty = ', linfty_norm
-        print 'infeas = ', infeas
+        print('z = ', z)
+        print('l1_norm = ', l1_norm)
+        print('linfty = ', linfty_norm)
+        print('infeas = ', infeas)
         
     if l1_norm < 1e-5 and infeas < 1e-6:
         break

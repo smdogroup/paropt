@@ -60,8 +60,8 @@ def get_ground_structure(N=4, M=4, L=2.5, P=10.0, n=5):
 
     # Set up the connectivity array
     conn = []
-    for i in xrange(N):
-        for j in xrange(M):
+    for i in range(N):
+        for j in range(M):
             n1 = i + N*j
             for d in grid:
                 if ((i + d[0] < N) and (j + d[1] < M) and
@@ -71,8 +71,8 @@ def get_ground_structure(N=4, M=4, L=2.5, P=10.0, n=5):
 
     # Set the positions of all the nodes
     xpos = []
-    for j in xrange(M):
-        for i in xrange(N):
+    for j in range(M):
+        for i in range(N):
             xpos.extend([i*L, j*L])
 
     # Set the node locations
@@ -80,7 +80,7 @@ def get_ground_structure(N=4, M=4, L=2.5, P=10.0, n=5):
     loads[N-1] = [0, -P]
 
     bcs = {}
-    for j in xrange(M):
+    for j in range(M):
         bcs[j*N] = [0, 1]
 
     return conn, xpos, loads, bcs
@@ -376,7 +376,7 @@ if profile:
         perf = np.loadtxt(fname)
 
         # Set the performance metric
-        for i in xrange(len(trusses)):
+        for i in range(len(trusses)):
             perform[i, index] = perf[i, -1]
         index += 1
 
@@ -385,7 +385,7 @@ if profile:
     r = np.zeros(perform.shape)
         
     # Compute the ratios for the best performance
-    for i in xrange(nprob):
+    for i in range(nprob):
         best = 1.0*min(perform[i, :])
         r[i, :] = perform[i, :]/best
                     
@@ -393,7 +393,7 @@ if profile:
     fig = plt.figure(facecolor='w')
 
     tau_max = 10.0
-    for k in xrange(len(profiles)):
+    for k in range(len(profiles)):
         tau, rho = get_performance_profile(r[:, k], tau_max)
         plt.plot(tau, rho, colours[k], linewidth=2, label=profiles[k])
 

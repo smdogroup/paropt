@@ -102,7 +102,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
                  [-C*S, -S**2, C*S, S**2]])
 
             # Compute the gradient of the mass
-            for j in xrange(self.nmats):
+            for j in range(self.nmats):
                 self.gmass[self.nblock*index+1+j] += self.rho[j]*Le
 
             index += 1
@@ -141,7 +141,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         if self.penalization == 'RAMP':
             # Compute the RAMP linearization terms
-            for i in xrange(len(self.xconst)):
+            for i in range(len(self.xconst)):
                 self.xconst[i] = x[i]/(1.0 + self.RAMP*(1.0 - x[i]))
                 self.xlinear[i] = (self.RAMP+1.0)/(1.0 + self.RAMP*(1.0 - x[i]))**2
         elif self.penalization == 'SIMP':
@@ -160,7 +160,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         '''
         
         d = np.zeros(self.nelems)
-        for i in xrange(self.nelems):
+        for i in range(self.nelems):
             tnum = self.nblock*i
             d[i] = 1.0 - (x[tnum] - 1.0)**2 - sum(x[tnum+1:tnum+self.nblock]**2)
             
@@ -172,7 +172,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         '''
         xinfty = np.zeros(x.shape)
 
-        for i in xrange(self.nelems):
+        for i in range(self.nelems):
             jmax = np.argmax(x[i*self.nblock+1:(i+1)*self.nblock])+1
             if 1.0 - x[i*self.nblock] > x[i*self.nblock+jmax]:
                 jmax = 0
@@ -194,13 +194,13 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             # this is a convex problem or not.
             self.A[:] = self.Avals[0]*self.epsilon
             if self.penalization == 'SIMP':
-                for i in xrange(len(self.conn)):
-                    for j in xrange(1, self.nblock):
+                for i in range(len(self.conn)):
+                    for j in range(1, self.nblock):
                         # Compute the value of the area variable
                         self.A[i] += self.Avals[j-1]*x[i*self.nblock+j]**self.SIMP
             else:
-                for i in xrange(len(self.conn)):
-                    for j in xrange(1, self.nblock):
+                for i in range(len(self.conn)):
+                    for j in range(1, self.nblock):
                         # Compute the value of the area variable
                         val = x[i*self.nblock+j]/(1.0 + self.RAMP*(1 - x[i*self.nblock+j]))
                         self.A[i] += self.Avals[j-1]*val
@@ -256,21 +256,21 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         if self.opt_type == 'convex':
             # Add up the contributions to the areas from each discrete
             # variable
-            for i in xrange(len(self.conn)):
-                for j in xrange(1, self.nblock):
+            for i in range(len(self.conn)):
+                for j in range(1, self.nblock):
                     # Compute the value of the area variable
                     val = (self.xconst[i*self.nblock+j] + 
                            self.xlinear[i*self.nblock+j]*(x[i*self.nblock+j] - 
                                                           self.xinit[i*self.nblock+j]))
                     self.A[i] += self.Avals[j-1]*val
         elif self.penalization == 'SIMP':
-            for i in xrange(len(self.conn)):
-                for j in xrange(1, self.nblock):
+            for i in range(len(self.conn)):
+                for j in range(1, self.nblock):
                     # Compute the value of the area variable
                     self.A[i] += self.Avals[j-1]*(x[i*self.nblock+j]**self.SIMP)
         elif self.penalization == 'RAMP':
-            for i in xrange(len(self.conn)):
-                for j in xrange(1, self.nblock):
+            for i in range(len(self.conn)):
+                for j in range(1, self.nblock):
                     # Compute the value of the area variable
                     val = x[i*self.nblock+j]/(1.0 + self.RAMP*(1.0 - x[i*self.nblock+j]))
                     self.A[i] += self.Avals[j-1]*val
@@ -283,8 +283,8 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
                       
         # Add up the contributions to the areas from each 
         # discrete variable
-        for i in xrange(len(self.conn)):
-            for j in xrange(1, self.nblock):
+        for i in range(len(self.conn)):
+            for j in range(1, self.nblock):
                 # Compute the value of the bar area
                 val = self.xlinear[i*self.nblock+j]*px[i*self.nblock+j]
                 self.A[i] += self.Avals[j-1]*val
@@ -360,7 +360,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         if self.opt_type == 'convex':
             # Add up the contribution to the gradient
-            for i in xrange(len(self.conn)):
+            for i in range(len(self.conn)):
                 # Get the first and second node numbers from the bar
                 n1 = self.conn[i][0]
                 n2 = self.conn[i][1]
@@ -377,7 +377,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
                     self.Avals*self.xlinear[i*self.nblock+1:(i+1)*self.nblock])
         else:
             # Add up the contribution to the gradient
-            for i in xrange(len(self.conn)):
+            for i in range(len(self.conn)):
                 # Get the first and second node numbers from the bar
                 n1 = self.conn[i][0]
                 n2 = self.conn[i][1]
@@ -434,7 +434,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
                                 trans='T', overwrite_b=True)
         
         # Add up the contribution to the gradient
-        for i in xrange(len(self.conn)):
+        for i in range(len(self.conn)):
             # Get the first and second node numbers from the bar
             n1 = self.conn[i][0]
             n2 = self.conn[i][1]
@@ -534,7 +534,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
                 
         # Reorder for the non-zero variable
         var = []
-        for i in xrange(self.nvars):
+        for i in range(self.nvars):
             if mark[i] == 1:
                 var.append(i)
                     
@@ -607,7 +607,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         '''Compute the transpose Jacobian-vector product alpha*J^{T}*pz'''
         n = self.nblock*self.nelems
         out[:n:self.nblock] += alpha*pz
-        for k in xrange(1,self.nblock):
+        for k in range(1,self.nblock):
             out[k:n:self.nblock] -= alpha*pz
         return
 
@@ -655,7 +655,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
             t = x[self.nblock*i]
             if t >= self.epsilon:
-                for j in xrange(self.nmats):
+                for j in range(self.nmats):
                     xj = x[self.nblock*i+1+j]
                     if xj > self.epsilon:
                         s += '\\draw[line width=%f, color=%s, opacity=%f]'%(
