@@ -82,7 +82,7 @@ def get_global_stiffness(E1, E2, nu12, G12, thetas):
 
 class TACSAnalysis(ParOpt.pyParOptProblem):
     def __init__(self, comm, props, tacs, const, num_materials,
-                 xpts=None, conn=None, m_fixed=1.0, 
+                 xpts=None, conn=None, m_fixed=1.0, qt=0.0,
                  min_mat_fraction=-1.0):
         '''
         Analysis problem
@@ -162,9 +162,10 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         xi = self.m_fixed/np.dot(self.gmass, self.xinit)
         self.xinit[:] = xi
 
-        q = self.props.getPenalization()
+        # Set the penalization
+        self.qt = qt
         tval = self.num_materials*xi
-        self.xinit[::self.nblock] = tval/(1.0 + q*(1 - tval))
+        self.xinit[::self.nblock] = tval/(1.0 + self.qt*(1 - tval))
 
         # Create a temporary vector for the hessian-vector products
         self.hvec_tmp = np.zeros(self.xinit.shape)
@@ -237,7 +238,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
             
                 # Set the upper bound for the thickness variables
                 t0 = self.xinit[::self.nblock]
-                ub[::self.nblock] = (1 + q*(2*t0 - t0**2))/(q+1)
+                ub[::self.nblock] = (1 + self.qt*(2*t0 - t0**2))/(self.qt+1)
             else:
                 lb[:] = (2.0/3.0)*self.xinit[:]
 
@@ -253,25 +254,17 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         xmat = x[:n].reshape(-1, self.nblock)[:,1:]
 
         # Get the penalty type
-        q = self.props.getPenalization()
         penalty, ptype = self.props.getPenaltyType()
 
         if penalty == 'convex':
             t0 = self.xinit[::self.nblock]
             x0mat = self.xinit[:n].reshape(-1, self.nblock)[:,1:]
-            if ptype == 'ramp':
-                a = 1.0/(q*t0 + 1)
-                con[:] = ((q+1)*(a*t0 + a*a*(t - t0)) - 
-                          np.sum(xmat, axis=1))
-            else:
-                con[:] = (t0**3 + 3*(t - t0)*t0**2 - 
-                          np.sum(xmat, axis=1))
+            a = 1.0/(self.qt*t0 + 1)
+            con[:] = ((self.qt+1)*(a*t0 + a*a*(t - t0)) - 
+                      np.sum(xmat, axis=1))
         else:
-            if ptype == 'ramp':
-                a = 1.0/(q*t + 1)
-                con[:] = (q+1)*a*t - np.sum(xmat, axis=1)
-            else:
-                con[:] = t**3 - np.sum(xmat, axis=1)
+            a = 1.0/(self.qt*t + 1)
+            con[:] = (self.qt+1)*a*t - np.sum(xmat, axis=1)
 
         return
 
@@ -282,23 +275,16 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         pmat = px[:n].reshape(-1, self.nblock)[:,1:]
 
         # Get the penalty type
-        q = self.props.getPenalization()
         penalty, ptype = self.props.getPenaltyType()
 
         if penalty == 'convex':
             t0 = self.xinit[:n:self.nblock]
-            if ptype == 'ramp':
-                a = 1.0/(q*t0 + 1)
-                con[:] += alpha*((q+1)*a*a*pt - np.sum(pmat, axis=1))
-            else:
-                con[:] += alpha*(3*pt*t0**2 - np.sum(pmat, axis=1))
+            a = 1.0/(self.qt*t0 + 1)
+            con[:] += alpha*((self.qt+1)*a*a*pt - np.sum(pmat, axis=1))
         else:
             t = x[:n:self.nblock]
-            if ptype == 'ramp':
-                a = 1.0/(q*t + 1)
-                con[:] += alpha*((q+1)*a*a*pt - np.sum(pmat, axis=1))
-            else:
-                con[:] += alpha*(3*t**2*pt - np.sum(pmat, axis=1))
+            a = 1.0/(self.qt*t + 1)
+            con[:] += alpha*((self.qt+1)*a*a*pt - np.sum(pmat, axis=1))
 
         return
 
@@ -309,23 +295,16 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
             out[k:n:self.nblock] -= alpha*pz[:]
 
         # Get the penalty type
-        q = self.props.getPenalization()
         penalty, ptype = self.props.getPenaltyType()
 
         if penalty == 'convex':
             t0 = self.xinit[:n:self.nblock]
-            if ptype == 'ramp':
-                a = 1.0/(q*t0 + 1)
-                out[:n:self.nblock] += alpha*(q + 1.0)*a*a*pz[:]
-            else:
-                out[:n:self.nblock] += 3*alpha*pz[:]*t0**2
+            a = 1.0/(self.qt*t0 + 1)
+            out[:n:self.nblock] += alpha*(self.qt + 1.0)*a*a*pz[:]
         else:
             t = x[:n:self.nblock]
-            if ptype == 'ramp':
-                a = 1.0/(1.0 + q*(1.0 - t))
-                out[:n:self.nblock] += alpha*(q + 1.0)*a*a*pz[:]
-            else:
-                out[:n:self.nblock] += 3*alpha*pz[:]*t**2
+            a = 1.0/(1.0 + self.qt*(1.0 - t))
+            out[:n:self.nblock] += alpha*(self.qt + 1.0)*a*a*pz[:]
 
         return
 
@@ -336,23 +315,16 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         A[:] += alpha*np.sum(cmat, axis=1)
 
         # Get the penalty type
-        q = self.props.getPenalization()
         penalty, ptype = self.props.getPenaltyType()
 
         if penalty == 'convex':
             t0 = self.xinit[:n:self.nblock]
-            if ptype == 'ramp':
-                a = 1.0/(q*t0 + 1)
-                A[:] += alpha*c[:n:self.nblock]*((q + 1.0)*a*a)**2
-            else:
-                A[:] += 9*alpha*c[:n:self.nblock]*t0**4
+            a = 1.0/(self.qt*t0 + 1)
+            A[:] += alpha*c[:n:self.nblock]*((self.qt + 1.0)*a*a)**2
         else:
             t = x[:n:self.nblock]
-            if ptype == 'ramp':
-                a = 1.0/(q*t + 1)
-                A[:] += alpha*c[:n:self.nblock]*((q + 1.0)*a*a)**2
-            else:
-                A[:] += 9*alpha*c[:n:self.nblock]*t**4
+            a = 1.0/(self.qt*t + 1)
+            A[:] += alpha*c[:n:self.nblock]*((self.qt + 1.0)*a*a)**2
 
         return
 
@@ -755,8 +727,8 @@ def create_paropt(analysis, use_hessian=False,
     opt = ParOpt.pyParOpt(analysis, max_qn_subspace, qn_type)
 
     # Set the optimality tolerance
-    opt.setAbsOptimalityTol(1e-5)
-    
+    opt.setAbsOptimalityTol(1e-6)
+
     # Set the Hessian-vector product iterations
     if use_hessian:
         opt.setUseLineSearch(1)
