@@ -82,7 +82,7 @@ def get_global_stiffness(E1, E2, nu12, G12, thetas):
 
 class TACSAnalysis(ParOpt.pyParOptProblem):
     def __init__(self, comm, props, tacs, const, num_materials,
-                 xpts=None, conn=None, m_fixed=1.0, qt=0.0,
+                 xpts=None, conn=None, m_fixed=1.0, qt=5.0,
                  min_mat_fraction=-1.0):
         '''
         Analysis problem
@@ -164,8 +164,9 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
 
         # Set the penalization
         self.qt = qt
-        tval = self.num_materials*xi
-        self.xinit[::self.nblock] = tval/(1.0 + self.qt*(1 - tval))
+        tval = xi*self.num_materials
+        # self.xinit[::self.nblock] = tval/(1.0 + self.qt*(1 - tval))
+        self.xinit[::self.nblock] = (self.qt + 1)*tval/(1.0 + self.qt*tval)
 
         # Create a temporary vector for the hessian-vector products
         self.hvec_tmp = np.zeros(self.xinit.shape)
@@ -183,7 +184,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         # Evaluate the objective at the initial point
         self.obj_scale = 1.0
         fail, obj, con = self.evalObjCon(self.xinit)
-        self.obj_scale = 100*obj
+        self.obj_scale = 100.0*obj
 
         print('objective scaling = ', self.obj_scale)
 
@@ -225,25 +226,20 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         q = self.props.getPenalization()
         x[:] = self.xinit[:]
 
-        # Set the upper bound for the material variables
-        ub[:] = 1e30
-
-        # Set the upper bound for the thickness variables
-        ub[::self.nblock] = 1.0
+        # Set the upper bound for the material/thickness variables
+        ub[:] = 1.0
 
         penalty, ptype = self.props.getPenaltyType()
         if penalty == 'convex':
             if ptype == 'ramp':
+                # Set the lower bound for the design variables
                 lb[:] = (q/(q + 1.0))*self.xinit[:]**2
-            
-                # Set the upper bound for the thickness variables
+
+                # Set the lower bound for the thickness variables
                 t0 = self.xinit[::self.nblock]
-                ub[::self.nblock] = (1 + self.qt*(2*t0 - t0**2))/(self.qt+1)
+                lb[::self.nblock] = (self.qt/(self.qt + 1.0))*t0**2
             else:
                 lb[:] = (2.0/3.0)*self.xinit[:]
-
-        # The lowest lower bound will be 0
-        lb[::self.nblock] = 0.0
 
         return
         
@@ -257,13 +253,12 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         penalty, ptype = self.props.getPenaltyType()
 
         if penalty == 'convex':
-            t0 = self.xinit[::self.nblock]
-            x0mat = self.xinit[:n].reshape(-1, self.nblock)[:,1:]
-            a = 1.0/(self.qt*t0 + 1)
-            con[:] = ((self.qt+1)*(a*t0 + a*a*(t - t0)) - 
+            t0 = self.xinit[:n:self.nblock]
+            a = 1.0/(1.0 + self.qt*(1.0 - t0))
+            con[:] = (a*t0 + (self.qt+1)*a*a*(t - t0) - 
                       np.sum(xmat, axis=1))
         else:
-            a = 1.0/(self.qt*t + 1)
+            a = 1.0/(1.0 + self.qt*(1.0 - t))
             con[:] = (self.qt+1)*a*t - np.sum(xmat, axis=1)
 
         return
@@ -279,12 +274,12 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
 
         if penalty == 'convex':
             t0 = self.xinit[:n:self.nblock]
-            a = 1.0/(self.qt*t0 + 1)
-            con[:] += alpha*((self.qt+1)*a*a*pt - np.sum(pmat, axis=1))
+            a = 1.0/(1.0 + self.qt*(1.0 - t0))
+            con[:] += alpha*((self.qt + 1.0)*a*a*pt - np.sum(pmat, axis=1))
         else:
             t = x[:n:self.nblock]
-            a = 1.0/(self.qt*t + 1)
-            con[:] += alpha*((self.qt+1)*a*a*pt - np.sum(pmat, axis=1))
+            a = 1.0/(1.0 + self.qt*(1.0 - t))
+            con[:] += alpha*((self.qt + 1.0)*a*a*pt - np.sum(pmat, axis=1))
 
         return
 
@@ -299,7 +294,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
 
         if penalty == 'convex':
             t0 = self.xinit[:n:self.nblock]
-            a = 1.0/(self.qt*t0 + 1)
+            a = 1.0/(1.0 + self.qt*(1.0 - t0))
             out[:n:self.nblock] += alpha*(self.qt + 1.0)*a*a*pz[:]
         else:
             t = x[:n:self.nblock]
@@ -319,11 +314,11 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
 
         if penalty == 'convex':
             t0 = self.xinit[:n:self.nblock]
-            a = 1.0/(self.qt*t0 + 1)
+            a = 1.0/(1.0 + self.qt*(1.0 - t0))
             A[:] += alpha*c[:n:self.nblock]*((self.qt + 1.0)*a*a)**2
         else:
             t = x[:n:self.nblock]
-            a = 1.0/(self.qt*t + 1)
+            a = 1.0/(1.0 + self.qt*(1.0 - t))
             A[:] += alpha*c[:n:self.nblock]*((self.qt + 1.0)*a*a)**2
 
         return
@@ -489,7 +484,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
                     xf = self.const[i].getFilteredDesignVars()
                     kmax = np.argmax(xf[1:])
 
-                    u = xf[0]
+                    u = xf[0]/(1.0 + self.qt*(1.0 - xf[0]))
                     r = (1.0 - u)*grey[0] + u*rgbvals[kmax][0]
                     g = (1.0 - u)*grey[1] + u*rgbvals[kmax][1]
                     b = (1.0 - u)*grey[2] + u*rgbvals[kmax][2]
@@ -515,9 +510,10 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
                     xf = self.const[i].getFilteredDesignVars()
 
                     rgb = (44, 160, 44)
-                    r = (1.0 - xf[0])*grey[0] + xf[0]*rgb[0]
-                    g = (1.0 - xf[0])*grey[1] + xf[0]*rgb[1]
-                    b = (1.0 - xf[0])*grey[2] + xf[0]*rgb[2]
+                    u = xf[0]/(1.0 + self.qt*(1.0 - xf[0]))
+                    r = (1.0 - u)*grey[0] + u*rgb[0]
+                    g = (1.0 - u)*grey[1] + u*rgb[1]
+                    b = (1.0 - u)*grey[2] + u*rgb[2]
 
                     tikz += '\\definecolor{mycolor}{RGB}{%d,%d,%d}\n'%(
                         int(r), int(g), int(b))
@@ -736,7 +732,7 @@ def create_paropt(analysis, use_hessian=False,
         opt.setGMRESSubspaceSize(100)
         opt.setNKSwitchTolerance(1.0)
         opt.setEisenstatWalkerParameters(0.5, 0.0)
-        opt.setGMRESTolerances(1.0, 1e-30)
+        opt.setGMRESTolerances(0.1, 1e-30)
     else:
         opt.setUseHvecProduct(0)
 
@@ -882,7 +878,7 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
         os.makedirs(prefix)
 
     # Write out the stdout output to a file
-    sys.stdout = open(os.path.join(prefix, 'stdout.out'), 'w')
+    # sys.stdout = open(os.path.join(prefix, 'stdout.out'), 'w')
        
     # Set up the optimization problem in ParOpt
     opt = create_paropt(analysis,
