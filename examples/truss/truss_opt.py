@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 # Import this for directory creation
 import os
 
@@ -140,10 +142,9 @@ def paropt_truss(truss, use_hessian=False,
         opt.setGMRESTolerances(1.0, 1e-30)
     else:
         opt.setUseHvecProduct(0)
-        opt.setHessianResetFreq(max_qn_subspace)
         
     # Set optimization parameters
-    opt.setArmijioParam(1e-5)
+    opt.setArmijoParam(1e-5)
     opt.setMaxMajorIterations(2500)
 
     # Set the output file to use
@@ -315,7 +316,7 @@ if profile:
         N = vals[0]
         M = vals[1]
             
-        print 'Optimizing truss (%d x %d) ...'%(N, M)
+        print('Optimizing truss (%d x %d) ...'%(N, M))
             # Optimize each of the trusses
         truss = setup_ground_struct(N, M)
         t0 = MPI.Wtime()
@@ -418,10 +419,10 @@ else:
 
         # Retrieve the optimized multipliers
         x, z, zw, zl, zu = opt.getOptimizedPoint()
-        print 'z =  ', z
-        print 'zw = ', zw
-        print 'zl = ', zl
-        print 'zu = ', zu
+        print('z =  ', z)
+        print('zw = ', zw)
+        print('zl = ', zl[:])
+        print('zu = ', zu[:])
     else:
         # Read out the options from the dictionary of options
         options = all_options[optimizer]
@@ -441,7 +442,9 @@ else:
         x = np.array(x)
 
     # Plot the truss
+    if not os.path.exists(prefix):
+        os.makedirs(prefix)
     truss.plotTruss(x, tol=0.1,
                     filename=prefix+'/opt_truss%dx%d.pdf'%(N, M))
 
-    print 'x = ', truss.Area_scale*x[:]
+    print('x = ', truss.Area_scale*x[:])

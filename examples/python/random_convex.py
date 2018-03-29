@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 # Import numpy
 import numpy as np
 import mpi4py.MPI as MPI
@@ -129,7 +131,7 @@ def solve_problem(eigs, filename=None, data_type='orthogonal'):
     opt.checkGradients(1e-6)
 
     # Set optimization parameters
-    opt.setArmijioParam(1e-5)
+    opt.setArmijoParam(1e-5)
     opt.setMaxMajorIterations(5000)
     opt.setBarrierPower(2.0)
     opt.setBarrierFraction(0.1)
@@ -148,7 +150,7 @@ args = parser.parse_args()
 
 # Set the eigenvalues for the matrix
 n = args.n
-print 'n = ', n
+print('n = ', n)
 
 # Solve the problem
 x = solve_problem(n, filename=None) #'opt_convex.out')
