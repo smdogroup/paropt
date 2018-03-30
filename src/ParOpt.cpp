@@ -4766,8 +4766,8 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *ztmp,
   // Compute the norm of the initial vector
   ParOptScalar bnorm = sqrt(rx->dot(rx) + beta);
   
-  // Broadcast the norm of the residuals and the
-  // beta parameter to keep things consistent across processors
+  // Broadcast the norm of the residuals and the beta parameter to
+  // keep things consistent across processors
   ParOptScalar temp[2];
   temp[0] = bnorm;
   temp[1] = beta;
@@ -4810,7 +4810,9 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *ztmp,
       size = qn->getCompactMat(&b0, &d, &M, &Z);
     }
 
-    // At this point the residuals are no longer required.
+    // At this point the residuals are no longer required so they are
+    // used as temporary variables throughout the remainder of the
+    // function.
     solveKKTDiagSystem(W[i], alpha[i]/bnorm, 
                        rt, rc, rcw, rs, rsw, rzt, rzl, rzu,
                        xtmp1, ztmp, xtmp2, wtmp);

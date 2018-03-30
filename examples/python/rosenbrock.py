@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 # Import some utilities
 import numpy as np
 import mpi4py.MPI as MPI

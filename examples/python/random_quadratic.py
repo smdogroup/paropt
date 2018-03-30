@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 # Import numpy
 import numpy as np
 import mpi4py.MPI as MPI
@@ -99,7 +101,7 @@ def solve_problem(eigs, filename=None, use_stdout=False):
         opt.setOutputFile(filename)
 
     # Set optimization parameters
-    opt.setArmijioParam(1e-5)
+    opt.setArmijoParam(1e-5)
     opt.setMaxMajorIterations(5000)
     opt.setBarrierPower(2.0)
     opt.setBarrierFraction(0.1)
@@ -126,10 +128,10 @@ eig_min = args.eig_min
 eig_max = args.eig_max
 use_stdout = args.use_stdout
 
-print 'n = ', n
-print 'eig_min = %g'%(eig_min)
-print 'eig_max = %g'%(eig_max)
-print 'cond = %g'%(eig_max/eig_min)
+print('n = ', n)
+print('eig_min = %g'%(eig_min))
+print('eig_max = %g'%(eig_max))
+print('cond = %g'%(eig_max/eig_min))
 
 # Solve the problem with linear spacing of eigenvalues
 eigs_linear = np.linspace(eig_min, eig_max, n)

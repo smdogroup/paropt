@@ -77,6 +77,7 @@ class Toy(ParOpt.pyParOptProblem):
     
 # The communicator
 comm = MPI.COMM_WORLD
+
 # Create an argument parser to read in arguments from the commnad line
 p = argparse.ArgumentParser()
 p.add_argument('--prefix', type=str, default='./')

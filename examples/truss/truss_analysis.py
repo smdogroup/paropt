@@ -118,7 +118,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         try:
             self.L = linalg.cholesky(self.K, lower=True)
         except Exception as excpt:
-            print 'Exception in cholesky factorization ', excpt
+            print('Exception in cholesky factorization ', excpt)
 
         # Solve the resulting linear system of equations
         linalg.solve_triangular(self.L, self.u, lower=True,
@@ -412,10 +412,10 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         
         forces = self.computeForces(A, self.u)
 
-        print 'Compliance:     %15.10f'%(0.5*np.dot(self.u, self.f))
-        print 'Max strain:     %15.10f'%(max(forces/(self.E*A)))
-        print 'Max abs strain: %15.10f'%(max(np.fabs(forces/(self.E*A))))
-        print 'Min strain:     %15.10f'%(min(forces/(self.E*A)))
+        print('Compliance:     %15.10f'%(0.5*np.dot(self.u, self.f)))
+        print('Max strain:     %15.10f'%(max(forces/(self.E*A))))
+        print('Max abs strain: %15.10f'%(max(np.fabs(forces/(self.E*A)))))
+        print('Min strain:     %15.10f'%(min(forces/(self.E*A))))
 
         return
 
