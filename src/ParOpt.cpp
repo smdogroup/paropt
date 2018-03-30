@@ -4742,7 +4742,7 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *ztmp,
   ParOptScalar beta = 0.0;
   for ( int i = 0; i < ncon; i++ ){
     beta += rc[i]*rc[i];
-    }
+  }
   if (dense_inequality){
     for ( int i = 0; i < ncon; i++ ){
       beta += rs[i]*rs[i];
@@ -4833,8 +4833,7 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *ztmp,
       // Solve the digaonal system again, this time simplifying the
       // result due to the structure of the right-hand-side.  Note
       // that this call uses W[i+1] as a temporary vector.
-      solveKKTDiagSystem(xtmp2, px,
-                         ztmp, W[i+1], wtmp);
+      solveKKTDiagSystem(xtmp2, px, ztmp, W[i+1], wtmp);
 
       // Add the final contributions 
       xtmp1->axpy(-1.0, px);
