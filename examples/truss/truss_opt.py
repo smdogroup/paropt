@@ -126,7 +126,7 @@ def paropt_truss(truss, use_hessian=False,
     '''
 
     # Create the optimizer
-    max_qn_subspace = 30
+    max_qn_subspace = 7
     opt = ParOpt.pyParOpt(truss, max_qn_subspace, ParOpt.BFGS)
 
     # Set the optimality tolerance
@@ -134,21 +134,24 @@ def paropt_truss(truss, use_hessian=False,
 
     # Set the Hessian-vector product iterations
     if use_hessian:
-        opt.setUseLineSearch(0)
+        # opt.setUseLineSearch(0)
         opt.setUseHvecProduct(1)
-        opt.setGMRESSubspaceSize(100)
+        opt.setGMRESSubspaceSize(50)
         opt.setNKSwitchTolerance(1.0)
-        opt.setEisenstatWalkerParameters(0.5, 0.0)
+        opt.setEisenstatWalkerParameters(0.01, 0.0)
         opt.setGMRESTolerances(1.0, 1e-30)
     else:
         opt.setUseHvecProduct(0)
         
+    # Set the output level
+    opt.setOutputLevel(1)
+
     # Set optimization parameters
     opt.setArmijoParam(1e-5)
     opt.setMaxMajorIterations(2500)
 
     # Set the output file to use
-    fname = os.path.join(prefix, 'truss_paropt%dx%d.out'%(N, M)) 
+    fname = os.path.join(prefix, 'truss_paropt%dx%d.out'%(N, M))
     opt.setOutputFile(fname)
     
     # Optimize the truss

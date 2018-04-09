@@ -10,8 +10,8 @@ enum ParOptNormType { PAROPT_INFTY_NORM,
                       PAROPT_L1_NORM,
                       PAROPT_L2_NORM };
 
-enum ParOptQuasiNewtonType { PAROPT_BFGS, 
-                             PAROPT_SR1, 
+enum ParOptQuasiNewtonType { PAROPT_BFGS,
+                             PAROPT_SR1,
                              PAROPT_NO_HESSIAN_APPROX };
 
 enum ParOptBarrierStrategy { PAROPT_MONOTONE,
@@ -19,7 +19,7 @@ enum ParOptBarrierStrategy { PAROPT_MONOTONE,
                              PAROPT_COMPLEMENTARITY_FRACTION };
 
 /*
-  ParOpt is a parallel optimizer implemented in C++ for large-scale 
+  ParOpt is a parallel optimizer implemented in C++ for large-scale
   constrained optimization.
 
   This code uses an interior-point method to perform gradient-based
@@ -31,10 +31,10 @@ enum ParOptBarrierStrategy { PAROPT_MONOTONE,
   The optimization problem is formulated as follows:
 
   min f(x)
-  s.t.  c(x) >= 0 
+  s.t.  c(x) >= 0
   s.t.  cw(x) >= 0
   s.t.  lb <= x <= ub
-  
+
   where c(x) is a small (< 100) vector of constraints, cw(x) is a
   (possibly) nonlinear constraint with a special sparse Jacobian
   structure and lb/ub are the lower and upper bounds,
@@ -77,10 +77,10 @@ enum ParOptBarrierStrategy { PAROPT_MONOTONE,
   where b0 is a scalar, M is a small matrix and Z is a matrix with
   small column dimension that is stored as a series of vectors. The
   form of these matrices depends on whether the limited-memory BFGS or
-  SR1 technique is used. 
-  
+  SR1 technique is used.
+
   The full KKT system can be written as follows:
-  
+
   [  B    0 -Ac^{T} -Aw^{T}   0   0   0  -I         I        ][ px  ]
   [  0    0      -I       0   0  -I   0   0         0        ][ pt  ]
   [  Ac   I       0       0  -I   0   0   0         0        ][ pz  ]
@@ -91,19 +91,19 @@ enum ParOptBarrierStrategy { PAROPT_MONOTONE,
   [  Zl   0       0       0   0   0  0    (X - Xl)  0        ][ pzl ]
   [ -Zu   0       0       0   0   0  0    0         (Xu - X) ][ pzu ]
 
-  where B is a quasi-Newton Hessian approximation. 
+  where B is a quasi-Newton Hessian approximation.
 
   After certain transition criteria are met, we employ an exact
   Hessian, accessible through Hessian-vector products, and instead
   solve exact linearization inexactly using a forcing parameter such
   that eta > 0. We use this technique because the Hessian-vector
   products are costly to compute and may not provide a benefit early
-  in the optimization. 
+  in the optimization.
 
   In the inexact phase, we select the forcing parameter based on the
   work of Eisenstat and Walker as follows:
 
-  eta = gamma*(||r(q_{k})||_{infty}/||r(q_{k-1})||_{infty})^{alpha} 
+  eta = gamma*(||r(q_{k})||_{infty}/||r(q_{k-1})||_{infty})^{alpha}
 
   where gamma and alpha are parameters such that 0 < gamma <= 1.0, and
   1 < alpha <= 2.  The transition from the approximate to the inexact
@@ -140,12 +140,12 @@ class ParOpt : public ParOptBase {
 
   // Get the problem sizes from the underlying problem class
   // -------------------------------------------------------
-  void getProblemSizes( int *_nvars, int *_ncon, 
+  void getProblemSizes( int *_nvars, int *_ncon,
                         int *_nwcon, int *_nwblock );
-  
+
   // Retrieve the values of the design variables and multipliers
   // -----------------------------------------------------------
-  void getOptimizedPoint( ParOptVec **_x, 
+  void getOptimizedPoint( ParOptVec **_x,
                           ParOptScalar **_z, ParOptVec **_zw,
                           ParOptVec **_zl, ParOptVec **_zu );
 
@@ -195,6 +195,7 @@ class ParOpt : public ParOptBase {
   // -----------------------------------------------
   void setUseHvecProduct( int truth );
   void setUseQNGMRESPreCon( int truth );
+  void setUseLeftHessianPreCon( int truth );
   void setNKSwitchTolerance( double tol );
   void setEisenstatWalkerParameters( double gamma, double alpha );
   void setGMRESTolerances( double rtol, double atol );
@@ -241,7 +242,7 @@ class ParOpt : public ParOptBase {
   // the maximum primal, dual residuals and the max infeasibility
   void computeKKTRes( double barrier,
                       double *max_prime,
-                      double *max_dual, 
+                      double *max_dual,
                       double *max_infeas );
 
   // Set up the diagonal KKT system
@@ -249,21 +250,21 @@ class ParOpt : public ParOptBase {
 
   // Solve the diagonal KKT system
   void solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bt,
-                           ParOptScalar *bc, ParOptVec *bcw, 
+                           ParOptScalar *bc, ParOptVec *bcw,
                            ParOptScalar *bs, ParOptVec *bsw,
                            ParOptScalar *bzt,
                            ParOptVec *bzl, ParOptVec *bzu,
                            ParOptVec *yx, ParOptScalar *yt,
-                           ParOptScalar *yz, ParOptVec *yzw, 
+                           ParOptScalar *yz, ParOptVec *yzw,
                            ParOptScalar *ys, ParOptVec *ysw,
                            ParOptScalar *yzt,
                            ParOptVec *yzl, ParOptVec *yzu,
                            ParOptVec *xt, ParOptVec *wt );
-  
+
   // Solve the diagonal KKT system with a specific RHS structure
-  void solveKKTDiagSystem( ParOptVec *bx, 
+  void solveKKTDiagSystem( ParOptVec *bx,
                            ParOptVec *yx, ParOptScalar *yt,
-                           ParOptScalar *yz, ParOptVec *yzw, 
+                           ParOptScalar *yz, ParOptVec *yzw,
                            ParOptScalar *ys, ParOptVec *ysw,
                            ParOptScalar *yzt,
                            ParOptVec *yzl, ParOptVec *yzu,
@@ -276,46 +277,53 @@ class ParOpt : public ParOptBase {
                            ParOptVec *xt, ParOptVec *wt );
 
   // Solve the diagonal system
-  void solveKKTDiagSystem( ParOptVec *bx, 
-                           ParOptScalar alpha, 
-                           ParOptScalar *bt, ParOptScalar *bc, 
+  void solveKKTDiagSystem( ParOptVec *bx,
+                           ParOptScalar alpha,
+                           ParOptScalar *bt, ParOptScalar *bc,
                            ParOptVec *bcw, ParOptScalar *bs,
                            ParOptVec *bsw, ParOptScalar *bzt,
                            ParOptVec *bzl, ParOptVec *bzu,
-                           ParOptVec *yx, ParOptScalar *yz,
+                           ParOptVec *yx, ParOptScalar *yt,
+                           ParOptScalar *yz,
+                           ParOptScalar *ys, ParOptVec *ysw,
                            ParOptVec *xt, ParOptVec *wt );
 
   // Set up the full KKT system
-  void setUpKKTSystem( ParOptScalar *zt, 
+  void setUpKKTSystem( ParOptScalar *zt,
                        ParOptVec *xt1, ParOptVec *xt2,
                        ParOptVec *wt, int use_bfgs );
 
   // Solve for the KKT step
-  void computeKKTStep( ParOptScalar *zt, ParOptVec *xt1, 
+  void computeKKTStep( ParOptScalar *zt, ParOptVec *xt1,
                        ParOptVec *xt2, ParOptVec *wt, int use_bfgs );
-  
+
   // Compute the full KKT step
-  int computeKKTInexactNewtonStep( ParOptScalar *zt, ParOptVec *xt1, 
-                                   ParOptVec *xt2, ParOptVec *wt,
-                                   double rtol, double atol, int use_bfgs );
+  int computeKKTInexactCGStep( ParOptScalar *zt, ParOptVec *xt1,
+                               ParOptVec *xt2, ParOptVec *wt,
+                               double rtol, double atol, int use_bfgs );
+  int computeKKTInexactNewtonStep( ParOptScalar *ztmp,
+                                   ParOptVec *xtmp1, ParOptVec *xtmp2,
+                                   ParOptVec *xtmp3, ParOptVec *wtmp,
+                                   double rtol, double atol,
+                                   int use_qn );
 
   // Check that the KKT step is computed correctly
   void checkKKTStep( int iteration, int is_newton );
 
-  // Compute the maximum step length to maintain positivity of 
-  // all components of the design variables 
-  void computeMaxStep( double tau, 
+  // Compute the maximum step length to maintain positivity of
+  // all components of the design variables
+  void computeMaxStep( double tau,
                        double *_max_x, double *_max_z );
 
   // Perform the line search
-  int lineSearch( double *_alpha, 
+  int lineSearch( double *_alpha,
                   ParOptScalar m0, ParOptScalar dm0 );
 
   // Evaluate the merit function
   ParOptScalar evalMeritFunc( ParOptScalar fk,
                               const ParOptScalar *ck,
-                              ParOptVec *xk, 
-                              const ParOptScalar *sk, 
+                              ParOptVec *xk,
+                              const ParOptScalar *sk,
                               const ParOptScalar *tk,
                               ParOptVec *swk );
 
@@ -325,12 +333,11 @@ class ParOpt : public ParOptBase {
                            ParOptScalar *_merit, ParOptScalar *_pmerit,
                            int inexact_step, ParOptVec *xtmp,
                            ParOptVec *wtmp1, ParOptVec *wtmp2 );
-  
+
   // Compute the average of the complementarity products at the
   // current point: Complementarity at (x + p)
   ParOptScalar computeComp();
-  ParOptScalar computeCompStep( double alpha_x,
-                                double alpha_z );
+  ParOptScalar computeCompStep( double alpha_x, double alpha_z );
 
   // Check the step
   void checkStep();
@@ -362,6 +369,7 @@ class ParOpt : public ParOptBase {
   int *var_range, *wcon_range;
 
   // Temporary vectors for internal usage
+  ParOptVec *xtemp;
   ParOptVec *wtemp;
   ParOptScalar *ztemp;
 
@@ -406,7 +414,7 @@ class ParOpt : public ParOptBase {
   // Sparse equalities or inequalities?
   int sparse_inequality;
 
-  // Dense equality of dense inequalities? 
+  // Dense equality of dense inequalities?
   int dense_inequality;
 
   // Flags to indicate whether to use the upper/lower bounds
@@ -446,7 +454,7 @@ class ParOpt : public ParOptBase {
 
   // Parameters for controling the barrier update
   double monotone_barrier_fraction, monotone_barrier_power;
- 
+
   // The minimum step to the boundary;
   double min_fraction_to_boundary;
 
@@ -457,6 +465,7 @@ class ParOpt : public ParOptBase {
   // Control of exact Hessian-vector products
   int use_hvec_product;
   int use_qn_gmres_precon;
+  int use_left_hessian_precon;
   double eisenstat_walker_alpha, eisenstat_walker_gamma;
   double nk_switch_tol;
   double max_gmres_rtol, gmres_atol;
@@ -464,11 +473,12 @@ class ParOpt : public ParOptBase {
   // Internal information about GMRES
   int gmres_subspace_size;
   ParOptScalar *gmres_H, *gmres_alpha, *gmres_res, *gmres_Q;
+  ParOptScalar *gmres_y, *gmres_fproj, *gmres_aproj, *gmres_awproj;
   ParOptVec **gmres_W;
 
   // Check the step at this major iteration - for debugging
   int major_iter_step_check;
-  
+
   // The step length for the merit function derivative test
   double merit_func_check_epsilon;
 

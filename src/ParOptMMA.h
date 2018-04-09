@@ -5,12 +5,12 @@
 #include <stdio.h>
 
 /*
-  The following code is designed to be used to implement 
+  The following code is designed to be used to implement
   MMA-type methods that also include sparse constraints.
   There are two modes of operation:
 
-  The first mode is to run the method of moving asymptotes (MMA), 
-  a sequential, separable convex approximation technique, 
+  The first mode is to run the method of moving asymptotes (MMA),
+  a sequential, separable convex approximation technique,
   developed by Svanberg, that is commonly used in topology
   optimization. This method cannot incorporate sparse constraints
   directly and so they are ignored.
@@ -67,7 +67,7 @@ class ParOptMMA : public ParOptProblem {
   // Create the design vectors
   ParOptVec *createDesignVec();
   ParOptVec *createConstraintVec();
-  
+
   // Get the communicator for the problem
   MPI_Comm getMPIComm();
 
@@ -91,12 +91,12 @@ class ParOptMMA : public ParOptProblem {
                        ParOptVec *px, ParOptVec *hvec );
 
   // Evaluate the diagonal Hessian
-  int evalHessianDiag( ParOptVec *x, ParOptScalar *z, ParOptVec *zw, 
+  int evalHessianDiag( ParOptVec *x, ParOptScalar *z, ParOptVec *zw,
                        ParOptVec *hdiag );
 
   // Evaluate the constraints
   void evalSparseCon( ParOptVec *x, ParOptVec *out );
-  
+
   // Compute the Jacobian-vector product out = J(x)*px
   void addSparseJacobian( ParOptScalar alpha, ParOptVec *x,
                           ParOptVec *px, ParOptVec *out );
@@ -106,7 +106,7 @@ class ParOptMMA : public ParOptProblem {
   void addSparseJacobianTranspose( ParOptScalar alpha, ParOptVec *x,
                                    ParOptVec *pzw, ParOptVec *out );
 
-  // Add the inner product of the constraints to the matrix such 
+  // Add the inner product of the constraints to the matrix such
   // that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix
   void addSparseInnerProduct( ParOptScalar alpha, ParOptVec *x,
                               ParOptVec *cvec, ParOptScalar *A );

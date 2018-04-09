@@ -4,7 +4,7 @@
 #include "ParOptQuasiNewton.h"
 
 /*
-  The following class implements the limited-memory BFGS update.  
+  The following class implements the limited-memory BFGS update.
 
   The limited-memory BFGS formula takes the following form:
 
@@ -49,7 +49,7 @@ ParOptLBFGS::ParOptLBFGS( ParOptProblem *prob,
   // The factored M-matrix
   M_factor = new ParOptScalar[ 4*msub_max*msub_max ];
   mfpiv = new int[ 2*msub_max ];
-  
+
   // Temporary vector required for multiplications
   rz = new ParOptScalar[ 2*msub_max ];
 
@@ -57,7 +57,7 @@ ParOptLBFGS::ParOptLBFGS( ParOptProblem *prob,
   // updated each iteration
   D = new ParOptScalar[ msub_max ];
   L = new ParOptScalar[ msub_max*msub_max ];
-  B = new ParOptScalar[ msub_max*msub_max ];  
+  B = new ParOptScalar[ msub_max*msub_max ];
 
   // Zero the initial values of everything
   memset(d0, 0, 2*msub_max*sizeof(ParOptScalar));
@@ -136,7 +136,7 @@ void ParOptLBFGS::reset(){
   The BFGS formula takes the form:
 
   B*x = (b0*I - Z*diag{d}*M^{-1}*diag{d}*Z^{T})*x
-  
+
   This code computes a damped update to ensure that the curvature
   condition is satisfied.
 
@@ -161,7 +161,7 @@ int ParOptLBFGS::update( ParOptVec *s, ParOptVec *y ){
     ParOptScalar sTs = s->dot(s);
 
     double epsilon = 1e-12;
-    
+
     // Skip the update
     if (RealPart(sTy) <= epsilon*sqrt(RealPart(sTs*yTy))){
       update_type = 2;
@@ -177,12 +177,12 @@ int ParOptLBFGS::update( ParOptVec *s, ParOptVec *y ){
     new_y = y;
   }
   else if (hessian_update_type == PAROPT_DAMPED_UPDATE){
-    // If the Hessian approximation has not been initialized, 
+    // If the Hessian approximation has not been initialized,
     // guess an initial value for the b0 value
     if (msub == 0){
       b0 = yTy/sTy;
-      if (RealPart(b0) <= 0.0){ 
-        b0 = 1.0; 
+      if (RealPart(b0) <= 0.0){
+        b0 = 1.0;
       }
     }
 
@@ -207,10 +207,10 @@ int ParOptLBFGS::update( ParOptVec *s, ParOptVec *y ){
       r->axpy(theta, y);
 
       new_y = r;
-      yTy = new_y->dot(new_y); 
+      yTy = new_y->dot(new_y);
       sTy = s->dot(new_y);
     }
-    
+
     // Set the new value of b0
     b0 = yTy/sTy;
   }
@@ -278,7 +278,7 @@ int ParOptLBFGS::update( ParOptVec *s, ParOptVec *y ){
   for ( int i = 0; i < msub; i++ ){
     for ( int j = 0; j < msub; j++ ){
       M[i + 2*msub*j] = b0*B[i + msub_max*j];
-    } 
+    }
   }
 
   // Add the L-terms in the matrix
@@ -307,7 +307,7 @@ int ParOptLBFGS::update( ParOptVec *s, ParOptVec *y ){
 
   // Copy out the M matrix for factorization
   memcpy(M_factor, M, 4*msub*msub*sizeof(ParOptScalar));
-  
+
   // Factor the M matrix for later useage
   int n = 2*msub, info = 0;
   LAPACKdgetrf(&n, &n, M_factor, &n, mfpiv, &info);
@@ -331,18 +331,18 @@ void ParOptLBFGS::mult( ParOptVec *x, ParOptVec *y ){
   if (msub > 0){
     // Compute rz = Z^{T}*x
     x->mdot(Z, 2*msub, rz);
-    
+
     // Set rz *= d0
     for ( int i = 0; i < 2*msub; i++ ){
       rz[i] *= d0[i];
     }
-    
+
     // Solve rz = M^{-1}*rz
     int n = 2*msub, one = 1, info = 0;
-    LAPACKdgetrs("N", &n, &one, 
-                 M_factor, &n, mfpiv, 
+    LAPACKdgetrs("N", &n, &one,
+                 M_factor, &n, mfpiv,
                  rz, &n, &info);
-    
+
     // Compute rz *= d0
     for ( int i = 0; i < 2*msub; i++ ){
       rz[i] *= d0[i];
@@ -370,18 +370,18 @@ void ParOptLBFGS::multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ){
   if (msub > 0){
     // Compute rz = Z^{T}*x
     x->mdot(Z, 2*msub, rz);
-    
+
     // Set rz *= d0
     for ( int i = 0; i < 2*msub; i++ ){
       rz[i] *= d0[i];
     }
-    
+
     // Solve rz = M^{-1}*rz
     int n = 2*msub, one = 1, info = 0;
-    LAPACKdgetrs("N", &n, &one, 
-                 M_factor, &n, mfpiv, 
+    LAPACKdgetrs("N", &n, &one,
+                 M_factor, &n, mfpiv,
                  rz, &n, &info);
-    
+
     // Compute rz *= d0
     for ( int i = 0; i < 2*msub; i++ ){
       rz[i] *= d0[i];
@@ -411,7 +411,7 @@ int ParOptLBFGS::getCompactMat( ParOptScalar *_b0,
 }
 
 /*
-  The following class implements the limited-memory SR1 update.  
+  The following class implements the limited-memory SR1 update.
 
   The limited-memory SR1 formula takes the following form:
 
@@ -454,7 +454,7 @@ ParOptLSR1::ParOptLSR1( ParOptProblem *prob, int _msub_max ){
   // The factored M-matrix
   M_factor = new ParOptScalar[ msub_max*msub_max ];
   mfpiv = new int[ msub_max ];
-  
+
   // Temporary vector required for multiplications
   rz = new ParOptScalar[ msub_max ];
 
@@ -462,7 +462,7 @@ ParOptLSR1::ParOptLSR1( ParOptProblem *prob, int _msub_max ){
   // updated each iteration
   D = new ParOptScalar[ msub_max ];
   L = new ParOptScalar[ msub_max*msub_max ];
-  B = new ParOptScalar[ msub_max*msub_max ];  
+  B = new ParOptScalar[ msub_max*msub_max ];
 
   // Zero the initial values of everything
   memset(d0, 0, msub_max*sizeof(ParOptScalar));
@@ -535,7 +535,7 @@ void ParOptLSR1::reset(){
   Hessian. The SR1 formula takes the form:
 
   B*x = (b0*I - Z*diag{d}*M^{-1}*diag{d}*Z^{T})*x
-  
+
   Note that the
 
   input:
@@ -556,7 +556,7 @@ int ParOptLSR1::update( ParOptVec *s, ParOptVec *y ){
   if (msub == 0){
     b0 = yTy/sTy;
   }
- 
+
   // Set up the new values
   if (msub < msub_max){
     S[msub]->copyValues(s);
@@ -644,7 +644,7 @@ int ParOptLSR1::update( ParOptVec *s, ParOptVec *y ){
 
   // Copy out the M matrix for factorization
   memcpy(M_factor, M, msub*msub*sizeof(ParOptScalar));
-  
+
   // Factor the M matrix for later useage
   int n = msub, info = 0;
   LAPACKdgetrf(&n, &n, M_factor, &n, mfpiv, &info);
@@ -668,13 +668,13 @@ void ParOptLSR1::mult( ParOptVec *x, ParOptVec *y ){
   if (msub > 0){
     // Compute rz = Z^{T}*x
     x->mdot(Z, msub, rz);
-        
+
     // Solve rz = M^{-1}*rz
     int n = msub, one = 1, info = 0;
-    LAPACKdgetrs("N", &n, &one, 
-                 M_factor, &n, mfpiv, 
+    LAPACKdgetrs("N", &n, &one,
+                 M_factor, &n, mfpiv,
                  rz, &n, &info);
-    
+
     // Now compute: y <- Z*rz
     for ( int i = 0; i < msub; i++ ){
       y->axpy(-rz[i], Z[i]);
@@ -697,13 +697,13 @@ void ParOptLSR1::multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ){
   if (msub > 0){
     // Compute rz = Z^{T}*x
     x->mdot(Z, msub, rz);
-        
+
     // Solve rz = M^{-1}*rz
     int n = msub, one = 1, info = 0;
-    LAPACKdgetrs("N", &n, &one, 
-                 M_factor, &n, mfpiv, 
+    LAPACKdgetrs("N", &n, &one,
+                 M_factor, &n, mfpiv,
                  rz, &n, &info);
-    
+
     // Now compute: y <- Z*rz
     for ( int i = 0; i < msub; i++ ){
       y->axpy(-alpha*rz[i], Z[i]);

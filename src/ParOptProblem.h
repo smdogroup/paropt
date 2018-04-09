@@ -38,8 +38,8 @@
 */
 class ParOptProblem : public ParOptBase {
  public:
-  ParOptProblem( MPI_Comm _comm ){ 
-    comm = _comm; 
+  ParOptProblem( MPI_Comm _comm ){
+    comm = _comm;
     nvars = ncon = nwcon = nwblock = 0;
   }
   ParOptProblem( MPI_Comm _comm,
@@ -61,7 +61,7 @@ class ParOptProblem : public ParOptBase {
   virtual ParOptVec *createConstraintVec(){
     return new ParOptBasicVec(comm, nwcon);
   }
-  
+
   // Get the communicator for the problem
   // ------------------------------------
   MPI_Comm getMPIComm(){
@@ -75,12 +75,12 @@ class ParOptProblem : public ParOptBase {
     nvars = _nvars;
     ncon = _ncon;
     nwcon = _nwcon;
-    nwblock = _nwblock; 
+    nwblock = _nwblock;
   }
-    
+
   // Get the problem dimensions
   // --------------------------
-  void getProblemSizes( int *_nvars, int *_ncon, 
+  void getProblemSizes( int *_nvars, int *_ncon,
                         int *_nwcon, int *_nwblock ){
     if (_nvars){ *_nvars = nvars; }
     if (_ncon){ *_ncon = ncon; }
@@ -98,13 +98,13 @@ class ParOptProblem : public ParOptBase {
   // Get the variables and bounds from the problem
   // ---------------------------------------------
   virtual void getVarsAndBounds( ParOptVec *x,
-                                 ParOptVec *lb, 
+                                 ParOptVec *lb,
                                  ParOptVec *ub ) = 0;
-  
+
   // Evaluate the objective and constraints
   // --------------------------------------
-  virtual int evalObjCon( ParOptVec *x, 
-                          ParOptScalar *fobj, 
+  virtual int evalObjCon( ParOptVec *x,
+                          ParOptScalar *fobj,
                           ParOptScalar *cons ) = 0;
 
   // Evaluate the objective and constraint gradients
@@ -120,16 +120,32 @@ class ParOptProblem : public ParOptBase {
 
   // Evaluate the diagonal of the Hessian
   // ------------------------------------
-  virtual int evalHessianDiag( ParOptVec *x, 
-                               ParOptScalar *z, ParOptVec *zw, 
+  virtual int evalHessianDiag( ParOptVec *x,
+                               ParOptScalar *z, ParOptVec *zw,
                                ParOptVec *hdiag ){
+    return 0;
+  }
+
+  // Set up a preconditioner for B = (H + I), where H is the Hessian
+  // ---------------------------------------------------------------
+  virtual int setUpHessianPrecon( ParOptVec *x,
+                                  ParOptScalar *z, ParOptVec *zw ){
+    return 0;
+  }
+
+  // Apply the preconditioner to the vector out = (H + I)^{-1}*in
+  // ------------------------------------------------------------
+  virtual int applyHessianPrecon( ParOptVec *x,
+                                  ParOptScalar *z, ParOptVec *zw,
+                                  ParOptVec *in, ParOptVec *out ){
+    out->copyValues(in);
     return 0;
   }
 
   // Evaluate the constraints
   // ------------------------
   virtual void evalSparseCon( ParOptVec *x, ParOptVec *out ) = 0;
-  
+
   // Compute the Jacobian-vector product out = J(x)*px
   // --------------------------------------------------
   virtual void addSparseJacobian( ParOptScalar alpha, ParOptVec *x,
@@ -140,7 +156,7 @@ class ParOptProblem : public ParOptBase {
   virtual void addSparseJacobianTranspose( ParOptScalar alpha, ParOptVec *x,
                                            ParOptVec *pzw, ParOptVec *out ) = 0;
 
-  // Add the inner product of the constraints to the matrix such 
+  // Add the inner product of the constraints to the matrix such
   // that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix
   // ------------------------------------------------------------
   virtual void addSparseInnerProduct( ParOptScalar alpha, ParOptVec *x,
@@ -150,7 +166,7 @@ class ParOptProblem : public ParOptBase {
   // something with the same frequency as the output files
   // -----------------------------------------------------
   virtual void writeOutput( int iter, ParOptVec *x ){}
-  
+
  protected:
   MPI_Comm comm;
   int nvars, ncon, nwcon, nwblock;

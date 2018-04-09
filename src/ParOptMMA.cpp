@@ -50,7 +50,7 @@ ParOptProblem(_prob->getMPIComm()){
   first_print = 1;
   fp = NULL;
   print_level = 1;
-  
+
   // Set the default to stdout
   int rank;
   MPI_Comm_rank(comm, &rank);
@@ -62,7 +62,7 @@ ParOptProblem(_prob->getMPIComm()){
   int _nwcon, _nwblock;
   prob->getProblemSizes(&n, &m, &_nwcon, &_nwblock);
   setProblemSizes(n, m, _nwcon, _nwblock);
- 
+
   // Set the iteration counter
   mma_iter = 0;
   subproblem_iter = 0;
@@ -159,7 +159,7 @@ void ParOptMMA::initialize(){
   p0vec = prob->createDesignVec();  p0vec->incref();
   q0vec = prob->createDesignVec();  q0vec->incref();
 
-  // Set the sparse constraint vector to NULL 
+  // Set the sparse constraint vector to NULL
   cwvec = NULL;
 
   if (use_true_mma){
@@ -344,7 +344,7 @@ void ParOptMMA::setMultipliers( ParOptScalar *_z, ParOptVec *_zw,
   set in ParOptMMA. If you do not update the multipliers, you will not
   get the correct KKT error.
 */
-void ParOptMMA::computeKKTError( double *l1, 
+void ParOptMMA::computeKKTError( double *l1,
                                  double *linfty,
                                  double *infeas ){
   // Get the lower/upper bounds for the variables
@@ -392,17 +392,17 @@ void ParOptMMA::computeKKTError( double *l1,
   else {
     for ( int j = 0; j < n; j++ ){
       double w = RealPart(r[j]);
-      
+
       // Check if we're on the lower bound
       if ((x[j] <= lb[j] + bound_relax) && w > 0.0){
         w = 0.0;
       }
-      
+
       // Check if we're on the upper bound
       if ((x[j] >= ub[j] - bound_relax) && w < 0.0){
         w = 0.0;
       }
-      
+
       // Add the contribution to the l1/infinity norms
       double t = fabs(w);
       l1_norm += t;
@@ -472,14 +472,14 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
   // Evaluate the objective/constraint gradients
   int fail_obj = prob->evalObjCon(xvec, &fobj, cons);
   if (fail_obj){
-    fprintf(stderr, 
+    fprintf(stderr,
       "ParOptMMA: Objective evaluation failed\n");
     return fail_obj;
   }
 
   int fail_grad = prob->evalObjConGradient(xvec, gvec, Avecs);
   if (fail_grad){
-    fprintf(stderr, 
+    fprintf(stderr,
       "ParOptMMA: Gradient evaluation failed\n");
     return fail_grad;
   }
@@ -488,7 +488,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
   if (cwvec){
     prob->evalSparseCon(xvec, cwvec);
   }
-  
+
   // Compute the KKT error, and print it out to a file
   if (print_level > 0){
     double l1, linfty, infeas;
@@ -505,11 +505,11 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
       }
       if (first_print || mma_iter % 10 == 0){
         fprintf(fp, "\n%5s %8s %15s %9s %9s %9s %9s\n",
-                "MMA", "sub-iter", "fobj", "l1-opt", 
+                "MMA", "sub-iter", "fobj", "l1-opt",
                 "linft-opt", "l1-lambd", "infeas");
       }
       fprintf(fp, "%5d %8d %15.6e %9.3e %9.3e %9.3e %9.3e\n",
-              mma_iter, subproblem_iter, fobj, l1, 
+              mma_iter, subproblem_iter, fobj, l1,
               linfty, l1_lambda, infeas);
       fflush(fp);
 
@@ -545,7 +545,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
     for ( int j = 0; j < n; j++ ){
       // Compute the product of the difference of the two previous
       // updates to determine how to update the move limits. If the
-      // signs are different, then indc < 0.0 and we contract the 
+      // signs are different, then indc < 0.0 and we contract the
       // asymptotes, otherwise we expand the asymptotes.
       ParOptScalar indc = (x[j] - x1[j])*(x1[j] - x2[j]);
 
@@ -565,7 +565,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
       else {
         // Relax the asymptotes
         L[j] = x[j] - asymptote_relax*(x1[j] - Lprev);
-        U[j] = x[j] + asymptote_relax*(Uprev - x1[j]);        
+        U[j] = x[j] + asymptote_relax*(Uprev - x1[j]);
       }
 
       // Ensure that the asymptotes do not converge entirely on the
@@ -606,7 +606,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
   // approximations
   const double eps = eps_regularization;
   const double eta = delta_regularization;
-  
+
   // Compute the values of the lower/upper assymptotes
   for ( int j = 0; j < n; j++ ){
     // Compute the move limits to avoid division by zero
@@ -616,7 +616,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
     // Compute the coefficients for the objective
     ParOptScalar gpos = max2(0.0, g[j]);
     ParOptScalar gneg = max2(0.0, -g[j]);
-    p0[j] = (U[j] - x[j])*(U[j] - x[j])*((1.0 + eta)*gpos + 
+    p0[j] = (U[j] - x[j])*(U[j] - x[j])*((1.0 + eta)*gpos +
                                          eta*gneg + eps/(ub[j] - lb[j]));
     q0[j] = (x[j] - L[j])*(x[j] - L[j])*((1.0 + eta)*gneg +
                                          eta*gpos + eps/(ub[j] - lb[j]));
@@ -680,7 +680,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
   Create a design vector
 */
 ParOptVec *ParOptMMA::createDesignVec(){
-  return prob->createDesignVec(); 
+  return prob->createDesignVec();
 }
 
 /*
@@ -717,17 +717,17 @@ int ParOptMMA::useUpperBounds(){
 }
 
 // Get the variables and bounds from the problem
-void ParOptMMA::getVarsAndBounds( ParOptVec *x, ParOptVec *lb, 
+void ParOptMMA::getVarsAndBounds( ParOptVec *x, ParOptVec *lb,
                                   ParOptVec *ub ){
   x->copyValues(xvec);
   lb->copyValues(alphavec);
   ub->copyValues(betavec);
 }
 
-/* 
+/*
   Evaluate the objective and constraints
 */
-int ParOptMMA::evalObjCon( ParOptVec *xv, ParOptScalar *fval, 
+int ParOptMMA::evalObjCon( ParOptVec *xv, ParOptScalar *fval,
                            ParOptScalar *cvals ){
   // Get the array of design variable values
   ParOptScalar *x, *x0;
@@ -796,7 +796,7 @@ int ParOptMMA::evalObjCon( ParOptVec *xv, ParOptScalar *fval,
 /*
   Evaluate the objective and constraint gradients
 */
-int ParOptMMA::evalObjConGradient( ParOptVec *xv, ParOptVec *gv, 
+int ParOptMMA::evalObjConGradient( ParOptVec *xv, ParOptVec *gv,
                                    ParOptVec **Ac ){
   // Keep track of the number of subproblem gradient evaluations
   subproblem_iter++;
@@ -855,7 +855,7 @@ int ParOptMMA::evalObjConGradient( ParOptVec *xv, ParOptVec *gv,
 /*
   Evaluate the product of the Hessian with a given vector
 */
-int ParOptMMA::evalHvecProduct( ParOptVec *xv, 
+int ParOptMMA::evalHvecProduct( ParOptVec *xv,
                                 ParOptScalar *z, ParOptVec *zw,
                                 ParOptVec *px, ParOptVec *hvec ){
   // Get the gradient vector
@@ -893,8 +893,8 @@ int ParOptMMA::evalHvecProduct( ParOptVec *xv,
 /*
   Evaluate the diagonal Hessian matrix
 */
-int ParOptMMA::evalHessianDiag( ParOptVec *xv, 
-                                ParOptScalar *z, ParOptVec *zw, 
+int ParOptMMA::evalHessianDiag( ParOptVec *xv,
+                                ParOptScalar *z, ParOptVec *zw,
                                 ParOptVec *hdiag ){
   // Get the gradient vector
   ParOptScalar *h;
@@ -938,7 +938,7 @@ int ParOptMMA::evalHessianDiag( ParOptVec *xv,
   return 0;
 }
 
-/* 
+/*
   Evaluate the constraints
 */
 void ParOptMMA::evalSparseCon( ParOptVec *x, ParOptVec *out ){
@@ -947,7 +947,7 @@ void ParOptMMA::evalSparseCon( ParOptVec *x, ParOptVec *out ){
   prob->addSparseJacobian(-1.0, xvec, xvec, out);
 }
 
-/* 
+/*
   Compute the Jacobian-vector product out = J(x)*px
 */
 void ParOptMMA::addSparseJacobian( ParOptScalar alpha, ParOptVec *x,
@@ -964,7 +964,7 @@ void ParOptMMA::addSparseJacobianTranspose( ParOptScalar alpha, ParOptVec *x,
 }
 
 /*
-  Add the inner product of the constraints to the matrix such 
+  Add the inner product of the constraints to the matrix such
   that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix
 */
 void ParOptMMA::addSparseInnerProduct( ParOptScalar alpha, ParOptVec *x,

@@ -190,6 +190,7 @@ cdef extern from "ParOpt.h":
       void setUseDiagHessian(int)
       void setUseHvecProduct(int)
       void setUseQNGMRESPreCon(int)
+      void setUseLeftHessianPreCon(int)
       void setNKSwitchTolerance(double)
       void setEisenstatWalkerParameters(double, double)
       void setGMRESTolerances(double, double)

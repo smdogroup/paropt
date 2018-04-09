@@ -4,7 +4,7 @@
 #include "ParOptVec.h"
 #include "ParOptProblem.h"
 
-enum ParOptBFGSUpdateType { PAROPT_SKIP_NEGATIVE_CURVATURE, 
+enum ParOptBFGSUpdateType { PAROPT_SKIP_NEGATIVE_CURVATURE,
                             PAROPT_DAMPED_UPDATE };
 
 /*
@@ -22,11 +22,11 @@ class ParOptCompactQuasiNewton : public ParOptBase {
   // Reset the internal data
   // -----------------------
   virtual void reset() = 0;
-  
+
   // Perform the BFGS update
   // -----------------------
   virtual int update( ParOptVec *s, ParOptVec *y ) = 0;
-  
+
   // Perform a matrix-vector multiplication
   // --------------------------------------
   virtual void mult( ParOptVec *x, ParOptVec *y ) = 0;
@@ -46,7 +46,7 @@ class ParOptCompactQuasiNewton : public ParOptBase {
   This class implements a limited-memory BFGS updating scheme based on
   computed differences in the step and Lagrange graidents during a
   line search.
-  
+
   This is based on the paper by Byrd, Nocedal and Schnabel,
   "Representations of quasi-Newton matrices and their use in
   limited-memory methods".
@@ -74,11 +74,11 @@ class ParOptLBFGS : public ParOptCompactQuasiNewton {
   // Reset the internal data
   // -----------------------
   void reset();
-  
+
   // Perform the BFGS update
   // -----------------------
   int update( ParOptVec *s, ParOptVec *y );
-  
+
   // Perform a matrix-vector multiplication
   // --------------------------------------
   void mult( ParOptVec *x, ParOptVec *y );
@@ -101,7 +101,7 @@ class ParOptLBFGS : public ParOptCompactQuasiNewton {
   int msub, msub_max;
 
   // The full list of vectors
-  ParOptVec **Z; 
+  ParOptVec **Z;
 
   // Temporary data for internal usage
   ParOptVec *r;
@@ -116,7 +116,7 @@ class ParOptLBFGS : public ParOptCompactQuasiNewton {
   int *mfpiv; // The pivot array for the M-factorization
 
   // Data for the internal storage of M/M_factor
-  ParOptScalar *B, *L, *D; 
+  ParOptScalar *B, *L, *D;
   ParOptScalar *d0; // The diagonal matrix
 };
 
@@ -124,7 +124,7 @@ class ParOptLBFGS : public ParOptCompactQuasiNewton {
   This class implements a limited-memory SR1 updating scheme based on
   computed differences in the step and Lagrange graidents during a
   line search.
-  
+
   This is based on the paper by Byrd, Nocedal and Schnabel,
   "Representations of quasi-Newton matrices and their use in
   limited-memory methods".
@@ -144,11 +144,11 @@ class ParOptLSR1 : public ParOptCompactQuasiNewton {
   // Reset the internal data
   // -----------------------
   void reset();
-  
+
   // Perform the BFGS update
   // -----------------------
   int update( ParOptVec *s, ParOptVec *y );
-  
+
   // Perform a matrix-vector multiplication
   // --------------------------------------
   void mult( ParOptVec *x, ParOptVec *y );
@@ -168,7 +168,7 @@ class ParOptLSR1 : public ParOptCompactQuasiNewton {
   int msub, msub_max;
 
   // The full list of vectors
-  ParOptVec **Z; 
+  ParOptVec **Z;
 
   // Temporary data for internal usage
   ParOptVec *r;
@@ -183,7 +183,7 @@ class ParOptLSR1 : public ParOptCompactQuasiNewton {
   int *mfpiv; // The pivot array for the M-factorization
 
   // Data for the internal storage of M/M_factor
-  ParOptScalar *B, *L, *D; 
+  ParOptScalar *B, *L, *D;
   ParOptScalar *d0; // The diagonal matrix
 };
 

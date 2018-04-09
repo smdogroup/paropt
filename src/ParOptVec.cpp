@@ -46,7 +46,7 @@ void ParOptBasicVec::zeroEntries(){
 */
 void ParOptBasicVec::copyValues( ParOptVec *pvec ){
   ParOptBasicVec *vec = dynamic_cast<ParOptBasicVec*>(pvec);
-  
+
   if (vec){
     memcpy(x, vec->x, size*sizeof(ParOptScalar));
   }

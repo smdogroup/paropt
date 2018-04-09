@@ -88,7 +88,7 @@ def unpack_output(filename):
                index += 1
                counter += 1
                if len(line.split()) < len(args):
-                  continue
+                  break
 
                # Scan through the format list and determine how to
                # convert the object based on the format string
@@ -157,7 +157,7 @@ def unpack_mma_output(filename):
                index += 1
                counter += 1
                if len(line.split()) < len(args):
-                  continue
+                  break
 
                # Scan through the format list and determine how to
                # convert the object based on the format string
@@ -848,6 +848,9 @@ cdef class pyParOpt:
       
    def setUseQNGMRESPreCon(self, int truth):
       self.ptr.setUseQNGMRESPreCon(truth)
+
+   def setUseLeftHessianPreCon(self, int truth):
+      self.ptr.setUseLeftHessianPreCon(truth)
       
    def setNKSwitchTolerance(self, double tol):
       self.ptr.setNKSwitchTolerance(tol)

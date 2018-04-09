@@ -25,24 +25,24 @@
 #endif // PAROPT_USE_COMPLEX
 
 extern "C" {
-  extern ParOptScalar BLASddot( int *n, ParOptScalar *x, int *incx, 
+  extern ParOptScalar BLASddot( int *n, ParOptScalar *x, int *incx,
                           ParOptScalar *y, int *incy );
   extern double BLASdnrm2( int *n, ParOptScalar *x, int *incx );
-  extern void BLASdaxpy( int *n, ParOptScalar *a, ParOptScalar *x, int *incx, 
+  extern void BLASdaxpy( int *n, ParOptScalar *a, ParOptScalar *x, int *incx,
                          ParOptScalar *y, int *incy );
   extern void BLASdscal( int *n, ParOptScalar *a, ParOptScalar *x, int *incx );
-  
+
   // General factorization routines
-  extern void LAPACKdgetrf( int *m, int *n, 
+  extern void LAPACKdgetrf( int *m, int *n,
                             ParOptScalar *a, int *lda, int *ipiv, int * info );
-  extern void LAPACKdgetrs( const char *c, int *n, int *nrhs, 
-                            ParOptScalar *a, int *lda, int *ipiv, 
+  extern void LAPACKdgetrs( const char *c, int *n, int *nrhs,
+                            ParOptScalar *a, int *lda, int *ipiv,
                             ParOptScalar *b, int *ldb, int *info );
-  
+
   // Factorization of packed-storage matrices
   extern void LAPACKdpptrf( const char *c, int *n, ParOptScalar *ap, int *info );
   extern void LAPACKdpptrs( const char *c, int *n, int *nrhs,
-                            ParOptScalar *ap, ParOptScalar *rhs, 
+                            ParOptScalar *ap, ParOptScalar *rhs,
                             int *ldrhs, int *info );
 }
 
