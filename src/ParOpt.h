@@ -298,14 +298,13 @@ class ParOpt : public ParOptBase {
                        ParOptVec *xt2, ParOptVec *wt, int use_bfgs );
 
   // Compute the full KKT step
-  int computeKKTInexactCGStep( ParOptScalar *zt, ParOptVec *xt1,
-                               ParOptVec *xt2, ParOptVec *wt,
-                               double rtol, double atol, int use_bfgs );
-  int computeKKTInexactNewtonStep( ParOptScalar *ztmp,
-                                   ParOptVec *xtmp1, ParOptVec *xtmp2,
-                                   ParOptVec *xtmp3, ParOptVec *wtmp,
-                                   double rtol, double atol,
-                                   int use_qn );
+  int computeKKTMinResStep( ParOptScalar *ztmp,
+                            ParOptVec *xtmp1, ParOptVec *xtmp2,
+                            ParOptVec *xtmp3, ParOptVec *wtmp,
+                            double rtol, double atol, int use_qn );
+  int computeKKTGMRESStep( ParOptScalar *ztmp, ParOptVec *xtmp1,
+                           ParOptVec *xtmp2, ParOptVec *wtmp,
+                           double rtol, double atol, int use_qn );
 
   // Check that the KKT step is computed correctly
   void checkKKTStep( int iteration, int is_newton );

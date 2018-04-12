@@ -4317,13 +4317,11 @@ int ParOpt::optimize( const char *checkpoint ){
       // uses a fixed tolerance -- this may lead to over-solving
       // if rtol is too tight
       gmres_iters =
-        computeKKTInexactNewtonStep(ztemp, y_qn, s_qn, xtemp, wtemp,
-                                    gmres_rtol, gmres_atol,
-                                    use_qn);
+        computeKKTGMRESStep(ztemp, y_qn, s_qn, wtemp,
+                            gmres_rtol, gmres_atol, use_qn);
       // gmres_iters =
-      //   computeKKTInexactCGStep(ztemp, y_qn, s_qn, wtemp,
-      //                           gmres_rtol, gmres_atol,
-      //                           use_qn);
+      //   computeKKTMinResStep(ztemp, y_qn, s_qn, xtemp, wtemp,
+      //                        gmres_rtol, gmres_atol, use_qn);
 
       if (gmres_iters < 0){
         // Recompute the residual of the KKT system - the residual
@@ -4782,63 +4780,52 @@ int ParOpt::optimize( const char *checkpoint ){
 }
 
 /*
-  Use the Conjugate gradient method to compute an inexact step
-  using the exact Hessian-vector products.
-
-  The conjugate gradient method
-  Give the initial residual: r0 and the initial direction s0 = r0
-  Set k = 0
-    Compute the product t = A*sk
-    Compute gamma = rk^{T}*rk/(t^{T}*sk)
-    Compute pk+1 = pk + gamma*sk
-    Compute rk+1 = rk - gamma*t
-    omega = rk+1^{T}*rk+1/(rk^{T}*rk)
-    sk+1 = rk+1 + omega*sk
-    k = k+1
+  Compute the solution of the system using MINRES.
 */
-int ParOpt::computeKKTInexactCGStep( ParOptScalar *ztmp,
-                                     ParOptVec *xtmp1, ParOptVec *xtmp2,
-                                     ParOptVec *wtmp,
-                                     double rtol, double atol,
-                                     int use_qn ){
+int ParOpt::computeKKTMinResStep( ParOptScalar *ztmp,
+                                  ParOptVec *xtmp1, ParOptVec *xtmp2,
+                                  ParOptVec *xtmp3, ParOptVec *wtmp,
+                                  double rtol, double atol,
+                                  int use_qn ){
   // Compute the beta factor: the product of the diagonal terms
   // after normalization
-  ParOptScalar beta = 0.0;
+  ParOptScalar beta_dot = 0.0;
   for ( int i = 0; i < ncon; i++ ){
-    beta += rc[i]*rc[i];
+    beta_dot += rc[i]*rc[i];
   }
   if (dense_inequality){
     for ( int i = 0; i < ncon; i++ ){
-      beta += rs[i]*rs[i];
-      beta += rt[i]*rt[i];
-      beta += rzt[i]*rzt[i];
+      beta_dot += rs[i]*rs[i];
+      beta_dot += rt[i]*rt[i];
+      beta_dot += rzt[i]*rzt[i];
     }
   }
   if (use_lower){
-    beta += rzl->dot(rzl);
+    beta_dot += rzl->dot(rzl);
   }
   if (use_upper){
-    beta += rzu->dot(rzu);
+    beta_dot += rzu->dot(rzu);
   }
   if (nwcon > 0){
-    beta += rcw->dot(rcw);
+    beta_dot += rcw->dot(rcw);
     if (sparse_inequality){
-      beta += rsw->dot(rsw);
+      beta_dot += rsw->dot(rsw);
     }
   }
 
   // Compute the norm of the initial vector
-  ParOptScalar bnorm = sqrt(rx->dot(rx) + beta);
+  ParOptScalar bnorm = sqrt(rx->dot(rx) + beta_dot);
 
   // Broadcast the norm of the residuals and the beta parameter to
   // keep things consistent across processors
   ParOptScalar temp[2];
   temp[0] = bnorm;
-  temp[1] = beta;
+  temp[1] = beta_dot;
   MPI_Bcast(temp, 2, PAROPT_MPI_TYPE, opt_root, comm);
-
   bnorm = temp[0];
-  beta = temp[1];
+  beta_dot = temp[1];
+
+  beta_dot = beta_dot/(bnorm*bnorm);
 
   // Compute the inverse of the l2 norm of the dense inequality constraint
   // infeasibility and store it for later computations.
@@ -4876,37 +4863,45 @@ int ParOpt::computeKKTInexactCGStep( ParOptScalar *ztmp,
   MPI_Comm_rank(comm, &rank);
 
   if (rank == opt_root && outfp && output_level > 0){
-    fprintf(outfp, "%5s %4s %4s %7s %7s %8s %8s CG rtol: %7.1e\n",
-            "CG", "nhvc", "iter", "res", "rel", "fproj", "cproj", rtol);
+    fprintf(outfp, "%5s %4s %4s %7s %7s %8s %8s minres rtol: %7.1e\n",
+            "minres", "nhvc", "iter", "res", "rel", "fproj", "cproj", rtol);
     fprintf(outfp, "      %4d %4d %7.1e %7.1e\n",
             nhvec, 0, fabs(RealPart(bnorm)), 1.0);
   }
 
-  // Set the initial components of the step vector s
-  ParOptVec *sx = pzl;
-  sx->copyValues(rx); 
-  ParOptScalar s_alpha = 1.0;
-
-  // Set the initial values of the residual vector
-  ParOptScalar r_alpha = 1.0;
-
-  // The values of p -- the vector we're solving for
+  // Zero the solution vector for MINRES
   px->zeroEntries();
   ParOptScalar p_alpha = 0.0;
 
-  // Store a temporary vector
-  ParOptVec *tx = pzu;
-  ParOptScalar t_alpha = 0.0;
+  // Set the vectors that will be used
+  ParOptVec *v = gmres_W[0];  ParOptScalar v_alpha = 0.0;
+  ParOptVec *v_next = gmres_W[1];  ParOptScalar v_next_alpha = 0.0;
+  ParOptVec *v_prev = gmres_W[2];  ParOptScalar v_prev_alpha = 0.0;
+  ParOptVec *tv = gmres_W[3];  ParOptScalar tv_alpha = 0.0;
+  ParOptVec *w1 = gmres_W[4];  ParOptScalar w1_alpha = 0.0;
+  ParOptVec *w2 = gmres_W[5];  ParOptScalar w2_alpha = 0.0;
 
-  // Keep track of whether this is a descent direction or not...
-  ParOptScalar fpr = 0.0, cpr = 0.0;
+  // Set the initial values of the v-vector
+  v->copyValues(rx);
+  v->scale(1.0/bnorm);
+  v_alpha = 1.0;
 
-  ParOptVec *xupdate = prob->createDesignVec();
-  xupdate->incref();
+  v_next->zeroEntries();
+  v_prev->zeroEntries();
+  w1->zeroEntries();
+  w2->zeroEntries();
+
+  // Set the initial values of the scalars
+  ParOptScalar beta = bnorm;
+  ParOptScalar eta = bnorm;
+  ParOptScalar sigma = 0.0;
+  ParOptScalar sigma_prev = 0.0;
+  ParOptScalar gamma = 1.0;
+  ParOptScalar gamma_prev = 1.0;
 
   // Iterate until we've found a solution
-  int cg_max_iters = 100;
-  for ( int i = 0; i < cg_max_iters; i++ ){
+  int minres_max_iters = 100;
+  for ( int i = 0; i < minres_max_iters; i++ ){
     // Compute t <- K*M^{-1}*s
     // Get the size of the limited-memory BFGS subspace
     ParOptScalar b0;
@@ -4919,13 +4914,13 @@ int ParOpt::computeKKTInexactCGStep( ParOptScalar *ztmp,
 
     // In the loop, all the components of the step vector 
     // that are not the px-vector can be used as temporary variables
-    solveKKTDiagSystem(sx, s_alpha,
+    solveKKTDiagSystem(v, v_alpha/bnorm,
                        rt, rc, rcw, rs, rsw, rzt, rzl, rzu,
-                       xupdate, pt, pz, ps, psw, xtmp2, wtmp);
+                       xtmp3, pt, pz, ps, psw, xtmp2, wtmp);
 
     if (size > 0){
       // dz = Z^{T}*xt1
-      xupdate->mdot(Z, size, ztmp);
+      xtmp3->mdot(Z, size, ztmp);
 
       // Compute dz <- Ce^{-1}*dz
       int one = 1, info = 0;
@@ -4940,47 +4935,15 @@ int ParOpt::computeKKTInexactCGStep( ParOptScalar *ztmp,
 
       // Solve the digaonal system again, this time simplifying the
       // result due to the structure of the right-hand-side.  Note
-      // that this call uses tx as a temporary vector.
-      solveKKTDiagSystem(xtmp2, xtmp1, ztmp, tx, wtmp);
+      // that this call uses tv as a temporary vector.
+      solveKKTDiagSystem(xtmp2, xtmp1, ztmp, tv, wtmp);
 
       // Add the final contributions
-      xupdate->axpy(-1.0, xtmp1);
-    }
-
-    // px now contains the current estimate of the step in the
-    // design variables. This computation uses this method
-    ParOptScalar fproj = g->dot(xupdate);
-
-    // Compute the directional derivative of the l2 constraint infeasibility
-    // along the direction px.
-    ParOptScalar aproj = 0.0;
-    if (dense_inequality){
-      for ( int j = 0; j < ncon; j++ ){
-        ParOptScalar cj_deriv = (Ac[j]->dot(xupdate) - ps[j] + pt[j]);
-        aproj -= cscale*rc[j]*cj_deriv;
-      }
-    }
-    else {
-      for ( int j = 0; j < ncon; j++ ){
-        aproj -= cscale*rc[j]*Ac[j]->dot(xupdate);
-      }
-    }
-
-    // Add the contributions from the sparse constraints (if any are defined)
-    ParOptScalar awproj = 0.0;
-    if (nwcon > 0){
-      // rcw = -(cw - sw)
-      xtmp1->zeroEntries();
-      prob->addSparseJacobianTranspose(1.0, x, rcw, xtmp1);
-      awproj = -cwscale*xupdate->dot(xtmp1);
-
-      if (sparse_inequality){
-        awproj += cwscale*rcw->dot(psw);
-      }
+      xtmp3->axpy(-1.0, xtmp1);
     }
 
     // Compute the vector product with the exact Hessian
-    prob->evalHvecProduct(x, z, zw, xupdate, tx);
+    prob->evalHvecProduct(x, z, zw, xtmp3, tv);
     nhvec++;
 
     // Keep track of the number of iterations
@@ -4988,57 +4951,65 @@ int ParOpt::computeKKTInexactCGStep( ParOptScalar *ztmp,
 
     // Add the term -B*W[i]
     if (qn && use_qn){
-      qn->multAdd(-1.0, xupdate, tx);
+      qn->multAdd(-1.0, xtmp3, tv);
     }
 
     // Add the term from the diagonal
-    tx->axpy(1.0, sx);
+    tv->axpy(1.0, v);
 
-    // The alpha term is copied from the s-vector since the lower
-    // portion of the matrix is the identity matrix
-    t_alpha = s_alpha;
+    // Transfer the identity part of the matrix-multiplication
+    tv_alpha = v_alpha;
 
-    // Compute gamma = rk^{T}*rk/(sk^{T}*t) = rk^{T}*rk/(sk^{T}*A*sk)
-    ParOptScalar denom = (tx->dot(sx) + beta*t_alpha*s_alpha);
-    ParOptScalar omega = rx->dot(rx) + beta*r_alpha*r_alpha;
+    // Compute the dot product v^{T}*A*v
+    ParOptScalar alpha = v->dot(tv) + beta_dot*v_alpha*tv_alpha;
 
-    if (denom < 0.0){
-      printf("denom: %15.5e\n", RealPart(denom));
-      break;
-    }
+    // v_next = t - alpha*v - beta*v_prev
+    v_next->copyValues(tv);
+    v_next->axpy(-alpha, v);
+    v_next->axpy(-beta, v_prev);
+    v_next_alpha = tv_alpha - alpha*v_alpha - beta*v_prev_alpha;
+
+    // beta_next = np.sqrt(np.dot(v_next, v_next))
+    ParOptScalar beta_next = sqrt(v_next->dot(v_next) + 
+                                  beta_dot*v_next_alpha*v_next_alpha);
+
+    // Scale the vector by beta_next
+    ParOptScalar scale = 1.0/beta_next;
+    v_next->scale(scale);
+    v_next_alpha = scale*v_next_alpha;
+
+    // Compute the QR factorization part...
+    ParOptScalar delta = gamma*alpha - gamma_prev*sigma*beta;
+
+    // Compute the terms in the Given's rotation
+    ParOptScalar rho1 = sqrt(delta*delta + beta_next*beta_next);
+    ParOptScalar rho2 = sigma*alpha + gamma_prev*gamma*beta;
+    ParOptScalar rho3 = sigma_prev*beta;
+
+    // Compute the next values of sigma//gamma
+    scale = 1.0/rho1;
+    ParOptScalar gamma_next = scale*delta;
+    ParOptScalar sigma_next = scale*beta_next;
+
+    // Compute the next vector t[:] = (v - w1*rho2 - w2*rho3)/rho1
+    tv->copyValues(v);
+    tv->axpy(-rho2, w1);
+    tv->axpy(-rho3, w2);
+    tv->scale(scale);
+    tv_alpha = scale*(v_alpha - rho2*w1_alpha - rho3*w2_alpha);
+
+    // Update the solution: x = x + gamma_next*eta*t      
+    px->axpy(gamma_next*eta, tv);
+    p_alpha = p_alpha + gamma_next*eta*tv_alpha;
     
-    // Check the residual norm
-    ParOptScalar rnorm = sqrt(omega);
-    ParOptScalar gamma = omega/denom;
+    // Update to find the new value of eta
+    eta = -sigma_next*eta;
 
-    // Update the solution: p <- p + gamma*s
-    px->axpy(gamma, sx);
-    p_alpha = p_alpha + gamma*s_alpha;
-
-    // Update the residual rk+1 = rk - gamma*t
-    rx->axpy(-gamma, tx);
-    r_alpha = r_alpha - gamma*t_alpha;
-
-    // Update the value of omega
-    omega = (rx->dot(rx) + beta*r_alpha*r_alpha)/omega;
-
-    // Update the search direction
-    sx->scale(omega); // s <- r + omega*s
-    sx->axpy(1.0, rx);
-    s_alpha = r_alpha + omega*s_alpha;
-
-    // Add the projection of the solution px on to the gradient
-    // direction and the constraint Jacobian directions
-    fpr += gamma*fproj;
-    cpr += gamma*(aproj + awproj);
-    
-    // Check first that the direction is a candidate descent direction
-    int constraint_descent = 0;
-    if (cpr <= -0.01*(cinfeas + cwinfeas)){
-      constraint_descent = 1;
-    }
+    // Compute the estimate of the residual norm
+    double rnorm = fabs(RealPart(eta));
 
     if (rank == opt_root && output_level > 0){
+      ParOptScalar fpr = 0.0, cpr = 0.0;
       fprintf(outfp, "      %4d %4d %7.1e %7.1e %8.1e %8.1e\n",
               nhvec, i+1, fabs(RealPart(rnorm)),
               fabs(RealPart(rnorm/bnorm)),
@@ -5046,36 +5017,57 @@ int ParOpt::computeKKTInexactCGStep( ParOptScalar *ztmp,
       fflush(outfp);
     }
 
-    if (fpr < 0.0 || constraint_descent){
-      // Check for convergence
-      if (fabs(RealPart(rnorm)) < atol ||
-          fabs(RealPart(rnorm)) < rtol*RealPart(bnorm)){
-        break;
-      }
+    // Check for convergence
+    if (fabs(RealPart(rnorm)) < atol ||
+        fabs(RealPart(rnorm)) < rtol*RealPart(bnorm)){
+      break;
     }
-  }
 
-  xupdate->decref();
+    // Reset the pointer
+    ParOptVec *tmp = v_prev;
+    v_prev = v;
+    v_prev_alpha = v_alpha;
+    v = v_next;
+    v_alpha = v_next_alpha;
+    v_next = tmp;
+    v_next_alpha = 0.0;
+
+    // Reset the other vectors
+    tmp = w2;
+    w2 = w1;
+    w2_alpha = w1_alpha;
+    w1 = tv;
+    w1_alpha = tv_alpha;
+    tv = tmp;
+    tv_alpha = 0.0;
+
+    // Update the scalar parameters
+    beta = beta_next;
+    gamma_prev = gamma;
+    gamma = gamma_next;
+    sigma_prev = sigma;
+    sigma = sigma_next;
+  }
 
   // Copy the solution vector
   rx->copyValues(px);
 
   // Normalize the residual term
-  ParOptScalar gamma = p_alpha;
+  ParOptScalar scale = p_alpha/bnorm;
 
   // Scale the right-hand-side by p_alpha
   for ( int i = 0; i < ncon; i++ ){
-    rc[i] *= gamma;
-    rs[i] *= gamma;
-    rt[i] *= gamma;
-    rzt[i] *= gamma;
+    rc[i] *= scale;
+    rs[i] *= scale;
+    rt[i] *= scale;
+    rzt[i] *= scale;
   }
 
-  rzl->scale(gamma);
-  rzu->scale(gamma);
+  rzl->scale(scale);
+  rzu->scale(scale);
   if (nwcon > 0){
-    rcw->scale(gamma);
-    rsw->scale(gamma);
+    rcw->scale(scale);
+    rsw->scale(scale);
   }
 
   // Apply M^{-1} to the result to obtain the final answer
@@ -5129,8 +5121,8 @@ int ParOpt::computeKKTInexactCGStep( ParOptScalar *ztmp,
   }
 
   // Add the contributions from the objective and dense constraints
-  fpr = g->dot(px);
-  cpr = 0.0;
+  ParOptScalar fpr = g->dot(px);
+  ParOptScalar cpr = 0.0;
   if (dense_inequality){
     for ( int i = 0; i < ncon; i++ ){
       ParOptScalar deriv = (Ac[i]->dot(px) - ps[i] + pt[i]);
@@ -5199,11 +5191,11 @@ int ParOpt::computeKKTInexactCGStep( ParOptScalar *ztmp,
   {[ I; 0 ] + [ H - B; 0 ]*M^{-1}}[ ux ] = [ bx ]
   {[ 0; I ] + [     0; 0 ]       }[ uy ]   [ by ]
 */
-int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *ztmp,
-                                         ParOptVec *xtmp1, ParOptVec *xtmp2,
-                                         ParOptVec *xtmp3, ParOptVec *wtmp,
-                                         double rtol, double atol,
-                                         int use_qn ){
+int ParOpt::computeKKTGMRESStep( ParOptScalar *ztmp,
+                                 ParOptVec *xtmp1, ParOptVec *xtmp2,
+                                 ParOptVec *wtmp,
+                                 double rtol, double atol,
+                                 int use_qn ){
   // Check that the subspace has been allocated
   if (gmres_subspace_size <= 0){
     int rank;
@@ -5212,17 +5204,6 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *ztmp,
       fprintf(stderr, "ParOpt error: gmres_subspace_size not set\n");
     }
     return 0;
-  }
-
-  if (use_left_hessian_precon){
-    // Set up the Hessian preconditioner (it is just the identity
-    // matrix by default)
-    prob->setUpHessianPrecon(x, z, zw);
-
-    // Compute the application of the preconditioner on the 
-    // right-hand-side
-    xtmp1->copyValues(rx);
-    prob->applyHessianPrecon(x, z, zw, xtmp1, rx);
   }
 
   // Initialize the data from the gmres object
@@ -5361,7 +5342,7 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *ztmp,
       // Solve the digaonal system again, this time simplifying the
       // result due to the structure of the right-hand-side.  Note
       // that this call uses W[i+1] as a temporary vector.
-      solveKKTDiagSystem(xtmp2, xtmp1, ztmp, xtmp3, wtmp);
+      solveKKTDiagSystem(xtmp2, xtmp1, ztmp, W[i+1], wtmp);
 
       // Add the final contributions
       px->axpy(-1.0, xtmp1);
@@ -5400,24 +5381,16 @@ int ParOpt::computeKKTInexactNewtonStep( ParOptScalar *ztmp,
     }
 
     // Compute the vector product with the exact Hessian
-    prob->evalHvecProduct(x, z, zw, px, xtmp3);
+    prob->evalHvecProduct(x, z, zw, px, W[i+1]);
     nhvec++;
 
     // Add the term -B*W[i]
     if (qn && use_qn){
-      qn->multAdd(-1.0, px, xtmp3);
+      qn->multAdd(-1.0, px, W[i+1]);
     }
 
     // Add the term from the diagonal
-    xtmp3->axpy(1.0, W[i]);
-
-    // Apply the left preconditioner (if any)
-    if (use_left_hessian_precon){
-      prob->applyHessianPrecon(x, z, zw, xtmp3, W[i+1]);
-    }
-    else {
-      W[i+1]->copyValues(xtmp3);
-    }
+    W[i+1]->axpy(1.0, W[i]);
 
     // Set the value of the scalar
     alpha[i+1] = alpha[i];

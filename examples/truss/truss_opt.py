@@ -126,17 +126,19 @@ def paropt_truss(truss, use_hessian=False,
     '''
 
     # Create the optimizer
-    max_qn_subspace = 7
+    max_qn_subspace = 30
     opt = ParOpt.pyParOpt(truss, max_qn_subspace, ParOpt.BFGS)
 
     # Set the optimality tolerance
     opt.setAbsOptimalityTol(1e-6)
 
+    opt.setBarrierStrategy(ParOpt.COMPLEMENTARITY_FRACTION)
+
     # Set the Hessian-vector product iterations
     if use_hessian:
         # opt.setUseLineSearch(0)
         opt.setUseHvecProduct(1)
-        opt.setGMRESSubspaceSize(50)
+        opt.setGMRESSubspaceSize(100)
         opt.setNKSwitchTolerance(1.0)
         opt.setEisenstatWalkerParameters(0.01, 0.0)
         opt.setGMRESTolerances(1.0, 1e-30)
@@ -423,9 +425,6 @@ else:
         # Retrieve the optimized multipliers
         x, z, zw, zl, zu = opt.getOptimizedPoint()
         print('z =  ', z)
-        print('zw = ', zw)
-        print('zl = ', zl[:])
-        print('zu = ', zu[:])
     else:
         # Read out the options from the dictionary of options
         options = all_options[optimizer]
@@ -449,5 +448,3 @@ else:
         os.makedirs(prefix)
     truss.plotTruss(x, tol=0.1,
                     filename=prefix+'/opt_truss%dx%d.pdf'%(N, M))
-
-    print('x = ', truss.Area_scale*x[:])
