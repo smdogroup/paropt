@@ -4319,9 +4319,6 @@ int ParOpt::optimize( const char *checkpoint ){
       gmres_iters =
         computeKKTGMRESStep(ztemp, y_qn, s_qn, wtemp,
                             gmres_rtol, gmres_atol, use_qn);
-      // gmres_iters =
-      //   computeKKTMinResStep(ztemp, y_qn, s_qn, xtemp, wtemp,
-      //                        gmres_rtol, gmres_atol, use_qn);
 
       if (gmres_iters < 0){
         // Recompute the residual of the KKT system - the residual
@@ -4781,6 +4778,9 @@ int ParOpt::optimize( const char *checkpoint ){
 
 /*
   Compute the solution of the system using MINRES.
+
+  Note that this will only work if the preconditioner is
+  symmetrized, so it does not work with the current code.
 */
 int ParOpt::computeKKTMinResStep( ParOptScalar *ztmp,
                                   ParOptVec *xtmp1, ParOptVec *xtmp2,
