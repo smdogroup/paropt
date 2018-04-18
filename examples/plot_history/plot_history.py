@@ -22,6 +22,7 @@ matplotlib.rc('font', **font)
 iteration = np.linspace(1, len(values[0]), len(values[0]))
 objective = values[7]
 opt = values[8]
+infeas = values[9]
 barrier = values[11]
 
 # Just make the iteration linear
@@ -35,11 +36,12 @@ ax1.set_ylabel('Function value')
 
 ax2 = ax1.twinx()
 l2 = ax2.semilogy(iteration, opt, '-r', linewidth=2, label='opt')
-l3 = ax2.semilogy(iteration, barrier, '-g', linewidth=2, label='barrier')
-ax2.set_ylabel('Optimality error')
+l3 = ax2.semilogy(iteration, infeas, '-m', linewidth=2, label='infeas')
+l4 = ax2.semilogy(iteration, barrier, '-g', linewidth=2, label='barrier')
+ax2.set_ylabel('Optimality and Feasibility')
 
 # Manually add all the lines to the legend
-lns = l1+l2+l3
+lns = l1+l2+l3+l4
 labs = [l.get_label() for l in lns]
 ax1.legend(lns, labs, loc=0)
 plt.title(args.filename)
