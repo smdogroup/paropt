@@ -5440,15 +5440,15 @@ int ParOpt::computeKKTGMRESStep( ParOptScalar *ztmp,
 
     // Check the contribution to the projected derivative terms. First
     // evaluate the weights y[] for each
-    for ( int i = niters-1; i >= 0; i-- ){
-      y[i] = res[i];
-      for ( int j = i+1; j < niters; j++ ){
-        int hptr = (j+1)*(j+2)/2 - 1;
-        y[i] = y[i] - H[i + hptr]*y[j];
+    for ( int j = niters-1; j >= 0; j-- ){
+      y[j] = res[j];
+      for ( int k = j+1; k < niters; k++ ){
+        int hptr = (k+1)*(k+2)/2 - 1;
+        y[j] = y[j] - H[j + hptr]*y[k];
       }
 
-      int hptr = (i+1)*(i+2)/2 - 1;
-      y[i] = y[i]/H[i + hptr];
+      int hptr = (j+1)*(j+2)/2 - 1;
+      y[j] = y[j]/H[j + hptr];
     }
 
     // Compute the projection of the solution px on to the gradient
