@@ -186,6 +186,7 @@ class ParOpt : public ParOptBase {
   void setBacktrackingLineSearch( int truth );
   void setArmijoParam( double c1 );
   void setPenaltyDescentFraction( double frac );
+  void setMinPenaltyParameter( double rho_min );
 
   // Set the parameter to set/use a diagonal Hessian
   // -----------------------------------------------
@@ -449,6 +450,7 @@ class ParOpt : public ParOptBase {
   int max_line_iters;
   int use_line_search, use_backtracking_alpha;
   double rho_penalty_search;
+  double min_rho_penalty_search;
   double penalty_descent_fraction, armijo_constant;
 
   // Parameters for controling the barrier update

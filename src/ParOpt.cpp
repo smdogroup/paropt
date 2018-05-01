@@ -305,6 +305,7 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   use_backtracking_alpha = 0;
   max_line_iters = 10;
   rho_penalty_search = 0.0;
+  min_rho_penalty_search = 0.0;
   penalty_descent_fraction = 0.3;
   armijo_constant = 1e-5;
   monotone_barrier_fraction = 0.25;
@@ -1006,6 +1007,16 @@ void ParOpt::setArmijoParam( double c1 ){
 void ParOpt::setPenaltyDescentFraction( double frac ){
   if (frac > 0.0){
     penalty_descent_fraction = frac;
+  }
+}
+
+/*
+  Set the minimum allowable penalty parameter
+*/
+void ParOpt::setMinPenaltyParameter( double rho_min ){
+  if (rho_min >= 0.0){
+    rho_penalty_search = rho_min;
+    min_rho_penalty_search = rho_min;
   }
 }
 
@@ -3629,6 +3640,12 @@ void ParOpt::evalMeritInitDeriv( double max_x,
       }
     }
 
+    // Last check: Make sure that the penalty parameter is at
+    // least larger than the minimum allowable value
+    if (rho_penalty_search < min_rho_penalty_search){
+      rho_penalty_search = min_rho_penalty_search;
+    }
+
     // Now, evaluate the merit function and its derivative
     // based on the new value of the penalty parameter
     merit = (fobj - barrier_param*(pos_result + neg_result) +
@@ -4182,8 +4199,8 @@ int ParOpt::optimize( const char *checkpoint ){
         computeKKTRes(new_barrier_param,
                       &max_prime, &max_dual, &max_infeas);
 
-        // Reset the penalty parameter to zero
-        rho_penalty_search = 0.0;
+        // Reset the penalty parameter to the min allowable value
+        rho_penalty_search = min_rho_penalty_search;
 
         // Recompute the maximum residual norm after the update
         res_norm = max_prime;
@@ -4237,9 +4254,9 @@ int ParOpt::optimize( const char *checkpoint ){
       if (k == 0){
         fprintf(outfp, "%4d %4d %4d %4d %7s %7s %7s %12.5e \
 %7.1e %7.1e %7.1e %7.1e %7.1e %8s %7s %s\n",
-                k, neval, ngeval, nhvec, " ", " ", " ",
+                k, neval, ngeval, nhvec, "--", "--", "--",
                 RealPart(fobj), max_prime, max_infeas, max_dual,
-                barrier_param, RealPart(comp), " ", " ", info);
+                barrier_param, RealPart(comp), "--", "--", info);
       }
       else {
         fprintf(outfp, "%4d %4d %4d %4d %7.1e %7.1e %7.1e %12.5e \

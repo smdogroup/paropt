@@ -156,7 +156,7 @@ def unpack_mma_output(filename):
                line = lines[index]
                index += 1
                counter += 1
-               if len(line.split()) < len(args):
+               if len(line.split()) < len(args)-2:
                   break
 
                # Scan through the format list and determine how to
@@ -837,6 +837,9 @@ cdef class pyParOpt:
       
    def setPenaltyDescentFraction(self, double frac):
       self.ptr.setPenaltyDescentFraction(frac)
+
+   def setMinPenaltyParameter(self, double rho_min):
+      self.ptr.setMinPenaltyParameter(rho_min)
       
    # Set parameters for the interal GMRES algorithm
    def setUseHvecProduct(self, int truth):

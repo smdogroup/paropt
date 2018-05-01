@@ -185,6 +185,7 @@ cdef extern from "ParOpt.h":
       void setBacktrackingLineSearch(int)
       void setArmijoParam(double)
       void setPenaltyDescentFraction(double)
+      void setMinPenaltyParameter(double)
 
       # Set parameters for the internal GMRES algorithm
       void setUseDiagHessian(int)

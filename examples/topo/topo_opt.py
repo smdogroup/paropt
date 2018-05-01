@@ -184,7 +184,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         # Evaluate the objective at the initial point
         self.obj_scale = 1.0
         fail, obj, con = self.evalObjCon(self.xinit)
-        self.obj_scale = 100.0*obj
+        self.obj_scale = 10.0*obj
 
         print('objective scaling = ', self.obj_scale)
 
@@ -739,6 +739,9 @@ def create_paropt(analysis, use_hessian=False,
     # Set the barrier strategy to use
     opt.setBarrierStrategy(ParOpt.MONOTONE)
 
+    # Set the norm to use
+    opt.setNormType(ParOpt.L1_NORM)
+
     # Set optimization parameters
     opt.setArmijoParam(1e-5)
     opt.setMaxMajorIterations(5000)
@@ -878,7 +881,7 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
         os.makedirs(prefix)
 
     # Write out the stdout output to a file
-    # sys.stdout = open(os.path.join(prefix, 'stdout.out'), 'w')
+    sys.stdout = open(os.path.join(prefix, 'stdout.out'), 'w')
        
     # Set up the optimization problem in ParOpt
     opt = create_paropt(analysis,
