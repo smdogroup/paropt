@@ -286,30 +286,17 @@ int ParOptTrustRegion::evalObjCon( ParOptVec *x, ParOptScalar *fobj,
 */
 int ParOptTrustRegion::evalObjConGradient( ParOptVec *x, ParOptVec *g, 
                                            ParOptVec **Ac ){
-  printf("m = %d\n", m);
-  printf("||Ak||: %25.15e\n", Ak[0]->norm());
-  printf("||Ac||: %25.15e\n", Ac[0]->norm());
-
   // Copy the values of constraint gradient
   for ( int i = 0; i < m; i++ ){
     Ac[i]->copyValues(Ak[i]);
   }
 
-  printf("Copy vectors\n");
-  MPI_Barrier(prob->getMPIComm());
-
   s->copyValues(x);
   s->axpy(-1.0, xk);
-
-  printf("Copied values\n");
-  MPI_Barrier(prob->getMPIComm());
   
   // Evaluate the gradient of the quadratic objective
   qn->mult(s, g);
   g->axpy(1.0, gk);
-
-  printf("Multiplied by vector\n");
-  MPI_Barrier(prob->getMPIComm());
 
   return 0;
 }

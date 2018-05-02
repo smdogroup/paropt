@@ -3728,7 +3728,7 @@ int ParOpt::lineSearch( double *_alpha,
   MPI_Comm_rank(comm, &rank);
   if (output_level > 0){
     double pxnorm = px->maxabs();
-    if (rank == opt_root){
+    if (outfp && rank == opt_root){
       fprintf(outfp, "%5s %7s %12s %8s %8s\n",
               "iter", "alpha", "merit", "dmerit", "||px||");
       fprintf(outfp, "%5d %7s %12.5e %8.1e %8.1e\n",
@@ -3773,7 +3773,7 @@ line search, trying new point\n");
     ParOptScalar merit = evalMeritFunc(fobj, c, rx, rs, rt, rsw);
 
     // Print out the merit function and step at the current iterate
-    if (rank == opt_root && output_level > 0){
+    if (outfp && rank == opt_root && output_level > 0){
       fprintf(outfp, "%5d %7.1e %12.5e\n", j+1, alpha, merit);
     }
 
@@ -4911,7 +4911,7 @@ int ParOpt::computeKKTMinResStep( ParOptScalar *ztmp,
   int rank;
   MPI_Comm_rank(comm, &rank);
 
-  if (rank == opt_root && outfp && output_level > 0){
+  if (outfp && rank == opt_root && output_level > 0){
     fprintf(outfp, "%5s %4s %4s %7s %7s %8s %8s minres rtol: %7.1e\n",
             "minres", "nhvc", "iter", "res", "rel", "fproj", "cproj", rtol);
     fprintf(outfp, "      %4d %4d %7.1e %7.1e\n",
