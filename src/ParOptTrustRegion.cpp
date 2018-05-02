@@ -50,7 +50,6 @@ ParOptProblem(_prob->getMPIComm()){
 
   // Create the vectors
   xk = prob->createDesignVec();  xk->incref();
-  gk = prob->createDesignVec();  gk->incref();
   lk = prob->createDesignVec();  lk->incref();
   uk = prob->createDesignVec();  uk->incref();
   lb = prob->createDesignVec();  lb->incref();
@@ -58,8 +57,9 @@ ParOptProblem(_prob->getMPIComm()){
 
   // Create the constraint Jacobian vectors
   fk = 0.0;
+  gk = prob->createDesignVec();
+  gk->incref();
   ck = new ParOptScalar[ m ];
-
   Ak = new ParOptVec*[ m ];
   for ( int i = 0; i < m; i++ ){
     Ak[i] = prob->createDesignVec();
@@ -68,8 +68,9 @@ ParOptProblem(_prob->getMPIComm()){
 
   // Create a temporary set of vectors
   ft = 0.0;
+  gt = prob->createDesignVec();
+  gt->incref();
   ct = new ParOptScalar[ m ];
-
   At = new ParOptVec*[ m ];
   for ( int i = 0; i < m; i++ ){
     At[i] = prob->createDesignVec();
