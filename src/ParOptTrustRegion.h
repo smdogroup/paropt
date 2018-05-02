@@ -44,11 +44,15 @@ class ParOptTrustRegion : public ParOptProblem {
 
   // Evaluate the product of the Hessian with a given vector
   int evalHvecProduct( ParOptVec *x, ParOptScalar *z, ParOptVec *zw,
-                       ParOptVec *px, ParOptVec *hvec );
+                       ParOptVec *px, ParOptVec *hvec ){
+    return 0;
+  }
 
   // Evaluate the diagonal Hessian
   int evalHessianDiag( ParOptVec *x, ParOptScalar *z, ParOptVec *zw,
-                       ParOptVec *hdiag );
+                       ParOptVec *hdiag ){
+    return 0;
+  }
 
   // Evaluate the constraints
   void evalSparseCon( ParOptVec *x, ParOptVec *out );
