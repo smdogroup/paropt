@@ -5,6 +5,7 @@ OBJS = ParOpt.o \
 	ParOptVec.o \
 	ParOptQuasiNewton.o \
 	ParOptMMA.o \
+	ParOptTrustRegion.o \
 	CyParOptProblem.o
 
 default: ${OBJS}

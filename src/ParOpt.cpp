@@ -4126,7 +4126,8 @@ int ParOpt::optimize( const char *checkpoint ){
 
   for ( int k = 0; k < max_major_iters; k++ ){
     if (qn && !sequential_linear_method){
-      if (k > 0 && k % hessian_reset_freq == 0){
+      if (k > 0 && k % hessian_reset_freq == 0 &&
+          use_quasi_newton_update){
         // Reset the quasi-Newton Hessian approximation
         qn->reset();
 

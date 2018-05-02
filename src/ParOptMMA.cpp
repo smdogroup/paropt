@@ -610,8 +610,10 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
   // Compute the values of the lower/upper assymptotes
   for ( int j = 0; j < n; j++ ){
     // Compute the move limits to avoid division by zero
-    alpha[j] = max2(max2(lb[j], 0.9*L[j] + 0.1*x[j]), x[j] - 0.5*(ub[j] - lb[j]));
-    beta[j] = min2(min2(ub[j], 0.9*U[j] + 0.1*x[j]), x[j] + 0.5*(ub[j] - lb[j]));
+    alpha[j] = max2(max2(lb[j], 0.9*L[j] + 0.1*x[j]),
+                    x[j] - 0.5*(ub[j] - lb[j]));
+    beta[j] = min2(min2(ub[j], 0.9*U[j] + 0.1*x[j]),
+                   x[j] + 0.5*(ub[j] - lb[j]));
 
     // Compute the coefficients for the objective
     ParOptScalar gpos = max2(0.0, g[j]);

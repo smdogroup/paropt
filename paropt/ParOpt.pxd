@@ -231,5 +231,12 @@ cdef extern from "ParOptMMA.h":
       void setBoundRelax(double)
       void setRegularization(double, double)
 
+cdef extern from "ParOptTrustRegion.h":
+   cdef cppclass ParOptTrustRegion(ParOptProblem):
+      ParOptTrustRegion(ParOptProblem*, ParOptCompactQuasiNewton*,
+                        double, double, double, double, double)
+      void initialize()
+      void update(ParOptVec*)
+
 cdef class pyParOptProblemBase:
    cdef ParOptProblem *ptr

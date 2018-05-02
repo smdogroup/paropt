@@ -984,3 +984,22 @@ cdef class pyMMA(pyParOptProblemBase):
 
    def setRegularization(self, double eps, double delta):
       self.mma.setRegularization(eps, delta)
+
+cdef class pyTrustRegion(pyParOptProblemBase):
+   cdef ParOptTrustRegion *tr
+   def __cinit__(self, pyParOptProblemBase _prob, CompactQuasiNewton qn,
+                 double tr_size, double tr_min_size=1e-4,
+                 double tr_max_size=1.0, double eta=0.25, double penalty=10.0):
+      self.tr = new ParOptTrustRegion(_prob.ptr, qn.ptr, tr_size, 
+                                      tr_min_size, tr_max_size,
+                                      eta, penalty)
+      self.tr.incref()
+      self.ptr = self.tr
+      return
+
+   def initialize(self):
+      self.tr.initialize()
+
+   def update(self, PVec vec):
+      self.tr.update(vec.ptr)
+      
