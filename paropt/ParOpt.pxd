@@ -169,6 +169,7 @@ cdef extern from "ParOpt.h":
       # Set/obtain the barrier parameter
       void setInitBarrierParameter(double)
       double getBarrierParameter()
+      void setRelativeBarrier(double)
       ParOptScalar getComplementarity()
 
       # Advanced quasi-Newton options

@@ -177,6 +177,7 @@ class ParOpt : public ParOptBase {
   // -----------------------------
   void setInitBarrierParameter( double mu );
   double getBarrierParameter();
+  void setRelativeBarrier( double rel );
   ParOptScalar getComplementarity();
 
   // Set parameters associated with the line search
@@ -434,6 +435,7 @@ class ParOpt : public ParOptBase {
 
   // The barrier parameter
   double barrier_param;
+  double rel_bound_barrier;
 
   // Stopping criteria tolerances
   double abs_res_tol;

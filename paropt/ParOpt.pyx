@@ -805,6 +805,9 @@ cdef class pyParOpt:
    def getBarrierParameter(self):
       return self.ptr.getBarrierParameter()
 
+   def setRelativeBarrier(self, double rel):
+      self.ptr.setRelativeBarrier(rel)
+
    def getComplementarity(self):
       return self.ptr.getComplementarity()
   

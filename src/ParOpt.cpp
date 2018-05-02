@@ -10,7 +10,7 @@
   each parameter and how you should set it.
 */
 
-static const int NUM_PAROPT_PARAMETERS = 31;
+static const int NUM_PAROPT_PARAMETERS = 34;
 static const char *paropt_parameter_help[][2] = {
   {"max_qn_size",
    "Integer: The maximum dimension of the quasi-Newton approximation"},
@@ -42,6 +42,12 @@ static const char *paropt_parameter_help[][2] = {
   {"max_line_iters",
    "Integer: Maximum number of line search iterations"},
 
+  {"penalty_descent_fraction",
+   "Float: Fraction of infeasibility used to enforce a descent direction"},
+
+  {"min_rho_penalty_search",
+   "Float: Minimum value of the penalty parameter"},
+
   {"armijo_constant",
    "Float: The Armijo constant for the line search"},
 
@@ -50,6 +56,9 @@ static const char *paropt_parameter_help[][2] = {
 
   {"monotone_barrier_power",
    "Float: Exponent for barrier parameter update > 1"},
+
+  {"rel_bound_barrier",
+   "Float: Relative factor applied to barrier parameter for bound constraints"},
 
   {"min_fraction_to_boundary",
    "Float: Minimum fraction to the boundary rule < 1"},
@@ -298,6 +307,7 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   max_major_iters = 1000;
   init_starting_point = 1;
   barrier_param = 0.1;
+  rel_bound_barrier = 1.0;
   penalty_gamma = 1000.0;
   abs_res_tol = 1e-5;
   rel_func_tol = 0.0;
@@ -577,11 +587,15 @@ void ParOpt::printOptionSummary( FILE *fp ){
     fprintf(fp, "%-30s %15d\n", "max_line_iters", max_line_iters);
     fprintf(fp, "%-30s %15g\n", "penalty_descent_fraction",
             penalty_descent_fraction);
+    fprintf(fp, "%-30s %15g\n", "min_rho_penalty_search",
+            min_rho_penalty_search);
     fprintf(fp, "%-30s %15g\n", "armijo_constant", armijo_constant);
     fprintf(fp, "%-30s %15g\n", "monotone_barrier_fraction",
             monotone_barrier_fraction);
     fprintf(fp, "%-30s %15g\n", "monotone_barrier_power",
             monotone_barrier_power);
+    fprintf(fp, "%-30s %15g\n", "rel_bound_barrier",
+            rel_bound_barrier);
     fprintf(fp, "%-30s %15g\n", "min_fraction_to_boundary",
             min_fraction_to_boundary);
     fprintf(fp, "%-30s %15d\n", "major_iter_step_check",
@@ -914,6 +928,15 @@ void ParOpt::setInitBarrierParameter( double mu ){
 */
 double ParOpt::getBarrierParameter(){
   return barrier_param;
+}
+
+/*
+  Set the relative barrier value for the variable bounds
+*/
+void ParOpt::setRelativeBarrier( double rel ){
+  if (rel > 0.0){
+    rel_bound_barrier = rel;
+  }
 }
 
 /*
@@ -1418,7 +1441,8 @@ void ParOpt::computeKKTRes( double barrier,
 
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(lbvals[i]) > -max_bound_val){
-        rzlvals[i] = -((xvals[i] - lbvals[i])*zlvals[i] - barrier);
+        rzlvals[i] = -((xvals[i] - lbvals[i])*zlvals[i] -
+                       rel_bound_barrier*barrier);
       }
       else {
         rzlvals[i] = 0.0;
@@ -1446,7 +1470,8 @@ void ParOpt::computeKKTRes( double barrier,
 
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(ubvals[i]) < max_bound_val){
-        rzuvals[i] = -((ubvals[i] - xvals[i])*zuvals[i] - barrier);
+        rzuvals[i] = -((ubvals[i] - xvals[i])*zuvals[i] -
+                       rel_bound_barrier*barrier);
       }
       else {
         rzuvals[i] = 0.0;
@@ -2928,6 +2953,9 @@ ParOptScalar ParOpt::computeComp(){
     }
   }
 
+  // Modify the complementarity by the bound scalar factor
+  product = product/rel_bound_barrier;
+
   // Add up the contributions from all processors
   ParOptScalar in[2], out[2];
   in[0] = product;
@@ -3000,6 +3028,9 @@ ParOptScalar ParOpt::computeCompStep( double alpha_x, double alpha_z ){
       }
     }
   }
+
+  // Modify the complementarity by the bound scalar factor
+  product = product/rel_bound_barrier;
 
   // Add up the contributions from all processors
   ParOptScalar in[2], out[2];
@@ -3229,10 +3260,10 @@ ParOptScalar ParOpt::evalMeritFunc( ParOptScalar fk,
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(lbvals[i]) > -max_bound_val){
         if (RealPart(xvals[i] - lbvals[i]) > 1.0){
-          pos_result += log(xvals[i] - lbvals[i]);
+          pos_result += rel_bound_barrier*log(xvals[i] - lbvals[i]);
         }
         else {
-          neg_result += log(xvals[i] - lbvals[i]);
+          neg_result += rel_bound_barrier*log(xvals[i] - lbvals[i]);
         }
       }
     }
@@ -3242,10 +3273,10 @@ ParOptScalar ParOpt::evalMeritFunc( ParOptScalar fk,
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(ubvals[i]) < max_bound_val){
         if (RealPart(ubvals[i] - xvals[i]) > 1.0){
-          pos_result += log(ubvals[i] - xvals[i]);
+          pos_result += rel_bound_barrier*log(ubvals[i] - xvals[i]);
         }
         else {
-          neg_result += log(ubvals[i] - xvals[i]);
+          neg_result += rel_bound_barrier*log(ubvals[i] - xvals[i]);
         }
       }
     }
@@ -3383,17 +3414,17 @@ void ParOpt::evalMeritInitDeriv( double max_x,
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(lbvals[i]) > -max_bound_val){
         if (RealPart(xvals[i] - lbvals[i]) > 1.0){
-          pos_result += log(xvals[i] - lbvals[i]);
+          pos_result += rel_bound_barrier*log(xvals[i] - lbvals[i]);
         }
         else {
-          neg_result += log(xvals[i] - lbvals[i]);
+          neg_result += rel_bound_barrier*log(xvals[i] - lbvals[i]);
         }
 
         if (RealPart(pxvals[i]) > 0.0){
-          pos_presult += pxvals[i]/(xvals[i] - lbvals[i]);
+          pos_presult += rel_bound_barrier*pxvals[i]/(xvals[i] - lbvals[i]);
         }
         else {
-          neg_presult += pxvals[i]/(xvals[i] - lbvals[i]);
+          neg_presult += rel_bound_barrier*pxvals[i]/(xvals[i] - lbvals[i]);
         }
       }
     }
@@ -3403,17 +3434,17 @@ void ParOpt::evalMeritInitDeriv( double max_x,
     for ( int i = 0; i < nvars; i++ ){
       if (RealPart(ubvals[i]) < max_bound_val){
         if (RealPart(ubvals[i] - xvals[i]) > 1.0){
-          pos_result += log(ubvals[i] - xvals[i]);
+          pos_result += rel_bound_barrier*log(ubvals[i] - xvals[i]);
         }
         else {
-          neg_result += log(ubvals[i] - xvals[i]);
+          neg_result += rel_bound_barrier*log(ubvals[i] - xvals[i]);
         }
 
         if (RealPart(pxvals[i]) > 0.0){
-        neg_presult -= pxvals[i]/(ubvals[i] - xvals[i]);
+          neg_presult -= rel_bound_barrier*pxvals[i]/(ubvals[i] - xvals[i]);
         }
         else {
-          pos_presult -= pxvals[i]/(ubvals[i] - xvals[i]);
+          pos_presult -= rel_bound_barrier*pxvals[i]/(ubvals[i] - xvals[i]);
         }
       }
     }
@@ -4929,7 +4960,7 @@ int ParOpt::computeKKTMinResStep( ParOptScalar *ztmp,
       size = qn->getCompactMat(&b0, &d, &M, &Z);
     }
 
-    // In the loop, all the components of the step vector 
+    // In the loop, all the components of the step vector
     // that are not the px-vector can be used as temporary variables
     solveKKTDiagSystem(v, v_alpha/bnorm,
                        rt, rc, rcw, rs, rsw, rzt, rzl, rzu,
@@ -4987,7 +5018,7 @@ int ParOpt::computeKKTMinResStep( ParOptScalar *ztmp,
     v_next_alpha = tv_alpha - alpha*v_alpha - beta*v_prev_alpha;
 
     // beta_next = np.sqrt(np.dot(v_next, v_next))
-    ParOptScalar beta_next = sqrt(v_next->dot(v_next) + 
+    ParOptScalar beta_next = sqrt(v_next->dot(v_next) +
                                   beta_dot*v_next_alpha*v_next_alpha);
 
     // Scale the vector by beta_next
@@ -5015,10 +5046,10 @@ int ParOpt::computeKKTMinResStep( ParOptScalar *ztmp,
     tv->scale(scale);
     tv_alpha = scale*(v_alpha - rho2*w1_alpha - rho3*w2_alpha);
 
-    // Update the solution: x = x + gamma_next*eta*t      
+    // Update the solution: x = x + gamma_next*eta*t
     px->axpy(gamma_next*eta, tv);
     p_alpha = p_alpha + gamma_next*eta*tv_alpha;
-    
+
     // Update to find the new value of eta
     eta = -sigma_next*eta;
 
