@@ -234,9 +234,10 @@ cdef extern from "ParOptMMA.h":
 cdef extern from "ParOptTrustRegion.h":
    cdef cppclass ParOptTrustRegion(ParOptProblem):
       ParOptTrustRegion(ParOptProblem*, ParOptCompactQuasiNewton*,
-                        double, double, double, double, double)
+                        double, double, double, double, double, double)
       void initialize()
-      void update(ParOptVec*)
+      void update(ParOptVec*, const ParOptScalar*, ParOptVec*,
+                  double*, double*, double*)
 
 cdef class pyParOptProblemBase:
    cdef ParOptProblem *ptr

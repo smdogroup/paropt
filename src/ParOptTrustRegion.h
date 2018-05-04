@@ -11,14 +11,16 @@ class ParOptTrustRegion : public ParOptProblem {
   ParOptTrustRegion( ParOptProblem *_prob, 
                      ParOptCompactQuasiNewton *_qn, double _tr_size,
                      double _tr_min_size, double _tr_max_size,
-                     double _eta=0.25, double penalty_value=10.0 );
+                     double _eta=0.25, double penalty_value=10.0,
+                     double _bound_relax=1e-4 );
   ~ParOptTrustRegion();
 
   // Initialize the subproblem
   void initialize();
 
   // Update the problem
-  void update( ParOptVec *xt );
+  void update( ParOptVec *xt, const ParOptScalar *z, ParOptVec *zw,
+               double *infeas, double *l1, double *linfty );
 
   // Create the design vectors
   ParOptVec *createDesignVec();
@@ -80,6 +82,11 @@ class ParOptTrustRegion : public ParOptProblem {
                              ParOptVec *l, ParOptVec *u,
                              ParOptVec *ltr, ParOptVec *utr );
 
+  // Compute the KKT error in the solution
+  void computeKKTError( ParOptVec *xt, ParOptVec *g, ParOptVec **A,
+                        const ParOptScalar *z, ParOptVec *zw,
+                        double *l1, double *linfty );
+
   // File pointer for the summary file - depending on the settings
   // FILE *fp;
   // int first_print;
@@ -92,6 +99,7 @@ class ParOptTrustRegion : public ParOptProblem {
   double tr_min_size, tr_max_size;
   double eta;
   double penalty_value;
+  double bound_relax;
 
   // Pointer to the optimization problem
   ParOptProblem *prob;
@@ -111,9 +119,6 @@ class ParOptTrustRegion : public ParOptProblem {
 
   // Current design point
   ParOptVec *xk;
-
-  // Multiplier estimates
-  ParOptScalar *lamb;
 
   // The objective/constraint values
   ParOptScalar fk, *ck;

@@ -26,7 +26,8 @@ ParOptTrustRegion::ParOptTrustRegion( ParOptProblem *_prob,
                                       double _tr_min_size,
                                       double _tr_max_size,
                                       double _eta,
-                                      double _penalty_value ):
+                                      double _penalty_value,
+                                      double _bound_relax ):
 ParOptProblem(_prob->getMPIComm()){
   // Paropt problem instance
   prob = _prob;
@@ -47,6 +48,7 @@ ParOptProblem(_prob->getMPIComm()){
   tr_max_size = _tr_max_size;
   eta = _eta;
   penalty_value = _penalty_value;
+  bound_relax = _bound_relax;
 
   // Create the vectors
   xk = prob->createDesignVec();  xk->incref();
@@ -77,12 +79,6 @@ ParOptProblem(_prob->getMPIComm()){
     At[i]->incref();
   }
 
-  // Set the initial values of the multipliers
-  lamb = new ParOptScalar[ m ];
-  for ( int i = 0; i < m; i++ ){
-    lamb[i] = 0.0;
-  }
-
   // Create the temporary vector
   s = prob->createDesignVec();  s->incref();
   t = prob->createDesignVec();  t->incref();
@@ -109,7 +105,6 @@ ParOptTrustRegion::~ParOptTrustRegion(){
     At[i]->decref();
   }
   delete [] At;
-  delete [] lamb;
 
   s->decref();
   t->decref();
@@ -153,45 +148,76 @@ void ParOptTrustRegion::initialize(){
   // Evaluate objective constraints and gradients
   prob->evalObjCon(xk, &fk, ck);
   prob->evalObjConGradient(xk, gk, Ak);
-  
-  // Add the contributions of the augmented Lagrangian
-  for ( int i = 0; i < m; i++ ){
-    fk = fk - lamb[i]*ck[i] + 0.5*penalty_value*ck[i]*ck[i];
-    gk->axpy(-lamb[i] + penalty_value*ck[i], Ak[i]);
-  }
 }
 
 /*
   Update the trust region problem
 */
-void ParOptTrustRegion::update( ParOptVec *xt ){
+void ParOptTrustRegion::update( ParOptVec *xt,
+                                const ParOptScalar *z,
+                                ParOptVec *zw,
+                                double *infeas,
+                                double *l1,
+                                double *linfty ){
   // Compute the step
   s->copyValues(xt);
   s->axpy(-1.0, xk);
 
-  // Evaluate the objective and constraints and their gradients
+  // Compute the decrease in the model objective function
+  qn->mult(s, t);
+  ParOptScalar obj_reduc = -(gk->dot(s) + 0.5*t->dot(s));
+
+  // Compute the model infeasibility
+  ParOptScalar infeas_model = 0.0;
+  for ( int i = 0; i < m; i++ ){
+    ParOptScalar cval = ck[i] + Ak[i]->dot(s);
+    infeas_model += max2(0.0, -cval);
+  }
+
+  // Evaluate the objective and constraints and their gradients at
+  // the new, optimized point
   prob->evalObjCon(xt, &ft, ct);
   prob->evalObjConGradient(xt, gt, At);
 
-  // Add the contributions of the augmented Lagrangian
+  // Compute the infeasibilities of the last two iterations
+  ParOptScalar infeas_k = 0.0;
+  ParOptScalar infeas_t = 0.0;
   for ( int i = 0; i < m; i++ ){
-    ft = ft - lamb[i]*ct[i] + 0.5*penalty_value*ct[i]*ct[i];
-    gt->axpy(-lamb[i] + penalty_value*ct[i], At[i]);
+    infeas_k += max2(0.0, -ck[i]);
+    infeas_t += max2(0.0, -ct[i]);
   }
 
-  // Compute the decrease in the model function
-  qn->mult(s, t);
-  ParOptScalar mk = -(gk->dot(s) + 0.5*t->dot(s));
-
+  // Compute the actual reduction and the predicted reduction
+  ParOptScalar actual_reduc =
+    (fk - ft + penalty_value*(infeas_k - infeas_t));
+  ParOptScalar model_reduc =
+    obj_reduc + penalty_value*(infeas_k - infeas_model);
+  
   // Compute the ratio
-  ParOptScalar rho = (fk - ft)/mk;
+  ParOptScalar rho = actual_reduc/model_reduc;
+
+  // Compute the difference between the gradient of the
+  // Lagrangian between the current point and the previous point
+  t->copyValues(gt);
+  for ( int i = 0; i < m; i++ ){
+    t->axpy(-z[i], At[i]);
+  }
+  prob->addSparseJacobianTranspose(-1.0, xt, zw, t);
+
+  t->axpy(-1.0, gk);
+  for ( int i = 0; i < m; i++ ){
+    t->axpy(z[i], Ak[i]);
+  }
+  prob->addSparseJacobianTranspose(1.0, xk, zw, t);
 
   // Perform an update of the quasi-Newton approximation
-  t->copyValues(gt);
-  t->axpy(-1.0, gk);
   qn->update(s, t);
 
-  // Check the new point
+  // Compute the KKT error at the current point
+  computeKKTError(xt, gt, At, z, zw, l1, linfty);
+  *infeas = RealPart(infeas_t);
+
+  // Check whether to accept the new point or not
   if (RealPart(rho) >= eta){
     fk = ft;
     xk->copyValues(xt);
@@ -212,6 +238,72 @@ void ParOptTrustRegion::update( ParOptVec *xt ){
 
   // Reset the trust region radius bounds
   setTrustRegionBounds(tr_size, xk, lb, ub, lk, uk);
+}
+
+/*
+  Compute the KKT error based on the current values of the multipliers
+  set in ParOptMMA. If you do not update the multipliers, you will not
+  get the correct KKT error.
+*/
+void ParOptTrustRegion::computeKKTError( ParOptVec *xt,
+                                         ParOptVec *g,
+                                         ParOptVec **A,
+                                         const ParOptScalar *z,
+                                         ParOptVec *zw,
+                                         double *l1,
+                                         double *linfty ){
+  // Get the lower/upper bounds for the variables
+  ParOptScalar *l, *u;
+  lb->getArray(&l);
+  ub->getArray(&u);
+
+  // Get the current values of the design variables
+  ParOptScalar *x;
+  xt->getArray(&x);
+
+  // Compute the KKT residual r = g - A^{T}*z
+  t->copyValues(g);
+  for ( int i = 0; i < m; i++ ){
+    t->axpy(-z[i], A[i]);
+  }
+
+  // If zw exists, compute r = r - Aw^{T}*zw
+  if (zw){
+    prob->addSparseJacobianTranspose(-1.0, xt, zw, t);
+  }
+
+  // Set the infinity norms
+  double l1_norm = 0.0;
+  double infty_norm = 0.0;
+
+  // Get the vector of values
+  ParOptScalar *r;
+  t->getArray(&r);
+
+  for ( int j = 0; j < n; j++ ){
+    double w = RealPart(r[j]);
+
+    // Check if we're on the lower bound
+    if ((x[j] <= l[j] + bound_relax) && w > 0.0){
+      w = 0.0;
+    }
+
+    // Check if we're on the upper bound
+    if ((x[j] >= u[j] - bound_relax) && w < 0.0){
+      w = 0.0;
+    }
+
+    // Add the contribution to the l1/infinity norms
+    double t = fabs(w);
+    l1_norm += t;
+    if (t >= infty_norm){
+      infty_norm = t;
+    }
+  }
+
+  // All-reduce the norms across all processors
+  MPI_Allreduce(&l1_norm, l1, 1, MPI_DOUBLE, MPI_SUM, comm);
+  MPI_Allreduce(&infty_norm, linfty, 1, MPI_DOUBLE, MPI_MAX, comm);
 }
 
 /*

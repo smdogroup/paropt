@@ -989,10 +989,11 @@ cdef class pyTrustRegion(pyParOptProblemBase):
    cdef ParOptTrustRegion *tr
    def __cinit__(self, pyParOptProblemBase _prob, CompactQuasiNewton qn,
                  double tr_size, double tr_min_size=1e-4,
-                 double tr_max_size=1.0, double eta=0.25, double penalty=10.0):
+                 double tr_max_size=1.0, double eta=0.25,
+                 double penalty=10.0, double bound_relax=1e-4):
       self.tr = new ParOptTrustRegion(_prob.ptr, qn.ptr, tr_size, 
                                       tr_min_size, tr_max_size,
-                                      eta, penalty)
+                                      eta, penalty, bound_relax)
       self.tr.incref()
       self.ptr = self.tr
       return
@@ -1000,6 +1001,16 @@ cdef class pyTrustRegion(pyParOptProblemBase):
    def initialize(self):
       self.tr.initialize()
 
-   def update(self, PVec vec):
-      self.tr.update(vec.ptr)
+   def update(self, PVec vec,
+              np.ndarray[ParOptScalar, ndim=1, mode='c'] z,
+              PVec zw=None):
+      cdef ParOptVec *v = NULL
+      cdef double infeas = 0.0
+      cdef double l1 = 0.0
+      cdef double linfty = 0.0
+      if zw is not None:
+         v = zw.ptr
+      self.tr.update(vec.ptr, <ParOptScalar*>z.data, zw.ptr,
+                     &infeas, &l1, &linfty)
+      return infeas, l1, linfty
       
