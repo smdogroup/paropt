@@ -57,6 +57,11 @@ ParOptProblem(_prob->getMPIComm()){
   lb = prob->createDesignVec();  lb->incref();
   ub = prob->createDesignVec();  ub->incref();
 
+  // Set default values for now before initialize
+  lk->set(0.0);  uk->set(1.0);
+  lb->set(0.0);  ub->set(1.0);
+  xk->set(0.5);
+
   // Create the constraint Jacobian vectors
   fk = 0.0;
   gk = prob->createDesignVec();
@@ -229,15 +234,24 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   }
 
   // Set the new trust region radius
-  if (rho < 0.25){
+  if (RealPart(rho) < 0.25){
     tr_size = max2(0.25*tr_size, tr_min_size);
   }
-  else if (rho > 0.75){
+  else if (RealPart(rho) > 0.75){
     tr_size = min2(2.0*tr_size, tr_max_size);
   }
 
   // Reset the trust region radius bounds
   setTrustRegionBounds(tr_size, xk, lb, ub, lk, uk);
+
+  int mpi_rank;
+  MPI_Comm_rank(prob->getMPIComm(), &mpi_rank);
+  if (mpi_rank == 0){
+    printf("%12s %9s %9s %9s %9s %9s %9s\n",
+           "fobj", "infeas", "l1", "linfty", "tr", "rho", "mod red.");
+    printf("%12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e\n",
+           fk, *infeas, *l1, *linfty, tr_size, rho, model_reduc);
+  }
 }
 
 /*
@@ -245,7 +259,7 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   set in ParOptMMA. If you do not update the multipliers, you will not
   get the correct KKT error.
 */
-void ParOptTrustRegion::computeKKTError( ParOptVec *xt,
+void ParOptTrustRegion::computeKKTError( ParOptVec *xv,
                                          ParOptVec *g,
                                          ParOptVec **A,
                                          const ParOptScalar *z,
@@ -259,7 +273,7 @@ void ParOptTrustRegion::computeKKTError( ParOptVec *xt,
 
   // Get the current values of the design variables
   ParOptScalar *x;
-  xt->getArray(&x);
+  xv->getArray(&x);
 
   // Compute the KKT residual r = g - A^{T}*z
   t->copyValues(g);
@@ -269,7 +283,7 @@ void ParOptTrustRegion::computeKKTError( ParOptVec *xt,
 
   // If zw exists, compute r = r - Aw^{T}*zw
   if (zw){
-    prob->addSparseJacobianTranspose(-1.0, xt, zw, t);
+    prob->addSparseJacobianTranspose(-1.0, xv, zw, t);
   }
 
   // Set the infinity norms
@@ -294,10 +308,10 @@ void ParOptTrustRegion::computeKKTError( ParOptVec *xt,
     }
 
     // Add the contribution to the l1/infinity norms
-    double t = fabs(w);
-    l1_norm += t;
-    if (t >= infty_norm){
-      infty_norm = t;
+    double tw = fabs(w);
+    l1_norm += tw;
+    if (tw >= infty_norm){
+      infty_norm = tw;
     }
   }
 
