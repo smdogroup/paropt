@@ -316,8 +316,10 @@ void ParOptTrustRegion::computeKKTError( ParOptVec *xv,
   }
 
   // All-reduce the norms across all processors
-  MPI_Allreduce(&l1_norm, l1, 1, MPI_DOUBLE, MPI_SUM, comm);
-  MPI_Allreduce(&infty_norm, linfty, 1, MPI_DOUBLE, MPI_MAX, comm);
+  MPI_Allreduce(&l1_norm, l1, 1, MPI_DOUBLE,
+                MPI_SUM, prob->getMPIComm());
+  MPI_Allreduce(&infty_norm, linfty, 1, MPI_DOUBLE,
+                MPI_MAX, prob->getMPIComm());
 }
 
 /*

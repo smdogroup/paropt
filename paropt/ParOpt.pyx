@@ -1010,7 +1010,6 @@ cdef class pyTrustRegion(pyParOptProblemBase):
       cdef double linfty = 0.0
       if zw is not None:
          v = zw.ptr
-      self.tr.update(vec.ptr, <ParOptScalar*>z.data, zw.ptr,
+      self.tr.update(vec.ptr, <ParOptScalar*>z.data, v,
                      &infeas, &l1, &linfty)
       return infeas, l1, linfty
-      
