@@ -199,7 +199,8 @@ void ParOptMMA::initialize(){
   z = new ParOptScalar[ m ];
   memset(z, 0, m*sizeof(ParOptScalar));
   zwvec = prob->createConstraintVec();
-
+  zwvec->incref();
+  
   // Set the bound multipliers
   zlvec = prob->createDesignVec();
   zuvec = prob->createDesignVec();
