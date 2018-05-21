@@ -3951,17 +3951,26 @@ void ParOpt::initAndCheckDesignAndBounds( int init_multipliers ){
     }
   }
 
+  // Perform a bitwise global OR operation
+  int tmp_check_flag = check_flag;
+  MPI_Allreduce(&tmp_check_flag, &check_flag, 1, MPI_INT, MPI_BOR, comm);
+
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+
   // Print the results of the warnings
-  if (check_flag & 1){
-    fprintf(stderr, "ParOpt Warning: Variable bounds are inconsistent\n");
-  }
-  if (check_flag & 2){
-    fprintf(stderr,
-            "ParOpt Warning: Variables may be too close to lower bound\n");
-  }
-  if (check_flag & 4){
-    fprintf(stderr,
-            "ParOpt Warning: Variables may be too close to upper bound\n");
+  if (rank == 0){
+    if (check_flag & 1){
+      fprintf(stderr, "ParOpt Warning: Variable bounds are inconsistent\n");
+    }
+    if (check_flag & 2){
+      fprintf(stderr,
+              "ParOpt Warning: Variables may be too close to lower bound\n");
+    }
+    if (check_flag & 4){
+      fprintf(stderr,
+              "ParOpt Warning: Variables may be too close to upper bound\n");
+    }
   }
 
   // Set the largrange multipliers with bounds outside the limits to
