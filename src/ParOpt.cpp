@@ -4358,9 +4358,7 @@ int ParOpt::optimize( const char *checkpoint ){
       // Set up the full KKT system
       setUpKKTSystem(ztemp, s_qn, y_qn, wtemp, use_qn);
 
-      // Compute the inexact step using GMRES - note that this
-      // uses a fixed tolerance -- this may lead to over-solving
-      // if rtol is too tight
+      // Compute the inexact step using GMRES
       gmres_iters =
         computeKKTGMRESStep(ztemp, y_qn, s_qn, wtemp,
                             gmres_rtol, gmres_atol, use_qn);
