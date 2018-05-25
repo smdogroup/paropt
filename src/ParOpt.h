@@ -197,7 +197,6 @@ class ParOpt : public ParOptBase {
   // -----------------------------------------------
   void setUseHvecProduct( int truth );
   void setUseQNGMRESPreCon( int truth );
-  void setUseLeftHessianPreCon( int truth );
   void setNKSwitchTolerance( double tol );
   void setEisenstatWalkerParameters( double gamma, double alpha );
   void setGMRESTolerances( double rtol, double atol );
@@ -468,7 +467,6 @@ class ParOpt : public ParOptBase {
   // Control of exact Hessian-vector products
   int use_hvec_product;
   int use_qn_gmres_precon;
-  int use_left_hessian_precon;
   double eisenstat_walker_alpha, eisenstat_walker_gamma;
   double nk_switch_tol;
   double max_gmres_rtol, gmres_atol;

@@ -10,7 +10,7 @@
   each parameter and how you should set it.
 */
 
-static const int NUM_PAROPT_PARAMETERS = 34;
+static const int NUM_PAROPT_PARAMETERS = 33;
 static const char *paropt_parameter_help[][2] = {
   {"max_qn_size",
    "Integer: The maximum dimension of the quasi-Newton approximation"},
@@ -96,9 +96,6 @@ iteration frequency"},
 
   {"use_qn_gmres_precon",
    "Boolean: Use or do not use the quasi-Newton method as a preconditioner"},
-
-  {"use_left_hessian_precon",
-   "Boolean: Use the left preconditioner if one is defined"},
 
   {"nk_switch_tol",
    "Float: Switch to the Newton-Krylov method at this residual tolerance"},
@@ -338,7 +335,6 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   // Initialize the Hessian-vector product information
   use_hvec_product = 0;
   use_qn_gmres_precon = 1;
-  use_left_hessian_precon = 0;
   nk_switch_tol = 1e-3;
   eisenstat_walker_alpha = 1.5;
   eisenstat_walker_gamma = 1.0;
@@ -619,8 +615,6 @@ void ParOpt::printOptionSummary( FILE *fp ){
             use_diag_hessian);
     fprintf(fp, "%-30s %15d\n", "use_qn_gmres_precon",
             use_qn_gmres_precon);
-    fprintf(fp, "%-30s %15d\n", "use_left_hessian_precon",
-            use_left_hessian_precon);
     fprintf(fp, "%-30s %15g\n", "nk_switch_tol", nk_switch_tol);
     fprintf(fp, "%-30s %15g\n", "eisenstat_walker_alpha",
             eisenstat_walker_alpha);
@@ -1146,13 +1140,6 @@ void ParOpt::setUseHvecProduct( int truth ){
 */
 void ParOpt::setUseQNGMRESPreCon( int truth ){
   use_qn_gmres_precon = truth;
-}
-
-/*
-  Use the limited-memory BFGS update as a preconditioner
-*/
-void ParOpt::setUseLeftHessianPreCon( int truth ){
-  use_left_hessian_precon = truth;
 }
 
 /*

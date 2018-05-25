@@ -855,9 +855,6 @@ cdef class pyParOpt:
    def setUseQNGMRESPreCon(self, int truth):
       self.ptr.setUseQNGMRESPreCon(truth)
 
-   def setUseLeftHessianPreCon(self, int truth):
-      self.ptr.setUseLeftHessianPreCon(truth)
-      
    def setNKSwitchTolerance(self, double tol):
       self.ptr.setNKSwitchTolerance(tol)
       
