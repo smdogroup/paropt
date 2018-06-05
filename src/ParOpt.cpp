@@ -4364,6 +4364,11 @@ int ParOpt::optimize( const char *checkpoint ){
                             gmres_rtol, gmres_atol, use_qn);
 
       if (gmres_iters < 0){
+        // Print out an error code that we've failed
+        if (rank == opt_root && output_level > 0){
+          fprintf(outfp, "      %9s\n", "step failed");
+        }
+
         // Recompute the residual of the KKT system - the residual
         // was destroyed during the failed inexact line search
         computeKKTRes(barrier_param,
@@ -5185,6 +5190,7 @@ int ParOpt::computeKKTMinResStep( ParOptScalar *ztmp,
     if (sparse_inequality){
       rcw->axpy(-1.0, sw);
     }
+    xtmp1->zeroEntries();
     prob->addSparseJacobianTranspose(1.0, x, rcw, xtmp1);
     cpr += cwscale*px->dot(xtmp1);
 
@@ -5391,9 +5397,12 @@ int ParOpt::computeKKTGMRESStep( ParOptScalar *ztmp,
       px->axpy(-1.0, xtmp1);
     }
 
-    // px now contains the current estimate of the step in the
-    // design variables. This computation uses this method
+    // px now contains the current estimate of the step in the design
+    // variables.
     fproj[i] = g->dot(px);
+
+    // Compute the contribution from the bound variables. Need to add
+    // that here...
 
     // Compute the directional derivative of the l2 constraint infeasibility
     // along the direction px.
@@ -5502,12 +5511,6 @@ int ParOpt::computeKKTGMRESStep( ParOptScalar *ztmp,
       cpr += y[j]*(aproj[j] + awproj[j]);
     }
 
-    // Check first that the direction is a candidate descent direction
-    int constraint_descent = 0;
-    if (cpr <= -0.01*(cinfeas + cwinfeas)){
-      constraint_descent = 1;
-    }
-
     if (rank == opt_root && output_level > 0){
       fprintf(outfp, "      %4d %4d %7.1e %7.1e %8.1e %8.1e\n",
               nhvec, i+1, fabs(RealPart(res[i+1])),
@@ -5516,6 +5519,11 @@ int ParOpt::computeKKTGMRESStep( ParOptScalar *ztmp,
       fflush(outfp);
     }
 
+    // Check first that the direction is a candidate descent direction
+    int constraint_descent = 0;
+    if (cpr <= -0.01*(cinfeas + cwinfeas)){
+      constraint_descent = 1;
+    }
     if (fpr < 0.0 || constraint_descent){
       // Check for convergence
       if (fabs(RealPart(res[i+1])) < atol ||
@@ -5637,6 +5645,7 @@ int ParOpt::computeKKTGMRESStep( ParOptScalar *ztmp,
     if (sparse_inequality){
       rcw->axpy(-1.0, sw);
     }
+    xtmp1->zeroEntries();
     prob->addSparseJacobianTranspose(1.0, x, rcw, xtmp1);
     cpr += cwscale*px->dot(xtmp1);
 

@@ -184,7 +184,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         # Evaluate the objective at the initial point
         self.obj_scale = 1.0
         fail, obj, con = self.evalObjCon(self.xinit)
-        self.obj_scale = 10.0*obj
+        self.obj_scale = 0.1*obj
 
         print('objective scaling = ', self.obj_scale)
 
@@ -729,6 +729,7 @@ def create_paropt(analysis, use_hessian=False,
     if use_hessian:
         opt.setUseLineSearch(1)
         opt.setUseHvecProduct(1)
+        opt.setBarrierFraction(0.1)
         opt.setGMRESSubspaceSize(100)
         opt.setNKSwitchTolerance(1.0)
         opt.setEisenstatWalkerParameters(0.25, 1e-3)
