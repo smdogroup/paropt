@@ -3668,11 +3668,13 @@ void ParOpt::evalMeritInitDeriv( double max_x,
     // based on the new value of the penalty parameter
     merit = (fobj - barrier_param*(pos_result + neg_result) +
              rho_penalty_search*infeas);
-    pmerit = numer + rho_penalty_search*infeas_proj;
+    pmerit = (proj - barrier_param*(pos_presult + neg_presult) +
+              rho_penalty_search*infeas_proj);
 
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
         merit += penalty_gamma*t[i];
+        pmerit += penalty_gamma*pt[i];
       }
     }
   }
@@ -5216,6 +5218,117 @@ int ParOpt::computeKKTMinResStep( ParOptScalar *ztmp,
 }
 
 /*
+  Evaluate the directional derivative of the objective and barrier
+  terms (the merit function without the penalty term)
+
+  This is used by the GMRES preconditioned iteration to determine
+  when we have a descent direction.
+
+  Note that this call is collective on all procs in comm and uses
+  the values in the primal variables (x, s, t) and the primal
+  directions (px, ps, pt).
+*/
+ParOptScalar ParOpt::evalObjBarrierDeriv(){
+  // Retrieve the values of the design variables, the design
+  // variable step, and the lower/upper bounds
+  ParOptScalar *xvals, *pxvals, *lbvals, *ubvals;
+  x->getArray(&xvals);
+  px->getArray(&pxvals);
+  lb->getArray(&lbvals);
+  ub->getArray(&ubvals);
+
+  // Compute the contribution from the bound variables.
+  ParOptScalar pos_presult = 0.0, neg_presult = 0.0;
+
+  if (use_lower){
+    for ( int i = 0; i < nvars; i++ ){
+      if (RealPart(lbvals[i]) > -max_bound_val){
+        if (RealPart(pxvals[i]) > 0.0){
+          pos_presult += rel_bound_barrier*pxvals[i]/(xvals[i] - lbvals[i]);
+        }
+        else {
+          neg_presult += rel_bound_barrier*pxvals[i]/(xvals[i] - lbvals[i]);
+        }
+      }
+    }
+  }
+
+  if (use_upper){
+    for ( int i = 0; i < nvars; i++ ){
+      if (RealPart(ubvals[i]) < max_bound_val){
+        if (RealPart(pxvals[i]) > 0.0){
+          neg_presult -= rel_bound_barrier*pxvals[i]/(ubvals[i] - xvals[i]);
+        }
+        else {
+          pos_presult -= rel_bound_barrier*pxvals[i]/(ubvals[i] - xvals[i]);
+        }
+      }
+    }
+  }
+
+  // Add the contributions to the log-barrier terms from
+  // weighted-sum sparse constraints
+  if (nwcon > 0 && sparse_inequality){
+    ParOptScalar *swvals, *pswvals;
+    sw->getArray(&swvals);
+    psw->getArray(&pswvals);
+
+    for ( int i = 0; i < nwcon; i++ ){
+      if (RealPart(pswvals[i]) > 0.0){
+        pos_presult += pswvals[i]/swvals[i];
+      }
+      else {
+        neg_presult += pswvals[i]/swvals[i];
+      }
+    }
+  }
+
+  // Sum up the result from all processors
+  ParOptScalar input[2];
+  ParOptScalar result[2];
+  input[0] = pos_presult;
+  input[1] = neg_presult;
+
+  MPI_Allreduce(input, result, 2, PAROPT_MPI_TYPE, MPI_SUM, comm);
+
+  // Extract the result of the summation over all processors
+  pos_presult = result[0];
+  neg_presult = result[1];
+
+  if (dense_inequality){
+    for ( int i = 0; i < ncon; i++ ){
+      // Add the terms from the s-slack variables
+      if (RealPart(ps[i]) > 0.0){
+        pos_presult += ps[i]/s[i];
+      }
+      else {
+        neg_presult += ps[i]/s[i];
+      }
+
+      // Add the terms from the t-slack variables
+      if (RealPart(pt[i]) > 0.0){
+        pos_presult += pt[i]/t[i];
+      }
+      else {
+        neg_presult += pt[i]/t[i];
+      }
+    }
+  }
+
+  ParOptScalar pmerit = g->dot(px) - barrier_param*(pos_presult + neg_presult);
+
+  if (dense_inequality){
+    for ( int i = 0; i < ncon; i++ ){
+      pmerit += penalty_gamma*pt[i];
+    }
+  }
+
+  // px now contains the current estimate of the step in the design
+  // variables.
+  return pmerit;
+}
+
+/*
   This function approximately solves the linearized KKT system with
   Hessian-vector products using right-preconditioned GMRES.  This
   procedure uses a preconditioner formed from a portion of the KKT
@@ -5399,10 +5512,7 @@ int ParOpt::computeKKTGMRESStep( ParOptScalar *ztmp,
 
     // px now contains the current estimate of the step in the design
     // variables.
-    fproj[i] = g->dot(px);
-
-    // Compute the contribution from the bound variables. Need to add
-    // that here...
+    fproj[i] = evalObjBarrierDeriv();
 
     // Compute the directional derivative of the l2 constraint infeasibility
     // along the direction px.
@@ -5624,7 +5734,7 @@ int ParOpt::computeKKTGMRESStep( ParOptScalar *ztmp,
   }
 
   // Add the contributions from the objective and dense constraints
-  ParOptScalar fpr = g->dot(px);
+  ParOptScalar fpr = evalObjBarrierDeriv();
   ParOptScalar cpr = 0.0;
   if (dense_inequality){
     for ( int i = 0; i < ncon; i++ ){

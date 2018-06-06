@@ -327,6 +327,9 @@ class ParOpt : public ParOptBase {
                               const ParOptScalar *tk,
                               ParOptVec *swk );
 
+  // Evaluate the directional derivative of the objective + barrier terms
+  ParOptScalar evalObjBarrierDeriv();
+
   // Evaluate the merit function, its derivative and the new penalty
   // parameter
   void evalMeritInitDeriv( double max_x,

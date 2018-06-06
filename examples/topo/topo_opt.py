@@ -184,7 +184,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         # Evaluate the objective at the initial point
         self.obj_scale = 1.0
         fail, obj, con = self.evalObjCon(self.xinit)
-        self.obj_scale = 0.1*obj
+        self.obj_scale = 10.0*obj
 
         print('objective scaling = ', self.obj_scale)
 
