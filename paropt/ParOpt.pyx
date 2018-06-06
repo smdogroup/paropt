@@ -722,10 +722,9 @@ cdef class pyParOpt:
       cdef ParOptVec *_zw = NULL
       cdef ParOptVec *_zl = NULL
       cdef ParOptVec *_zu = NULL
-      cdef int self_owned = 0
 
       # Get the problem size/vector for the values
-      self.ptr.getProblemSizes(NULL, &ncon, NULL, NULL)      
+      self.ptr.getProblemSizes(NULL, &ncon, NULL, NULL)
       self.ptr.getOptimizedPoint(&_x, &_z, &_zw, &_zl, &_zu);
       
       # Set the default values
@@ -753,7 +752,35 @@ cdef class pyParOpt:
          zu = _init_PVec(_zu)
 
       return x, z, zw, zl, zu
+
+   def getOptimizedSlacks(self):
+      '''
+      Get the optimized slack variables from the problem
+      '''
+      cdef int ncon = 0
+      cdef ParOptScalar *_s = NULL
+      cdef ParOptScalar *_t = NULL
+      cdef ParOptVec *_sw = NULL
    
+      # Get the problem size/vector for the values
+      self.ptr.getProblemSizes(NULL, &ncon, NULL, NULL)
+      self.ptr.getOptimizedSlacks(&_s, &_t, &_sw)
+
+      s = None
+      t = None
+      sw = None
+
+      if _s != NULL:
+         s = inplace_array_1d(PAROPT_NPY_SCALAR, ncon, <void*>_s, self)
+      if _t != NULL:
+         t = inplace_array_1d(PAROPT_NPY_SCALAR, ncon, <void*>_t, self)
+
+      # Convert to a vector
+      if _sw != NULL:
+         sw = _init_PVec(_sw)
+
+      return s, t, sw
+
    # Check objective and constraint gradients
    def checkGradients(self, double dh):    
       self.ptr.checkGradients(dh)

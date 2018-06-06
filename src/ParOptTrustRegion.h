@@ -104,9 +104,6 @@ class ParOptTrustRegion : public ParOptProblem {
   // Pointer to the optimization problem
   ParOptProblem *prob;
 
-  // Communicator for this problem
-  MPI_Comm comm;
-
   // Set the quadratic model parameters for this problem
   ParOptCompactQuasiNewton *qn;
 

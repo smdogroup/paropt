@@ -615,7 +615,7 @@ def rectangular_domain(nx, ny, Ly=100.0):
     return xpts, conn, bcs, aux, area
 
 def create_structure(comm, props, xpts, conn, bcs, aux, m_fixed,
-                     r0=4, min_mat_fraction=-1.0):
+                     r0=4, min_mat_fraction=-1.0, qt=5.0):
     '''
     Create a structure with the speicified number of nodes along the
     x/y directions, respectively.
@@ -703,7 +703,7 @@ def create_structure(comm, props, xpts, conn, bcs, aux, m_fixed,
     analysis = TACSAnalysis(comm, props, tacs, const, nmats,
                             conn=conn, xpts=xpts,
                             m_fixed=m_fixed,
-                            min_mat_fraction=min_mat_fraction)
+                            min_mat_fraction=min_mat_fraction, qt=qt)
 
     return analysis
 
@@ -872,7 +872,7 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
                           parameter=5.0, max_iters=1000,
                           optimizer='paropt', case='isotropic',
                           use_hessian=False, start_strategy='point',
-                          ptype='ramp', final_full_opt=False):
+                          ptype='ramp'):
     # Optimize the structure
     optimizer = optimizer.lower()
     penalization = ptype.upper()
@@ -931,6 +931,10 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
     # Keep track of the number of iterations
     niters = 0
 
+    # Set the output file name
+    fname = os.path.join(prefix, 'opt_history.out')
+    opt.setOutputFile(fname)
+
     for k in range(max_iters):
         # Optimize
         if k > 0 and optimizer == 'paropt':
@@ -945,9 +949,8 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
         elif optimizer != 'paropt':
             opt = create_pyopt(analysis, optimizer=optimizer)
 
-        # Set the output file to use
-        fname = os.path.join(prefix, 'history_iter%d.out'%(niters))
-        opt.setOutputFile(fname)
+            fname = os.path.join(prefix, 'history_iter%d.out'%(niters))
+            opt.setOutputFile(fname)
 
         # Optimize the new point
         opt.optimize()
@@ -963,7 +966,8 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
             comp = analysis.getCompliance(x)
 
             # Write out the data to the log file
-            s = '%d %e %e %e %e '%(niters, comp, np.min(d), np.max(d), np.sum(d))
+            s = '%d %e %e %e %e '%(niters, comp,
+                np.min(d), np.max(d), np.sum(d))
             s += '%d %d %d %e %e %e\n'%(
                 analysis.fevals, analysis.gevals, analysis.hevals,
                 MPI.Wtime() - init_time, -1.0, -1.0)
@@ -1047,71 +1051,6 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
     filename = 'opt_struct_iter%d.tex'%(niters)
     output = os.path.join(prefix, filename)
     analysis.writeTikzFile(x, output)
-
-    if final_full_opt:
-        # Set the penalty parameter
-        analysis.RAMP_penalty = parameter
-        analysis.props.setPenaltyType('full', ptype=ptype)
-
-        # Get the new complementarity
-        opt.resetDesignAndBounds()
-        mu = opt.getComplementarity()
-        opt.setInitBarrierParameter(mu)
-        opt.setUseHvecProduct(0)
-        opt.setUseLineSearch(1)
-
-        # Set the output file to use
-        fname = os.path.join(prefix, 'history_iter%d.out'%(niters))
-        opt.setOutputFile(fname)
-
-        # Optimize the new point
-        opt.optimize()
-
-        # Compute the KKT error based on the original problem
-        x, z, zw, zl, zu = opt.getOptimizedPoint()
-
-        # Get the discrete infeasibility measure
-        d = analysis.getDiscreteInfeas(x)
-
-        # Get the compliance and objective values
-        analysis.RAMP_penalty = parameter
-        analysis.setNewInitPointPenalty(x)
-        comp = analysis.getCompliance(x)
-
-        # Evaluate the objective and constraints
-        gobj1 = analysis.createDesignVec()
-        Acon1 = []
-        for i in range(len(z)):
-            Acon1.append(analysis.createDesignVec())
-        product = analysis.createDesignVec()
-        fail, obj1, con1 = analysis.evalObjCon(x)
-        analysis.evalObjConGradient(x, gobj1, Acon1)
-        analysis.addSparseJacobianTranspose(-1.0, x, zw, product)
-
-        # Compute the KKT error
-        kkt = gobj1[:] + product[:] - zl[:] + zu[:]
-        for i in range(len(z)):
-            kkt[:] -= Acon1[i][:]*z[i]
-
-        # Compute the maximum error contribution
-        kkt_max_err = np.amax(np.fabs(kkt))
-        kkt_l2_err = np.sqrt(np.dot(kkt, kkt))
-
-        g_max = np.amax(np.fabs(gobj1))
-        g_l2 = np.sqrt(np.dot(gobj1, gobj1))
-
-        # Print out the iteration information to the screen
-        print('%4s %10s %10s %10s %10s %10s'%(
-            'Iter', 'tau', 'KKT infty', 'KKT l2', 'Rel infty', 'Rel l2'))
-        print('%4d %10.4e %10.4e %10.4e %10.4e %10.4e'%(
-            niters, np.sum(d), kkt_max_err, kkt_l2_err,
-            kkt_max_err/g_max, kkt_l2_err/g_l2))
-
-        s = '%d %e %e %e %e '%(niters, comp, np.min(d), np.max(d), np.sum(d))
-        s += '%d %d %d %e %e %e\n'%(
-            analysis.fevals, analysis.gevals, analysis.hevals,
-            MPI.Wtime() - init_time, kkt_max_err, kkt_l2_err)
-        fp.write(s)
 
     # Close the log file
     fp.close()
@@ -1388,7 +1327,7 @@ if args.case is 'isotropic':
 
 analysis = create_structure(comm, props, xpts, conn,
                             bcs, aux, m_fixed, r0=r0,
-                            min_mat_fraction=min_mat_fraction)
+                            min_mat_fraction=min_mat_fraction, qt=0.0)
 
 if args.full_penalty:
     # Optimize the plane stress problem

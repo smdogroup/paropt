@@ -218,6 +218,12 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   zt = new ParOptScalar[ ncon ];
   t = new ParOptScalar[ ncon ];
 
+  // Zero the initial values
+  memset(z, 0, ncon*sizeof(ParOptScalar));
+  memset(s, 0, ncon*sizeof(ParOptScalar));
+  memset(zt, 0, ncon*sizeof(ParOptScalar));
+  memset(t, 0, ncon*sizeof(ParOptScalar));
+
   // Allocate space for the steps
   px = prob->createDesignVec(); px->incref();
   pzl = prob->createDesignVec(); pzl->incref();
@@ -258,16 +264,22 @@ ParOpt::ParOpt( ParOptProblem *_prob,
     Ew[i]->incref();
   }
 
-  // Allocate storage for bfgs/constraint sized things
-  int zsize = 2*max_qn_subspace;
-  if (ncon > zsize){
-    ncon = zsize;
-  }
-  ztemp = new ParOptScalar[ zsize ];
-
   // Allocate space for the Dmatrix
   Dmat = new ParOptScalar[ ncon*ncon ];
   dpiv = new int[ ncon ];
+
+  // Get the maximum subspace size
+  max_qn_subspace = 0;
+  if (qn){
+    max_qn_subspace = qn->getMaxLimitedMemorySize();
+  }
+
+  // Allocate storage for bfgs/constraint sized things
+  int zsize = 2*max_qn_subspace;
+  if (ncon > zsize){
+    zsize = ncon;
+  }
+  ztemp = new ParOptScalar[ zsize ];
 
   // Allocate space for the Ce matrix
   Ce = new ParOptScalar[ 4*max_qn_subspace*max_qn_subspace ];
@@ -539,6 +551,38 @@ void ParOpt::getOptimizedPoint( ParOptVec **_x,
     *_zu = NULL;
     if (use_upper){
       *_zu = zu;
+    }
+  }
+}
+
+/*
+  Get the values of the optimized slack variables
+
+  Note that the dense inequality constraints are formualted as
+
+  c(x) = s - t
+
+  where s, t > 0. And the sparse inequality constraints are formulated
+  as:
+
+  cw(x) = sw
+
+  where sw > 0. When equality rather than inequality constraints are
+  present, sw may be NULL.
+*/
+void ParOpt::getOptimizedSlacks( ParOptScalar **_s,
+                                 ParOptScalar **_t,
+                                 ParOptVec **_sw ){
+  if (_s){
+    *_s = s;
+  }
+  if (_t){
+    *_t = t;
+  }
+  if (_sw){
+    *_sw = NULL;
+    if (nwcon > 0){
+      *_sw = sw;
     }
   }
 }
@@ -1184,6 +1228,28 @@ void ParOpt::setQuasiNewton( ParOptCompactQuasiNewton *_qn ){
     qn->decref();
   }
   qn = _qn;
+
+  // Free the old data
+  delete [] ztemp;
+  delete [] Ce;
+  delete [] cpiv;
+
+  // Get the maximum subspace size
+  int max_qn_subspace = 0;
+  if (qn){
+    max_qn_subspace = qn->getMaxLimitedMemorySize();
+  }
+
+  // Allocate storage for bfgs/constraint sized things
+  int zsize = 2*max_qn_subspace;
+  if (ncon > zsize){
+    zsize = ncon;
+  }
+  ztemp = new ParOptScalar[ zsize ];
+
+  // Allocate space for the Ce matrix
+  Ce = new ParOptScalar[ 4*max_qn_subspace*max_qn_subspace ];
+  cpiv = new int[ 2*max_qn_subspace ];
 }
 
 /*

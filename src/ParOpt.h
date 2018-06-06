@@ -149,6 +149,11 @@ class ParOpt : public ParOptBase {
                           ParOptScalar **_z, ParOptVec **_zw,
                           ParOptVec **_zl, ParOptVec **_zu );
 
+  // Retrieve the optimized slack variable values
+  // --------------------------------------------
+  void getOptimizedSlacks( ParOptScalar **_s, ParOptScalar **_t,
+                           ParOptVec **_sw );
+
   // Check the objective and constraint gradients
   // --------------------------------------------
   void checkGradients( double dh );

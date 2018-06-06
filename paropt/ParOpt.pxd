@@ -132,24 +132,23 @@ cdef extern from "ParOpt.h":
       PAROPT_COMPLEMENTARITY_FRACTION
 
    cppclass ParOpt(ParOptBase):
-      ParOpt(ParOptProblem *_prob, 
-             int _max_lbfgs_subspace, 
+      ParOpt(ParOptProblem*, int,
              ParOptQuasiNewtonType qn_type) except +
 
       # Perform the optimiztion
-      int optimize(const char *checkpoint)
+      int optimize(const char*)
 
       # Get the problem dimensions
-      void getProblemSizes(int *nvars, int *ncon, 
-                           int *nwcon, int *nwblock)
+      void getProblemSizes(int*, int*, int*, int*)
       
       # Retrieve the optimized point
-      void getOptimizedPoint(ParOptVec **_x,
-                             ParOptScalar **_z, ParOptVec **_zw,
-                             ParOptVec **_zl, ParOptVec **_zu)
+      void getOptimizedPoint(ParOptVec**,
+                             ParOptScalar**, ParOptVec**,
+                             ParOptVec**, ParOptVec**)
+      void getOptimizedSlacks(ParOptScalar**, ParOptScalar**, ParOptVec**)
 
       # Check objective and constraint gradients
-      void checkGradients(double dh)
+      void checkGradients(double)
       
       # Set optimizer parameters
       void setNormType(ParOptNormType)
