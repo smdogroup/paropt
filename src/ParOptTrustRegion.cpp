@@ -234,10 +234,10 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   }
 
   // Set the new trust region radius
-  if (RealPart(rho) < 0.25){
-    tr_size = max2(0.25*tr_size, tr_min_size);
+  if (RealPart(rho) < 0.1){
+    tr_size = max2(0.5*tr_size, tr_min_size);
   }
-  else if (RealPart(rho) > 0.75){
+  else if (RealPart(rho) > 0.5){
     tr_size = min2(2.0*tr_size, tr_max_size);
   }
 

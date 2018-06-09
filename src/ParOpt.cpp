@@ -4321,8 +4321,8 @@ int ParOpt::optimize( const char *checkpoint ){
     }
     else if (barrier_strategy == PAROPT_COMPLEMENTARITY_FRACTION){
       barrier_param = monotone_barrier_fraction*comp;
-      if (barrier_param < 0.01*abs_res_tol){
-        barrier_param = 0.01*abs_res_tol;
+      if (barrier_param < 0.1*abs_res_tol){
+        barrier_param = 0.1*abs_res_tol;
       }
 
       // Compute the residual of the KKT system

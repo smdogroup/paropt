@@ -184,7 +184,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         # Evaluate the objective at the initial point
         self.obj_scale = 1.0
         fail, obj, con = self.evalObjCon(self.xinit)
-        self.obj_scale = 10.0*obj
+        self.obj_scale = 0.1*obj
 
         print('objective scaling = ', self.obj_scale)
 
@@ -461,15 +461,11 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         if (self.comm.rank == 0 and
             (self.xpts is not None) and (self.conn is not None)):
             # Create the initial part of the tikz string
-            tikz = '\\documentclass{article}\n'
-            tikz += '\\usepackage[usenames,dvipsnames]{xcolor}\n'
-            tikz += '\\usepackage{tikz}\n'
-            tikz += '\\usepackage[active,tightpage]{preview}\n'
-            tikz += '\\PreviewEnvironment{tikzpicture}\n'
-            tikz += '\\setlength\PreviewBorder{5pt}%\n\\begin{document}\n'
-            tikz += '\\begin{figure}\n\\begin{tikzpicture}'
-            tikz += '[x=0.25cm, y=0.25cm]\n'
-            tikz += '\\sffamily\n'
+            tikz = r'\documentclass[border={5pt 5pt 5pt 5pt}]{standalone}' + '\n'
+            tikz += r'\usepackage[usenames,dvipsnames]{xcolor}' + '\n'
+            tikz += r'\usepackage{tikz}' + '\n'
+            tikz += r'\begin{document}' + '\n'
+            tikz += r'\begin{tikzpicture}[x=0.25cm, y=0.25cm]' + '\n'
 
             grey = [225, 225, 225]
 
@@ -478,6 +474,9 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
                 rgbvals = [(44, 160, 44),
                            (255, 127, 14),
                            (31, 119, 180)]
+                if self.num_materials == 2:
+                    rgbvals = [(44, 160, 44),
+                               (31, 119, 180)]
 
                 for i in range(self.conn.shape[0]):
                     # Determine the color to use
@@ -555,7 +554,8 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
                                 xav - 0.5*l*c, yav - 0.5*l*s,
                                 xav + 0.5*l*c, yav + 0.5*l*s)
 
-            tikz += '\\end{tikzpicture}\\end{figure}\\end{document}\n'
+            tikz += r'\end{tikzpicture}' + '\n'
+            tikz += r'\end{document}' + '\n'
 
             # Write the solution file
             fp = open(filename, 'w')
@@ -723,7 +723,7 @@ def create_paropt(analysis, use_hessian=False,
     opt = ParOpt.pyParOpt(analysis, max_qn_subspace, qn_type)
 
     # Set the optimality tolerance
-    opt.setAbsOptimalityTol(1e-6)
+    opt.setAbsOptimalityTol(1e-5)
 
     # Set the Hessian-vector product iterations
     if use_hessian:
@@ -737,7 +737,11 @@ def create_paropt(analysis, use_hessian=False,
     else:
         opt.setUseHvecProduct(0)
 
+    # Set the relative barrier for the bounds to be lower...
+    # opt.setRelativeBarrier(0.1)
+
     # Set the barrier strategy to use
+    # opt.setBarrierStrategy(ParOpt.COMPLEMENTARITY_FRACTION)
     opt.setBarrierStrategy(ParOpt.MONOTONE)
 
     # Set the norm to use
@@ -780,7 +784,7 @@ def create_pyopt(analysis, optimizer='snopt', options={}):
 
         def gobjcon(self, x, funcs):
             g = np.zeros(x['x'].shape)
-            A = np.zeros((1, x['x'].shape[0]))
+            A = np.zeros((self.analysis.ncon, x['x'].shape[0]))
             fail = self.analysis.evalObjConGradient(x['x'], g, A)
             sens = {'objective': {'x': g}, 'con': {'x': A}}
             return sens, fail
@@ -856,7 +860,7 @@ def create_pyopt(analysis, optimizer='snopt', options={}):
     prob.addVarGroup('x', n, value=x0, lower=lb, upper=ub)
 
     # Set the constraints
-    prob.addConGroup('con', 1, lower=0.0, upper=0.0)
+    prob.addConGroup('con', analysis.ncon, lower=0.0, upper=None)
 
     # Add the objective
     prob.addObj('objective')
@@ -885,7 +889,7 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
         os.makedirs(prefix)
 
     # Write out the stdout output to a file
-    sys.stdout = open(os.path.join(prefix, 'stdout.out'), 'w')
+    # sys.stdout = open(os.path.join(prefix, 'stdout.out'), 'w')
 
     # Set up the optimization problem in ParOpt
     if optimizer == 'paropt':
@@ -938,31 +942,34 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
     for k in range(max_iters):
         # Optimize
         if k > 0 and optimizer == 'paropt':
-            opt.setInitStartingPoint(0)
+            if k == 1 and start_strategy == 'convex':
+                opt.setInitStartingPoint(1)
+                opt.resetDesignAndBounds()
+                opt.setInitBarrierParameter(0.1)
+            else:
+                # Don't re-initialize the starting point
+                opt.setInitStartingPoint(0)
 
-            # Reset the design variable and bounds
-            opt.resetDesignAndBounds()
+                # Reset the design variable and bounds
+                opt.resetDesignAndBounds()
 
-            # Get the new complementarity
-            mu = opt.getComplementarity()
-            opt.setInitBarrierParameter(mu)
+                # Get the new complementarity
+                mu = opt.getComplementarity()
+                opt.setInitBarrierParameter(mu)
         elif optimizer != 'paropt':
             opt = create_pyopt(analysis, optimizer=optimizer)
-
-            fname = os.path.join(prefix, 'history_iter%d.out'%(niters))
-            opt.setOutputFile(fname)
 
         # Optimize the new point
         opt.optimize()
 
         if optimizer != 'paropt':
+            x = opt.getOptimizedPoint()
+
             # Get the discrete infeasibility measure
             d = analysis.getDiscreteInfeas(x)
 
             # Compute the discrete infeasibility measure
             tau = np.sum(d)
-
-            x = opt.getOptimizedPoint()
             comp = analysis.getCompliance(x)
 
             # Write out the data to the log file
@@ -992,7 +999,7 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
             analysis.writeTikzFile(x, output)
 
         # Get the compliance and objective values
-        analysis.RAMP_penalty = parameter
+        analysis.RAMP_penalty = min(1 + k/5, parameter)
         analysis.setNewInitPointPenalty(x)
         comp = analysis.getCompliance(x)
 
@@ -1023,14 +1030,15 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
         # Print out the iteration information to the screen
         if k % 10 == 0:
             print('%4s %10s %10s %10s %10s %10s %10s %10s'%(
-                'Iter', 'tau', 'KKT infty', 'KKT l1', 'KKT l2',
-                'Rel infty', 'Rel l1', 'Rel l2'))
+                    'Iter', 'tau', 'KKT infty', 'KKT l1', 'KKT l2',
+                    'Rel infty', 'Rel l1', 'Rel l2'))
         print('%4d %10.4e %10.4e %10.4e %10.4e %10.4e %10.4e %10.4e'%(
-            niters, np.sum(d), kkt_max_err, kkt_l1_err, kkt_l2_err,
-            kkt_max_err/g_max, kkt_l1_err/g_l1, kkt_l2_err/g_l2))
+                niters, np.sum(d), kkt_max_err, kkt_l1_err, kkt_l2_err,
+                kkt_max_err/g_max, kkt_l1_err/g_l1, kkt_l2_err/g_l2))
 
         # Write out the data to the log file
-        s = '%d %e %e %e %e '%(niters, comp, np.min(d), np.max(d), np.sum(d))
+        s = '%d %e %e %e %e '%(
+            niters, comp, np.min(d), np.max(d), np.sum(d))
         s += '%d %d %d %e %e %e\n'%(
             analysis.fevals, analysis.gevals, analysis.hevals,
             MPI.Wtime() - init_time, kkt_max_err, kkt_l2_err)
@@ -1056,7 +1064,10 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
     fp.close()
 
     # Get the final, optimzied point
-    x, z, zw, zl, zu = opt.getOptimizedPoint()
+    if optimizer == 'paropt':
+        x, z, zw, zl, zu = opt.getOptimizedPoint()
+    else:
+        x = opt.getOptimizedPoint()
 
     # Print out the design variables
     filename = 'final_opt_struct.tex'
@@ -1238,7 +1249,12 @@ parser.add_argument('--case', type=str, default='isotropic',
                     help='Case name')
 parser.add_argument('--root_dir', type=str, default='results',
                     help='Root directory')
+parser.add_argument('--max_iters', type=int, default=1000)
 args = parser.parse_args()
+
+# Print out all of the arguments
+for arg in vars(args):
+    print('%-20s'%(arg), getattr(args, arg))
 
 # Get the arguments
 nx = args.nx
@@ -1261,9 +1277,14 @@ xpts, conn, bcs, aux, area = rectangular_domain(nx, ny)
 
 # Set the material properties for the isotropic case
 if args.case == 'isotropic':
-    rho = np.array([0.85, 1.0, 1.2])
-    E = 70e3*np.array([0.85, 1.0, 1.15])
-    nu = np.array([0.2,  0.3, 0.3])
+    # rho = np.array([0.85, 1.0, 1.2])
+    # E = 70e3*np.array([0.85, 1.0, 1.15])
+    # nu = np.array([0.2,  0.3, 0.3])
+
+    # Set the two material properties
+    rho = np.array([0.75, 1.0])
+    E = 70e3*np.array([0.75, 1.0])
+    nu = np.array([0.3, 0.3])
 
     print('mat # %15s %15s %15s'%('E/rho', 'G/rho', 'E/G'))
     for i in range(len(rho)):
@@ -1281,7 +1302,7 @@ if args.case == 'isotropic':
         C[i,5] = G
 
     # Compute the fixed mass fraction
-    m_fixed = 0.4*area*rho[2]
+    m_fixed = 0.4*area*rho[-1]
 else:
     # These properties are taken from Jones, pg. 101 for a
     # graphite-epoxy material. Note that units are in MPa.
@@ -1342,4 +1363,5 @@ else:
                           parameter=parameter, optimizer=optimizer,
                           start_strategy=start_strategy,
                           use_hessian=use_hessian,
-                          case=args.case, ptype=ptype)
+                          case=args.case, ptype=ptype,
+                          max_iters=args.max_iters)
