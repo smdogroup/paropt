@@ -117,6 +117,23 @@ the quasi-Newton approximation is used"},
    "Float: The absolute GMRES tolerance (almost never relevant)"}};
 
 /*
+  Static helper functions
+*/
+ParOptScalar max2( const ParOptScalar a, const ParOptScalar b ){
+  if (RealPart(a) > RealPart(b)){
+    return a;
+  }
+  return b;
+}
+
+ParOptScalar min2( const ParOptScalar a, const ParOptScalar b ){
+  if (RealPart(a) < RealPart(b)){
+    return a;
+  }
+  return b;
+}
+
+/*
   The Parallel Optimizer constructor
 
   This function allocates and initializes the data that is required
@@ -4112,54 +4129,55 @@ int ParOpt::optimize( const char *checkpoint ){
     }
   }
 
-  // Find an initial estimate of the Lagrange multipliers for the
-  // inequality constraints
   if (init_starting_point){
-    // Form the right-hand-side of the least squares eigenvalue
-    // problem
-    ParOptVec *xt = y_qn;
-    xt->copyValues(g);
-    xt->axpy(-1.0, zl);
-    xt->axpy(1.0, zu);
+    // Find an initial estimate of the Lagrange multipliers
+    // Set up the least squares problem
+    ParOptScalar sigma = qn_sigma;
+    qn_sigma = 1.0;
 
+    // Set up the KKT diagonal system
+    int do_not_use_qn = 0;
+    setUpKKTDiagSystem(s_qn, wtemp, do_not_use_qn);
+
+    // Set the right-hand-side
+    rx->copyValues(g);
+    rx->axpy(-1.0, zl);
+    rx->axpy(1.0, zu);
+    rx->scale(-1.0);
+
+    // Zero the remaining residuals
+    memset(rt, 0, ncon*sizeof(ParOptScalar));
+    memset(rc, 0, ncon*sizeof(ParOptScalar));
+    rcw->zeroEntries();
+    memset(rs, 0, ncon*sizeof(ParOptScalar));
+    rsw->zeroEntries();
+    rzl->zeroEntries();
+    rzu->zeroEntries();
+
+    // Apply M^{-1} to the result to obtain the final answer
+    solveKKTDiagSystem(rx, rt, rc, rcw, rs, rsw, rzt, rzl, rzu,
+                       px, pt, pz, pzw, ps, psw, pzt, pzl, pzu,
+                       xtemp, wtemp);
+
+    // Reset the value of sigma
+    qn_sigma = sigma;
+
+    // Copy over the values 
     for ( int i = 0; i < ncon; i++ ){
-      z[i] = Ac[i]->dot(xt);
+      z[i] = pz[i];
+      if (dense_inequality){
+        z[i] = max2(1e-3, min2(pz[i], penalty_gamma));
+        zt[i] = max2(1e-3, min2(zt[i], penalty_gamma));
+      }
     }
 
-    // Compute Dmat = A*A^{T}
-    for ( int i = 0; i < ncon; i++ ){
-      Ac[i]->mdot(Ac, ncon, &Dmat[i*ncon]);
-    }
-
-    if (ncon > 0){
-      // Compute the factorization of Dmat
-      int info;
-      LAPACKdgetrf(&ncon, &ncon, Dmat, &ncon, dpiv, &info);
-
-      // Solve the linear system
-      if (!info){
-        int one = 1;
-        LAPACKdgetrs("N", &ncon, &one, Dmat, &ncon, dpiv,
-                     z, &ncon, &info);
-
-        // Keep the Lagrange multipliers if they are within
-        // a reasonable range and they are positive.
-        if (dense_inequality){
-          for ( int i = 0; i < ncon; i++ ){
-            if (RealPart(z[i]) < 0.01 ||
-                RealPart(z[i]) > penalty_gamma){
-              z[i] = 1.0;
-            }
-          }
-        }
-        else {
-          for ( int i = 0; i < ncon; i++ ){
-            if (RealPart(z[i]) < -penalty_gamma ||
-                RealPart(z[i]) > penalty_gamma){
-              z[i] = 1.0;
-            }
-          }
-        }
+    // Copy the values
+    zw->copyValues(pzw);
+    if (sparse_inequality){
+      ParOptScalar *zwvals;
+      zw->getArray(&zwvals);
+      for ( int i = 0; i < nwcon; i++ ){
+        zwvals[i] = max2(1e-3, min2(zwvals[i], penalty_gamma));
       }
     }
   }

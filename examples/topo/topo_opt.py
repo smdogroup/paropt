@@ -731,7 +731,7 @@ def create_paropt(analysis, use_hessian=False,
         opt.setUseHvecProduct(1)
         opt.setBarrierFraction(0.1)
         opt.setGMRESSubspaceSize(100)
-        opt.setNKSwitchTolerance(1.0)
+        opt.setNKSwitchTolerance(1e3)
         opt.setEisenstatWalkerParameters(0.25, 1e-3)
         opt.setGMRESTolerances(0.25, 1e-30)
     else:
@@ -741,8 +741,8 @@ def create_paropt(analysis, use_hessian=False,
     # opt.setRelativeBarrier(0.1)
 
     # Set the barrier strategy to use
-    # opt.setBarrierStrategy(ParOpt.COMPLEMENTARITY_FRACTION)
-    opt.setBarrierStrategy(ParOpt.MONOTONE)
+    opt.setBarrierStrategy(ParOpt.COMPLEMENTARITY_FRACTION)
+    # opt.setBarrierStrategy(ParOpt.MONOTONE)
 
     # Set the norm to use
     opt.setNormType(ParOpt.L1_NORM)
