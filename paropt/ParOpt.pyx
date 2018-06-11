@@ -9,7 +9,7 @@ cimport mpi4py.MPI as MPI
 # Import the declarations required from the pxd file
 from ParOpt cimport *
 
-# Import numpy 
+# Import numpy
 import numpy as np
 cimport numpy as np
 
@@ -46,6 +46,11 @@ MONOTONE = PAROPT_MONOTONE
 MEHROTRA = PAROPT_MEHROTRA
 COMPLEMENTARITY_FRACTION = PAROPT_COMPLEMENTARITY_FRACTION
 
+# The ParOpt starting point strategies
+NO_START_STRATEGY = PAROPT_NO_START_STRATEGY
+LEAST_SQUARES_MULTIPLIERS = PAROPT_LEAST_SQUARES_MULTIPLIERS
+AFFINE_STEP = PAROPT_AFFINE_STEP
+
 # Set the update type
 SKIP_NEGATIVE_CURVATURE = PAROPT_SKIP_NEGATIVE_CURVATURE
 DAMPED_UPDATE = PAROPT_DAMPED_UPDATE
@@ -63,7 +68,7 @@ def unpack_output(filename):
            'fobj', '|opt|', '|infes|', '|dual|', 'mu', 'comp', 'dmerit',
            'rho']
    fmt = '4d 4d 4d 4d 7e 7e 7e 12e 7e 7e 7e 7e 7e 8e 7e'.split()
-   
+
    # Loop over the file until the end
    content = []
    for f in fmt:
@@ -79,7 +84,7 @@ def unpack_output(filename):
          if (len(fargs) > 2 and
              (fargs[0] == args[0] and fargs[1] == args[1])):
             index += 1
-            
+
             # Read at most 10 lines before searching for the next
             # header
             counter = 0
@@ -121,7 +126,7 @@ def unpack_output(filename):
          objs.append(np.array(content[idx], dtype=np.int))
       else:
          objs.append(np.array(content[idx]))
-                  
+
    return args, objs
 
 def unpack_mma_output(filename):
@@ -129,7 +134,7 @@ def unpack_mma_output(filename):
    Unpack the parameters from a file output from MMA
    '''
 
-   args = ['MMA', 'sub-iter', 'fobj', 'l1-opt', 
+   args = ['MMA', 'sub-iter', 'fobj', 'l1-opt',
            'linft-opt', 'l1-lambd', 'infeas']
    fmt = ['5d', '8d', '15e', '9e', '9e', '9e', '9e']
 
@@ -148,7 +153,7 @@ def unpack_mma_output(filename):
          if (len(fargs) > 2 and
              (fargs[0] == args[0] and fargs[1] == args[1])):
             index += 1
-            
+
             # Read at most 10 lines before searching for the next
             # header
             counter = 0
@@ -190,7 +195,7 @@ def unpack_mma_output(filename):
          objs.append(np.array(content[idx], dtype=np.int))
       else:
          objs.append(np.array(content[idx]))
-                  
+
    return args, objs
 
 # Read in a ParOpt checkpoint file and produce python variables
@@ -200,7 +205,7 @@ def unpack_checkpoint(filename):
    # Open the file in read-only binary mode
    fp = open(filename, 'rb')
    sfp = fp.read()
-   
+
    # Get the sizes of c integers and doubles
    ib = np.dtype(np.intc).itemsize
    fb = np.dtype(np.double).itemsize
@@ -213,7 +218,7 @@ def unpack_checkpoint(filename):
 
    # Skip first three integers and the barrier parameter value
    offset = 3*ib
-   barrier = np.fromstring(sfp[offset:offset+fb], dtype=np.double)[0]   
+   barrier = np.fromstring(sfp[offset:offset+fb], dtype=np.double)[0]
    offset += fb
 
    # Convert the slack variables and multipliers
@@ -233,7 +238,7 @@ def unpack_checkpoint(filename):
    return barrier, s, z, x, zl, zu
 
 # This wraps a C++ array with a numpy array for later useage
-cdef inplace_array_1d(int nptype, int dim1, void *data_ptr, 
+cdef inplace_array_1d(int nptype, int dim1, void *data_ptr,
                       object base=None):
    '''Return a numpy version of the array'''
    # Set the shape of the array
@@ -243,7 +248,7 @@ cdef inplace_array_1d(int nptype, int dim1, void *data_ptr,
 
    # Set the first entry of the shape array
    shape[0] = <np.npy_intp>dim1
-      
+
    # Create the array itself - Note that this function will not
    # delete the data once the ndarray goes out of scope
    ndarray = np.PyArray_SimpleNewFromData(size, shape,
@@ -256,16 +261,16 @@ cdef inplace_array_1d(int nptype, int dim1, void *data_ptr,
    return ndarray
 
 cdef void _getvarsandbounds(void *_self, int nvars,
-                            ParOptVec *_x, ParOptVec *_lb, 
+                            ParOptVec *_x, ParOptVec *_lb,
                             ParOptVec *_ub):
    x = _init_PVec(_x)
    lb = _init_PVec(_lb)
-   ub = _init_PVec(_ub) 
+   ub = _init_PVec(_ub)
    (<object>_self).getVarsAndBounds(x, lb, ub)
    return
 
 cdef int _evalobjcon(void *_self, int nvars, int ncon,
-                     ParOptVec *_x, ParOptScalar *fobj, 
+                     ParOptVec *_x, ParOptScalar *fobj,
                      ParOptScalar *cons):
    # Call the objective function
    x = _init_PVec(_x)
@@ -280,7 +285,7 @@ cdef int _evalobjcon(void *_self, int nvars, int ncon,
    return fail
 
 cdef int _evalobjcongradient(void *_self, int nvars, int ncon,
-                             ParOptVec *_x, ParOptVec *_g, 
+                             ParOptVec *_x, ParOptVec *_g,
                              ParOptVec **A):
    # The numpy arrays that will be used for x
    x = _init_PVec(_x)
@@ -302,7 +307,7 @@ cdef int _evalhvecproduct(void *_self, int nvars, int ncon, int nwcon,
       zw = _init_PVec(_zw)
    px = _init_PVec(_px)
    hvec = _init_PVec(_hvec)
-   
+
    z = inplace_array_1d(PAROPT_NPY_SCALAR, ncon, <void*>_z)
 
    # Call the objective function
@@ -317,7 +322,7 @@ cdef int _evalhessiandiag(void *_self, int nvars, int ncon, int nwcon,
    if _zw != NULL:
       zw = _init_PVec(_zw)
    hdiag = _init_PVec(_hdiag)
-   
+
    z = inplace_array_1d(PAROPT_NPY_SCALAR, ncon, <void*>_z)
 
    # Call the objective function
@@ -332,9 +337,9 @@ cdef void _evalsparsecon(void *_self, int nvars, int nwcon,
    (<object>_self).evalSparseCon(x, con)
    return
 
-cdef void _addsparsejacobian(void *_self, int nvars, 
-                             int nwcon, ParOptScalar alpha, 
-                             ParOptVec *_x, ParOptVec *_px, 
+cdef void _addsparsejacobian(void *_self, int nvars,
+                             int nwcon, ParOptScalar alpha,
+                             ParOptVec *_x, ParOptVec *_px,
                              ParOptVec *_con):
    x = _init_PVec(_x)
    px = _init_PVec(_px)
@@ -343,9 +348,9 @@ cdef void _addsparsejacobian(void *_self, int nvars,
    (<object>_self).addSparseJacobian(alpha, x, px, con)
    return
 
-cdef void _addsparsejacobiantranspose(void *_self, int nvars, 
-                                      int nwcon, ParOptScalar alpha, 
-                                      ParOptVec *_x, ParOptVec *_pzw, 
+cdef void _addsparsejacobiantranspose(void *_self, int nvars,
+                                      int nwcon, ParOptScalar alpha,
+                                      ParOptVec *_x, ParOptVec *_pzw,
                                       ParOptVec *_out):
    x = _init_PVec(_x)
    pzw = _init_PVec(_pzw)
@@ -355,7 +360,7 @@ cdef void _addsparsejacobiantranspose(void *_self, int nvars,
 
 cdef void _addsparseinnerproduct(void *_self, int nvars,
                                  int nwcon, int nwblock, ParOptScalar alpha,
-                                 ParOptVec *_x, ParOptVec *_c, 
+                                 ParOptVec *_x, ParOptVec *_c,
                                  ParOptScalar *_A):
    x = _init_PVec(_x)
    c = _init_PVec(_c)
@@ -379,7 +384,7 @@ cdef class pyParOptProblemBase:
       vec = self.ptr.createConstraintVec()
       return _init_PVec(vec)
 
-# "Wrap" the abtract base class ParOptProblem 
+# "Wrap" the abtract base class ParOptProblem
 cdef class pyParOptProblem(pyParOptProblemBase):
    cdef CyParOptProblem *me
    def __init__(self, MPI.Comm comm, int nvars, int ncon,
@@ -424,7 +429,7 @@ cdef class pyParOptProblem(pyParOptProblemBase):
 
       # Set the options
       self.me.setInequalityOptions(dense, sparse, lower, upper)
-   
+
       return
 
 # Constants that define what Quasi-Newton method to use
@@ -481,7 +486,7 @@ cdef class PVec:
                array[i] += b[i]
          else:
             errmsg = 'PVecs must be the same size'
-            raise ValueError(errmsg)         
+            raise ValueError(errmsg)
       else:
          value = b
          for i in range(size):
@@ -512,7 +517,7 @@ cdef class PVec:
                array[i] -= b[i]
          else:
             errmsg = 'PVecs must be the same size'
-            raise ValueError(errmsg)         
+            raise ValueError(errmsg)
       else:
          value = b
          for i in range(size):
@@ -543,7 +548,7 @@ cdef class PVec:
                array[i] *= b[i]
          else:
             errmsg = 'PVecs must be the same size'
-            raise ValueError(errmsg)         
+            raise ValueError(errmsg)
       else:
          value = b
          for i in range(size):
@@ -574,7 +579,7 @@ cdef class PVec:
                array[i] /= b[i]
          else:
             errmsg = 'PVecs must be the same size'
-            raise ValueError(errmsg)         
+            raise ValueError(errmsg)
       else:
          value = b
          for i in range(size):
@@ -694,24 +699,24 @@ cdef class LSR1(CompactQuasiNewton):
 # Python class for corresponding instance ParOpt
 cdef class pyParOpt:
    cdef ParOpt *ptr
-   def __cinit__(self, pyParOptProblemBase _prob, 
-                 int max_qn_subspace, 
+   def __cinit__(self, pyParOptProblemBase _prob,
+                 int max_qn_subspace,
                  ParOptQuasiNewtonType qn_type):
       self.ptr = new ParOpt(_prob.ptr, max_qn_subspace, qn_type)
       self.ptr.incref()
       return
-      
+
    def __dealloc__(self):
       if self.ptr:
          self.ptr.decref()
-      
+
    # Perform the optimization
    def optimize(self, bytes checkpoint=None):
-      if checkpoint is None: 
+      if checkpoint is None:
          return self.ptr.optimize(NULL)
       else:
          return self.ptr.optimize(checkpoint)
-      
+
    def getOptimizedPoint(self):
       '''
       Get the optimized solution in PVec form for interpolation purposes
@@ -726,7 +731,7 @@ cdef class pyParOpt:
       # Get the problem size/vector for the values
       self.ptr.getProblemSizes(NULL, &ncon, NULL, NULL)
       self.ptr.getOptimizedPoint(&_x, &_z, &_zw, &_zl, &_zu);
-      
+
       # Set the default values
       z = None
       x = None
@@ -761,7 +766,7 @@ cdef class pyParOpt:
       cdef ParOptScalar *_s = NULL
       cdef ParOptScalar *_t = NULL
       cdef ParOptVec *_sw = NULL
-   
+
       # Get the problem size/vector for the values
       self.ptr.getProblemSizes(NULL, &ncon, NULL, NULL)
       self.ptr.getOptimizedSlacks(&_s, &_t, &_sw)
@@ -782,9 +787,9 @@ cdef class pyParOpt:
       return s, t, sw
 
    # Check objective and constraint gradients
-   def checkGradients(self, double dh):    
+   def checkGradients(self, double dh):
       self.ptr.checkGradients(dh)
-      
+
    # Set optimizer parameters
    def setNormType(self, ParOptNormType norm_typ):
       self.ptr.setNormType(norm_typ)
@@ -792,12 +797,12 @@ cdef class pyParOpt:
    def setBarrierStrategy(self, ParOptBarrierStrategy strategy):
       self.ptr.setBarrierStrategy(strategy)
 
-   def setInitStartingPoint(self, int init):
-      self.ptr.setInitStartingPoint(init)
-      
+   def setStartingPointStrategy(self, ParOptStartingPointStrategy strategy):
+      self.ptr.setStartingPointStrategy(strategy)
+
    def setMaxMajorIterations(self, int iters):
       self.ptr.setMaxMajorIterations(iters)
-      
+
    def setAbsOptimalityTol(self, double tol):
       self.ptr.setAbsOptimalityTol(tol)
 
@@ -809,26 +814,29 @@ cdef class pyParOpt:
 
    def setBarrierFraction(self, double frac):
       self.ptr.setBarrierFraction(frac)
-      
+
    def setBarrierPower(self, double power):
       self.ptr.setBarrierPower(power)
-      
+
    def setHessianResetFreq(self, int freq):
       self.ptr.setHessianResetFreq(freq)
-   
+
    def setQNDiagonalFactor(self, double sigma):
       self.ptr.setQNDiagonalFactor(sigma)
 
    def setBFGSUpdateType(self, ParOptBFGSUpdateType update):
       self.ptr.setBFGSUpdateType(update)
-      
+
    def setSequentialLinearMethod(self, int truth):
       self.ptr.setSequentialLinearMethod(truth)
-      
+
+   def setStartAffineStepMultiplierMin(self, double value):
+      self.ptr.setStartAffineStepMultiplierMin(value)
+
    # Set/obtain the barrier parameter
    def setInitBarrierParameter(self, double mu):
       self.ptr.setInitBarrierParameter(mu)
-      
+
    def getBarrierParameter(self):
       return self.ptr.getBarrierParameter()
 
@@ -837,7 +845,7 @@ cdef class pyParOpt:
 
    def getComplementarity(self):
       return self.ptr.getComplementarity()
-  
+
    # Reset the quasi-Newton Hessian
    def resetQuasiNewtonHessian(self):
       self.ptr.resetQuasiNewtonHessian()
@@ -848,29 +856,29 @@ cdef class pyParOpt:
 
    def setUseQuasiNewtonUpdates(self, int truth):
       self.ptr.setUseQuasiNewtonUpdates(truth)
-      
+
    def resetDesignAndBounds(self):
       self.ptr.resetDesignAndBounds()
 
    # Set parameters associated with the linesearch
    def setUseLineSearch(self, int truth):
       self.ptr.setUseLineSearch(truth)
-      
+
    def setMaxLineSearchIters(self, int iters):
       self.ptr.setMaxLineSearchIters(iters)
-      
+
    def setBacktrackingLineSearch(self, int truth):
       self.ptr.setBacktrackingLineSearch(truth)
-      
+
    def setArmijoParam(self, double c1):
       self.ptr.setArmijoParam(c1)
-      
+
    def setPenaltyDescentFraction(self, double frac):
       self.ptr.setPenaltyDescentFraction(frac)
 
    def setMinPenaltyParameter(self, double rho_min):
       self.ptr.setMinPenaltyParameter(rho_min)
-      
+
    # Set parameters for the interal GMRES algorithm
    def setUseHvecProduct(self, int truth):
       self.ptr.setUseHvecProduct(truth)
@@ -878,29 +886,29 @@ cdef class pyParOpt:
    # Set the use of an exact diagonal hessian
    def setUseDiagHessian(self, int truth):
       self.ptr.setUseDiagHessian(truth)
-      
+
    def setUseQNGMRESPreCon(self, int truth):
       self.ptr.setUseQNGMRESPreCon(truth)
 
    def setNKSwitchTolerance(self, double tol):
       self.ptr.setNKSwitchTolerance(tol)
-      
+
    def setEisenstatWalkerParameters(self, double gamma, double alpha):
       self.ptr.setEisenstatWalkerParameters(gamma, alpha)
-      
+
    def setGMRESTolerances(self, double rtol, double atol):
       self.ptr.setGMRESTolerances(rtol, atol)
-      
+
    def setGMRESSubspaceSize(self, int _gmres_subspace_size):
       self.ptr.setGMRESSubspaceSize(_gmres_subspace_size)
-      
+
    # Set other parameters
    def setOutputFrequency(self, int freq):
       self.ptr.setOutputFrequency(freq)
-      
+
    def setMajorIterStepCheck(self, int step):
       self.ptr.setMajorIterStepCheck(step)
-      
+
    def setOutputFile(self, fname):
       cdef char *filename = convert_to_chars(fname)
       if filename is not None:
@@ -908,16 +916,16 @@ cdef class pyParOpt:
 
    def setOutputLevel(self, int level):
       self.ptr.setOutputLevel(level)
-         
+
    def setGradientCheckFrequency(self, int freq, double step_size):
        self.ptr.setGradientCheckFrequency(freq, step_size)
-         
+
    # Write out the design variables to binary format (fast MPI/IO)
    def writeSolutionFile(self, fname):
       cdef char *filename = convert_to_chars(fname)
       if filename is not None:
          return self.ptr.writeSolutionFile(filename)
-  
+
    def readSolutionFile(self, fname):
       cdef char *filename = convert_to_chars(fname)
       if filename is not None:
@@ -980,7 +988,7 @@ cdef class pyMMA(pyParOptProblemBase):
       cdef ParOptVec *x2 = NULL
       self.mma.getDesignHistory(&x1, &x2)
       return _init_PVec(x1), _init_PVec(x2)
-      
+
    def setPrintLevel(self, int level):
       self.mma.setPrintLevel(level)
 
@@ -1015,7 +1023,7 @@ cdef class pyTrustRegion(pyParOptProblemBase):
                  double tr_size, double tr_min_size=1e-4,
                  double tr_max_size=1.0, double eta=0.25,
                  double penalty=10.0, double bound_relax=1e-4):
-      self.tr = new ParOptTrustRegion(_prob.ptr, qn.ptr, tr_size, 
+      self.tr = new ParOptTrustRegion(_prob.ptr, qn.ptr, tr_size,
                                       tr_min_size, tr_max_size,
                                       eta, penalty, bound_relax)
       self.tr.incref()

@@ -18,8 +18,8 @@ static const char *paropt_parameter_help[][2] = {
   {"max_major_iters",
    "Integer: The maximum number of major iterations before quiting"},
 
-  {"init_starting_point",
-   "Boolean: Initialize the Lagrange multiplier estimates"},
+  {"starting_point_strategy",
+   "Enum: Initialize the Lagrange multiplier estimates and slack variables"},
 
   {"barrier_param",
    "Float: The initial value of the barrier parameter"},
@@ -326,12 +326,14 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   // Zero the number of evals
   neval = ngeval = nhvec = 0;
 
+  // Set the default starting point strategy
+  starting_point_strategy = PAROPT_LEAST_SQUARES_MULTIPLIERS;
+
   // Set the barrier strategy
   barrier_strategy = PAROPT_MONOTONE;
 
   // Initialize the parameters with default values
   max_major_iters = 1000;
-  init_starting_point = 1;
   barrier_param = 0.1;
   rel_bound_barrier = 1.0;
   penalty_gamma = 1000.0;
@@ -356,6 +358,7 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   use_quasi_newton_update = 1;
   qn_sigma = 0.0;
   merit_func_check_epsilon = 5e-8;
+  start_affine_multiplier_min = 1e-3;
 
   // Initialize the diagonal Hessian computation
   use_diag_hessian = 0;
@@ -387,8 +390,22 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   gmres_W = NULL;
 
   // Initialize the design variables and bounds
-  int init_multipliers = 1;
-  initAndCheckDesignAndBounds(init_multipliers);
+  initAndCheckDesignAndBounds();
+
+  // Set initial values of the multipliers
+  zl->set(1.0);
+  zu->set(1.0);
+  zw->set(1.0);
+  sw->set(1.0);
+
+  // Set the Largrange multipliers and slack variables associated
+  // with the dense constraints to 1.0
+  for ( int i = 0; i < ncon; i++ ){
+    z[i] = 1.0;
+    s[i] = 1.0;
+    zt[i] = 1.0;
+    t[i] = 1.0;
+  }
 }
 
 /*
@@ -633,8 +650,18 @@ void ParOpt::printOptionSummary( FILE *fp ){
     }
     fprintf(fp, "%-30s %15g\n", "penalty_gamma", penalty_gamma);
     fprintf(fp, "%-30s %15d\n", "max_major_iters", max_major_iters);
-    fprintf(fp, "%-30s %15d\n", "init_starting_point",
-            init_starting_point);
+    if (starting_point_strategy == PAROPT_NO_START_STRATEGY){
+      fprintf(fp, "%-30s %15s\n", "starting_point_strategy",
+              "NO_START");
+    }
+    else if (starting_point_strategy == PAROPT_LEAST_SQUARES_MULTIPLIERS){
+      fprintf(fp, "%-30s %15s\n", "starting_point_strategy",
+              "LEAST_SQUARES");
+    }
+    else if (starting_point_strategy == PAROPT_AFFINE_STEP){
+      fprintf(fp, "%-30s %15s\n", "starting_point_strategy",
+              "AFFINE_STEP");
+    }
     fprintf(fp, "%-30s %15g\n", "barrier_param", barrier_param);
     fprintf(fp, "%-30s %15g\n", "abs_res_tol", abs_res_tol);
     fprintf(fp, "%-30s %15g\n", "rel_func_tol", rel_func_tol);
@@ -936,10 +963,10 @@ void ParOpt::setBarrierStrategy( ParOptBarrierStrategy strategy ){
 }
 
 /*
-  Set optimizer parameters
+  Set the starting point strategy to use
 */
-void ParOpt::setInitStartingPoint( int init ){
-  init_starting_point = init;
+void ParOpt::setStartingPointStrategy( ParOptStartingPointStrategy strategy ){
+  starting_point_strategy = strategy;
 }
 
 /*
@@ -1115,6 +1142,14 @@ void ParOpt::setBFGSUpdateType( ParOptBFGSUpdateType update ){
 */
 void ParOpt::setSequentialLinearMethod( int truth ){
   sequential_linear_method = truth;
+}
+
+/*
+  Set the minimum value of the multiplier/slack variable allowed in
+  the affine step start up point initialization procedure
+*/
+void ParOpt::setStartAffineStepMultiplierMin( double value ){
+  start_affine_multiplier_min = value;
 }
 
 /*
@@ -3959,30 +3994,9 @@ line search, trying new point\n");
   input:
   init_multipliers:  Flag to indicate whether to initialize multipliers
 */
-void ParOpt::initAndCheckDesignAndBounds( int init_multipliers ){
+void ParOpt::initAndCheckDesignAndBounds(){
   // Get the design variables and bounds
   prob->getVarsAndBounds(x, lb, ub);
-
-  if (init_multipliers){
-    // Set the Largrange multipliers associated with the
-    // the lower/upper bounds to 1.0
-    zl->set(1.0);
-    zu->set(1.0);
-
-    // Set the Lagrange multipliers and slack variables
-    // associated with the sparse constraints to 1.0
-    zw->set(1.0);
-    sw->set(1.0);
-
-    // Set the Largrange multipliers and slack variables associated
-    // with the dense constraints to 1.0
-    for ( int i = 0; i < ncon; i++ ){
-      z[i] = 1.0;
-      s[i] = 1.0;
-      zt[i] = 1.0;
-      t[i] = 1.0;
-    }
-  }
 
   // Check the design variables and bounds, move things that
   // don't make sense and print some warnings
@@ -4091,7 +4105,7 @@ int ParOpt::optimize( const char *checkpoint ){
   neval = ngeval = nhvec = 0;
 
   // Initialize and check the design variables and bounds
-  initAndCheckDesignAndBounds(init_starting_point);
+  initAndCheckDesignAndBounds();
 
   // Print what options we're using to the file
   printOptionSummary(outfp);
@@ -4120,16 +4134,17 @@ int ParOpt::optimize( const char *checkpoint ){
   zl->getArray(&zlvals);
   zu->getArray(&zuvals);
 
-  for ( int i = 0; i < nvars; i++ ){
-    if (RealPart(lbvals[i]) <= -max_bound_val){
-      zlvals[i] = 0.0;
+  if (starting_point_strategy == PAROPT_AFFINE_STEP){
+    // Zero the multipliers for bounds that are out-of-range
+    for ( int i = 0; i < nvars; i++ ){
+      if (RealPart(lbvals[i]) <= -max_bound_val){
+        zlvals[i] = 0.0;
+      }
+      if (RealPart(ubvals[i]) >= max_bound_val){
+        zuvals[i] = 0.0;
+      }
     }
-    if (RealPart(ubvals[i]) >= max_bound_val){
-      zuvals[i] = 0.0;
-    }
-  }
 
-  if (init_starting_point){
     // Find the affine scaling step
     ParOptScalar max_prime, max_dual, max_infeas;
     computeKKTRes(0.0, &max_prime, &max_dual, &max_infeas);
@@ -4137,8 +4152,7 @@ int ParOpt::optimize( const char *checkpoint ){
     // Set the flag which determines whether or not to use
     // the quasi-Newton method as a preconditioner
     int use_qn = 1;
-    if (sequential_linear_method ||
-        !use_qn_gmres_precon){
+    if (sequential_linear_method || !use_qn_gmres_precon){
       use_qn = 0;
     }
 
@@ -4151,21 +4165,23 @@ int ParOpt::optimize( const char *checkpoint ){
     // Solve for the KKT step
     computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_qn);
 
-    // Set the barrier parameter
-    double beta_value = 1.0;
-
-    // Copy over the values 
+    // Copy over the values
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
-        z[i] = max2(beta_value, fabs(RealPart(z[i] + pz[i])));
-        s[i] = max2(beta_value, fabs(RealPart(s[i] + ps[i])));
-        t[i] = max2(beta_value, fabs(RealPart(t[i] + pt[i])));
-        zt[i] = max2(beta_value, fabs(RealPart(zt[i] + pzt[i])));
+        z[i] = max2(start_affine_multiplier_min,
+                    fabs(RealPart(z[i] + pz[i])));
+        s[i] = max2(start_affine_multiplier_min,
+                    fabs(RealPart(s[i] + ps[i])));
+        t[i] = max2(start_affine_multiplier_min,
+                    fabs(RealPart(t[i] + pt[i])));
+        zt[i] = max2(start_affine_multiplier_min,
+                     fabs(RealPart(zt[i] + pzt[i])));
       }
     }
     else {
       for ( int i = 0; i < ncon; i++ ){
-        z[i] = max2(beta_value, fabs(RealPart(z[i] + pz[i])));
+        z[i] = max2(start_affine_multiplier_min,
+                    fabs(RealPart(z[i] + pz[i])));
       }
     }
 
@@ -4175,7 +4191,8 @@ int ParOpt::optimize( const char *checkpoint ){
       zw->getArray(&zwvals);
       pzw->getArray(&pzwvals);
       for ( int i = 0; i < nwcon; i++ ){
-        zwvals[i] = max2(beta_value, fabs(RealPart(zwvals[i] + pzwvals[i])));
+        zwvals[i] = max2(start_affine_multiplier_min,
+                         fabs(RealPart(zwvals[i] + pzwvals[i])));
       }
 
       if (sparse_inequality){
@@ -4183,7 +4200,8 @@ int ParOpt::optimize( const char *checkpoint ){
         sw->getArray(&swvals);
         psw->getArray(&pswvals);
         for ( int i = 0; i < nwcon; i++ ){
-          swvals[i] = max2(beta_value, fabs(RealPart(swvals[i] + pswvals[i])));
+          swvals[i] = max2(start_affine_multiplier_min,
+                           fabs(RealPart(swvals[i] + pswvals[i])));
         }
       }
     }
@@ -4194,7 +4212,7 @@ int ParOpt::optimize( const char *checkpoint ){
       pzl->getArray(&pzlvals);
       for ( int i = 0; i < nvars; i++ ){
         if (RealPart(lbvals[i]) > -max_bound_val){
-          zlvals[i] = max2(beta_value,
+          zlvals[i] = max2(start_affine_multiplier_min,
                            fabs(RealPart(zlvals[i] + pzlvals[i])));
         }
       }
@@ -4205,7 +4223,7 @@ int ParOpt::optimize( const char *checkpoint ){
       pzu->getArray(&pzuvals);
       for ( int i = 0; i < nvars; i++ ){
         if (RealPart(ubvals[i]) < max_bound_val){
-          zuvals[i] = max2(beta_value,
+          zuvals[i] = max2(start_affine_multiplier_min,
                            fabs(RealPart(zuvals[i] + pzuvals[i])));
         }
       }
@@ -4213,6 +4231,84 @@ int ParOpt::optimize( const char *checkpoint ){
 
     // Set the initial barrier parameter
     barrier_param = computeComp();
+  }
+  else if (starting_point_strategy == PAROPT_LEAST_SQUARES_MULTIPLIERS){
+    // Set the Largrange multipliers associated with the
+    // the lower/upper bounds to 1.0
+    zl->set(1.0);
+    zu->set(1.0);
+
+    // Set the Lagrange multipliers and slack variables
+    // associated with the sparse constraints to 1.0
+    zw->set(1.0);
+    sw->set(1.0);
+
+    // Set the Largrange multipliers and slack variables associated
+    // with the dense constraints to 1.0
+    for ( int i = 0; i < ncon; i++ ){
+      z[i] = 1.0;
+      s[i] = 1.0;
+      zt[i] = 1.0;
+      t[i] = 1.0;
+    }
+
+    // Zero the multipliers for bounds that are out-of-range
+    for ( int i = 0; i < nvars; i++ ){
+      if (RealPart(lbvals[i]) <= -max_bound_val){
+        zlvals[i] = 0.0;
+      }
+      if (RealPart(ubvals[i]) >= max_bound_val){
+        zuvals[i] = 0.0;
+      }
+    }
+
+    // Form the right-hand-side of the least squares problem for the
+    // dense constraint multipliers
+    ParOptVec *xt = y_qn;
+    xt->copyValues(g);
+    xt->axpy(-1.0, zl);
+    xt->axpy(1.0, zu);
+
+    for ( int i = 0; i < ncon; i++ ){
+      z[i] = Ac[i]->dot(xt);
+    }
+
+    // Compute Dmat = A*A^{T}
+    for ( int i = 0; i < ncon; i++ ){
+      Ac[i]->mdot(Ac, ncon, &Dmat[i*ncon]);
+    }
+
+    if (ncon > 0){
+      // Compute the factorization of Dmat
+      int info;
+      LAPACKdgetrf(&ncon, &ncon, Dmat, &ncon, dpiv, &info);
+
+      // Solve the linear system
+      if (!info){
+        int one = 1;
+        LAPACKdgetrs("N", &ncon, &one, Dmat, &ncon, dpiv,
+                     z, &ncon, &info);
+
+        // Keep the Lagrange multipliers if they are within a
+        // reasonable range and they are positive.
+        if (dense_inequality){
+          for ( int i = 0; i < ncon; i++ ){
+            if (RealPart(z[i]) < 0.01 ||
+                RealPart(z[i]) > penalty_gamma){
+              z[i] = 1.0;
+            }
+          }
+        }
+        else {
+          for ( int i = 0; i < ncon; i++ ){
+            if (RealPart(z[i]) < -penalty_gamma ||
+                RealPart(z[i]) > penalty_gamma){
+              z[i] = 1.0;
+            }
+          }
+        }
+      }
+    }
   }
 
   // Retrieve the rank of the processor

@@ -6,6 +6,9 @@
 #include "ParOptQuasiNewton.h"
 #include "ParOptProblem.h"
 
+/*
+  Different options for use within ParOpt
+*/
 enum ParOptNormType { PAROPT_INFTY_NORM,
                       PAROPT_L1_NORM,
                       PAROPT_L2_NORM };
@@ -17,6 +20,10 @@ enum ParOptQuasiNewtonType { PAROPT_BFGS,
 enum ParOptBarrierStrategy { PAROPT_MONOTONE,
                              PAROPT_MEHROTRA,
                              PAROPT_COMPLEMENTARITY_FRACTION };
+
+enum ParOptStartingPointStrategy { PAROPT_NO_START_STRATEGY,
+                                   PAROPT_LEAST_SQUARES_MULTIPLIERS,
+                                   PAROPT_AFFINE_STEP };
 
 /*
   ParOpt is a parallel optimizer implemented in C++ for large-scale
@@ -166,6 +173,7 @@ class ParOpt : public ParOptBase {
   // ------------------------
   void setNormType( ParOptNormType _norm_type );
   void setBarrierStrategy( ParOptBarrierStrategy strategy );
+  void setStartingPointStrategy( ParOptStartingPointStrategy strategy );
   void setInitStartingPoint( int init );
   void setMaxMajorIterations( int iters );
   void setAbsOptimalityTol( double tol );
@@ -177,6 +185,7 @@ class ParOpt : public ParOptBase {
   void setQNDiagonalFactor( double sigma );
   void setBFGSUpdateType( ParOptBFGSUpdateType bfgs_update );
   void setSequentialLinearMethod( int truth );
+  void setStartAffineStepMultiplierMin( double value );
 
   // Set/get the barrier parameter
   // -----------------------------
@@ -238,7 +247,7 @@ class ParOpt : public ParOptBase {
   void printOptionSummary( FILE *fp );
 
   // Check and initialize the design variables and their bounds
-  void initAndCheckDesignAndBounds( int init_multipliers );
+  void initAndCheckDesignAndBounds();
 
   // Factor/apply the Cw matrix
   int factorCw();
@@ -357,7 +366,10 @@ class ParOpt : public ParOptBase {
   MPI_Comm comm;
   int opt_root;
 
-  // THe type of barrier strategy to use
+  // The type of starting point initialization strategy to use
+  ParOptStartingPointStrategy starting_point_strategy;
+
+  // The type of barrier strategy to use
   ParOptBarrierStrategy barrier_strategy;
 
   // Set the norm type to use
@@ -433,7 +445,6 @@ class ParOpt : public ParOptBase {
 
   // Parameters for optimization
   int max_major_iters;
-  int init_starting_point;
   int write_output_frequency;
 
   // Parameters for the periodic gradient check option
@@ -452,7 +463,6 @@ class ParOpt : public ParOptBase {
   int hessian_reset_freq;
 
   // Parameter that controls whether quasi-Newton updates are applied
-  // at all
   int use_quasi_newton_update;
 
   // Parameters for the line search
@@ -471,6 +481,10 @@ class ParOpt : public ParOptBase {
   // Control of exact diagonal Hessian
   int use_diag_hessian;
   ParOptVec *hdiag;
+
+  // Set the minimum value of the multipliers/slacks in the affine
+  // step starting point initialization procedure
+  double start_affine_multiplier_min;
 
   // Control of exact Hessian-vector products
   int use_hvec_product;

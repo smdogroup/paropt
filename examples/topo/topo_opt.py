@@ -82,7 +82,7 @@ def get_global_stiffness(E1, E2, nu12, G12, thetas):
 
 class TACSAnalysis(ParOpt.pyParOptProblem):
     def __init__(self, comm, props, tacs, const, num_materials,
-                 xpts=None, conn=None, m_fixed=1.0, qt=5.0,
+                 xpts=None, conn=None, m_fixed=1.0,
                  min_mat_fraction=-1.0):
         '''
         Analysis problem
@@ -163,10 +163,8 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         self.xinit[:] = xi
 
         # Set the penalization
-        self.qt = qt
         tval = xi*self.num_materials
-        # self.xinit[::self.nblock] = tval/(1.0 + self.qt*(1 - tval))
-        self.xinit[::self.nblock] = (self.qt + 1)*tval/(1.0 + self.qt*tval)
+        self.xinit[::self.nblock] = tval
 
         # Create a temporary vector for the hessian-vector products
         self.hvec_tmp = np.zeros(self.xinit.shape)
@@ -227,18 +225,19 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         x[:] = self.xinit[:]
 
         # Set the upper bound for the material/thickness variables
-        ub[:] = 1.0
+        ub[:] = 1e20
+        lb[:] = -1e20
+
+        # Set the upper bound for the thickness variables
+        ub[::self.nblock] = 1.0
 
         penalty, ptype = self.props.getPenaltyType()
         if penalty == 'convex':
             if ptype == 'ramp':
-                # Set the lower bound for the design variables
+                # Set the lower bound for the material selection variables
                 lb[:] = (q/(q + 1.0))*self.xinit[:]**2
-
-                # Set the lower bound for the thickness variables
-                t0 = self.xinit[::self.nblock]
-                lb[::self.nblock] = (self.qt/(self.qt + 1.0))*t0**2
             else:
+                # Set the lower bound
                 lb[:] = (2.0/3.0)*self.xinit[:]
 
         return
@@ -248,19 +247,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         n = self.nblock*self.num_elements
         t = x[:n:self.nblock]
         xmat = x[:n].reshape(-1, self.nblock)[:,1:]
-
-        # Get the penalty type
-        penalty, ptype = self.props.getPenaltyType()
-
-        if penalty == 'convex':
-            t0 = self.xinit[:n:self.nblock]
-            a = 1.0/(1.0 + self.qt*(1.0 - t0))
-            con[:] = (a*t0 + (self.qt+1)*a*a*(t - t0) -
-                      np.sum(xmat, axis=1))
-        else:
-            a = 1.0/(1.0 + self.qt*(1.0 - t))
-            con[:] = (self.qt+1)*a*t - np.sum(xmat, axis=1)
-
+        con[:] = t - np.sum(xmat, axis=1)
         return
 
     def addSparseJacobian(self, alpha, x, px, con):
@@ -268,19 +255,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         n = self.nblock*self.num_elements
         pt = px[:n:self.nblock]
         pmat = px[:n].reshape(-1, self.nblock)[:,1:]
-
-        # Get the penalty type
-        penalty, ptype = self.props.getPenaltyType()
-
-        if penalty == 'convex':
-            t0 = self.xinit[:n:self.nblock]
-            a = 1.0/(1.0 + self.qt*(1.0 - t0))
-            con[:] += alpha*((self.qt + 1.0)*a*a*pt - np.sum(pmat, axis=1))
-        else:
-            t = x[:n:self.nblock]
-            a = 1.0/(1.0 + self.qt*(1.0 - t))
-            con[:] += alpha*((self.qt + 1.0)*a*a*pt - np.sum(pmat, axis=1))
-
+        con[:] += alpha*(pt - np.sum(pmat, axis=1))
         return
 
     def addSparseJacobianTranspose(self, alpha, x, pz, out):
@@ -288,19 +263,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         n = self.nblock*self.num_elements
         for k in range(1, self.nblock):
             out[k:n:self.nblock] -= alpha*pz[:]
-
-        # Get the penalty type
-        penalty, ptype = self.props.getPenaltyType()
-
-        if penalty == 'convex':
-            t0 = self.xinit[:n:self.nblock]
-            a = 1.0/(1.0 + self.qt*(1.0 - t0))
-            out[:n:self.nblock] += alpha*(self.qt + 1.0)*a*a*pz[:]
-        else:
-            t = x[:n:self.nblock]
-            a = 1.0/(1.0 + self.qt*(1.0 - t))
-            out[:n:self.nblock] += alpha*(self.qt + 1.0)*a*a*pz[:]
-
+        out[:n:self.nblock] += alpha*pz[:]
         return
 
     def addSparseInnerProduct(self, alpha, x, c, A):
@@ -308,19 +271,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         n = self.nblock*self.num_elements
         cmat = c[:n].reshape(-1, self.nblock)[:,1:]
         A[:] += alpha*np.sum(cmat, axis=1)
-
-        # Get the penalty type
-        penalty, ptype = self.props.getPenaltyType()
-
-        if penalty == 'convex':
-            t0 = self.xinit[:n:self.nblock]
-            a = 1.0/(1.0 + self.qt*(1.0 - t0))
-            A[:] += alpha*c[:n:self.nblock]*((self.qt + 1.0)*a*a)**2
-        else:
-            t = x[:n:self.nblock]
-            a = 1.0/(1.0 + self.qt*(1.0 - t))
-            A[:] += alpha*c[:n:self.nblock]*((self.qt + 1.0)*a*a)**2
-
+        A[:] += alpha*c[:n:self.nblock]
         return
 
     def getCompliance(self, x):
@@ -483,7 +434,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
                     xf = self.const[i].getFilteredDesignVars()
                     kmax = np.argmax(xf[1:])
 
-                    u = xf[0]/(1.0 + self.qt*(1.0 - xf[0]))
+                    u = xf[0]
                     r = (1.0 - u)*grey[0] + u*rgbvals[kmax][0]
                     g = (1.0 - u)*grey[1] + u*rgbvals[kmax][1]
                     b = (1.0 - u)*grey[2] + u*rgbvals[kmax][2]
@@ -509,7 +460,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
                     xf = self.const[i].getFilteredDesignVars()
 
                     rgb = (44, 160, 44)
-                    u = xf[0]/(1.0 + self.qt*(1.0 - xf[0]))
+                    u = xf[0]
                     r = (1.0 - u)*grey[0] + u*rgb[0]
                     g = (1.0 - u)*grey[1] + u*rgb[1]
                     b = (1.0 - u)*grey[2] + u*rgb[2]
@@ -615,7 +566,7 @@ def rectangular_domain(nx, ny, Ly=100.0):
     return xpts, conn, bcs, aux, area
 
 def create_structure(comm, props, xpts, conn, bcs, aux, m_fixed,
-                     r0=4, min_mat_fraction=-1.0, qt=5.0):
+                     r0=4, min_mat_fraction=-1.0):
     '''
     Create a structure with the speicified number of nodes along the
     x/y directions, respectively.
@@ -703,11 +654,11 @@ def create_structure(comm, props, xpts, conn, bcs, aux, m_fixed,
     analysis = TACSAnalysis(comm, props, tacs, const, nmats,
                             conn=conn, xpts=xpts,
                             m_fixed=m_fixed,
-                            min_mat_fraction=min_mat_fraction, qt=qt)
+                            min_mat_fraction=min_mat_fraction)
 
     return analysis
 
-def create_paropt(analysis, use_hessian=False,
+def create_paropt(analysis, use_hessian=False, tol=1e-5,
                   max_qn_subspace=50, qn_type=ParOpt.BFGS):
     '''
     Optimize the given structure using ParOpt
@@ -723,7 +674,7 @@ def create_paropt(analysis, use_hessian=False,
     opt = ParOpt.pyParOpt(analysis, max_qn_subspace, qn_type)
 
     # Set the optimality tolerance
-    opt.setAbsOptimalityTol(1e-5)
+    opt.setAbsOptimalityTol(tol)
 
     # Set the Hessian-vector product iterations
     if use_hessian:
@@ -737,12 +688,11 @@ def create_paropt(analysis, use_hessian=False,
     else:
         opt.setUseHvecProduct(0)
 
-    # Set the relative barrier for the bounds to be lower...
-    # opt.setRelativeBarrier(0.1)
+    # Set the starting point strategy
+    opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
 
     # Set the barrier strategy to use
     opt.setBarrierStrategy(ParOpt.COMPLEMENTARITY_FRACTION)
-    # opt.setBarrierStrategy(ParOpt.MONOTONE)
 
     # Set the norm to use
     opt.setNormType(ParOpt.L1_NORM)
@@ -759,7 +709,7 @@ def create_paropt(analysis, use_hessian=False,
 
     return opt
 
-def create_pyopt(analysis, optimizer='snopt', options={}):
+def create_pyopt(analysis, optimizer='snopt', options={}, tol=1e-5):
     '''
     Take the given problem and optimize it with the given optimizer
     from the pyOptSparse library of optimizers.
@@ -799,11 +749,11 @@ def create_pyopt(analysis, optimizer='snopt', options={}):
             if self.optimizer == 'snopt':
                 self.options['Print file'] = fname
                 self.options['Summary file'] = fname + '_summary'
-                self.options['Major optimality tolerance'] = 1e-5
+                self.options['Major optimality tolerance'] = tol
 
             elif self.optimizer == 'ipopt':
                 self.options['print_user_options'] = 'yes'
-                self.options['tol'] = 1e-5
+                self.options['tol'] = tol
                 self.options['nlp_scaling_method'] = 'none'
                 self.options['limited_memory_max_history'] = 25
                 self.options['bound_relax_factor'] = 0.0
@@ -876,7 +826,7 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
                           parameter=5.0, max_iters=1000,
                           optimizer='paropt', case='isotropic',
                           use_hessian=False, start_strategy='point',
-                          ptype='ramp'):
+                          ptype='ramp', tol=1e-5):
     # Optimize the structure
     optimizer = optimizer.lower()
     penalization = ptype.upper()
@@ -889,15 +839,15 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
         os.makedirs(prefix)
 
     # Write out the stdout output to a file
-    # sys.stdout = open(os.path.join(prefix, 'stdout.out'), 'w')
+    sys.stdout = open(os.path.join(prefix, 'stdout.out'), 'w')
 
     # Set up the optimization problem in ParOpt
     if optimizer == 'paropt':
-        opt = create_paropt(analysis,
+        opt = create_paropt(analysis, tol=tol,
                             use_hessian=use_hessian,
                             qn_type=ParOpt.BFGS)
     else:
-        opt = create_pyopt(analysis, optimizer=optimizer)
+        opt = create_pyopt(analysis, optimizer=optimizer, tol=tol)
 
     # Log the optimization file
     log_filename = os.path.join(prefix, 'log_file.dat')
@@ -942,21 +892,10 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
     for k in range(max_iters):
         # Optimize
         if k > 0 and optimizer == 'paropt':
-            if k == 1 and start_strategy == 'convex':
-                opt.setInitStartingPoint(1)
-                opt.resetDesignAndBounds()
-                opt.setInitBarrierParameter(0.1)
-            else:
-                # Don't re-initialize the starting point
-                opt.setInitStartingPoint(0)
-
-                # Reset the design variable and bounds
-                opt.resetDesignAndBounds()
-
-                # Get the new complementarity
-                mu = opt.getComplementarity()
-                opt.setInitBarrierParameter(mu)
-        elif optimizer != 'paropt':
+            opt.resetDesignAndBounds()
+            beta = max(10*tol, (0.75**k)*1e-2)
+            opt.setStartAffineStepMultiplierMin(beta)
+        elif k > 0 and optimizer != 'paropt':
             opt = create_pyopt(analysis, optimizer=optimizer)
 
         # Optimize the new point
@@ -1348,7 +1287,7 @@ if args.case is 'isotropic':
 
 analysis = create_structure(comm, props, xpts, conn,
                             bcs, aux, m_fixed, r0=r0,
-                            min_mat_fraction=min_mat_fraction, qt=0.0)
+                            min_mat_fraction=min_mat_fraction)
 
 if args.full_penalty:
     # Optimize the plane stress problem

@@ -75,26 +75,26 @@ cdef extern from "CyParOptProblem.h":
    ctypedef void (*evalsparsecon)(void *_self, int nvars, int nwcon,
                                   ParOptVec *x, ParOptVec *out)
    ctypedef void (*addsparsejacobian)(void *_self, int nvars, int nwcon,
-                                      ParOptScalar alpha, 
-                                      ParOptVec *x, ParOptVec *px, 
+                                      ParOptScalar alpha,
+                                      ParOptVec *x, ParOptVec *px,
                                       ParOptVec *out)
-   ctypedef void (*addsparsejacobiantranspose)(void *_self, 
+   ctypedef void (*addsparsejacobiantranspose)(void *_self,
                                                int nvars, int nwcon,
-                                               ParOptScalar alpha, 
-                                               ParOptVec *x, ParOptVec *px, 
+                                               ParOptScalar alpha,
+                                               ParOptVec *x, ParOptVec *px,
                                                ParOptVec *out)
-   ctypedef void (*addsparseinnerproduct)(void *_self, int nvars, 
+   ctypedef void (*addsparseinnerproduct)(void *_self, int nvars,
                                           int nwcon, int nwblock,
-                                          ParOptScalar alpha, 
-                                          ParOptVec *x, ParOptVec *c, 
+                                          ParOptScalar alpha,
+                                          ParOptVec *x, ParOptVec *c,
                                           ParOptScalar *out)
 
    cdef cppclass CyParOptProblem(ParOptProblem):
       CyParOptProblem(MPI_Comm _comm, int _nvars, int _ncon,
                       int _nwcon, int _nwblock)
-      
+
       # Set options for the inequality constraints
-      void setInequalityOptions(int _isSparseInequal, 
+      void setInequalityOptions(int _isSparseInequal,
                                 int _isDenseInequal,
                                 int _useLower, int _useUpper)
       # Set the callback functions
@@ -131,6 +131,11 @@ cdef extern from "ParOpt.h":
       PAROPT_MEHROTRA
       PAROPT_COMPLEMENTARITY_FRACTION
 
+   enum ParOptStartingPointStrategy:
+      PAROPT_NO_START_STRATEGY
+      PAROPT_LEAST_SQUARES_MULTIPLIERS
+      PAROPT_AFFINE_STEP
+
    cppclass ParOpt(ParOptBase):
       ParOpt(ParOptProblem*, int,
              ParOptQuasiNewtonType qn_type) except +
@@ -140,7 +145,7 @@ cdef extern from "ParOpt.h":
 
       # Get the problem dimensions
       void getProblemSizes(int*, int*, int*, int*)
-      
+
       # Retrieve the optimized point
       void getOptimizedPoint(ParOptVec**,
                              ParOptScalar**, ParOptVec**,
@@ -149,11 +154,11 @@ cdef extern from "ParOpt.h":
 
       # Check objective and constraint gradients
       void checkGradients(double)
-      
+
       # Set optimizer parameters
       void setNormType(ParOptNormType)
       void setBarrierStrategy(ParOptBarrierStrategy)
-      void setInitStartingPoint(int)
+      void setStartingPointStrategy(ParOptStartingPointStrategy)
       void setMaxMajorIterations(int)
       void setAbsOptimalityTol(double)
       void setRelFunctionTol(double)
@@ -164,6 +169,7 @@ cdef extern from "ParOpt.h":
       void setQNDiagonalFactor(double)
       void setBFGSUpdateType(ParOptBFGSUpdateType)
       void setSequentialLinearMethod(int)
+      void setStartAffineStepMultiplierMin(double)
 
       # Set/obtain the barrier parameter
       void setInitBarrierParameter(double)
@@ -178,7 +184,7 @@ cdef extern from "ParOpt.h":
 
       # Reset the design variables and the bounds
       void resetDesignAndBounds()
-      
+
       # Set parameters associated with the line search
       void setUseLineSearch(int)
       void setMaxLineSearchIters(int)
