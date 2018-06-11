@@ -4130,56 +4130,89 @@ int ParOpt::optimize( const char *checkpoint ){
   }
 
   if (init_starting_point){
-    // Find an initial estimate of the Lagrange multipliers
-    // Set up the least squares problem
-    ParOptScalar sigma = qn_sigma;
-    qn_sigma = 1.0;
+    // Find the affine scaling step
+    ParOptScalar max_prime, max_dual, max_infeas;
+    computeKKTRes(0.0, &max_prime, &max_dual, &max_infeas);
+
+    // Set the flag which determines whether or not to use
+    // the quasi-Newton method as a preconditioner
+    int use_qn = 1;
+    if (sequential_linear_method ||
+        !use_qn_gmres_precon){
+      use_qn = 0;
+    }
 
     // Set up the KKT diagonal system
-    int do_not_use_qn = 0;
-    setUpKKTDiagSystem(s_qn, wtemp, do_not_use_qn);
+    setUpKKTDiagSystem(s_qn, wtemp, use_qn);
 
-    // Set the right-hand-side
-    rx->copyValues(g);
-    rx->axpy(-1.0, zl);
-    rx->axpy(1.0, zu);
-    rx->scale(-1.0);
+    // Set up the full KKT system
+    setUpKKTSystem(ztemp, s_qn, y_qn, wtemp, use_qn);
 
-    // Zero the remaining residuals
-    memset(rt, 0, ncon*sizeof(ParOptScalar));
-    memset(rc, 0, ncon*sizeof(ParOptScalar));
-    rcw->zeroEntries();
-    memset(rs, 0, ncon*sizeof(ParOptScalar));
-    rsw->zeroEntries();
-    rzl->zeroEntries();
-    rzu->zeroEntries();
+    // Solve for the KKT step
+    computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_qn);
 
-    // Apply M^{-1} to the result to obtain the final answer
-    solveKKTDiagSystem(rx, rt, rc, rcw, rs, rsw, rzt, rzl, rzu,
-                       px, pt, pz, pzw, ps, psw, pzt, pzl, pzu,
-                       xtemp, wtemp);
-
-    // Reset the value of sigma
-    qn_sigma = sigma;
+    // Set the barrier parameter
+    double beta_value = 1.0;
 
     // Copy over the values 
-    for ( int i = 0; i < ncon; i++ ){
-      z[i] = pz[i];
-      if (dense_inequality){
-        z[i] = max2(1e-3, min2(pz[i], penalty_gamma));
-        zt[i] = max2(1e-3, min2(zt[i], penalty_gamma));
+    if (dense_inequality){
+      for ( int i = 0; i < ncon; i++ ){
+        z[i] = max2(beta_value, fabs(RealPart(z[i] + pz[i])));
+        s[i] = max2(beta_value, fabs(RealPart(s[i] + ps[i])));
+        t[i] = max2(beta_value, fabs(RealPart(t[i] + pt[i])));
+        zt[i] = max2(beta_value, fabs(RealPart(zt[i] + pzt[i])));
+      }
+    }
+    else {
+      for ( int i = 0; i < ncon; i++ ){
+        z[i] = max2(beta_value, fabs(RealPart(z[i] + pz[i])));
       }
     }
 
     // Copy the values
-    zw->copyValues(pzw);
-    if (sparse_inequality){
-      ParOptScalar *zwvals;
+    if (nwcon > 0){
+      ParOptScalar *zwvals, *pzwvals;
       zw->getArray(&zwvals);
+      pzw->getArray(&pzwvals);
       for ( int i = 0; i < nwcon; i++ ){
-        zwvals[i] = max2(1e-3, min2(zwvals[i], penalty_gamma));
+        zwvals[i] = max2(beta_value, fabs(RealPart(zwvals[i] + pzwvals[i])));
+      }
+
+      if (sparse_inequality){
+        ParOptScalar *swvals, *pswvals;
+        sw->getArray(&swvals);
+        psw->getArray(&pswvals);
+        for ( int i = 0; i < nwcon; i++ ){
+          swvals[i] = max2(beta_value, fabs(RealPart(swvals[i] + pswvals[i])));
+        }
       }
     }
+
+    if (use_lower){
+      ParOptScalar *zlvals, *pzlvals;
+      zl->getArray(&zlvals);
+      pzl->getArray(&pzlvals);
+      for ( int i = 0; i < nvars; i++ ){
+        if (RealPart(lbvals[i]) > -max_bound_val){
+          zlvals[i] = max2(beta_value,
+                           fabs(RealPart(zlvals[i] + pzlvals[i])));
+        }
+      }
+    }
+    if (use_upper){
+      ParOptScalar *zuvals, *pzuvals;
+      zu->getArray(&zuvals);
+      pzu->getArray(&pzuvals);
+      for ( int i = 0; i < nvars; i++ ){
+        if (RealPart(ubvals[i]) < max_bound_val){
+          zuvals[i] = max2(beta_value,
+                           fabs(RealPart(zuvals[i] + pzuvals[i])));
+        }
+      }
+    }
+
+    // Set the initial barrier parameter
+    barrier_param = computeComp();
   }
 
   // Retrieve the rank of the processor

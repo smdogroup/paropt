@@ -992,14 +992,14 @@ def optimize_plane_stress(comm, analysis, root_dir='results',
         tau = np.sum(d)
 
         # Print the output to the file
-        if k % 10 == 0:
+        if k % 5 == 0:
             # Print out the design
             filename = 'opt_struct_iter%d.tex'%(niters)
             output = os.path.join(prefix, filename)
             analysis.writeTikzFile(x, output)
 
         # Get the compliance and objective values
-        analysis.RAMP_penalty = min(1 + k/5, parameter)
+        analysis.RAMP_penalty = parameter # min(1 + k/5, parameter)
         analysis.setNewInitPointPenalty(x)
         comp = analysis.getCompliance(x)
 
