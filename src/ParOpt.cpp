@@ -360,6 +360,10 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   merit_func_check_epsilon = 5e-8;
   start_affine_multiplier_min = 1e-3;
 
+  // Set the function precision; changes below this value are
+  // considered irrelevant
+  function_precision = 1e-10;
+
   // Initialize the diagonal Hessian computation
   use_diag_hessian = 0;
   hdiag = NULL;
@@ -3792,7 +3796,6 @@ void ParOpt::evalMeritInitDeriv( double max_x,
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
         merit += penalty_gamma*t[i];
-        pmerit += penalty_gamma*pt[i];
       }
     }
   }
@@ -3884,9 +3887,14 @@ line search, trying new point\n");
       fprintf(outfp, "%5d %7.1e %12.5e\n", j+1, alpha, merit);
     }
 
-    // Check the sufficient decrease condition
+    // Check the sufficient decrease condition. Note that this is
+    // relaxed by the specified function precision. This allows
+    // acceptance of steps that violate the sufficient decrease
+    // condition within the precision limit of the objective/merit
+    // function.
     if (RealPart(merit) <
-        RealPart(m0 + armijo_constant*alpha*dm0)){
+        (RealPart(m0 + armijo_constant*alpha*dm0) +
+         function_precision)){
       // We have successfully found a point
       fail = 0;
       break;

@@ -472,6 +472,9 @@ class ParOpt : public ParOptBase {
   double min_rho_penalty_search;
   double penalty_descent_fraction, armijo_constant;
 
+  // Function precision
+  double function_precision;
+
   // Parameters for controling the barrier update
   double monotone_barrier_fraction, monotone_barrier_power;
 
