@@ -680,7 +680,6 @@ def create_paropt(analysis, use_hessian=False, tol=1e-5,
     if use_hessian:
         opt.setUseLineSearch(1)
         opt.setUseHvecProduct(1)
-        opt.setBarrierFraction(0.1)
         opt.setGMRESSubspaceSize(100)
         opt.setNKSwitchTolerance(1e3)
         opt.setEisenstatWalkerParameters(0.25, 1e-3)
@@ -1189,6 +1188,7 @@ parser.add_argument('--case', type=str, default='isotropic',
 parser.add_argument('--root_dir', type=str, default='results',
                     help='Root directory')
 parser.add_argument('--max_iters', type=int, default=1000)
+parser.add_argument('--tol', type=float, default=1e-5)
 args = parser.parse_args()
 
 # Print out all of the arguments
@@ -1303,4 +1303,5 @@ else:
                           start_strategy=start_strategy,
                           use_hessian=use_hessian,
                           case=args.case, ptype=ptype,
-                          max_iters=args.max_iters)
+                          max_iters=args.max_iters,
+                          tol=args.tol)
