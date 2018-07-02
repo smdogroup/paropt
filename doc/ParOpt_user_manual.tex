@@ -58,7 +58,7 @@ ParOpt uses an interior-point method to solve optimization problems formulated a
 Here, $\mb{c}(\mb{x})$ are the dense constraints, and $\mb{c}_{w}(\mb{x})$ are the sparse constraints. 
 The sparse constraint Jacobian, $\mb{A}_{w} = \nabla_{x} \mb{c}_{w}(\mb{x})$ must have a structure such that the matrix
 \begin{equation*}
-  \mb{D} = \mb{A}_{w}^{T}\mb{S}\mb{A}_{w}
+  \mb{D} = \mb{A}_{w}\mb{S}\mb{A}_{w}^{T}
 \end{equation*}
 is a block-diagonal matrix whenever $\mb{S}$ is a diagonal matrix. 
 This structure arises in many topology and multimaterial optimization problems that employ weighting constraints for each element within the problem. 
