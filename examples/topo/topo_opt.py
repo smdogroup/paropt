@@ -517,7 +517,6 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         return
 
 def rectangular_domain(nx, ny, Ly=100.0):
-
     # Set the y-dimension based on a unit aspect ratio
     Lx = (nx*Ly)/ny
 
@@ -565,8 +564,79 @@ def rectangular_domain(nx, ny, Ly=100.0):
 
     return xpts, conn, bcs, aux, area
 
+def bracket_domain(nb, nc, Lx=100.0):
+    # Compute the total area
+    area = 0.64*Lx**2
+
+    # The total number of elements along one direction
+    nx = nb + nc
+
+    # Allocate all of the nodes (including blanked nodes)
+    nodes = np.ones((nx+1, nx+1), dtype=np.int)
+    nodes[nb+1:, nb+1:] = -1
+
+    # Allocate all of the elements (including blanked elements)
+    elems = np.ones((nx, nx), dtype=np.int)
+    elems[nb:, nb:] = -1
+
+    # Number the nodes
+    index = 0
+    for j in range(nx+1):
+        for i in range(nx+1):
+            if nodes[i,j] >= 0:
+                nodes[i,j] = index
+                index += 1
+
+    # Set the element numbering
+    index = 0
+    for j in range(nx):
+        for i in range(nx):
+            if elems[i,j] >= 0:
+                elems[i,j] = index
+                index += 1
+
+    # Set the boundary conditions
+    bcs = np.array(nodes[:(nb+1), -1], dtype=np.intc)
+
+    # Compute the number of nodes and elements
+    n = (nb+1)**2 + 2*(nb+1)*nc
+    ne = nb**2 + 2*nb*nc
+
+    # Allocate the arrays
+    conn = np.zeros((ne, 4), dtype=np.intc)
+    xpts = np.zeros((n, 3))
+
+    # Set the node locations
+    for j in range(nx+1):
+        for i in range(nx+1):
+            if nodes[i,j] >= 0:
+                xpts[nodes[i,j], 0] = (Lx*i)/nx
+                xpts[nodes[i,j], 1] = (Lx*j)/nx
+
+    # Set the nodal connectivity
+    for j in range(nx):
+        for i in range(nx):
+            if elems[i,j] >= 0:
+                conn[elems[i,j], 0] = nodes[i,j]
+                conn[elems[i,j], 1] = nodes[i+1,j]
+                conn[elems[i,j], 2] = nodes[i,j+1]
+                conn[elems[i,j], 3] = nodes[i+1,j+1]
+
+    # Create the tractions and add them to the surface
+    surf = 1 # The u=1 positive surface
+    tx = np.zeros(2)
+    ty = 100*np.ones(2)
+    trac = elements.PSQuadTraction(surf, tx, ty)
+
+    # Create the auxiliary element class
+    aux = TACS.AuxElements()
+    for j in range(int(5*nb/6), nb):
+        aux.addElement(elems[-1, j], trac)
+
+    return xpts, conn, bcs, aux, area
+
 def create_structure(comm, props, xpts, conn, bcs, aux, m_fixed,
-                     r0=4, min_mat_fraction=-1.0):
+                     r0=4, min_mat_fraction=-1.0, bctypes=None):
     '''
     Create a structure with the speicified number of nodes along the
     x/y directions, respectively.
@@ -592,13 +662,25 @@ def create_structure(comm, props, xpts, conn, bcs, aux, m_fixed,
         bcnodes = np.array(bcs, dtype=np.intc)
 
         # Set the boundary condition variables
-        nbcs = 2*bcnodes.shape[0]
-        bcvars = np.zeros(nbcs, dtype=np.intc)
-        bcvars[:nbcs:2] = 0
-        bcvars[1:nbcs:2] = 1
+        if bctypes is None:
+            nbcs = 2*bcnodes.shape[0]
+            bcvars = np.zeros(nbcs, dtype=np.intc)
+            bcvars[:nbcs:2] = 0
+            bcvars[1:nbcs:2] = 1
 
-        # Set the boundary condition pointers
-        bcptr = np.arange(0, nbcs+1, 2, dtype=np.intc)
+            # Set the boundary condition pointers
+            bcptr = np.arange(0, nbcs+1, 2, dtype=np.intc)
+        else:
+            bcvars = []
+            bcptr = [0]
+            for btype in bctypes:
+                if btype & 1:
+                    bcvars.append(0)
+                if btype & 2:
+                    bcvars.append(1)
+                bcptr.append(len(bcvars))
+            bcvars = np.array(bcvars, dtype=np.intc)
+            bcptr = np.array(bcptr, dtype=np.intc)
         creator.setBoundaryConditions(bcnodes, bcptr, bcvars)
 
         # Set the node locations
@@ -1189,6 +1271,7 @@ parser.add_argument('--root_dir', type=str, default='results',
                     help='Root directory')
 parser.add_argument('--max_iters', type=int, default=1000)
 parser.add_argument('--tol', type=float, default=1e-5)
+parser.add_argument('--problem_type', type=str, default='rectangular')
 args = parser.parse_args()
 
 # Print out all of the arguments
@@ -1204,6 +1287,7 @@ optimizer = args.optimizer
 use_hessian = args.use_hessian
 start_strategy = args.start_strategy
 root_dir = args.root_dir
+problem_type = args.problem_type
 
 # Make sure everything is in lower case
 ptype = ptype.lower()
@@ -1212,7 +1296,48 @@ ptype = ptype.lower()
 comm = MPI.COMM_WORLD
 
 # Create the connectivity data
-xpts, conn, bcs, aux, area = rectangular_domain(nx, ny)
+bctypes = None
+if problem_type == 'rectangular':
+    xpts, conn, bcs, aux, area = rectangular_domain(nx, ny)
+    r0 = np.sqrt(4.99)*np.sqrt(area/len(conn))
+elif problem_type == 'mbb':
+    nx = 180
+    ny = 60
+    xpts, conn, bcs, aux, area = rectangular_domain(nx, ny)
+    r0 = np.sqrt(4.99)*np.sqrt(area/len(conn))
+
+    # Set the modified boundary conditions
+    bcs = np.zeros(ny+2, dtype=np.intc)
+    bctypes = np.zeros(ny+2, dtype=np.intc)
+
+    # Set the boundary conditions along the left-edge
+    for j in range(ny+1):
+        bcs[j] = j
+        bctypes[j] = 1
+
+    # Set the lower-right node
+    bcs[-1] = nx*(ny+1)
+    bctypes[-1] = 2
+
+    # Set the new auxiliary elements for forces
+    surf = 3 # The v=1 positive surface
+    tx = np.zeros(2)
+    ty = -100*np.ones(2)
+    trac = elements.PSQuadTraction(surf, tx, ty)
+
+    # Create the auxiliary element class
+    aux = TACS.AuxElements()
+    for i in range(int(nx/18)):
+        num = nx*(ny-1) + i
+        aux.addElement(num, trac)
+elif problem_type == 'lbracket':
+    nx = 120
+    ny = 120
+    nb = 48
+    nc = 72
+    xpts, conn, bcs, aux, area = bracket_domain(nb, nc)
+    r0 = np.sqrt(4.99)*np.sqrt(area/(nx*ny))
+print('r0 = ', r0)
 
 # Set the material properties for the isotropic case
 if args.case == 'isotropic':
@@ -1278,16 +1403,14 @@ props = multitopo.MultiTopoProperties(rho, C)
 props.setPenalization(parameter)
 
 # Create the analysis object
-r0 = np.sqrt(4.99)*np.sqrt(area/len(conn))
-print('r0 = ', r0)
-
 min_mat_fraction = -1.0
 if args.case is 'isotropic':
     min_mat_fraction = 0.1
 
 analysis = create_structure(comm, props, xpts, conn,
                             bcs, aux, m_fixed, r0=r0,
-                            min_mat_fraction=min_mat_fraction)
+                            min_mat_fraction=min_mat_fraction,
+                            bctypes=bctypes)
 
 if args.full_penalty:
     # Optimize the plane stress problem
