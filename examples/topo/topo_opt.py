@@ -182,7 +182,7 @@ class TACSAnalysis(ParOpt.pyParOptProblem):
         # Evaluate the objective at the initial point
         self.obj_scale = 1.0
         fail, obj, con = self.evalObjCon(self.xinit)
-        self.obj_scale = 0.1*obj
+        self.obj_scale = obj_scale_factor*obj
 
         print('objective scaling = ', self.obj_scale)
 
@@ -1295,12 +1295,22 @@ ptype = ptype.lower()
 # The MPI communicator
 comm = MPI.COMM_WORLD
 
+# Set the mass fraction
+volume_fraction = 0.4
+
+# Set the objective scaling factor
+obj_scale_factor = 0.1
+
 # Create the connectivity data
 bctypes = None
 if problem_type == 'rectangular':
     xpts, conn, bcs, aux, area = rectangular_domain(nx, ny)
     r0 = np.sqrt(4.99)*np.sqrt(area/len(conn))
 elif problem_type == 'mbb':
+    # Set the objective scaling factor
+    obj_scale_factor = 1.0
+
+    # Set the domain size
     nx = 180
     ny = 60
     xpts, conn, bcs, aux, area = rectangular_domain(nx, ny)
@@ -1329,6 +1339,85 @@ elif problem_type == 'mbb':
     aux = TACS.AuxElements()
     for i in range(int(nx/18)):
         num = nx*(ny-1) + i
+        aux.addElement(num, trac)
+elif problem_type == 'bridge':
+    # Set the objective scaling factor
+    obj_scale_factor = 1.0
+
+    # Set the domain size
+    nx = 180
+    ny = 90
+    xpts, conn, bcs, aux, area = rectangular_domain(nx, ny)
+    r0 = np.sqrt(4.99)*np.sqrt(area/len(conn))
+
+    # Set the modified boundary conditions
+    bcs = []
+    bctypes = []
+
+    # Set the additional boundary conditions
+    bcs.append(0)
+    bctypes.append(3)
+
+    bcs.append(nx*(ny+1))
+    bctypes.append(2)
+
+    # Convert to arrays
+    bcs = np.array(bcs, dtype=np.intc)
+    bctypes = np.array(bctypes, dtype=np.intc)
+
+    # Set the new auxiliary elements for forces
+    surf = 2 # The v=1 positive surface
+    tx = np.zeros(2)
+    ty = -10*np.ones(2)
+    trac = elements.PSQuadTraction(surf, tx, ty)
+
+    # Create the auxiliary element class
+    aux = TACS.AuxElements()
+    for i in range(85, 95):
+        num = i
+        aux.addElement(num, trac)
+elif problem_type == 'wheel':
+    # Set the objective scaling factor
+    obj_scale_factor = 1.0
+
+    # Set the domain size
+    nx = 160
+    ny = 100
+    xpts, conn, bcs, aux, area = rectangular_domain(nx, ny)
+    r0 = np.sqrt(4.99)*np.sqrt(area/len(conn))
+
+    # Set the volume fraction
+    volume_fraction = 0.2
+
+    # Set the modified boundary conditions
+    bcs = []
+    bctypes = []
+
+    # Set the additional boundary conditions
+    n1 = 20
+    for i in range(n1-2, n1+3):
+        bcs.append(i*(ny+1))
+        bctypes.append(3)
+
+    n2 = 140
+    for i in range(n2-2, n2+3):
+        bcs.append(i*(ny+1))
+        bctypes.append(2)
+
+    # Convert to arrays
+    bcs = np.array(bcs, dtype=np.intc)
+    bctypes = np.array(bctypes, dtype=np.intc)
+
+    # Set the new auxiliary elements for forces
+    surf = 2 # The v=1 positive surface
+    tx = np.zeros(2)
+    ty = -10*np.ones(2)
+    trac = elements.PSQuadTraction(surf, tx, ty)
+
+    # Create the auxiliary element class
+    aux = TACS.AuxElements()
+    for i in range(75, 85):
+        num = i
         aux.addElement(num, trac)
 elif problem_type == 'lbracket':
     nx = 120
@@ -1366,7 +1455,7 @@ if args.case == 'isotropic':
         C[i,5] = G
 
     # Compute the fixed mass fraction
-    m_fixed = 0.4*area*rho[-1]
+    m_fixed = volume_fraction*area*rho[-1]
 else:
     # These properties are taken from Jones, pg. 101 for a
     # graphite-epoxy material. Note that units are in MPa.
@@ -1396,7 +1485,7 @@ else:
         C[i,4] = Cmats[i,1,2]
         C[i,5] = Cmats[i,2,2]
 
-    m_fixed = 0.4*area*rho_mat
+    m_fixed = volume_fraction*area*rho_mat
 
 # Create the material properties
 props = multitopo.MultiTopoProperties(rho, C)
