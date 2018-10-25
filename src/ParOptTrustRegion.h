@@ -93,6 +93,8 @@ class ParOptTrustRegion : public ParOptProblem {
 
   int n; // The number of design variables (local)
   int m; // The number of dense constraints (global)
+  int nw; // The number of sparse constraints (local)
+  int nwblock; // The block count
 
   // Set the parameters
   double tr_size;
