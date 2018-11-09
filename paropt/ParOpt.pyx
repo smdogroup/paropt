@@ -1045,3 +1045,8 @@ cdef class pyTrustRegion(pyParOptProblemBase):
       self.tr.update(vec.ptr, <ParOptScalar*>z.data, v,
                      &infeas, &l1, &linfty)
       return infeas, l1, linfty
+   
+   def setOutputFile(self, fname):
+      cdef char *filename = convert_to_chars(fname)
+      if filename is not None:
+         self.tr.setOutputFile(filename)
