@@ -34,9 +34,8 @@ ParOptProblem(_prob->getMPIComm()){
   prob->incref();
 
   // Get the problem sizes
-  int _nwcon, _nwblock;
-  prob->getProblemSizes(&n, &m, &_nwcon, &_nwblock);
-  setProblemSizes(n, m, _nwcon, _nwblock);
+  prob->getProblemSizes(&n, &m, &nwcon, &nwblock);
+  setProblemSizes(n, m, nwcon, nwblock);
 
   // Set the quasi-Newton method
   qn = _qn;
@@ -240,13 +239,17 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   for ( int i = 0; i < m; i++ ){
     t->axpy(-z[i], At[i]);
   }
-  prob->addSparseJacobianTranspose(-1.0, xt, zw, t);
+  if (nwcon > 0){
+    prob->addSparseJacobianTranspose(-1.0, xt, zw, t);
+  }
 
   t->axpy(-1.0, gk);
   for ( int i = 0; i < m; i++ ){
     t->axpy(z[i], Ak[i]);
   }
-  prob->addSparseJacobianTranspose(1.0, xk, zw, t);
+  if (nwcon > 0){
+    prob->addSparseJacobianTranspose(1.0, xk, zw, t);
+  }
 
   // Perform an update of the quasi-Newton approximation
   qn->update(s, t);
@@ -325,7 +328,7 @@ void ParOptTrustRegion::computeKKTError( ParOptVec *xv,
   }
 
   // If zw exists, compute r = r - Aw^{T}*zw
-  if (zw){
+  if (nwcon > 0){
     prob->addSparseJacobianTranspose(-1.0, xv, zw, t);
   }
 
