@@ -1,5 +1,5 @@
 """
-OpenMDAO Wrapper for the ParOpt optimizer
+OpenMDAO Wrapper for ParOpt
 """
 
 from __future__ import print_function
@@ -13,7 +13,7 @@ import openmdao.utils.coloring as coloring_mod
 from openmdao.core.driver import Driver, RecordingDebugging
 from openmdao.utils.general_utils import warn_deprecation
 
-optimizers = ['Interior Point']#, 'Trust Region', 'MMA']
+_optimizers = ['Interior Point']#, 'Trust Region', 'MMA']
 
 class ParOptDriver(Driver):
     """
@@ -48,15 +48,23 @@ class ParOptDriver(Driver):
         self._dvlist = None
         self.fail = False
         self.iter_count = 0
-        
+
+        return
 
     def _declare_options(self):
         """
         Declare options before kwargs are processed in the init method.
         """
-        self.options.declare()
 
-    def _setup_driver(self, paropt_problem):
+        # Many more options to add
+        
+        self.options.declare('optimizer', 'Interior Point', values=_optimizers,
+        desc = 'Optimization algorithm to use')
+        
+
+        return
+
+    def _setup_driver(self, problem):
         """
         Prepare the driver for execution.
 
@@ -67,9 +75,23 @@ class ParOptDriver(Driver):
         paropt_problem : <Problem>
             Pointer
         """
-        super(ParOptDriver, self)._setup_driver(paropt_problem)
-        opt = self.options['optimizer']
+         # TODO:
+         # - logic for different opt algorithms
+         # - treat equality constraints
         
+        super(ParOptDriver, self)._setup_driver(problem)
+        opt_type = self.options['optimizer'] # Not currently used
+
+        # Create the ParOptProblem from the OpenMDAO problem
+        opt = pyParOpt.ParOptProblem(problem)
+
+        # Set the options into ParOpt (TODO)
+
+
+        # This opt object will be used again when 'run' is executed
+        self.opt = opt
+
+        return 
 
     def run(self):
         """
@@ -80,14 +102,15 @@ class ParOptDriver(Driver):
         boolean
             Failure flag; True if failed to converge, False is successful.
         """
-        problem = self._problem
-        opt = self.options['optimizer']
-        model = problem.model
-        self.iter_count = 0
-        self._total_jac = None
+        # Note: failure flag is always False
+
+        # Run the optimization, everything else has been setup
+        self.opt.optimize()
+
+        return opt.fail
 
 
-def class ParOptProblem():
+def class ParOptProblem(ParOpt.pyParOptProblem):
 
     def __init__(self, problem):
         """
@@ -101,19 +124,15 @@ def class ParOptProblem():
         
         self.comm = self.problem.comm
         self.nvars = None
-        self.ncon = None # *
+        self.ncon = None
 
-        self.nwcon = None # *
-        self.nwblock = None # *
-        self.max_qn_subspace = 0 #*
-        self.qn_type = None #*
-
-        # Get the design vars from the openmdao problem
         self.x_hist = []
-        self.nvars = len(self.x_hist)
 
-        # Get the constraint info from the openmdao problem
-        self.ncon = len(self.problem.get_constraints())
+        # Get the number of design vars from the openmdao problem
+        self.nvars = len(self.problem.get_design_vars())
+
+        # Get the number of constraints from the openmdao problem
+        self.ncon = len(self.problem.model.get_constraints())
 
         # Initialize the base class
         super(ParOptProblem, self).__init__(self.comm, self.nvars, self.ncon)
@@ -122,37 +141,68 @@ def class ParOptProblem():
 
     def getVarsAndBound(self, x, lb, ub):
         """ Set the values of the bounds """
+        # Todo:
+        # - add check that num dvs are consistent
+        # - make sure lb/ub are handled for the case where
+        # they aren't set
+
+
+        # Get design vars from openmdao as a dictionary
+        xdict = self.problem.get_design_vars()
         
-        x[:] = self.problem.get_design_vars()
-        lb[:] = -1e10 # *
-        ub[:] = 1e10 # *
+        # Set the dv and bound values
+        for key, value in xdict.items():
+            x[xdict.keys().index(key)] = self.problem[key]
+            lb[xdict.keys().index(key)] = value['lower']
+            ub[xdict.keys().index(key)] = value['upper']
+
+        return
 
     def evalObjCon(self, x):
         """Evaluate the objective and constraint"""
+        # Todo:
+        # - add check that # of constraints are consisten
+        # - add check that there is only one objective
+
         
         # Append the point to the solution history
         self.x_hist.append(np.array(x))
 
+        # Update the design variables in OpenMDAO
+        xdict = self.problem.get_design_vars()
+        for key, value in xdict.items():
+            self.driver.set_design_var(key, np.array(x[xdict.keys().index(key)]))
+        # Q: best way to update f, c values?
+
         # Evaluate the objective and constraints
+        condict = self.problem.model.get_constraints()
+        objdict = self.problem.model.get_objectives()
+
+        for key, value in condict.items():
+            con[condict.keys().index(key)] = self.problem[key]
+
+        fobj = prob[objdict.keys()[0]][0]
+
         fail = 0
-        con = self.problem.model.get_constraints()
-        fobj = self.problem.model.get_objectives()
         
         return fail, fobj, con
 
     def evalObjConGradient(self, x, g, A):
         """Evaluate the objective and constraint gradient"""
-        
-        fail = 0
-        
-        # The objective gradient
-        g[0] = 200*(x[1]-x[0]**2)*(-2*x[0]) - 2*(1-x[0])
-        g[1] = 200*(x[1]-x[0]**2)
+        # Todo:
+        # - 
 
+        # Get the gradients from OpenMDAO
+        condict = self.problem.model.get_constraints()
+        objdict = self.problem.model.get_objectives()
+
+        # The objective gradient 
+        g[:] = self.problem.compute_totals(of=objdict.keys()[0], return_format='array')
+        
         # The constraint gradient
-        A[0][0] = 1.0
-        A[0][1] = 1.0
-        
+        for key, value in condict.items():
+            A[condict.keys().index(key)][:] = self.problem.compute_totals(of=key, return_format='array')
+
+        fail = 0
+
         return fail
-        
-        
