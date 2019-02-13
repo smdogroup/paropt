@@ -14,6 +14,10 @@ from openmdao.core.driver import Driver, RecordingDebugging
 from openmdao.utils.general_utils import warn_deprecation
 
 _optimizers = ['Interior Point']#, 'Trust Region', 'MMA']
+_norm_types = ['Infinity', 'L1', 'L2']
+_barrier_types = ['Monotone', 'Mehrotra', 'Complementarity fraction']
+_start_types = ['None', 'Least squares multipliers', 'Affine step']
+_bfgs_updates = ['Skip negative', 'Damped']
 
 class ParOptDriver(Driver):
     """
@@ -56,11 +60,46 @@ class ParOptDriver(Driver):
         Declare options before kwargs are processed in the init method.
         """
 
-        # Many more options to add
+        # Options currently incomplete
         
         self.options.declare('optimizer', 'Interior Point', values=_optimizers,
-        desc = 'Optimization algorithm to use')
+                             desc='Type of optimization algorithm')
+        self.options.declare('tol', 1.0e-6, lower=0.0,
+                             desc='Tolerance for termination. For detailed '
+                             'control, use solver-specific options.')
+        self.options.declare('maxiter', 200, lower=0,
+                             desc='Maximum number of iterations')
         
+        desc = 'Finite difference step size. If None, no gradient check will be performed.'
+        self.options.declare('dh', None, lower=1e-30,
+                             desc=desc, allow_none=True)
+        self.options.declare('norm_type', None, values=_norm_types,
+                             desc='Norm type', allow_none=True)
+        self.options.declare('barrier_strategy', None, values=_barrier_types,
+                             desc='Barrier strategy', allow_none=True)
+        self.options.declare('start_strategy', None, values=_start_types,
+                             desc='Starting point strategy', allow_none=True)
+        self.options.declare('penalty_gamma', None, desc='Value of penalty parameter gamma',
+                             allow_none=True)
+        self.options.declare('barrier_fraction', None,
+                             desc='Barrier fraction', allow_none=True)
+        self.options.declare('barrier_power', None,
+                             desc='Barrier power', allow_none=True)
+        self.options.declare('hessian_reset_freq', None,
+                             desc='Hessian reset frequency', allow_none=True)
+        self.options.declare('qn_diag_factor', None,
+                             desc='QN diagonal factor', allow_none=True)
+        self.options.declare('BFGS_update_type', None, values=_bfgs_updates,
+                             desc='Barrier fraction', allow_none=True)
+        self.options.declare('use_sequential_linear', None,
+                             desc='Boolean to indicate if a sequential linear method should be used',
+                             allow_none=True)
+        # Where I left off copying options from ParOpt.pyx
+
+        self.options.declare('output_freq', None,
+                             desc='Output frequency', allow_none=True)
+        self.options.declare('output_file', None,
+                             desc='Output file name', allow_none=True)
 
         return
 
@@ -83,10 +122,23 @@ class ParOptDriver(Driver):
         opt_type = self.options['optimizer'] # Not currently used
 
         # Create the ParOptProblem from the OpenMDAO problem
-        opt = pyParOpt.ParOptProblem(problem)
+        self.paropt_problem = ParOptProblem(problem)
 
-        # Set the options into ParOpt (TODO)
+        # Set the limited-memory options
+        max_qn_subspace = 10
+        qn_type = ParOpt.BFGS
+        opt = ParOpt.pyParOpt(self.paropt_problem, max_qn_subspace, qn_type)
 
+        # Apply the options to ParOpt
+        # Currently incomplete
+        opt.setAbsOptimalityTol(self.options['tol'])
+        opt.setMaxMajorIterations(self.options['maxiter'])
+        if self.options['dh']:
+            opt.checkGradients(self.options['dh'])
+        if self.options['norm_type']:
+            opt.setNormType(self.options['norm_type'])
+        if self.options['barrier_strategy']:
+            opt.setBarrierStrategy(self.options['barrier_strategy'])
 
         # This opt object will be used again when 'run' is executed
         self.opt = opt
@@ -107,10 +159,10 @@ class ParOptDriver(Driver):
         # Run the optimization, everything else has been setup
         self.opt.optimize()
 
-        return opt.fail
+        return False
 
 
-def class ParOptProblem(ParOpt.pyParOptProblem):
+class ParOptProblem(ParOpt.pyParOptProblem):
 
     def __init__(self, problem):
         """
@@ -129,7 +181,7 @@ def class ParOptProblem(ParOpt.pyParOptProblem):
         self.x_hist = []
 
         # Get the number of design vars from the openmdao problem
-        self.nvars = len(self.problem.get_design_vars())
+        self.nvars = len(self.problem.model.get_design_vars())
 
         # Get the number of constraints from the openmdao problem
         self.ncon = len(self.problem.model.get_constraints())
@@ -139,16 +191,15 @@ def class ParOptProblem(ParOpt.pyParOptProblem):
 
         return
 
-    def getVarsAndBound(self, x, lb, ub):
+    def getVarsAndBounds(self, x, lb, ub):
         """ Set the values of the bounds """
         # Todo:
         # - add check that num dvs are consistent
         # - make sure lb/ub are handled for the case where
         # they aren't set
 
-
         # Get design vars from openmdao as a dictionary
-        xdict = self.problem.get_design_vars()
+        xdict = self.problem.model.get_design_vars()
         
         # Set the dv and bound values
         for key, value in xdict.items():
@@ -169,19 +220,20 @@ def class ParOptProblem(ParOpt.pyParOptProblem):
         self.x_hist.append(np.array(x))
 
         # Update the design variables in OpenMDAO
-        xdict = self.problem.get_design_vars()
+        xdict = self.problem.model.get_design_vars()
         for key, value in xdict.items():
-            self.driver.set_design_var(key, np.array(x[xdict.keys().index(key)]))
+            self.problem[key] = x[xdict.keys().index(key)]
         # Q: best way to update f, c values?
 
         # Evaluate the objective and constraints
         condict = self.problem.model.get_constraints()
         objdict = self.problem.model.get_objectives()
 
+        con = np.zeros(self.ncon)
         for key, value in condict.items():
             con[condict.keys().index(key)] = self.problem[key]
 
-        fobj = prob[objdict.keys()[0]][0]
+        fobj = self.problem[objdict.keys()[0]][0]
 
         fail = 0
         
@@ -196,12 +248,23 @@ def class ParOptProblem(ParOpt.pyParOptProblem):
         condict = self.problem.model.get_constraints()
         objdict = self.problem.model.get_objectives()
 
-        # The objective gradient 
-        g[:] = self.problem.compute_totals(of=objdict.keys()[0], return_format='array')
+        # The objective gradient
+        # print(objdict.keys()[0])
+        try:
+            g[:] = self.problem.compute_totals(of=objdict.keys()[0],
+                                               return_format='array')
+        except KeyError:
+            import traceback
+            tb = traceback.format_exc()
+            print(tb)
+            
+        # return_format='array')
         
         # The constraint gradient
-        for key, value in condict.items():
-            A[condict.keys().index(key)][:] = self.problem.compute_totals(of=key, return_format='array')
+        # for key, value in condict.items():
+        #     print('key = ', key)
+        #     A[condict.keys().index(key)][:] = self.problem.compute_totals(of=key,
+        #                                                                  return_format='array')
 
         fail = 0
 
