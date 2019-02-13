@@ -1,6 +1,7 @@
 # Test script used while wrapping ParOpt with OpenMDAO
 
-from openmdao.api import Problem, ScipyOptimizeDriver, ExecComp, IndepVarComp, ParOptDriver
+from openmdao.api import Problem, ScipyOptimizeDriver, ExecComp, IndepVarComp
+from paropt.paropt_driver import ParOptDriver
 
 # build the model
 prob = Problem()
@@ -25,8 +26,6 @@ prob.model.add_subsystem('xycon', ExecComp('c = x + y'))
 prob.model.add_constraint('xycon.c')
 
 prob.setup()
-
-asd
 
 prob.run_driver()
 
