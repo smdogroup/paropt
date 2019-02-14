@@ -13,6 +13,8 @@ import openmdao.utils.coloring as coloring_mod
 from openmdao.core.driver import Driver, RecordingDebugging
 from openmdao.utils.general_utils import warn_deprecation
 
+from six import iteritems
+
 _optimizers = ['Interior Point']#, 'Trust Region', 'MMA']
 _norm_types = ['Infinity', 'L1', 'L2']
 _barrier_types = ['Monotone', 'Mehrotra', 'Complementarity fraction']
@@ -33,8 +35,6 @@ class ParOptDriver(Driver):
         Result returned from scipy.optimize call.
     opt_settings : dict
         Dictionary of solver-specific options. See the ParOpt documentation.
-
-
     """
 
     def __init__(self, **kwargs):
@@ -79,7 +79,8 @@ class ParOptDriver(Driver):
                              desc='Barrier strategy', allow_none=True)
         self.options.declare('start_strategy', None, values=_start_types,
                              desc='Starting point strategy', allow_none=True)
-        self.options.declare('penalty_gamma', None, desc='Value of penalty parameter gamma',
+        self.options.declare('penalty_gamma', None,
+                             desc='Value of penalty parameter gamma',
                              allow_none=True)
         self.options.declare('barrier_fraction', None,
                              desc='Barrier fraction', allow_none=True)
@@ -91,9 +92,10 @@ class ParOptDriver(Driver):
                              desc='QN diagonal factor', allow_none=True)
         self.options.declare('BFGS_update_type', None, values=_bfgs_updates,
                              desc='Barrier fraction', allow_none=True)
+
+        desc = 'Boolean to indicate if a sequential linear method should be used'
         self.options.declare('use_sequential_linear', None,
-                             desc='Boolean to indicate if a sequential linear method should be used',
-                             allow_none=True)
+                             desc=desc, allow_none=True)
         # Where I left off copying options from ParOpt.pyx
 
         self.options.declare('output_freq', None,
@@ -180,11 +182,18 @@ class ParOptProblem(ParOpt.pyParOptProblem):
 
         self.x_hist = []
 
+        # Get the design variable names
+        self.dvs = [name for name, meta in iteritems(self.problem.model.get_design_vars())]
+
         # Get the number of design vars from the openmdao problem
-        self.nvars = len(self.problem.model.get_design_vars())
+        self.nvars = 0
+        for name, meta in iteritems(self.problem.model.get_design_vars()):
+            self.nvars += meta['size']
 
         # Get the number of constraints from the openmdao problem
-        self.ncon = len(self.problem.model.get_constraints())
+        self.ncon = 0
+        for name, meta in iteritems(self.problem.model.get_constraints()):
+            self.ncon += meta['size']
 
         # Initialize the base class
         super(ParOptProblem, self).__init__(self.comm, self.nvars, self.ncon)
@@ -199,13 +208,15 @@ class ParOptProblem(ParOpt.pyParOptProblem):
         # they aren't set
 
         # Get design vars from openmdao as a dictionary
-        xdict = self.problem.model.get_design_vars()
-        
-        # Set the dv and bound values
-        for key, value in xdict.items():
-            x[xdict.keys().index(key)] = self.problem[key]
-            lb[xdict.keys().index(key)] = value['lower']
-            ub[xdict.keys().index(key)] = value['upper']
+        desvars = self.problem.model.get_design_vars()
+
+        i = 0
+        for name, meta in iteritems(desvars):
+            size = meta['size']
+            x[i:i + size] = self.problem[name]
+            lb[i:i + size] = meta['lower']
+            ub[i:i + size] = meta['upper']
+            i += size
 
         return
 
@@ -215,25 +226,29 @@ class ParOptProblem(ParOpt.pyParOptProblem):
         # - add check that # of constraints are consisten
         # - add check that there is only one objective
 
-        
-        # Append the point to the solution history
-        self.x_hist.append(np.array(x))
+        # Set the design variable values
+        i = 0
+        for name, meta in iteritems(self.problem.model.get_design_vars()):
+            size = meta['size']
+            self.problem[name] = x[i:i + size]
+            i += size
 
-        # Update the design variables in OpenMDAO
-        xdict = self.problem.model.get_design_vars()
-        for key, value in xdict.items():
-            self.problem[key] = x[xdict.keys().index(key)]
-        # Q: best way to update f, c values?
+        # Solve the problem
+        self.problem.model._solve_nonlinear()
 
-        # Evaluate the objective and constraints
-        condict = self.problem.model.get_constraints()
-        objdict = self.problem.model.get_objectives()
-
+        # Extract the values of the objectives and constraints
         con = np.zeros(self.ncon)
-        for key, value in condict.items():
-            con[condict.keys().index(key)] = self.problem[key]
 
-        fobj = self.problem[objdict.keys()[0]][0]
+        i = 0
+        for name, meta in iteritems(self.problem.model.get_constraints()):
+            size = meta['size']
+            con[i:i + size] = self.problem[name]
+            i += size
+
+        # We only accept the first gradient
+        for name, meta in iteritems(self.problem.model.get_objectives()):
+            fobj = self.problem[name]
+            break
 
         fail = 0
         
@@ -241,30 +256,22 @@ class ParOptProblem(ParOpt.pyParOptProblem):
 
     def evalObjConGradient(self, x, g, A):
         """Evaluate the objective and constraint gradient"""
-        # Todo:
-        # - 
-
-        # Get the gradients from OpenMDAO
-        condict = self.problem.model.get_constraints()
-        objdict = self.problem.model.get_objectives()
 
         # The objective gradient
-        # print(objdict.keys()[0])
-        try:
-            g[:] = self.problem.compute_totals(of=objdict.keys()[0],
+        for name, meta in iteritems(self.problem.model.get_objectives()):
+            grad = self.problem.compute_totals(of=[name], wrt=self.dvs,
                                                return_format='array')
-        except KeyError:
-            import traceback
-            tb = traceback.format_exc()
-            print(tb)
-            
-        # return_format='array')
-        
-        # The constraint gradient
-        # for key, value in condict.items():
-        #     print('key = ', key)
-        #     A[condict.keys().index(key)][:] = self.problem.compute_totals(of=key,
-        #                                                                  return_format='array')
+            g[:] = grad[0,:]
+            break
+
+        # Extract the constraint gradients
+        i = 0
+        for name, meta in iteritems(self.problem.model.get_constraints()):
+            cgrad = self.problem.compute_totals(of=[name], wrt=self.dvs,
+                                                return_format='array')
+            for j in range(meta['size']):
+                A[i + j][:] = cgrad[j,:]
+            i += meta['size']
 
         fail = 0
 
