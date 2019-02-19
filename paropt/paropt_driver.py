@@ -15,7 +15,8 @@ from openmdao.utils.general_utils import warn_deprecation
 
 from six import iteritems
 
-_optimizers = ['Interior Point']#, 'Trust Region', 'MMA']
+_optimizers = ['Interior Point']#, 'Trust Region']
+_qn_types = ['BFGS', 'SR1', 'No Hessian approx']
 _norm_types = ['Infinity', 'L1', 'L2']
 _barrier_types = ['Monotone', 'Mehrotra', 'Complementarity fraction']
 _start_types = ['None', 'Least squares multipliers', 'Affine step']
@@ -59,15 +60,12 @@ class ParOptDriver(Driver):
         """
         Declare options before kwargs are processed in the init method.
         """
-
-        # Options currently incomplete
         
         self.options.declare('optimizer', 'Interior Point', values=_optimizers,
                              desc='Type of optimization algorithm')
         self.options.declare('tol', 1.0e-6, lower=0.0,
-                             desc='Tolerance for termination. For detailed '
-                             'control, use solver-specific options.')
-        self.options.declare('maxiter', 200, lower=0,
+                             desc='Tolerance for termination')
+        self.options.declare('maxiter', 200, lower=0, types=int,
                              desc='Maximum number of iterations')
         
         desc = 'Finite difference step size. If None, no gradient check will be performed.'
@@ -86,22 +84,72 @@ class ParOptDriver(Driver):
                              desc='Barrier fraction', allow_none=True)
         self.options.declare('barrier_power', None,
                              desc='Barrier power', allow_none=True)
-        self.options.declare('hessian_reset_freq', None,
+        self.options.declare('hessian_reset_freq', None, types=int,
                              desc='Hessian reset frequency', allow_none=True)
+        self.options.declare('qn_type', 'BFGS', values=_qn_types,
+                             desc='Type of Hessian approximation to use')
+        self.options.declare('max_qn_subspace', 10, types=int,
+                             desc='Size of the QN subspace')
         self.options.declare('qn_diag_factor', None,
                              desc='QN diagonal factor', allow_none=True)
-        self.options.declare('BFGS_update_type', None, values=_bfgs_updates,
+        self.options.declare('bfgs_update_type', None, values=_bfgs_updates,
                              desc='Barrier fraction', allow_none=True)
 
         desc = 'Boolean to indicate if a sequential linear method should be used'
-        self.options.declare('use_sequential_linear', None,
+        self.options.declare('use_sequential_linear', None, types=bool,
                              desc=desc, allow_none=True)
-        # Where I left off copying options from ParOpt.pyx
+        self.options.declare('affine_step_multiplier_min', None, allow_none=True,
+                             desc='Minimum multiplier for affine step')
+        self.options.declare('init_barrier_parameter', None, allow_none=True,
+                             desc='Initial barrier parameter')
+        self.options.declare('relative_barrier', None, allow_none=True,
+                             desc='Relative barrier parameter')
+        self.options.declare('set_qn', None, allow_none=True,
+                             desc='Quasi-Newton')
+        self.options.declare('qn_updates', None, allow_none=True, types=bool,
+                             desc='Update the Quasi-Newton')
 
-        self.options.declare('output_freq', None,
-                             desc='Output frequency', allow_none=True)
-        self.options.declare('output_file', None,
-                             desc='Output file name', allow_none=True)
+        # Line-search parameters
+        self.options.declare('use_line_search', None, allow_none=True, types=bool,
+                             desc='Use line search')
+        self.options.declare('max_ls_iters', None, allow_none=True, types=int,
+                             desc='Max number of line search iterations')
+        self.options.declare('backtrack_ls', None, allow_none=True, types=bool,
+                             desc='Use backtracking line search')
+        self.options.declare('armijo_param', None, allow_none=True,
+                             desc='Armijo parameter for line search')
+        self.options.declare('penalty_descent_frac', None, allow_none=True,
+                             desc='Descent fraction penalty')
+        self.options.declare('min_penalty_param', None, allow_none=True,
+                             desc='Minimum line search penalty')
+
+        # GMRES parameters
+        self.options.declare('use_hvec_prod', None, allow_none=True, types=bool,
+                             desc='Use Hvec product with GMRES')
+        self.options.declare('use_diag_hessian', None, allow_none=True, types=bool,
+                             desc='Use a diagonal Hessian')
+        self.options.declare('use_qn_gmres_precon', None, allow_none=True, types=bool,
+                             desc='Use QN GMRES preconditioner')
+        self.options.declare('set_nk_switch_tol', None, allow_none=True,
+                             desc='NK switch tolerance')
+        self.options.declare('eisenstat_walker_param', None, allow_none=True,
+                             desc='Eisenstat Walker parameters: array([gamma, alpha])')
+        self.options.declare('gmres_tol', None, allow_none=True,
+                             desc='GMRES tolerances: array([rtol, atol])')
+        self.options.declare('gmres_subspace_size', None, allow_none=True, types=int,
+                             desc='GMRES subspace size')
+
+        # Output options
+        self.options.declare('output_freq', None, allow_none=True, types=int,
+                             desc='Output frequency')
+        self.options.declare('output_file', None, allow_none=True,
+                             desc='Output file name')
+        self.options.declare('major_iter_step_check', None, allow_none=True, types=int,
+                             desc='Major iter step check')
+        self.options.declare('output_level', None, allow_none=True, types=int,
+                             desc='Output level')
+        self.options.declare('grad_check_freq', None, allow_none=True,
+                             desc='Gradient check frequency: array([freq, step_size])')
 
         return
 
@@ -123,13 +171,28 @@ class ParOptDriver(Driver):
         super(ParOptDriver, self)._setup_driver(problem)
         opt_type = self.options['optimizer'] # Not currently used
 
+        # Raise error if multiple objectives are provided
+        if len(self._objs) > 1:
+            msg = 'ParOpt currently does not support multiple objectives.'
+            raise RuntimeError(msg.format(self.__class__.__name__))
+
         # Create the ParOptProblem from the OpenMDAO problem
         self.paropt_problem = ParOptProblem(problem)
 
         # Set the limited-memory options
-        max_qn_subspace = 10
-        qn_type = ParOpt.BFGS
-        opt = ParOpt.pyParOpt(self.paropt_problem, max_qn_subspace, qn_type)
+        max_qn_subspace = self.options['max_qn_subspace']
+        if self.options['qn_type'] == 'BFGS':
+            qn_type = ParOpt.BFGS
+        elif self.options['qn_type'] == 'SR1':
+            qn_type = ParOpt.SR1
+        elif self.options['qn_type'] == 'No Hessian approx':
+            qn_type = ParOpt.NO_HESSIAN_APPROX
+        else:
+            qn_type = ParOpt.BFGS
+
+        # Create the ParOpt object
+        opt = ParOpt.pyParOpt(self.paropt_problem, max_qn_subspace,
+                              qn_type)
 
         # Apply the options to ParOpt
         # Currently incomplete
@@ -139,8 +202,133 @@ class ParOptDriver(Driver):
             opt.checkGradients(self.options['dh'])
         if self.options['norm_type']:
             opt.setNormType(self.options['norm_type'])
+
+        # Set barrier strategy
         if self.options['barrier_strategy']:
-            opt.setBarrierStrategy(self.options['barrier_strategy'])
+            if self.options['barrier_strategy'] == 'Monotone':
+                barrier_strategy = ParOpt.MONOTONE
+            elif self.options['barrier_strategy'] == 'Mehrotra':
+                barrier_strategy = ParOpt.MEHROTRA
+            elif self.options['barrier_strategy'] == 'Complementarity fraction':
+                barrier_strategy = ParOpt.COMPLEMENTARITY_FRACTION
+            opt.setBarrierStrategy(barrier_strategy)
+            
+        # Set starting point strategy
+        if self.options['start_strategy']:
+            if self.options['barrier_strategy'] == 'None':
+                start_strategy = ParOpt.NO_START_STRATEGY
+            elif self.options['barrier_strategy'] == 'Least squares multipliers':
+                start_strategy = ParOpt.LEAST_SQUARES_MULTIPLIERS
+            elif self.options['barrier_strategy'] == 'Affine step':
+                start_strategy = ParOpt.AFFINE_STEP
+            opt.setStartingPointStrategy(start_strategy)
+
+        # Set norm type
+        if self.options['norm_type']:
+            if self.options['norm_type'] == 'Infinity':
+                norm_type = ParOpt.INFTY_NORM
+            elif self.options['norm_type'] == 'L1':
+                norm_type = ParOpt.L1_NORM
+            elif self.options['norm_type'] == 'L2':
+                norm_type = ParOpt.L2_NORM
+            opt.setBarrierStrategy(norm_type)
+
+        # Set BFGS update strategy
+        if self.options['bfgs_update_type']:
+            if self.options['bfgs_update_type'] == 'Skip negative':
+                bfgs_update_type = ParOpt.SKIP_NEGATIVE_CURVATURE
+            elif self.options['bfgs_update_type'] == 'Damped':
+                bfgs_update_type = ParOpt.DAMPED_UPDATE
+            opt.setBFGSUpdateType(bfgs_update_type)
+
+        if self.options['penalty_gamma']:
+            opt.setPenaltyGamma(self.options['penalty_gamma'])
+
+        if self.options['barrier_fraction']:
+            opt.setBarrierFraction(self.options['barrier_fraction'])
+
+        if self.options['barrier_power']:
+            opt.setBarrierPower(self.options['barrier_power'])
+
+        if self.options['hessian_reset_freq']:
+            opt.setHessianResetFrequency(self.options['hessian_reset_freq'])
+
+        if self.options['qn_diag_factor']:
+            opt.setQNDiagonalFactor(self.options['qn_diag_factor'])
+
+        if self.options['use_sequential_linear']:
+            opt.setSequentialLinearMethod(self.options['use_sequential_linear'])
+            
+        if self.options['affine_step_multiplier_min']:
+            opt.setStartAffineStepMultiplierMin(self.options['affine_step_multiplier_min'])
+
+        if self.options['init_barrier_parameter']:
+            opt.setInitBarrierParameter(self.options['init_barrier_parameter'])
+
+        if self.options['relative_barrier']:
+            opt.setRelativeBarrier(self.options['relative_barrier'])
+
+        if self.options['set_qn']:
+            opt.setQuasiNewton(self.options['set_qn'])
+
+        if self.options['qn_updates']:
+            opt.setUseQuasiNewtonUpdates(self.options['qn_updates'])
+
+        if self.options['use_line_search']:
+            opt.setUseLineSearch(self.options['use_line_search'])
+
+        if self.options['max_ls_iters']:
+            opt.setMaxLineSearchIters(self.options['max_ls_iters'])
+
+        if self.options['backtrack_ls']:
+            opt.setBacktrackingLineSearch(self.options['backtrack_ls'])
+
+        if self.options['armijo_param']:
+            opt.setArmijoParam(self.options['armijo_param'])
+
+        if self.options['penalty_descent_frac']:
+            opt.setPenaltyDescentFraction(self.options['penalty_descent_frac'])
+
+        if self.options['min_penalty_param']:
+            opt.setMinPenaltyParameter(self.options['min_penalty_param'])
+
+        if self.options['use_hvec_prod']:
+            opt.setUseHvecProduct(self.options['use_hvec_prod'])
+
+        if self.options['use_diag_hessian']:
+            opt.setUseDiagHessian(self.options['use_diag_hessian'])
+
+        if self.options['use_qn_gmres_precon']:
+            opt.setUseQNGMRESPreCon(self.options['use_qn_gmres_precon'])
+
+        if self.options['set_nk_switch_tol']:
+            opt.setNKSwitchTolerance(self.options['set_nk_switch_tol'])
+
+        if self.options['eisenstat_walker_param']:
+            opt.setEisenstatWalkerParameters(self.options['eisenstat_walker_param'][0],
+                                             self.options['eisenstat_walker_param'][1])
+
+        if self.options['gmres_tol']:
+            opt.setGMRESTolerances(self.options['gmres_tol'][0],
+                                   self.options['gmres_tol'][1])
+
+        if self.options['gmres_subspace_size']:
+            opt.setGMRESSubspaceSize(self.options['gmres_subspace_size'])
+
+        if self.options['output_freq']:
+            opt.setOutputFrequency(self.options['output_freq'])
+
+        if self.options['output_file']:
+            opt.setOutputFile(self.options['output_file'])
+
+        if self.options['major_iter_step_check']:
+            opt.setMajorIterStepCheck(self.options['major_iter_step_check'])
+
+        if self.options['output_level']:
+            opt.setOutputLevel(self.options['output_level'])
+
+        if self.options['grad_check_freq']:
+            opt.setGradCheckFrequency(self.options['grad_check_freq'])
 
         # This opt object will be used again when 'run' is executed
         self.opt = opt
@@ -223,8 +411,7 @@ class ParOptProblem(ParOpt.pyParOptProblem):
     def evalObjCon(self, x):
         """Evaluate the objective and constraint"""
         # Todo:
-        # - add check that # of constraints are consisten
-        # - add check that there is only one objective
+        # - add check that # of constraints are consistent
 
         # Set the design variable values
         i = 0
