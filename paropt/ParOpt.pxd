@@ -242,6 +242,7 @@ cdef extern from "ParOptTrustRegion.h":
       void initialize()
       void update(ParOptVec*, const ParOptScalar*, ParOptVec*,
                   double*, double*, double*)
+      int getGradients(ParOptVec**, ParOptVec***)
 
 cdef class pyParOptProblemBase:
    cdef ParOptProblem *ptr

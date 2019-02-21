@@ -1045,3 +1045,16 @@ cdef class pyTrustRegion(pyParOptProblemBase):
       self.tr.update(vec.ptr, <ParOptScalar*>z.data, v,
                      &infeas, &l1, &linfty)
       return infeas, l1, linfty
+
+   def getGradients(self):
+      cdef int m = 0
+      cdef ParOptVec *g = NULL
+      cdef ParOptVec **A = NULL
+      m = self.tr.getGradients(&g, &A)
+
+      # Create the list of gradients
+      Av = []
+      for i in range(m):
+         Av.append(_init_PVec(A[i]))
+
+      return _init_PVec(g), Av

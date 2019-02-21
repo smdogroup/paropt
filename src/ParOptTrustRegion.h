@@ -76,6 +76,9 @@ class ParOptTrustRegion : public ParOptProblem {
   // something with the same frequency as the output files
   void writeOutput( int iter, ParOptVec *x ){}
 
+  // Get the gradients at the current point
+  int getGradients( ParOptVec **gk, ParOptVec ***Ak );
+
  private:
   // Set the trust region bounds
   void setTrustRegionBounds( double tr, ParOptVec *x,
