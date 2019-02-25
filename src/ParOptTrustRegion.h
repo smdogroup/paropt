@@ -8,7 +8,7 @@
 */
 class ParOptTrustRegion : public ParOptProblem {
  public:
-  ParOptTrustRegion( ParOptProblem *_prob, 
+  ParOptTrustRegion( ParOptProblem *_prob,
                      ParOptCompactQuasiNewton *_qn, double _tr_size,
                      double _tr_min_size, double _tr_max_size,
                      double _eta=0.25, double penalty_value=10.0,
@@ -21,6 +21,16 @@ class ParOptTrustRegion : public ParOptProblem {
   // Update the problem
   void update( ParOptVec *xt, const ParOptScalar *z, ParOptVec *zw,
                double *infeas, double *l1, double *linfty );
+
+  // Set parameters for the trust region method
+  void setAdaptiveGammaUpdate( int truth );
+  void setMaxTrustRegionIterations( int max_iters );
+  void setTrustRegionTolerances( double _infeas_tol,
+                                 double _l1_tol, double _linfty_tol );
+  void setPenaltyGammaMax( double _gamma_max );
+
+  // Optimization loop using the trust region subproblem
+  void optimize( ParOpt *optimize );
 
   // Create the design vectors
   ParOptVec *createDesignVec();
@@ -114,8 +124,15 @@ class ParOptTrustRegion : public ParOptProblem {
   double tr_size;
   double tr_min_size, tr_max_size;
   double eta;
-  double penalty_value;
   double bound_relax;
+  double *penalty_gamma;
+
+  // Set the trust region solution parameters
+  int adaptive_gamma_update;
+  int max_tr_iterations;
+  double l1_tol, linfty_tol;
+  double infeas_tol;
+  double gamma_max;
 
   // Pointer to the optimization problem
   ParOptProblem *prob;

@@ -137,6 +137,10 @@ class ParOpt : public ParOptBase {
           double _max_bound_val=1e20 );
   ~ParOpt();
 
+  // Retrieve the optimization problem class
+  // ---------------------------------------
+  ParOptProblem* getOptProblem(){ return prob; }
+
   // Reset the problem instance - problem sizes must remain the same
   // ---------------------------------------------------------------
   void resetProblemInstance( ParOptProblem *_prob );
@@ -180,6 +184,7 @@ class ParOpt : public ParOptBase {
   void setRelFunctionTol( double tol );
   void setPenaltyGamma( double gamma );
   void setPenaltyGamma( const double *gamma );
+  int getPenaltyGamma( const double **gamma );
   void setBarrierFraction( double frac );
   void setBarrierPower( double power );
   void setHessianResetFreq( int freq );

@@ -46,8 +46,21 @@ ParOptProblem(_prob->getMPIComm()){
   tr_min_size = _tr_min_size;
   tr_max_size = _tr_max_size;
   eta = _eta;
-  penalty_value = _penalty_value;
   bound_relax = _bound_relax;
+
+  // Set default values for the convergence parameters
+  adaptive_gamma_update = 1;
+  max_tr_iterations = 200;
+  l1_tol = 1e-6;
+  linfty_tol = 1e-6;
+  infeas_tol = 1e-5;
+  gamma_max = 1e4;
+
+  // Set the penalty parameters
+  penalty_gamma = new double[ m ];
+  for ( int i = 0; i < m; i++ ){
+    penalty_gamma[i] = _penalty_value;
+  }
 
   // Create the vectors
   xk = prob->createDesignVec();  xk->incref();
@@ -86,6 +99,7 @@ ParOptProblem(_prob->getMPIComm()){
   // Create the temporary vector
   s = prob->createDesignVec();  s->incref();
   t = prob->createDesignVec();  t->incref();
+
   // Set the file pointer to NULL
   fp = NULL;
 }
@@ -96,6 +110,8 @@ ParOptProblem(_prob->getMPIComm()){
 ParOptTrustRegion::~ParOptTrustRegion(){
   prob->decref();
   qn->decref();
+
+  delete [] penalty_gamma;
 
   xk->decref();
   gk->decref();
@@ -167,18 +183,29 @@ void ParOptTrustRegion::printOptionsSummary( FILE *fp ){
     fprintf(fp, "%-30s %15g\n", "tr_min_size", tr_min_size);
     fprintf(fp, "%-30s %15g\n", "tr_max_size", tr_max_size);
     fprintf(fp, "%-30s %15g\n", "eta", eta);
-    fprintf(fp, "%-30s %15g\n", "penalty_value", penalty_value);
+    double value = 0.0;
+    for ( int i = 0; i < m; i++ ){
+      value += penalty_gamma[i];
+    }
+    fprintf(fp, "%-30s %15g\n", "avg(penalty_gamma)", value/m);
     fprintf(fp, "%-30s %15g\n", "bound_relax", bound_relax);
+    fprintf(fp, "%-30s %15d\n", "adaptive_gamma_update", adaptive_gamma_update);
+    fprintf(fp, "%-30s %15d\n", "max_tr_iterations", max_tr_iterations);
+    fprintf(fp, "%-30s %15g\n", "l1_tol", l1_tol);
+    fprintf(fp, "%-30s %15g\n", "linfty_tol", linfty_tol);
+    fprintf(fp, "%-30s %15g\n", "infeas_tol", infeas_tol);
+    fprintf(fp, "%-30s %15g\n", "gamma_max", gamma_max);
     fprintf(fp, "\n");
   }
 }
+
 /*
   Initialize the problem
 */
 void ParOptTrustRegion::initialize(){
   // Get the lower/upper bounds
   prob->getVarsAndBounds(xk, lb, ub);
-  
+
   // Set the lower/upper bounds for the trust region
   setTrustRegionBounds(tr_size, xk, lb, ub, lk, uk);
 
@@ -208,7 +235,7 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   ParOptScalar infeas_model = 0.0;
   for ( int i = 0; i < m; i++ ){
     ParOptScalar cval = ck[i] + Ak[i]->dot(s);
-    infeas_model += max2(0.0, -cval);
+    infeas_model += penalty_gamma[i]*max2(0.0, -cval);
   }
 
   // Evaluate the objective and constraints and their gradients at
@@ -220,16 +247,16 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   ParOptScalar infeas_k = 0.0;
   ParOptScalar infeas_t = 0.0;
   for ( int i = 0; i < m; i++ ){
-    infeas_k += max2(0.0, -ck[i]);
-    infeas_t += max2(0.0, -ct[i]);
+    infeas_k += penalty_gamma[i]*max2(0.0, -ck[i]);
+    infeas_t += penalty_gamma[i]*max2(0.0, -ct[i]);
   }
 
   // Compute the actual reduction and the predicted reduction
   ParOptScalar actual_reduc =
-    (fk - ft + penalty_value*(infeas_k - infeas_t));
+    (fk - ft + (infeas_k - infeas_t));
   ParOptScalar model_reduc =
-    obj_reduc + penalty_value*(infeas_k - infeas_model);
-  
+    obj_reduc + (infeas_k - infeas_model);
+
   // Compute the ratio
   ParOptScalar rho = actual_reduc/model_reduc;
 
@@ -256,8 +283,14 @@ void ParOptTrustRegion::update( ParOptVec *xt,
 
   // Compute the KKT error at the current point
   computeKKTError(xt, gt, At, z, zw, l1, linfty);
-  *infeas = RealPart(infeas_t);
-  
+
+  // Compute the infeasibility
+  ParOptScalar infeas_new = 0.0;
+  for ( int i = 0; i < m; i++ ){
+    infeas_new += max2(0.0, -ct[i]);
+  }
+  *infeas = RealPart(infeas_new);
+
   // Set the new trust region radius
   if (RealPart(rho) < 0.25){
     tr_size = max2(0.25*tr_size, tr_min_size);
@@ -267,15 +300,6 @@ void ParOptTrustRegion::update( ParOptVec *xt,
     tr_size = min2(2.0*tr_size, tr_max_size);
   }
 
-  // Update the penalty parameter
-  // if ( useAdaptivePenalty ){}
-  infeas_array = new ParOptScalar[ m ];
-  for ( int i = 0; i < m; i++ ){
-    infeas_array[i] = max2(0.0, -ct[i]);
-  }
-  adaptivePenaltyUpdate(infeas_array, gamma);
-
-  
   // Check whether to accept the new point or not
   if (RealPart(rho) >= eta){
     fk = ft;
@@ -286,18 +310,10 @@ void ParOptTrustRegion::update( ParOptVec *xt,
       Ak[i]->copyValues(At[i]);
     }
   }
-  
+
   // Reset the trust region radius bounds
   setTrustRegionBounds(tr_size, xk, lb, ub, lk, uk);
 
-
-
-  
-  
-  
-
-  
-  
   int mpi_rank;
   MPI_Comm_rank(prob->getMPIComm(), &mpi_rank);
   if (mpi_rank == 0){
@@ -319,42 +335,160 @@ void ParOptTrustRegion::update( ParOptVec *xt,
 }
 
 /*
-Adaptive update to the gamma penalty parameters
+  Set whether or not to adaptively update the penalty parameters
 */
-void ParOptTrustRegion::adaptivePenaltyUpdate( double *infeas,
-                                               double *gamma ){
-  // Compute the model infeasibility
-  model_infeas = new double[ m ];
-  for ( int i = 0; i < m; i++ ){
-    ParOptScalar cval = ck[i] + Ak[i]->dot(s);
-    model_infeas[i] = max2(0.0, -cval);
-  }
-
-  // Compute the best possible infeasibility
-  best_infeas = new double[ m ];
-  
-  
-  // Compute the actual infeasibility reduction and the best
-  // possible infeasibility reduction
-  double infeas_reduction = 0.0;
-  double best_reduction = 0.0;
-  for ( int i = 0; i < m; i++ ){
-    infeas_reduction = infeas[i] - model_infeas[i]
-    best_reduction = infeas[i] - best_infeas[i]
-  
-    // If the ratio of the predicted to actual improvement is good,
-    // and the constraints are satisfied, decrease the penalty
-    // parameter. Otherwise, if the best case infeasibility is
-    // significantly better, increase the penalty parameter.
-      if ( lam[i] > 0.001 && infeas[i] < 0.001 && gamma[i] >= 2.0*lam[i] ){
-        gamma[i] = 0.5*(gamma[i] + lam[i]); // Reduce gamma
-      }
-      else if ( infeas[i] > 0.001 and 0.995*best_reduction > infeas_reduction ){
-        gamma[i] = min2(1.5*gamma[i], 10000.0); // Increase gamma
-      }  
-  }
+void ParOptTrustRegion::setAdaptiveGammaUpdate( int truth ){
+  adaptive_gamma_update = truth;
 }
 
+/*
+  Set the maximum number of trust region steps
+*/
+void ParOptTrustRegion::setMaxTrustRegionIterations( int max_iters ){
+  max_tr_iterations = max_iters;
+}
+
+/*
+  Set the trust region stopping criterion values
+*/
+void ParOptTrustRegion::setTrustRegionTolerances( double _infeas_tol,
+                                                  double _l1_tol,
+                                                  double _linfty_tol ){
+  infeas_tol = _infeas_tol;
+  l1_tol = _l1_tol;
+  linfty_tol = _linfty_tol;
+}
+
+/*
+  Set the maximum value of the penalty parameters
+*/
+void ParOptTrustRegion::setPenaltyGammaMax( double _gamma_max ){
+  gamma_max = _gamma_max;
+}
+
+/*
+  Perform the optimization problem
+*/
+void ParOptTrustRegion::optimize( ParOpt *optimizer ){
+  if (optimizer->getOptProblem() != this){
+    fprintf(stderr,
+            "ParOptTrustRegion: The optimizer must be associated with this object\n");
+    return;
+  }
+
+  // Set the initial values for gamma from the internal
+  optimizer->setPenaltyGamma(penalty_gamma);
+
+  // Allocate arrays to store infeasibility information
+  ParOptScalar *con_infeas = NULL;
+  ParOptScalar *model_con_infeas = NULL;
+  ParOptScalar *best_con_infeas = NULL;
+  if (adaptive_gamma_update){
+    con_infeas = new ParOptScalar[ m ];
+    model_con_infeas = new ParOptScalar[ m ];
+    best_con_infeas = new ParOptScalar[ m ];
+  }
+
+  // Initialize the trust region problem for the first iteration
+  initialize();
+
+  // Iterate over the trust region subproblem until convergence
+  for ( int i = 0; i < max_tr_iterations; i++ ){
+    if (adaptive_gamma_update){
+      // Set the penalty parameter to a large value
+      optimizer->setPenaltyGamma(1e6);
+
+      // Initialize the barrier parameter
+      optimizer->setInitBarrierParameter(10.0);
+      optimizer->resetDesignAndBounds();
+
+      // Optimize the subproblem
+      optimizer->optimize();
+
+      // Get the design variables
+      ParOptVec *x, *zw;
+      ParOptScalar *z;
+      optimizer->getOptimizedPoint(&x, &z, &zw, NULL, NULL);
+
+      // Compute the best-case infeasibility achieved by setting the
+      // penalty parameters to a large value
+      for ( int j = 0; j < m; j++ ){
+        ParOptScalar cj = ck[j] + Ak[j]->dot(x);
+        best_con_infeas[j] = -min2(cj, 0.0);
+      }
+
+      // Set the penalty parameters
+      optimizer->setPenaltyGamma(penalty_gamma);
+    }
+
+    // Initialize the barrier parameter
+    optimizer->setInitBarrierParameter(10.0);
+    optimizer->resetDesignAndBounds();
+
+    // Optimize the subproblem
+    optimizer->optimize();
+
+    // Get the design variables
+    ParOptVec *x, *zw;
+    ParOptScalar *z;
+    optimizer->getOptimizedPoint(&x, &z, &zw, NULL, NULL);
+
+    if (adaptive_gamma_update){
+      // Find the actual infeasibility reduction
+      for ( int j = 0; j < m; j++ ){
+        con_infeas[j] = -min2(ck[j], 0.0);
+
+        ParOptScalar cj = ck[j] + Ak[j]->dot(x);
+        model_con_infeas[j] = -min2(cj, 0.0);
+      }
+    }
+
+    // Update the trust region based on the performance at the new
+    // point.
+    double infeas, l1, linfty;
+    update(x, z, zw, &infeas, &l1, &linfty);
+
+    // Check for convergence of the trust region problem
+    if (infeas < infeas_tol){
+      if (l1 < l1_tol ||
+          linfty < linfty_tol){
+        // Success!
+        break;
+      }
+    }
+
+    // Adapat the penalty parameters
+    if (adaptive_gamma_update){
+      for ( int i = 0; i < m; i++ ){
+        // Compute the actual infeasibility reduction and the best
+        // possible infeasibility reduction
+        double infeas_reduction = con_infeas[i] - model_con_infeas[i];
+        double best_reduction = con_infeas[i] - best_con_infeas[i];
+
+        // If the ratio of the predicted to actual improvement is good,
+        // and the constraints are satisfied, decrease the penalty
+        // parameter. Otherwise, if the best case infeasibility is
+        // significantly better, increase the penalty parameter.
+        if (z[i] > infeas_tol &&
+            con_infeas[i] < infeas_tol &&
+            penalty_gamma[i] >= 2.0*z[i]){
+          penalty_gamma[i] = 0.5*(penalty_gamma[i] + z[i]); // Reduce gamma
+        }
+        else if (con_infeas[i] > infeas_tol &&
+                 0.995*best_reduction > infeas_reduction){
+          penalty_gamma[i] = min2(1.5*penalty_gamma[i], gamma_max); // Increase gamma
+        }
+      }
+    }
+  }
+
+  // Free the allocated data
+  if (adaptive_gamma_update){
+    delete [] con_infeas;
+    delete [] model_con_infeas;
+    delete [] best_con_infeas;
+  }
+}
 
 /*
   Compute the KKT error based on the current values of the multipliers
@@ -470,18 +604,18 @@ void ParOptTrustRegion::getVarsAndBounds( ParOptVec *x, ParOptVec *l,
   x->copyValues(xk);
   l->copyValues(lk);
   u->copyValues(uk);
-  
+
   ParOptScalar *lvals, *uvals;
   int size = u->getArray(&uvals);
   l->getArray(&lvals);
   int mpi_rank;
-  MPI_Comm_rank(prob->getMPIComm(), &mpi_rank);  
+  MPI_Comm_rank(prob->getMPIComm(), &mpi_rank);
 }
 
 /*
   Evaluate the objective and constraint functions
 */
-int ParOptTrustRegion::evalObjCon( ParOptVec *x, ParOptScalar *fobj, 
+int ParOptTrustRegion::evalObjCon( ParOptVec *x, ParOptScalar *fobj,
                                    ParOptScalar *cons ){
   s->copyValues(x);
   s->axpy(-1.0, xk);
@@ -501,7 +635,7 @@ int ParOptTrustRegion::evalObjCon( ParOptVec *x, ParOptScalar *fobj,
 /*
   Evaluate the objective and constraint gradients
 */
-int ParOptTrustRegion::evalObjConGradient( ParOptVec *x, ParOptVec *g, 
+int ParOptTrustRegion::evalObjConGradient( ParOptVec *x, ParOptVec *g,
                                            ParOptVec **Ac ){
   // Copy the values of constraint gradient
   for ( int i = 0; i < m; i++ ){
@@ -510,7 +644,7 @@ int ParOptTrustRegion::evalObjConGradient( ParOptVec *x, ParOptVec *g,
 
   s->copyValues(x);
   s->axpy(-1.0, xk);
-  
+
   // Evaluate the gradient of the quadratic objective
   qn->mult(s, g);
   g->axpy(1.0, gk);
@@ -530,9 +664,9 @@ void ParOptTrustRegion::evalSparseCon( ParOptVec *x, ParOptVec *out ){
 /*
   Compute the Jacobian-vector product out = J(x)*px
 */
-void ParOptTrustRegion::addSparseJacobian( ParOptScalar alpha, 
+void ParOptTrustRegion::addSparseJacobian( ParOptScalar alpha,
                                            ParOptVec *x,
-                                           ParOptVec *px, 
+                                           ParOptVec *px,
                                            ParOptVec *out ){
   prob->addSparseJacobian(alpha, xk, px, out);
 }
@@ -540,7 +674,7 @@ void ParOptTrustRegion::addSparseJacobian( ParOptScalar alpha,
 /*
   Compute the transpose Jacobian-vector product out = J(x)^{T}*pzw
 */
-void ParOptTrustRegion::addSparseJacobianTranspose( ParOptScalar alpha, 
+void ParOptTrustRegion::addSparseJacobianTranspose( ParOptScalar alpha,
                                                     ParOptVec *x,
                                                     ParOptVec *pzw,
                                                     ParOptVec *out ){
