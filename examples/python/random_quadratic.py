@@ -83,7 +83,7 @@ def create_random_problem(eigs):
 
     return A
 
-def solve_problem(eigs, filename=None, use_stdout=False):
+def solve_problem(eigs, filename=None, use_stdout=False, use_tr=False):
     # Get the A matrix
     A = create_random_problem(eigs)
 
@@ -94,23 +94,51 @@ def solve_problem(eigs, filename=None, use_stdout=False):
 
     problem = Quadratic(A, b, Acon, bcon)
 
-    # Set up the optimization problem
-    max_lbfgs = 40
-    opt = ParOpt.pyParOpt(problem, max_lbfgs, ParOpt.BFGS)
-    if filename is not None and use_stdout is False:
-        opt.setOutputFile(filename)
+    if use_tr:
+        # Create the trust region problem
+        max_lbfgs = 40
+        tr_init_size = 0.05
+        tr_min_size = 1e-6
+        tr_max_size = 10.0
+        tr_eta = 0.25
+        tr_penalty_gamma = 10.0
+        qn = ParOpt.LBFGS(problem, subspace=max_lbfgs)
+        tr = ParOpt.pyTrustRegion(problem, qn, tr_init_size,
+                                  tr_min_size, tr_max_size,
+                                  tr_eta, tr_penalty_gamma)
 
-    # Set optimization parameters
-    opt.setArmijoParam(1e-5)
-    opt.setMaxMajorIterations(5000)
-    opt.setBarrierPower(2.0)
-    opt.setBarrierFraction(0.1)
-    opt.optimize()
+        # Set up the optimization problem
+        tr_opt = ParOpt.pyParOpt(tr, max_lbfgs, ParOpt.BFGS)
+        if filename is not None and use_stdout is False:
+            tr_opt.setOutputFile(filename)
+
+        # Set optimization parameters
+        tr_opt.setArmijoParam(1e-5)
+        tr_opt.setMaxMajorIterations(5000)
+        tr_opt.setBarrierPower(2.0)
+        tr_opt.setBarrierFraction(0.1)
+
+        # optimize
+        tr.optimize(tr_opt)
+    else:
+        # Set up the optimization problem
+        max_lbfgs = 40
+        opt = ParOpt.pyParOpt(problem, max_lbfgs, ParOpt.BFGS)
+        if filename is not None and use_stdout is False:
+            opt.setOutputFile(filename)
+
+        # Set optimization parameters
+        opt.setArmijoParam(1e-5)
+        opt.setMaxMajorIterations(5000)
+        opt.setBarrierPower(2.0)
+        opt.setBarrierFraction(0.1)
+        opt.optimize()
 
     return
 
 # Parse the arguments
 parser = argparse.ArgumentParser()
+parser.add_argument('--optimizer', type=str, default='ip')
 parser.add_argument('--n', type=int, default=100,
                     help='Dimension of the problem')
 parser.add_argument('--eig_min', type=float, default=1.0,
@@ -121,6 +149,10 @@ parser.add_argument('--use_stdout', dest='use_stdout',
                     action='store_true')
 parser.set_defaults(use_stdout=False)
 args = parser.parse_args()
+
+use_tr = False
+if args.optimizer != 'ip':
+    use_tr = True
 
 # Set the eigenvalues for the matrix
 n = args.n
@@ -144,9 +176,9 @@ for i in range(1,n+1):
 
 # Solve the two problem types
 solve_problem(eigs_linear, filename='opt_linear_eigs.out',
-              use_stdout=use_stdout)
+              use_stdout=use_stdout, use_tr=use_tr)
 solve_problem(eigs_clustered, filename='opt_cluster_eigs.out',
-              use_stdout=use_stdout)
+              use_stdout=use_stdout, use_tr=use_tr)
 
 plt.plot(range(1,n+1), eigs_linear, '-o', linewidth=2, label='linear')
 plt.plot(range(1,n+1), eigs_clustered, '-s', linewidth=2, label='clustered')
