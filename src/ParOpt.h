@@ -179,6 +179,7 @@ class ParOpt : public ParOptBase {
   void setAbsOptimalityTol( double tol );
   void setRelFunctionTol( double tol );
   void setPenaltyGamma( double gamma );
+  void setPenaltyGamma( const double *gamma );
   void setBarrierFraction( double frac );
   void setBarrierPower( double power );
   void setHessianResetFreq( int freq );
@@ -441,7 +442,7 @@ class ParOpt : public ParOptBase {
   int use_lower, use_upper;
 
   // The l1-penalty parameter
-  double penalty_gamma;
+  double *penalty_gamma;
 
   // Parameters for optimization
   int max_major_iters;
