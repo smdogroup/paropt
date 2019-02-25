@@ -249,7 +249,8 @@ cdef extern from "ParOptTrustRegion.h":
         void setAdaptiveGammaUpdate(int)
         void setMaxTrustRegionIterations(int)
         void setTrustRegionTolerances(double, double, double)
-        void setPenaltyGammaMax(double);
+        void setPenaltyGammaMax(double)
+        void setOutputFrequency(int)
         void optimize(ParOpt*)
 
 cdef class pyParOptProblemBase:

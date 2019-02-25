@@ -28,6 +28,7 @@ class ParOptTrustRegion : public ParOptProblem {
   void setTrustRegionTolerances( double _infeas_tol,
                                  double _l1_tol, double _linfty_tol );
   void setPenaltyGammaMax( double _gamma_max );
+  void setOutputFrequency( int _write_output_frequency );
 
   // Optimization loop using the trust region subproblem
   void optimize( ParOpt *optimize );
@@ -126,6 +127,9 @@ class ParOptTrustRegion : public ParOptProblem {
   double eta;
   double bound_relax;
   double *penalty_gamma;
+
+  // Set the output parameters
+  int write_output_frequency;
 
   // Set the trust region solution parameters
   int adaptive_gamma_update;
