@@ -273,7 +273,8 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   if (RealPart(rho) < 0.25){
     tr_size = max2(0.25*tr_size, tr_min_size);
   }
-  else if (RealPart(rho) > 0.75){
+  else if (RealPart(rho) > 0.75 &&
+           s->maxabs() >= 0.99*tr_size){
     tr_size = min2(2.0*tr_size, tr_max_size);
   }
 
@@ -500,4 +501,14 @@ void ParOptTrustRegion::addSparseInnerProduct( ParOptScalar alpha,
                                                ParOptVec *cvec,
                                                ParOptScalar *A ){
   prob->addSparseInnerProduct(alpha, xk, cvec, A);
+}
+
+/*
+  Get the gradients evaluated at the current point
+*/
+int ParOptTrustRegion::getGradients( ParOptVec **_gk, ParOptVec ***_Ak ){
+  *_gk = gk;
+  *_Ak = Ak;
+
+  return m;
 }

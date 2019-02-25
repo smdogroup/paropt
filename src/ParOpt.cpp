@@ -336,7 +336,6 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   max_major_iters = 1000;
   barrier_param = 0.1;
   rel_bound_barrier = 1.0;
-  penalty_gamma = 1000.0;
   abs_res_tol = 1e-5;
   rel_func_tol = 0.0;
   use_line_search = 1;
@@ -359,6 +358,12 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   qn_sigma = 0.0;
   merit_func_check_epsilon = 5e-8;
   start_affine_multiplier_min = 1e-3;
+
+  // Set the default penalty values
+  penalty_gamma = new double[ ncon ];
+  for ( int i = 0; i < ncon; i++ ){
+    penalty_gamma[i] = 1000.0;
+  }
 
   // Set the function precision; changes below this value are
   // considered irrelevant
@@ -477,6 +482,9 @@ ParOpt::~ParOpt(){
   delete [] dpiv;
   delete [] Ce;
   delete [] cpiv;
+
+  // Delete the vector of penalty parameters
+  delete [] penalty_gamma;
 
   // Delete the diagonal matrix
   Cvec->decref();
@@ -652,7 +660,12 @@ void ParOpt::printOptionSummary( FILE *fp ){
     else {
       fprintf(fp, "%-30s %15s\n", "norm_type", "L2_NORM");
     }
-    fprintf(fp, "%-30s %15g\n", "penalty_gamma", penalty_gamma);
+    // Compute the average penalty
+    double penalty = 0.0;
+    for ( int i = 0; i < ncon; i++ ){
+      penalty += penalty_gamma[i];
+    }
+    fprintf(fp, "%-30s %15g\n", "penalty_gamma", penalty/ncon);
     fprintf(fp, "%-30s %15d\n", "max_major_iters", max_major_iters);
     if (starting_point_strategy == PAROPT_NO_START_STRATEGY){
       fprintf(fp, "%-30s %15s\n", "starting_point_strategy",
@@ -1056,7 +1069,20 @@ void ParOpt::setBarrierPower( double power ){
 */
 void ParOpt::setPenaltyGamma( double gamma ){
   if (gamma >= 0.0){
-    penalty_gamma = gamma;
+    for ( int i = 0; i < ncon; i++ ){
+      penalty_gamma[i] = gamma;
+    }
+  }
+}
+
+/*
+  Set the individual penalty parameters
+*/
+void ParOpt::setPenaltyGamma( const double *gamma ){
+  for ( int i = 0; i < ncon; i++ ){
+    if (gamma[i] >= 0.0){
+      penalty_gamma[i] = gamma[i];
+    }
   }
 }
 
@@ -1486,7 +1512,7 @@ void ParOpt::computeKKTRes( double barrier,
     for ( int i = 0; i < ncon; i++ ){
       rc[i] = -(c[i] - s[i] + t[i]);
       rs[i] = -(s[i]*z[i] - barrier);
-      rt[i] = -(penalty_gamma - zt[i] - z[i]);
+      rt[i] = -(penalty_gamma[i] - zt[i] - z[i]);
       rzt[i] = -(t[i]*zt[i] - barrier);
     }
   }
@@ -3472,7 +3498,7 @@ ParOptScalar ParOpt::evalMeritFunc( ParOptScalar fk,
 
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
-        merit += penalty_gamma*tk[i];
+        merit += penalty_gamma[i]*tk[i];
       }
     }
   }
@@ -3639,7 +3665,7 @@ void ParOpt::evalMeritInitDeriv( double max_x,
   ParOptScalar proj = g->dot(px);
   if (dense_inequality){
     for ( int i = 0; i < ncon; i++ ){
-      proj += penalty_gamma*pt[i];
+      proj += penalty_gamma[i]*pt[i];
     }
   }
 
@@ -3795,7 +3821,7 @@ void ParOpt::evalMeritInitDeriv( double max_x,
 
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
-        merit += penalty_gamma*t[i];
+        merit += penalty_gamma[i]*t[i];
       }
     }
   }
@@ -4302,15 +4328,15 @@ int ParOpt::optimize( const char *checkpoint ){
         if (dense_inequality){
           for ( int i = 0; i < ncon; i++ ){
             if (RealPart(z[i]) < 0.01 ||
-                RealPart(z[i]) > penalty_gamma){
+                RealPart(z[i]) > penalty_gamma[i]){
               z[i] = 1.0;
             }
           }
         }
         else {
           for ( int i = 0; i < ncon; i++ ){
-            if (RealPart(z[i]) < -penalty_gamma ||
-                RealPart(z[i]) > penalty_gamma){
+            if (RealPart(z[i]) < -penalty_gamma[i] ||
+                RealPart(z[i]) > penalty_gamma[i]){
               z[i] = 1.0;
             }
           }
@@ -5540,7 +5566,7 @@ ParOptScalar ParOpt::evalObjBarrierDeriv(){
 
   if (dense_inequality){
     for ( int i = 0; i < ncon; i++ ){
-      pmerit += penalty_gamma*pt[i];
+      pmerit += penalty_gamma[i]*pt[i];
     }
   }
 
@@ -6405,7 +6431,7 @@ void ParOpt::checkKKTStep( int iteration, int is_newton ){
   if (dense_inequality){
     max_val = 0.0;
     for ( int i = 0; i < ncon; i++ ){
-      ParOptScalar val = penalty_gamma - z[i] - zt[i] - pz[i] - pzt[i];
+      ParOptScalar val = penalty_gamma[i] - z[i] - zt[i] - pz[i] - pzt[i];
       if (fabs(RealPart(val)) > max_val){
         max_val = fabs(RealPart(val));
       }
