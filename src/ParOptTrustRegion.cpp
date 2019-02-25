@@ -48,6 +48,9 @@ ParOptProblem(_prob->getMPIComm()){
   eta = _eta;
   bound_relax = _bound_relax;
 
+  // Set the default output parameters
+  write_output_frequency = 10;
+
   // Set default values for the convergence parameters
   adaptive_gamma_update = 1;
   max_tr_iterations = 200;
@@ -367,6 +370,13 @@ void ParOptTrustRegion::setPenaltyGammaMax( double _gamma_max ){
 }
 
 /*
+  Set the output frequency
+*/
+void ParOptTrustRegion::setOutputFrequency( int _write_output_frequency ){
+  write_output_frequency = _write_output_frequency;
+}
+
+/*
   Perform the optimization problem
 */
 void ParOptTrustRegion::optimize( ParOpt *optimizer ){
@@ -419,6 +429,12 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
 
       // Set the penalty parameters
       optimizer->setPenaltyGamma(penalty_gamma);
+    }
+
+    // Print out the current solution progress using the
+    // hook in the problem definition
+    if (i % write_output_frequency == 0){
+      prob->writeOutput(i, xk);
     }
 
     // Initialize the barrier parameter

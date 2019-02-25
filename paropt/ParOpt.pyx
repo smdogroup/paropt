@@ -1152,6 +1152,9 @@ cdef class pyTrustRegion(pyParOptProblemBase):
     def setPenaltyGammaMax(self, double gamma_max):
         self.tr.setPenaltyGammaMax(gamma_max)
 
+    def setOutputFrequency(self, int output_frequency):
+        self.tr.setOutputFrequency(output_frequency)
+
     def optimize(self, pyParOpt optimizer):
         self.tr.optimize(optimizer.ptr)
 
