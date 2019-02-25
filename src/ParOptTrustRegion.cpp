@@ -257,7 +257,25 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   // Compute the KKT error at the current point
   computeKKTError(xt, gt, At, z, zw, l1, linfty);
   *infeas = RealPart(infeas_t);
+  
+  // Set the new trust region radius
+  if (RealPart(rho) < 0.25){
+    tr_size = max2(0.25*tr_size, tr_min_size);
+  }
+  else if (RealPart(rho) > 0.75 &&
+           s->maxabs() >= 0.99*tr_size){
+    tr_size = min2(2.0*tr_size, tr_max_size);
+  }
 
+  // Update the penalty parameter
+  // if ( useAdaptivePenalty ){}
+  infeas_array = new ParOptScalar[ m ];
+  for ( int i = 0; i < m; i++ ){
+    infeas_array[i] = max2(0.0, -ct[i]);
+  }
+  adaptivePenaltyUpdate(infeas_array, gamma);
+
+  
   // Check whether to accept the new point or not
   if (RealPart(rho) >= eta){
     fk = ft;
@@ -269,18 +287,17 @@ void ParOptTrustRegion::update( ParOptVec *xt,
     }
   }
   
-  // Set the new trust region radius
-  if (RealPart(rho) < 0.25){
-    tr_size = max2(0.25*tr_size, tr_min_size);
-  }
-  else if (RealPart(rho) > 0.75 &&
-           s->maxabs() >= 0.99*tr_size){
-    tr_size = min2(2.0*tr_size, tr_max_size);
-  }
-
   // Reset the trust region radius bounds
   setTrustRegionBounds(tr_size, xk, lb, ub, lk, uk);
 
+
+
+  
+  
+  
+
+  
+  
   int mpi_rank;
   MPI_Comm_rank(prob->getMPIComm(), &mpi_rank);
   if (mpi_rank == 0){
@@ -300,6 +317,44 @@ void ParOptTrustRegion::update( ParOptVec *xt,
     }
   }
 }
+
+/*
+Adaptive update to the gamma penalty parameters
+*/
+void ParOptTrustRegion::adaptivePenaltyUpdate( double *infeas,
+                                               double *gamma ){
+  // Compute the model infeasibility
+  model_infeas = new double[ m ];
+  for ( int i = 0; i < m; i++ ){
+    ParOptScalar cval = ck[i] + Ak[i]->dot(s);
+    model_infeas[i] = max2(0.0, -cval);
+  }
+
+  // Compute the best possible infeasibility
+  best_infeas = new double[ m ];
+  
+  
+  // Compute the actual infeasibility reduction and the best
+  // possible infeasibility reduction
+  double infeas_reduction = 0.0;
+  double best_reduction = 0.0;
+  for ( int i = 0; i < m; i++ ){
+    infeas_reduction = infeas[i] - model_infeas[i]
+    best_reduction = infeas[i] - best_infeas[i]
+  
+    // If the ratio of the predicted to actual improvement is good,
+    // and the constraints are satisfied, decrease the penalty
+    // parameter. Otherwise, if the best case infeasibility is
+    // significantly better, increase the penalty parameter.
+      if ( lam[i] > 0.001 && infeas[i] < 0.001 && gamma[i] >= 2.0*lam[i] ){
+        gamma[i] = 0.5*(gamma[i] + lam[i]); // Reduce gamma
+      }
+      else if ( infeas[i] > 0.001 and 0.995*best_reduction > infeas_reduction ){
+        gamma[i] = min2(1.5*gamma[i], 10000.0); // Increase gamma
+      }  
+  }
+}
+
 
 /*
   Compute the KKT error based on the current values of the multipliers

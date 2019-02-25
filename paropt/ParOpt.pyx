@@ -874,6 +874,15 @@ cdef class pyParOpt:
    def setPenaltyGamma(self, double gamma):
       self.ptr.setPenaltyGamma(gamma)
 
+   def getPenaltyGamma(self):
+      cdef double *penalty_gamma
+      cdef int ncon
+      ncon = self.ptr.getPenaltyGamma(&penalty_gamma)
+      gamma = np.zeros(ncon, dtype=np.double)
+      for i in range(ncon):
+         gamma[i] = penalty_gamma[i]
+      return gamma
+
    def setBarrierFraction(self, double frac):
       self.ptr.setBarrierFraction(frac)
 
