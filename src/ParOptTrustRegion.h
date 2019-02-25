@@ -79,6 +79,9 @@ class ParOptTrustRegion : public ParOptProblem {
   // Get the gradients at the current point
   int getGradients( ParOptVec **gk, ParOptVec ***Ak );
 
+  // Set the output file (only on the root proc)
+  void setOutputFile( const char *filename );
+
  private:
   // Set the trust region bounds
   void setTrustRegionBounds( double tr, ParOptVec *x,
@@ -89,7 +92,15 @@ class ParOptTrustRegion : public ParOptProblem {
   void computeKKTError( ParOptVec *xt, ParOptVec *g, ParOptVec **A,
                         const ParOptScalar *z, ParOptVec *zw,
                         double *l1, double *linfty );
+  // Print the options summary
+  void printOptionsSummary( FILE *fp );
 
+  // File pointer for the summary file - depending on the settings
+  FILE *fp;
+  int first_print;
+
+  // Settings for what to write out to a file or not...
+  int print_level; // == 0 => no print, 1 MMA iters, 2 MMA+subproblem
   // File pointer for the summary file - depending on the settings
   // FILE *fp;
   // int first_print;

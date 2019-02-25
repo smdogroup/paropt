@@ -9,6 +9,9 @@ cimport mpi4py.MPI as MPI
 # Import the declarations required from the pxd file
 from ParOpt cimport *
 
+# Import tracebacks for callbacks
+import traceback
+
 # Import numpy
 import numpy as np
 cimport numpy as np
@@ -263,111 +266,170 @@ cdef inplace_array_1d(int nptype, int dim1, void *data_ptr,
 cdef void _getvarsandbounds(void *_self, int nvars,
                             ParOptVec *_x, ParOptVec *_lb,
                             ParOptVec *_ub):
-   x = _init_PVec(_x)
-   lb = _init_PVec(_lb)
-   ub = _init_PVec(_ub)
-   (<object>_self).getVarsAndBounds(x, lb, ub)
+   try:
+      x = _init_PVec(_x)
+      lb = _init_PVec(_lb)
+      ub = _init_PVec(_ub)
+      (<object>_self).getVarsAndBounds(x, lb, ub)
+   except:
+      tb = traceback.format_exc()
+      print(tb)
+      exit(0)
+
    return
 
 cdef int _evalobjcon(void *_self, int nvars, int ncon,
                      ParOptVec *_x, ParOptScalar *fobj,
                      ParOptScalar *cons):
-   # Call the objective function
-   x = _init_PVec(_x)
-   fail, _fobj, _cons = (<object>_self).evalObjCon(x)
+   fail = 0
 
-   # Copy over the objective value
-   fobj[0] = _fobj
+   try:
+      # Call the objective function
+      x = _init_PVec(_x)
+      fail, _fobj, _cons = (<object>_self).evalObjCon(x)
 
-   # Copy the values from the numpy arrays
-   for i in range(ncon):
-      cons[i] = _cons[i]
+      # Copy over the objective value
+      fobj[0] = _fobj
+
+      # Copy the values from the numpy arrays
+      for i in range(ncon):
+         cons[i] = _cons[i]
+   except:
+      tb = traceback.format_exc()
+      print(tb)
+      exit(0)
+
    return fail
 
 cdef int _evalobjcongradient(void *_self, int nvars, int ncon,
                              ParOptVec *_x, ParOptVec *_g,
                              ParOptVec **A):
-   # The numpy arrays that will be used for x
-   x = _init_PVec(_x)
-   g = _init_PVec(_g)
-   Ac = []
-   for i in range(ncon):
-      Ac.append(_init_PVec(A[i]))
+   fail = 0
+   try:
+      # The numpy arrays that will be used for x
+      x = _init_PVec(_x)
+      g = _init_PVec(_g)
+      Ac = []
+      for i in range(ncon):
+         Ac.append(_init_PVec(A[i]))
 
-   # Call the objective function
-   fail = (<object>_self).evalObjConGradient(x, g, Ac)
+      # Call the objective function
+      fail = (<object>_self).evalObjConGradient(x, g, Ac)
+   except:
+      tb = traceback.format_exc()
+      print(tb)
+      exit(0)
+
    return fail
 
 cdef int _evalhvecproduct(void *_self, int nvars, int ncon, int nwcon,
                           ParOptVec *_x, ParOptScalar *_z, ParOptVec *_zw,
                           ParOptVec *_px, ParOptVec *_hvec):
-   x = _init_PVec(_x)
-   zw = None
-   if _zw != NULL:
-      zw = _init_PVec(_zw)
-   px = _init_PVec(_px)
-   hvec = _init_PVec(_hvec)
+   fail = 0
+   try:
+      x = _init_PVec(_x)
+      zw = None
+      if _zw != NULL:
+         zw = _init_PVec(_zw)
+      px = _init_PVec(_px)
+      hvec = _init_PVec(_hvec)
 
-   z = inplace_array_1d(PAROPT_NPY_SCALAR, ncon, <void*>_z)
+      z = inplace_array_1d(PAROPT_NPY_SCALAR, ncon, <void*>_z)
 
-   # Call the objective function
-   fail = (<object>_self).evalHvecProduct(x, z, zw, px, hvec)
+      # Call the objective function
+      fail = (<object>_self).evalHvecProduct(x, z, zw, px, hvec)
+   except:
+      tb = traceback.format_exc()
+      print(tb)
+      exit(0)
+
    return fail
 
 cdef int _evalhessiandiag(void *_self, int nvars, int ncon, int nwcon,
                           ParOptVec *_x, ParOptScalar *_z, ParOptVec *_zw,
                           ParOptVec *_hdiag):
-   x = _init_PVec(_x)
-   zw = None
-   if _zw != NULL:
-      zw = _init_PVec(_zw)
-   hdiag = _init_PVec(_hdiag)
+   fail = 0
+   try:
+      x = _init_PVec(_x)
+      zw = None
+      if _zw != NULL:
+         zw = _init_PVec(_zw)
+      hdiag = _init_PVec(_hdiag)
 
-   z = inplace_array_1d(PAROPT_NPY_SCALAR, ncon, <void*>_z)
+      z = inplace_array_1d(PAROPT_NPY_SCALAR, ncon, <void*>_z)
 
-   # Call the objective function
-   fail = (<object>_self).evalHessianDiag(x, z, zw, hdiag)
+      # Call the objective function
+      fail = (<object>_self).evalHessianDiag(x, z, zw, hdiag)
+   except:
+      tb = traceback.format_exc()
+      print(tb)
+      exit(0)
+
    return fail
 
 cdef void _evalsparsecon(void *_self, int nvars, int nwcon,
                          ParOptVec *_x, ParOptVec *_con):
-   x = _init_PVec(_x)
-   con = _init_PVec(_con)
+   try:
+      x = _init_PVec(_x)
+      con = _init_PVec(_con)
 
-   (<object>_self).evalSparseCon(x, con)
+      (<object>_self).evalSparseCon(x, con)
+   except:
+      tb = traceback.format_exc()
+      print(tb)
+      exit(0)
+
    return
 
 cdef void _addsparsejacobian(void *_self, int nvars,
                              int nwcon, ParOptScalar alpha,
                              ParOptVec *_x, ParOptVec *_px,
                              ParOptVec *_con):
-   x = _init_PVec(_x)
-   px = _init_PVec(_px)
-   con = _init_PVec(_con)
+   try:
+      x = _init_PVec(_x)
+      px = _init_PVec(_px)
+      con = _init_PVec(_con)
 
-   (<object>_self).addSparseJacobian(alpha, x, px, con)
+      (<object>_self).addSparseJacobian(alpha, x, px, con)
+   except:
+      tb = traceback.format_exc()
+      print(tb)
+      exit(0)
+
    return
 
 cdef void _addsparsejacobiantranspose(void *_self, int nvars,
                                       int nwcon, ParOptScalar alpha,
                                       ParOptVec *_x, ParOptVec *_pzw,
                                       ParOptVec *_out):
-   x = _init_PVec(_x)
-   pzw = _init_PVec(_pzw)
-   out = _init_PVec(_out)
-   (<object>_self).addSparseJacobianTranspose(alpha, x, pzw, out)
+   try:
+      x = _init_PVec(_x)
+      pzw = _init_PVec(_pzw)
+      out = _init_PVec(_out)
+      (<object>_self).addSparseJacobianTranspose(alpha, x, pzw, out)
+   except:
+      tb = traceback.format_exc()
+      print(tb)
+      exit(0)
+
    return
 
 cdef void _addsparseinnerproduct(void *_self, int nvars,
                                  int nwcon, int nwblock, ParOptScalar alpha,
                                  ParOptVec *_x, ParOptVec *_c,
                                  ParOptScalar *_A):
-   x = _init_PVec(_x)
-   c = _init_PVec(_c)
-   A = inplace_array_1d(PAROPT_NPY_SCALAR, nwcon*nwblock*nwblock,
-                        <void*>_A)
+   try:
+      x = _init_PVec(_x)
+      c = _init_PVec(_c)
+      A = inplace_array_1d(PAROPT_NPY_SCALAR, nwcon*nwblock*nwblock,
+                           <void*>_A)
 
-   (<object>_self).addSparseInnerProduct(alpha, x, c, A)
+      (<object>_self).addSparseInnerProduct(alpha, x, c, A)
+   except:
+      tb = traceback.format_exc()
+      print(tb)
+      exit(0)
+
    return
 
 cdef class pyParOptProblemBase:
@@ -1045,6 +1107,7 @@ cdef class pyTrustRegion(pyParOptProblemBase):
       self.tr.update(vec.ptr, <ParOptScalar*>z.data, v,
                      &infeas, &l1, &linfty)
       return infeas, l1, linfty
+<<<<<<< HEAD
 
    def getGradients(self):
       cdef int m = 0
@@ -1058,3 +1121,8 @@ cdef class pyTrustRegion(pyParOptProblemBase):
          Av.append(_init_PVec(A[i]))
 
       return _init_PVec(g), Av
+   
+   def setOutputFile(self, fname):
+      cdef char *filename = convert_to_chars(fname)
+      if filename is not None:
+         self.tr.setOutputFile(filename)

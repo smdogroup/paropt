@@ -86,6 +86,8 @@ ParOptProblem(_prob->getMPIComm()){
   // Create the temporary vector
   s = prob->createDesignVec();  s->incref();
   t = prob->createDesignVec();  t->incref();
+  // Set the file pointer to NULL
+  fp = NULL;
 }
 
 /*
@@ -140,12 +142,43 @@ void ParOptTrustRegion::setTrustRegionBounds( double tr,
 }
 
 /*
+  Set the output file (only on the root proc)
+*/
+void ParOptTrustRegion::setOutputFile( const char *filename ){
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+  if (rank == 0){
+    if (fp && fp != stdout){
+      fclose(fp);
+    }
+    fp = fopen(filename, "w");
+  }
+}
+/*
+  Write the parameters to the output file
+*/
+void ParOptTrustRegion::printOptionsSummary( FILE *fp ){
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+  if (rank == 0){
+    fprintf(fp, "ParOptTrustRegion options summary:\n");
+    fprintf(fp, "%-30s %15d\n", "print_level", print_level);
+    fprintf(fp, "%-30s %15g\n", "tr_size", tr_size);
+    fprintf(fp, "%-30s %15g\n", "tr_min_size", tr_min_size);
+    fprintf(fp, "%-30s %15g\n", "tr_max_size", tr_max_size);
+    fprintf(fp, "%-30s %15g\n", "eta", eta);
+    fprintf(fp, "%-30s %15g\n", "penalty_value", penalty_value);
+    fprintf(fp, "%-30s %15g\n", "bound_relax", bound_relax);
+    fprintf(fp, "\n");
+  }
+}
+/*
   Initialize the problem
 */
 void ParOptTrustRegion::initialize(){
   // Get the lower/upper bounds
   prob->getVarsAndBounds(xk, lb, ub);
-
+  
   // Set the lower/upper bounds for the trust region
   setTrustRegionBounds(tr_size, xk, lb, ub, lk, uk);
 
@@ -235,7 +268,7 @@ void ParOptTrustRegion::update( ParOptVec *xt,
       Ak[i]->copyValues(At[i]);
     }
   }
-
+  
   // Set the new trust region radius
   if (RealPart(rho) < 0.25){
     tr_size = max2(0.25*tr_size, tr_min_size);
@@ -251,10 +284,20 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   int mpi_rank;
   MPI_Comm_rank(prob->getMPIComm(), &mpi_rank);
   if (mpi_rank == 0){
-    printf("%12s %9s %9s %9s %9s %9s %9s\n",
-           "fobj", "infeas", "l1", "linfty", "tr", "rho", "mod red.");
-    printf("%12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e\n",
-           fk, *infeas, *l1, *linfty, tr_size, rho, model_reduc);
+    if (fp){
+      printOptionsSummary(fp);
+      fprintf(fp, "%12s %9s %9s %9s %9s %9s %9s\n",
+             "fobj", "infeas", "l1", "linfty", "tr", "rho", "mod red.");
+      fprintf(fp, "%12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e\n",
+             fk, *infeas, *l1, *linfty, tr_size, rho, model_reduc);
+      fflush(fp);
+    }
+    else {
+      printf("%12s %9s %9s %9s %9s %9s %9s\n",
+             "fobj", "infeas", "l1", "linfty", "tr", "rho", "mod red.");
+      printf("%12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e\n",
+             fk, *infeas, *l1, *linfty, tr_size, rho, model_reduc);
+    }
   }
 }
 
@@ -372,6 +415,12 @@ void ParOptTrustRegion::getVarsAndBounds( ParOptVec *x, ParOptVec *l,
   x->copyValues(xk);
   l->copyValues(lk);
   u->copyValues(uk);
+  
+  ParOptScalar *lvals, *uvals;
+  int size = u->getArray(&uvals);
+  l->getArray(&lvals);
+  int mpi_rank;
+  MPI_Comm_rank(prob->getMPIComm(), &mpi_rank);  
 }
 
 /*
