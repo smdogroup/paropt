@@ -1086,6 +1086,14 @@ void ParOpt::setPenaltyGamma( const double *gamma ){
   }
 }
 
+/* 
+   Retrieve the gamma penalty parameter
+ */
+int ParOpt::getPenaltyGamma( const double **_penalty_gamma ){
+  if (_penalty_gamma){ *_penalty_gamma = penalty_gamma;}
+  return ncon;
+}
+
 /*
   Set the frequency with which the Hessian is updated
 */

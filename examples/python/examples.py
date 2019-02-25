@@ -3,6 +3,7 @@ from __future__ import print_function
 import numpy as np
 from mpi4py import MPI
 import matplotlib.pyplot as plt
+import argparse
 
 # Import ParOpt
 from paropt import ParOpt
@@ -139,7 +140,7 @@ class Problem4(ParOpt.pyParOptProblem):
         A[0][1] = 1.0
         return fail
 
-def plot_it_all(problem):
+def plot_it_all(problem, use_tr=False):
     '''
     Plot a carpet plot with the search histories for steepest descent,
     conjugate gradient and BFGS from the same starting point.
@@ -149,7 +150,6 @@ def plot_it_all(problem):
     max_lbfgs = 20
     opt = ParOpt.pyParOpt(problem, max_lbfgs, ParOpt.BFGS)
     opt.checkGradients(1e-6)
-    #opt.setGradientCheckFrequency(10, 1e-6)
 
     # Create the data for the carpet plot
     n = 150
@@ -176,10 +176,31 @@ def plot_it_all(problem):
     for k in range(len(colours)):
         # Optimize the problem
         problem.x_hist = []
-        opt.resetQuasiNewtonHessian()
-        opt.setInitBarrierParameter(0.1)
-        opt.setUseLineSearch(1)
-        opt.optimize()
+
+        if use_tr:
+            # Create the quasi-Newton Hessian approximation
+            qn = ParOpt.LBFGS(problem, subspace=2)
+
+            # Create the trust region problem
+            tr_init_size = 0.05
+            tr_min_size = 1e-6
+            tr_max_size = 10.0
+            tr_eta = 0.25
+            tr_penalty_gamma = 10.0
+            tr = ParOpt.pyTrustRegion(problem, qn, tr_init_size,
+                                      tr_min_size, tr_max_size,
+                                      tr_eta, tr_penalty_gamma)
+
+            # Set up the optimization problem
+            tr_opt = ParOpt.pyParOpt(tr, 2, ParOpt.BFGS)
+    
+            # Optimize
+            tr.optimize(tr_opt)
+        else:
+            opt.resetQuasiNewtonHessian()
+            opt.setInitBarrierParameter(0.1)
+            opt.setUseLineSearch(1)
+            opt.optimize()
 
         # Copy out the steepest descent points
         sd = np.zeros((2, len(problem.x_hist)))
@@ -197,5 +218,15 @@ def plot_it_all(problem):
 
 problems = [Problem1(), Problem2(), Problem3(), Problem4()]
 
+# Parse the arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('--optimizer', type=str, default='ip',
+                    help='optimizer type')
+args = parser.parse_args()
+
+use_tr = False
+if args.optimizer != 'ip':
+    use_tr = True
+
 for problem in problems:
-    plot_it_all(problem)
+    plot_it_all(problem, use_tr)
