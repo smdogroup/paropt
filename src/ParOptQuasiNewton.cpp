@@ -549,13 +549,12 @@ int ParOptLSR1::update( ParOptVec *s, ParOptVec *y ){
   int update_type = 0;
 
   // Set the diagonal entries of the matrix
-  ParOptScalar yTy = y->dot(y);
   ParOptScalar sTy = s->dot(y);
-
-  // Set the diagonal components on the first time through
-  if (msub == 0){
-    b0 = yTy/sTy;
-  }
+  ParOptScalar sTs = s->dot(s);
+  ParOptScalar yTy = y->dot(y);
+  
+  // Set the diagonal components to the identity matrix
+  b0 = 1.0;
 
   // Set up the new values
   if (msub < msub_max){

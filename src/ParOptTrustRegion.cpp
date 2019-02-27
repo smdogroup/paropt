@@ -535,7 +535,7 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
         model_con_infeas[j] = -min2(cj, 0.0);
       }
     }
-
+    
     // Update the trust region based on the performance at the new
     // point.
     double infeas, l1, linfty;

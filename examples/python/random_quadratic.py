@@ -13,7 +13,7 @@ import argparse
 # Import matplotlib
 import matplotlib.pylab as plt
 
-# Create the rosenbrock function class
+# Random quadratic problem class
 class Quadratic(ParOpt.pyParOptProblem):
     def __init__(self, A, b, Acon, bcon):
         # Set the communicator pointer
@@ -46,7 +46,7 @@ class Quadratic(ParOpt.pyParOptProblem):
         # Evaluate the objective and constraints
         fail = 0
         con = np.zeros(1)
-        
+
         fobj = 0.5*np.dot(x, np.dot(self.A, x)) + np.dot(self.b, x)
         con[0] = np.dot(x, self.Acon) + self.bcon
         return fail, fobj, con
@@ -54,10 +54,10 @@ class Quadratic(ParOpt.pyParOptProblem):
     def evalObjConGradient(self, x, g, A):
         '''Evaluate the objective and constraint gradient'''
         fail = 0
-        
+
         # The objective gradient
         g[:] = np.dot(self.A, x) + self.b
-        
+
         # The constraint gradient
         A[0][:] = self.Acon[:]
 
@@ -96,25 +96,28 @@ def solve_problem(eigs, filename=None, use_stdout=False, use_tr=False):
 
     if use_tr:
         # Create the trust region problem
-        max_lbfgs = 40
+        max_lbfgs = 10
         tr_init_size = 0.05
         tr_min_size = 1e-6
         tr_max_size = 10.0
         tr_eta = 0.25
         tr_penalty_gamma = 10.0
-        # qn = ParOpt.LSR1(problem, subspace=max_lbfgs)
-        qn = ParOpt.LSR1(problem, subspace=max_lbfgs)
+
+        qn = ParOpt.LBFGS(problem, subspace=max_lbfgs)
         tr = ParOpt.pyTrustRegion(problem, qn, tr_init_size,
                                   tr_min_size, tr_max_size,
                                   tr_eta, tr_penalty_gamma)
         tr.setMaxTrustRegionIterations(500)
 
         # Set up the optimization problem
-        tr_opt = ParOpt.pyParOpt(tr, 1, ParOpt.BFGS)
+        tr_opt = ParOpt.pyParOpt(tr, 10, ParOpt.BFGS)
         if filename is not None and use_stdout is False:
             tr_opt.setOutputFile(filename)
 
-        tr_opt.setAbsOptimalityTol(1e-9)
+        # Set the tolerances
+        tr_opt.setAbsOptimalityTol(1e-8)
+        tr_opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
+        tr_opt.setStartAffineStepMultiplierMin(0.01)
 
         # Set optimization parameters
         tr_opt.setArmijoParam(1e-5)
@@ -123,10 +126,11 @@ def solve_problem(eigs, filename=None, use_stdout=False, use_tr=False):
         tr_opt.setBarrierFraction(0.1)
 
         # optimize
+        tr.setOutputFile(filename + '_tr')
         tr.optimize(tr_opt)
     else:
         # Set up the optimization problem
-        max_lbfgs = 40
+        max_lbfgs = 10
         opt = ParOpt.pyParOpt(problem, max_lbfgs, ParOpt.BFGS)
         if filename is not None and use_stdout is False:
             opt.setOutputFile(filename)
