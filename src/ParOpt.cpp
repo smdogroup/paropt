@@ -4087,16 +4087,16 @@ void ParOpt::initAndCheckDesignAndBounds(){
   MPI_Comm_rank(comm, &rank);
 
   // Print the results of the warnings
-  if (rank == 0){
+  if (rank == 0 && outfp){
     if (check_flag & 1){
-      fprintf(stderr, "ParOpt Warning: Variable bounds are inconsistent\n");
+      fprintf(outfp, "ParOpt Warning: Variable bounds are inconsistent\n");
     }
     if (check_flag & 2){
-      fprintf(stderr,
+      fprintf(outfp,
               "ParOpt Warning: Variables may be too close to lower bound\n");
     }
     if (check_flag & 4){
-      fprintf(stderr,
+      fprintf(outfp,
               "ParOpt Warning: Variables may be too close to upper bound\n");
     }
   }
