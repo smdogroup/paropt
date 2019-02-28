@@ -15,7 +15,7 @@ from openmdao.utils.general_utils import warn_deprecation
 
 from six import iteritems
 
-_optimizers = ['Interior Point']#, 'Trust Region']
+_optimizers = ['Interior Point', 'Trust Region']
 _qn_types = ['BFGS', 'SR1', 'No Hessian approx']
 _norm_types = ['Infinity', 'L1', 'L2']
 _barrier_types = ['Monotone', 'Mehrotra', 'Complementarity fraction']
@@ -60,14 +60,14 @@ class ParOptDriver(Driver):
         """
         Declare options before kwargs are processed in the init method.
         """
-        
+
         self.options.declare('optimizer', 'Interior Point', values=_optimizers,
                              desc='Type of optimization algorithm')
         self.options.declare('tol', 1.0e-6, lower=0.0,
                              desc='Tolerance for termination')
         self.options.declare('maxiter', 200, lower=0, types=int,
                              desc='Maximum number of iterations')
-        
+
         desc = 'Finite difference step size. If None, no gradient check will be performed.'
         self.options.declare('dh', None, lower=1e-30,
                              desc=desc, allow_none=True)
@@ -151,6 +151,38 @@ class ParOptDriver(Driver):
         self.options.declare('grad_check_freq', None, allow_none=True,
                              desc='Gradient check frequency: array([freq, step_size])')
 
+        # Set options for the trust region method
+        self.options.declare('tr_adaptive_gamma_update', default=True, types=bool,
+                             desc='Use the adaptive penalty algorithm')
+        self.options.declare('tr_min_size', default=1e-6, lower=0.0,
+                             desc='Minimum trust region radius size')
+        self.options.declare('tr_max_size', default=10.0, lower=0.0,
+                             desc='Maximum trust region radius size')
+        self.options.declare('tr_init_size', default=1.0, lower=0.0,
+                             desc='Initial trust region radius size')
+        self.options.declare('tr_eta', default=0.25, lower=0.0, upper=1.0,
+                             desc='Trust region radius acceptance ratio')
+        self.options.declare('tr_penalty_gamma', default=10.0, lower=0.0,
+                             desc='Trust region penalty parameter value')
+        self.options.declare('tr_penalty_gamma_max', default=1e4, lower=0.0,
+                             desc='Trust region maximum penalty parameter value')
+        self.options.declare('tr_max_iterations', default=200, types=int,
+                             desc='Maximum trust region iterations')
+
+        # Trust region convergence tolerances
+        self.options.declare('tr_infeas_tol', default=1e-5, lower=0.0,
+                             desc='Trust region infeasibility tolerance (l1 norm)')
+        self.options.declare('tr_l1_tol', default=1e-5, lower=0.0,
+                             desc='Trust region optimality tolerance (l1 norm)')
+        self.options.declare('tr_linfty_tol', default=1e-5, lower=0.0,
+                             desc='Trust region optimality tolerance (l-infinity norm)')
+
+        # Trust region output file name
+        self.options.declare('tr_output_file', None, allow_none=True,
+                             desc='Trust region output file name')
+        self.options.declare('tr_write_output_freq', default=10, types=int,
+                             desc='Trust region output frequency')
+
         return
 
     def _setup_driver(self, problem):
@@ -167,17 +199,14 @@ class ParOptDriver(Driver):
          # TODO:
          # - logic for different opt algorithms
          # - treat equality constraints
-        
+
         super(ParOptDriver, self)._setup_driver(problem)
-        opt_type = self.options['optimizer'] # Not currently used
+        opt_type = self.options['optimizer']
 
         # Raise error if multiple objectives are provided
         if len(self._objs) > 1:
             msg = 'ParOpt currently does not support multiple objectives.'
             raise RuntimeError(msg.format(self.__class__.__name__))
-
-        # Create the ParOptProblem from the OpenMDAO problem
-        self.paropt_problem = ParOptProblem(problem)
 
         # Set the limited-memory options
         max_qn_subspace = self.options['max_qn_subspace']
@@ -190,9 +219,56 @@ class ParOptDriver(Driver):
         else:
             qn_type = ParOpt.BFGS
 
-        # Create the ParOpt object
-        opt = ParOpt.pyParOpt(self.paropt_problem, max_qn_subspace,
-                              qn_type)
+        # Create the ParOptProblem from the OpenMDAO problem
+        self.paropt_problem = ParOptProblem(problem)
+
+        # Create the problem
+        if opt_type == 'Trust Region':
+            # For the trust region method, you have to use a Hessian
+            # approximation
+            if qn_type == ParOpt.NO_HESSIAN_APPROX:
+                qn = ParOpt.BFGS
+            if max_qn_subspace < 1:
+                max_qn_subspace = 1
+
+            # Create the quasi-Newton method
+            qn = ParOpt.LBFGS(self.paropt_problem, subspace=max_qn_subspace)
+
+            # Retrieve the options for the trust region problem
+            tr_min_size = self.options['tr_min_size']
+            tr_max_size = self.options['tr_max_size']
+            tr_eta = self.options['tr_eta']
+            tr_penalty_gamma = self.options['tr_penalty_gamma']
+            tr_init_size = self.options['tr_init_size']
+
+            # Create the trust region sub-problem
+            tr_init_size = min(tr_max_size, max(tr_init_size, tr_min_size))
+            tr = ParOpt.pyTrustRegion(self.paropt_problem, qn, tr_init_size,
+                                      tr_min_size, tr_max_size,
+                                      tr_eta, tr_penalty_gamma)
+
+            # Set the penalty parameter
+            tr.setPenaltyGammaMax(self.options['tr_penalty_gamma_max'])
+            tr.setMaxTrustRegionIterations(self.options['tr_max_iterations'])
+
+            # Trust region convergence tolerances
+            infeas_tol = self.options['tr_infeas_tol']
+            l1_tol = self.options['tr_l1_tol']
+            linfty_tol = self.options['tr_linfty_tol']
+            tr.setTrustRegionTolerances(infeas_tol, l1_tol, linfty_tol)
+
+            # Trust region output file name
+            if self.options['tr_output_file'] is not None:
+                tr.setOutputFile(self.options['tr_output_file'])
+                tr.setOutputFrequency(self.options['tr_write_output_freq'])
+
+            # Create the interior-point optimizer for the trust region sub-problem
+            opt = ParOpt.pyParOpt(tr, 0, ParOpt.NO_HESSIAN_APPROX)
+            self.tr = tr
+        else:
+            # Create the ParOpt object with the interior point method
+            opt = ParOpt.pyParOpt(self.paropt_problem, max_qn_subspace,
+                                  qn_type)
 
         # Apply the options to ParOpt
         # Currently incomplete
@@ -212,7 +288,7 @@ class ParOptDriver(Driver):
             elif self.options['barrier_strategy'] == 'Complementarity fraction':
                 barrier_strategy = ParOpt.COMPLEMENTARITY_FRACTION
             opt.setBarrierStrategy(barrier_strategy)
-            
+
         # Set starting point strategy
         if self.options['start_strategy']:
             if self.options['barrier_strategy'] == 'None':
@@ -258,7 +334,7 @@ class ParOptDriver(Driver):
 
         if self.options['use_sequential_linear']:
             opt.setSequentialLinearMethod(self.options['use_sequential_linear'])
-            
+
         if self.options['affine_step_multiplier_min']:
             opt.setStartAffineStepMultiplierMin(self.options['affine_step_multiplier_min'])
 
@@ -333,7 +409,7 @@ class ParOptDriver(Driver):
         # This opt object will be used again when 'run' is executed
         self.opt = opt
 
-        return 
+        return
 
     def run(self):
         """
@@ -347,7 +423,10 @@ class ParOptDriver(Driver):
         # Note: failure flag is always False
 
         # Run the optimization, everything else has been setup
-        self.opt.optimize()
+        if self.options['optimizer'] == 'Trust Region':
+            self.tr.optimize(self.opt)
+        else:
+            self.opt.optimize()
 
         return False
 
@@ -363,12 +442,10 @@ class ParOptProblem(ParOpt.pyParOptProblem):
         """
 
         self.problem = problem
-        
+
         self.comm = self.problem.comm
         self.nvars = None
         self.ncon = None
-
-        self.x_hist = []
 
         # Get the design variable names
         self.dvs = [name for name, meta in iteritems(self.problem.model.get_design_vars())]
@@ -438,7 +515,7 @@ class ParOptProblem(ParOpt.pyParOptProblem):
             break
 
         fail = 0
-        
+
         return fail, fobj, con
 
     def evalObjConGradient(self, x, g, A):

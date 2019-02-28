@@ -6,16 +6,35 @@
 */
 static const int NUM_TRUST_REGION_PARAMS = 10;
 static const char *trust_regions_parameter_help[][2] = {
-  {"tr_size", ""},
-  {"tr_min_size", ""},
-  {"tr_max_size", ""},
-  {"eta", ""},
-  {"bound_relax", ""},
-  {"adaptive_gamma_update", ""},
-  {"max_tr_iterations", ""},
-  {"l1_tol", ""},
-  {"linfty_tol", ""},
-  {"infeas_tol", ""}};
+  {"tr_size",
+   "Float: Initial trust region radius size"},
+
+  {"tr_min_size",
+   "Float: Minimum trust region radius size"},
+
+  {"tr_max_size",
+   "Float: Maximum trust region radius size"},
+
+  {"eta",
+   "Float: Trust region step acceptance ratio of actual/predicted improvement"},
+
+  {"bound_relax",
+   "Float: Relax the bounds by this tolerance when computing KKT errors"},
+
+  {"adaptive_gamma_update",
+   "Boolean: Adaptively update the trust region "},
+
+  {"max_tr_iterations",
+   "Integer: Maximum number of trust region radius steps"},
+
+  {"l1_tol",
+   "Float: Convergence tolerance for the optimality error in the l1 norm"},
+
+  {"linfty_tol",
+   "Float: Convergence tolerance for the optimality error in the l-infinity norm"},
+
+  {"infeas_tol",
+   "Float: Convergence tolerance for feasibility in the l1 norm"}};
 
 // Helper functions
 inline ParOptScalar min2( ParOptScalar a, ParOptScalar b ){
@@ -220,7 +239,7 @@ void ParOptTrustRegion::printOptionSummary( FILE *fp ){
   int rank;
   MPI_Comm_rank(comm, &rank);
   if (rank == 0){
-    fprintf(fp, "\nParOptTrustRegion options summary:\n");
+    fprintf(fp, "ParOptTrustRegion options summary:\n");
     fprintf(fp, "%-30s %15g\n", "tr_size", tr_size);
     fprintf(fp, "%-30s %15g\n", "tr_min_size", tr_min_size);
     fprintf(fp, "%-30s %15g\n", "tr_max_size", tr_max_size);
@@ -237,7 +256,6 @@ void ParOptTrustRegion::printOptionSummary( FILE *fp ){
     fprintf(fp, "%-30s %15g\n", "linfty_tol", linfty_tol);
     fprintf(fp, "%-30s %15g\n", "infeas_tol", infeas_tol);
     fprintf(fp, "%-30s %15g\n", "gamma_max", gamma_max);
-    fprintf(fp, "\n");
   }
 }
 
@@ -535,7 +553,7 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
         model_con_infeas[j] = -min2(cj, 0.0);
       }
     }
-    
+
     // Update the trust region based on the performance at the new
     // point.
     double infeas, l1, linfty;

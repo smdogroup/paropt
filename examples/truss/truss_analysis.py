@@ -1,4 +1,4 @@
-# Import numpy 
+# Import numpy
 import numpy as np
 import scipy.linalg as linalg
 
@@ -12,7 +12,7 @@ from mpi4py import MPI
 from paropt import ParOpt
 
 class TrussAnalysis(ParOpt.pyParOptProblem):
-    def __init__(self, conn, xpos, loads, bcs, 
+    def __init__(self, conn, xpos, loads, bcs,
                  E, rho, m_fixed, A_min, A_max, A_init=None,
                  Area_scale=1e-3, mass_scale=None):
         '''
@@ -22,7 +22,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         # Initialize the super class
         nvars = len(conn)
         ncon = 1
-        super(TrussAnalysis, self).__init__(MPI.COMM_SELF, 
+        super(TrussAnalysis, self).__init__(MPI.COMM_SELF,
                                             nvars, ncon)
 
         # Store pointer to the data
@@ -64,12 +64,12 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         self.f = np.zeros(nvars)
         self.u = np.zeros(nvars)
         self.phi = np.zeros(nvars)
-        
+
         # Keep track of the different counts
         self.fevals = 0
         self.gevals = 0
         self.hevals = 0
-            
+
         return
 
     def getVarsAndBounds(self, x, lb, ub):
@@ -82,7 +82,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
     def evalSparseCon(self, x, con):
         '''Evaluate the sparse constraints'''
         return
-    
+
     def addSparseJacobian(self, alpha, x, px, con):
         '''Compute the Jacobian-vector product con = alpha*J(x)*px'''
         return
@@ -94,12 +94,12 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
     def addSparseInnerProduct(self, alpha, x, c, A):
         '''Add the results from the product J(x)*C*J(x)^{T} to A'''
         return
-    
+
     def evalObjCon(self, x):
         '''
         Evaluate the objective (compliance) and constraint (mass)
         '''
-        
+
         # Add the number of function evaluations
         self.fevals += 1
 
@@ -123,9 +123,9 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         # Solve the resulting linear system of equations
         linalg.solve_triangular(self.L, self.u, lower=True,
                                 trans='N', overwrite_b=True)
-        linalg.solve_triangular(self.L, self.u, lower=True, 
+        linalg.solve_triangular(self.L, self.u, lower=True,
                                 trans='T', overwrite_b=True)
-        
+
         # Compute the compliance objective
         obj = np.dot(self.u, self.f)
         if self.obj_scale is None:
@@ -161,7 +161,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         '''
         Evaluate the derivative of the compliance and mass
         '''
-        
+
         # Add the number of gradient evaluations
         self.gevals += 1
 
@@ -171,7 +171,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Retrieve the area variables
         A = self.Area_scale*x[:]
-        
+
         # Add up the contribution to the gradient
         index = 0
         for bar, A_bar in zip(self.conn, A):
@@ -185,7 +185,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             Le = np.sqrt(xd**2 + yd**2)
             C = xd/Le
             S = yd/Le
-            
+
             # Add the contribution to the gradient of the mass
             Acon[0][index] += self.rho*Le
 
@@ -195,10 +195,10 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
                  [C*S, S**2, -C*S, -S**2],
                  [-C**2, -C*S, C**2, C*S],
                  [-C*S, -S**2, C*S, S**2]])
-            
+
             # Create a list of the element variables for convenience
             elem_vars = [2*n1, 2*n1+1, 2*n2, 2*n2+1]
-            
+
             # Add the product to the derivative of the compliance
             v = 0.0
             for i in range(4):
@@ -224,7 +224,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Add the number of function evaluations
         self.hevals += 1
-        
+
         # Zero the hessian-vector product
         hvec[:] = 0.0
 
@@ -239,9 +239,9 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         # Solve the resulting linear system of equations
         linalg.solve_triangular(self.L, self.phi, lower=True,
                                 trans='N', overwrite_b=True)
-        linalg.solve_triangular(self.L, self.phi, lower=True, 
+        linalg.solve_triangular(self.L, self.phi, lower=True,
                                 trans='T', overwrite_b=True)
-        
+
         # Add up the contribution to the gradient
         index = 0
         for bar, A_bar in zip(self.conn, A):
@@ -255,23 +255,23 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             Le = np.sqrt(xd**2 + yd**2)
             C = xd/Le
             S = yd/Le
-            
+
             # Compute the element stiffness matrix
             Ke = (self.E/Le)*np.array(
                 [[C**2, C*S, -C**2, -C*S],
                  [C*S, S**2, -C*S, -S**2],
                  [-C**2, -C*S, C**2, C*S],
                  [-C*S, -S**2, C*S, S**2]])
-            
+
             # Create a list of the element variables for convenience
             elem_vars = [2*n1, 2*n1+1, 2*n2, 2*n2+1]
-            
+
             # Add the product to the derivative of the compliance
             for i in range(4):
                 for j in range(4):
                     hvec[index] += \
                         2.0*self.phi[elem_vars[i]]*self.u[elem_vars[j]]*Ke[i, j]
-            
+
             index += 1
 
         hvec *= (self.Area_scale/self.obj_scale)
@@ -283,7 +283,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         '''
         Given the connectivity, nodal locations and material properties,
         assemble the stiffness matrix
-        
+
         input:
         A:   the bar area
 
@@ -306,30 +306,30 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
             Le = np.sqrt(xd**2 + yd**2)
             C = xd/Le
             S = yd/Le
-        
+
             # Compute the element stiffness matrix
             Ke = self.E*A_bar/Le*np.array(
                 [[C**2, C*S, -C**2, -C*S],
                  [C*S, S**2, -C*S, -S**2],
                  [-C**2, -C*S, C**2, C*S],
                  [-C*S, -S**2, C*S, S**2]])
-        
+
             # Create a list of the element variables for convenience
             elem_vars = [2*n1, 2*n1+1, 2*n2, 2*n2+1]
-        
+
             # Add the element stiffness matrix to the global stiffness
             # matrix
             for i in range(4):
                 for j in range(4):
                     K[elem_vars[i], elem_vars[j]] += Ke[i, j]
-                    
+
         return
 
     def assembleLoadVec(self, f):
         '''
         Create the load vector and populate the vector with entries
         '''
-        
+
         f[:] = 0.0
         for node in self.loads:
             # Add the values to the nodal locations
@@ -339,7 +339,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         return
 
     def applyBCs(self, K, f):
-        ''' 
+        '''
         Apply the boundary conditions to the stiffness matrix and load
         vector
         '''
@@ -409,7 +409,7 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
 
         # Solve the resulting linear system of equations
         self.u = np.linalg.solve(self.K, self.f)
-        
+
         forces = self.computeForces(A, self.u)
 
         print('Compliance:     %15.10f'%(0.5*np.dot(self.u, self.f)))
@@ -438,18 +438,18 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
         self.assembleMat(A, self.K)
         self.assembleLoadVec(self.f)
         self.applyBCs(self.K, self.f)
-            
+
         # Solve the resulting linear system of equations
         self.u = np.linalg.solve(self.K, self.f)
-        
+
         index = 0
         for bar in self.conn:
             n1 = bar[0]
             n2 = bar[1]
 
             if A[index] >= tol:
-                plt.plot([self.xpos[2*n1], self.xpos[2*n2]], 
-                         [self.xpos[2*n1+1], self.xpos[2*n2+1]], '-ko', 
+                plt.plot([self.xpos[2*n1], self.xpos[2*n2]],
+                         [self.xpos[2*n1+1], self.xpos[2*n2+1]], '-ko',
                          linewidth=5*(A[index]/max(A)))
             index += 1
 
@@ -480,21 +480,21 @@ class TrussAnalysis(ParOpt.pyParOptProblem):
                 xv = [self.xpos[2*n1], self.xpos[2*n2]]
                 yv = [self.xpos[2*n1+1], self.xpos[2*n2+1]]
 
-                line, = self.ax.plot(xv, yv, '-ko', 
+                line, = self.ax.plot(xv, yv, '-ko',
                                      linewidth=A[index])
                 self.lines.append(line)
                 index += 1
- 
+
         else:
             # Set the value of the lines
             index = 0
             max_A = max(A)
-            
+
             for bar in self.conn:
-                plt.setp(self.lines[index], 
+                plt.setp(self.lines[index],
                          linewidth=5*(A[index]/max(A)))
                 index += 1
- 
+
         plt.axis('equal')
         plt.draw()
 

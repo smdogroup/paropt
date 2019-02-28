@@ -6,7 +6,7 @@ import os
 # Import the greatest common divisor code
 from fractions import gcd
 
-# Import MPI 
+# Import MPI
 import mpi4py.MPI as MPI
 
 # Import ParOpt
@@ -45,7 +45,7 @@ def get_ground_structure(N=4, M=4, L=2.5, P=10.0, n=5):
     P:      the load applied to the mesh
     '''
 
-    # First, generate a co-prime grid that will be used to 
+    # First, generate a co-prime grid that will be used to
     grid = []
     for x in range(1,n+1):
         for y in range(1,n+1):
@@ -95,7 +95,7 @@ def setup_ground_struct(N, M, L=2.5, E=70e9, rho=2700.0,
     '''
 
     # Create the ground structure
-    conn, xpos, loads, bcs = get_ground_structure(N=N, M=M, 
+    conn, xpos, loads, bcs = get_ground_structure(N=N, M=M,
                                                   L=L, P=10e3)
 
     # Set the scaling for the material variables
@@ -108,43 +108,42 @@ def setup_ground_struct(N, M, L=2.5, E=70e9, rho=2700.0,
     mass_scale = L*rho
 
     # Create the truss topology optimization object
-    truss = TrussAnalysis(conn, xpos, loads, bcs, 
+    truss = TrussAnalysis(conn, xpos, loads, bcs,
                           E, rho, mass_fixed, A_min, A_max,
                           Area_scale=Area_scale, mass_scale=mass_scale)
 
     # Set the options
-    truss.setInequalityOptions(dense_ineq=False, 
+    truss.setInequalityOptions(dense_ineq=False,
                                use_lower=True,
                                use_upper=True)
 
     return truss
 
-def paropt_truss(truss, use_hessian=False, 
+def paropt_truss(truss, use_hessian=False,
                  prefix='results'):
     '''
     Optimize the given truss structure using ParOpt
     '''
 
     # Create the optimizer
-    max_qn_subspace = 30
+    max_qn_subspace = 10
     opt = ParOpt.pyParOpt(truss, max_qn_subspace, ParOpt.BFGS)
 
     # Set the optimality tolerance
     opt.setAbsOptimalityTol(1e-6)
-
     opt.setBarrierStrategy(ParOpt.COMPLEMENTARITY_FRACTION)
 
     # Set the Hessian-vector product iterations
     if use_hessian:
         # opt.setUseLineSearch(0)
         opt.setUseHvecProduct(1)
-        opt.setGMRESSubspaceSize(100)
+        opt.setGMRESSubspaceSize(25)
         opt.setNKSwitchTolerance(1.0)
         opt.setEisenstatWalkerParameters(0.01, 0.0)
         opt.setGMRESTolerances(1.0, 1e-30)
     else:
         opt.setUseHvecProduct(0)
-        
+
     # Set the output level
     opt.setOutputLevel(1)
 
@@ -155,7 +154,7 @@ def paropt_truss(truss, use_hessian=False,
     # Set the output file to use
     fname = os.path.join(prefix, 'truss_paropt%dx%d.out'%(N, M))
     opt.setOutputFile(fname)
-    
+
     # Optimize the truss
     opt.optimize()
 
@@ -194,11 +193,11 @@ def pyopt_truss(truss, optimizer='snopt', options={}):
     lower = np.zeros(n)
     upper = np.zeros(n)
     truss.getVarsAndBounds(x0, lower, upper)
-    
+
     # Set the variable bounds and initial values
     prob.addVarGroup('x', n, value=x0, lower=lower,
                      upper=upper)
-    
+
     # Set the constraints
     prob.addConGroup('con', 1, lower=0.0, upper=0.0)
 
@@ -225,7 +224,7 @@ def get_performance_profile(r, tau_max):
 
     # Find the first break-point at which tau >= 1.0
     n = 0
-    while n < len(r) and r[n] <= 1.0: 
+    while n < len(r) and r[n] <= 1.0:
         n += 1
 
     # Add the first part of the profile to the plot
@@ -244,16 +243,16 @@ def get_performance_profile(r, tau_max):
 
     return tau, rho
 
-# Parse the command line arguments 
+# Parse the command line arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('--N', type=int, default=4, 
+parser.add_argument('--N', type=int, default=4,
                     help='Nodes in x-direction')
-parser.add_argument('--M', type=int, default=3, 
+parser.add_argument('--M', type=int, default=3,
                     help='Nodes in y-direction')
-parser.add_argument('--profile', action='store_true', 
+parser.add_argument('--profile', action='store_true',
                     default=False, help='Performance profile')
-parser.add_argument('--use_hessian', 
-                    action='store_true', default=False, 
+parser.add_argument('--use_hessian',
+                    action='store_true', default=False,
                     help='Use the exact Hessian-vector products')
 parser.add_argument('--optimizer', default='None',
                     help='Optimizer name from pyOptSparse')
@@ -292,7 +291,11 @@ if profile:
     # Set the trusses that will be optimized
     trusses = [[3, 3], [4, 3], [5, 3], [6, 3],
                [4, 4], [5, 4], [6, 4], [7, 4],
-               [5, 5], [6, 5], [7, 5], [8, 5]]
+               [5, 5], [6, 5], [7, 5], [8, 5],
+               [8, 6], [8, 7], [8, 8], [9, 5],
+               [9, 6], [9, 7], [9, 8], [9, 9],
+               [10, 5], [10, 6], [10, 7], [10, 8],
+               [10, 9], [10, 10]]
 
     # Perform the optimization with and without the Hessian
     if optimizer is 'None':
@@ -320,9 +323,10 @@ if profile:
         # Set the values of N/M
         N = vals[0]
         M = vals[1]
-            
+
         print('Optimizing truss (%d x %d) ...'%(N, M))
-            # Optimize each of the trusses
+
+        # Optimize each of the trusses
         truss = setup_ground_struct(N, M)
         t0 = MPI.Wtime()
         if optimizer is 'None':
@@ -330,11 +334,11 @@ if profile:
                                use_hessian=use_hessian)
 
             # Get the optimized point
-            x = opt.getOptimizedPoint()
+            x, z, zw, zl, zu = opt.getOptimizedPoint()
         else:
             # Read out the options from the dictionary of options
             options = all_options[optimizer]
-            
+
             # Set the output file
             filename = os.path.join(prefix, 'output_%dx%d.out'%(N, M))
             options[outfile_name] = filename
@@ -358,8 +362,8 @@ if profile:
         # Plot the truss
         filename = os.path.join(prefix, 'opt_truss%dx%d.pdf'%(N, M))
         if x is not None:
-            truss.plotTruss(x, tol=1e-1, filename=filename) 
-            
+            truss.plotTruss(x, tol=1e-1, filename=filename)
+
         # Record the performance of the algorithm
         fp.write('%d %d %d %d %d %d %e\n'%(
                 index, len(truss.conn),
@@ -367,7 +371,7 @@ if profile:
                 truss.fevals + truss.hevals, t0))
         fp.flush()
         index += 1
-    
+
     # Close the file
     fp.close()
 
@@ -377,24 +381,24 @@ if profile:
     # Read the performance values from each file
     perform = 1e3*np.ones((len(trusses), len(profiles)))
     index = 0
-    for prefix in profiles:
+    for index, prefix in enumerate(profiles):
         fname = os.path.join(prefix, 'performance_profile.dat')
-        perf = np.loadtxt(fname)
+        if os.path.isfile(fname):
+            perf = np.loadtxt(fname)
 
-        # Set the performance metric
-        for i in range(len(trusses)):
-            perform[i, index] = perf[i, -1]
-        index += 1
+            # Set the performance metric
+            for i in range(perf.shape[0]):
+                perform[i, index] = perf[i, -1]
 
     # Create the performance profiles
     nprob = len(trusses)
     r = np.zeros(perform.shape)
-        
+
     # Compute the ratios for the best performance
     for i in range(nprob):
         best = 1.0*min(perform[i, :])
         r[i, :] = perform[i, :]/best
-                    
+
     # Plot the data
     fig = plt.figure(facecolor='w')
 
@@ -428,15 +432,15 @@ else:
     else:
         # Read out the options from the dictionary of options
         options = all_options[optimizer]
-        
+
         # Set the output file
         if outfile_name is not None:
-            options[outfile_name] = os.path.join(prefix, 
+            options[outfile_name] = os.path.join(prefix,
                                                  'output_%dx%d.out'%(N, M))
         # Optimize the truss with the specified optimizer
         opt, prob, sol = pyopt_truss(truss, optimizer=optimizer,
                                      options=options)
-        
+
         # Extract the design variable values
         x = []
         for var in sol.variables['x']:

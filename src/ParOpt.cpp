@@ -291,16 +291,23 @@ ParOpt::ParOpt( ParOptProblem *_prob,
     max_qn_subspace = qn->getMaxLimitedMemorySize();
   }
 
-  // Allocate storage for bfgs/constraint sized things
-  int zsize = 2*max_qn_subspace;
-  if (ncon > zsize){
-    zsize = ncon;
-  }
-  ztemp = new ParOptScalar[ zsize ];
+  if (max_qn_subspace > 0){
+    // Allocate storage for bfgs/constraint sized things
+    int zsize = 2*max_qn_subspace;
+    if (ncon > zsize){
+      zsize = ncon;
+    }
+    ztemp = new ParOptScalar[ zsize ];
 
-  // Allocate space for the Ce matrix
-  Ce = new ParOptScalar[ 4*max_qn_subspace*max_qn_subspace ];
-  cpiv = new int[ 2*max_qn_subspace ];
+    // Allocate space for the Ce matrix
+    Ce = new ParOptScalar[ 4*max_qn_subspace*max_qn_subspace ];
+    cpiv = new int[ 2*max_qn_subspace ];
+  }
+  else {
+    ztemp = NULL;
+    Ce = NULL;
+    cpiv = NULL;
+  }
 
   // Allocate space for the diagonal matrix components
   Cvec = prob->createDesignVec();
@@ -467,7 +474,7 @@ ParOpt::~ParOpt(){
   // Delete the temp data
   wtemp->decref();
   xtemp->decref();
-  delete [] ztemp;
+  if (ztemp){ delete [] ztemp; }
 
   // Delete the matrix
   delete [] Cw;
@@ -480,8 +487,8 @@ ParOpt::~ParOpt(){
   // Delete the various matrices
   delete [] Dmat;
   delete [] dpiv;
-  delete [] Ce;
-  delete [] cpiv;
+  if (Ce){ delete [] Ce; }
+  if (cpiv){ delete [] cpiv; }
 
   // Delete the vector of penalty parameters
   delete [] penalty_gamma;
@@ -1086,7 +1093,7 @@ void ParOpt::setPenaltyGamma( const double *gamma ){
   }
 }
 
-/* 
+/*
    Retrieve the gamma penalty parameter
  */
 int ParOpt::getPenaltyGamma( const double **_penalty_gamma ){
@@ -1320,9 +1327,9 @@ void ParOpt::setQuasiNewton( ParOptCompactQuasiNewton *_qn ){
   qn = _qn;
 
   // Free the old data
-  delete [] ztemp;
-  delete [] Ce;
-  delete [] cpiv;
+  if (ztemp){ delete [] ztemp; }
+  if (Ce){ delete [] Ce; }
+  if (cpiv){ delete [] cpiv; }
 
   // Get the maximum subspace size
   int max_qn_subspace = 0;
@@ -1330,16 +1337,23 @@ void ParOpt::setQuasiNewton( ParOptCompactQuasiNewton *_qn ){
     max_qn_subspace = qn->getMaxLimitedMemorySize();
   }
 
-  // Allocate storage for bfgs/constraint sized things
-  int zsize = 2*max_qn_subspace;
-  if (ncon > zsize){
-    zsize = ncon;
-  }
-  ztemp = new ParOptScalar[ zsize ];
+  if (max_qn_subspace > 0){
+    // Allocate storage for bfgs/constraint sized things
+    int zsize = 2*max_qn_subspace;
+    if (ncon > zsize){
+      zsize = ncon;
+    }
+    ztemp = new ParOptScalar[ zsize ];
 
-  // Allocate space for the Ce matrix
-  Ce = new ParOptScalar[ 4*max_qn_subspace*max_qn_subspace ];
-  cpiv = new int[ 2*max_qn_subspace ];
+    // Allocate space for the Ce matrix
+    Ce = new ParOptScalar[ 4*max_qn_subspace*max_qn_subspace ];
+    cpiv = new int[ 2*max_qn_subspace ];
+  }
+  else {
+    ztemp = NULL;
+    Ce = NULL;
+    cpiv = NULL;
+  }
 }
 
 /*
