@@ -54,7 +54,7 @@ ParOptProblem(_prob->getMPIComm()){
   setProblemSizes(n, m, nwcon, nwblock);
 
   // Set the quasi-Newton method
-  if (qn){
+  if (_qn){
     qn = _qn;
     qn->incref();
   }
