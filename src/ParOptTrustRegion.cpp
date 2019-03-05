@@ -1,6 +1,41 @@
 #include "ParOptTrustRegion.h"
 #include "ComplexStep.h"
 
+/*
+  Summary of the different trust region algorithm options
+*/
+static const int NUM_TRUST_REGION_PARAMS = 10;
+static const char *trust_regions_parameter_help[][2] = {
+  {"tr_size",
+   "Float: Initial trust region radius size"},
+
+  {"tr_min_size",
+   "Float: Minimum trust region radius size"},
+
+  {"tr_max_size",
+   "Float: Maximum trust region radius size"},
+
+  {"eta",
+   "Float: Trust region step acceptance ratio of actual/predicted improvement"},
+
+  {"bound_relax",
+   "Float: Relax the bounds by this tolerance when computing KKT errors"},
+
+  {"adaptive_gamma_update",
+   "Boolean: Adaptively update the trust region "},
+
+  {"max_tr_iterations",
+   "Integer: Maximum number of trust region radius steps"},
+
+  {"l1_tol",
+   "Float: Convergence tolerance for the optimality error in the l1 norm"},
+
+  {"linfty_tol",
+   "Float: Convergence tolerance for the optimality error in the l-infinity norm"},
+
+  {"infeas_tol",
+   "Float: Convergence tolerance for feasibility in the l1 norm"}};
+
 // Helper functions
 inline ParOptScalar min2( ParOptScalar a, ParOptScalar b ){
   if (RealPart(a) < RealPart(b)){
@@ -38,8 +73,15 @@ ParOptProblem(_prob->getMPIComm()){
   setProblemSizes(n, m, nwcon, nwblock);
 
   // Set the quasi-Newton method
-  qn = _qn;
-  qn->incref();
+  if (_qn){
+    qn = _qn;
+    qn->incref();
+  }
+  else {
+    // Use a limited memory BFGS update scheme
+    qn = new ParOptLBFGS(_prob, 10);
+    qn->incref();
+  }
 
   // Set the solution parameters
   tr_size = _tr_size;
@@ -64,6 +106,9 @@ ParOptProblem(_prob->getMPIComm()){
   for ( int i = 0; i < m; i++ ){
     penalty_gamma[i] = _penalty_value;
   }
+
+  // Set the iteration count to zero
+  iter_count = 0;
 
   // Create the vectors
   xk = prob->createDesignVec();  xk->incref();
@@ -133,6 +178,11 @@ ParOptTrustRegion::~ParOptTrustRegion(){
 
   s->decref();
   t->decref();
+
+  // Close the file when we quit
+  if (fp){
+    fclose(fp);
+  }
 }
 
 /*
@@ -171,17 +221,25 @@ void ParOptTrustRegion::setOutputFile( const char *filename ){
       fclose(fp);
     }
     fp = fopen(filename, "w");
+
+    if (fp){
+      fprintf(fp, "ParOptTrustRegion: Parameter summary\n");
+      for ( int i = 0; i < NUM_TRUST_REGION_PARAMS; i++ ){
+        fprintf(fp, "%s\n%s\n\n",
+                trust_regions_parameter_help[i][0],
+                trust_regions_parameter_help[i][1]);
+      }
+    }
   }
 }
 /*
   Write the parameters to the output file
 */
-void ParOptTrustRegion::printOptionsSummary( FILE *fp ){
+void ParOptTrustRegion::printOptionSummary( FILE *fp ){
   int rank;
   MPI_Comm_rank(comm, &rank);
   if (rank == 0){
     fprintf(fp, "ParOptTrustRegion options summary:\n");
-    fprintf(fp, "%-30s %15d\n", "print_level", print_level);
     fprintf(fp, "%-30s %15g\n", "tr_size", tr_size);
     fprintf(fp, "%-30s %15g\n", "tr_min_size", tr_min_size);
     fprintf(fp, "%-30s %15g\n", "tr_max_size", tr_max_size);
@@ -198,7 +256,6 @@ void ParOptTrustRegion::printOptionsSummary( FILE *fp ){
     fprintf(fp, "%-30s %15g\n", "linfty_tol", linfty_tol);
     fprintf(fp, "%-30s %15g\n", "infeas_tol", infeas_tol);
     fprintf(fp, "%-30s %15g\n", "gamma_max", gamma_max);
-    fprintf(fp, "\n");
   }
 }
 
@@ -215,6 +272,20 @@ void ParOptTrustRegion::initialize(){
   // Evaluate objective constraints and gradients
   prob->evalObjCon(xk, &fk, ck);
   prob->evalObjConGradient(xk, gk, Ak);
+
+  // Set the iteration count to zero
+  iter_count = 0;
+
+  int mpi_rank;
+  MPI_Comm_rank(prob->getMPIComm(), &mpi_rank);
+  if (mpi_rank == 0){
+    if (fp){
+      printOptionSummary(fp);
+    }
+    else {
+      printOptionSummary(stdout);
+    }
+  }
 }
 
 /*
@@ -294,12 +365,15 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   }
   *infeas = RealPart(infeas_new);
 
+  // Compute the max absolute value
+  double smax = RealPart(s->maxabs());
+
   // Set the new trust region radius
   if (RealPart(rho) < 0.25){
     tr_size = max2(0.25*tr_size, tr_min_size);
   }
   else if (RealPart(rho) > 0.75 &&
-           s->maxabs() >= 0.99*tr_size){
+           smax >= 0.95*tr_size){
     tr_size = min2(2.0*tr_size, tr_max_size);
   }
 
@@ -317,24 +391,41 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   // Reset the trust region radius bounds
   setTrustRegionBounds(tr_size, xk, lb, ub, lk, uk);
 
+  // Keep track of the max z/average z and max gamma/average gamma
+  double zmax = 0.0, zav = 0.0, gmax = 0.0, gav = 0.0;
+  for ( int i = 0; i < m; i++ ){
+    zav += RealPart(z[i]);
+    gav += penalty_gamma[i];
+    if (RealPart(z[i]) > zmax){
+      zmax = RealPart(z[i]);
+    }
+    if (penalty_gamma[i] > gmax){
+      gmax = penalty_gamma[i];
+    }
+  }
+
   int mpi_rank;
   MPI_Comm_rank(prob->getMPIComm(), &mpi_rank);
   if (mpi_rank == 0){
+    FILE *outfp = stdout;
     if (fp){
-      printOptionsSummary(fp);
-      fprintf(fp, "%12s %9s %9s %9s %9s %9s %9s\n",
-             "fobj", "infeas", "l1", "linfty", "tr", "rho", "mod red.");
-      fprintf(fp, "%12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e\n",
-             fk, *infeas, *l1, *linfty, tr_size, rho, model_reduc);
-      fflush(fp);
+      outfp = fp;
     }
-    else {
-      printf("%12s %9s %9s %9s %9s %9s %9s\n",
-             "fobj", "infeas", "l1", "linfty", "tr", "rho", "mod red.");
-      printf("%12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e\n",
-             fk, *infeas, *l1, *linfty, tr_size, rho, model_reduc);
+    if (iter_count % 10 == 0){
+      fprintf(outfp,
+              "\n%5s %12s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s\n",
+              "iter", "fobj", "infeas", "l1", "linfty", "|x - xk|", "tr", "rho",
+              "mod red.", "avg z", "max z", "avg pen.", "max pen.");
+      fflush(outfp);
     }
+    fprintf(outfp,
+            "%5d %12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e\n",
+            iter_count, fk, *infeas, *l1, *linfty, smax, tr_size, rho,
+            model_reduc, zav/m, zmax, gav/m, gmax);
   }
+
+  // Update the iteration counter
+  iter_count++;
 }
 
 /*
@@ -385,6 +476,10 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
             "ParOptTrustRegion: The optimizer must be associated with this object\n");
     return;
   }
+
+  // Set up the optimizer so that it uses the quasi-Newton approximation
+  optimizer->setQuasiNewton(qn);
+  optimizer->setUseQuasiNewtonUpdates(0); // Don't update the Hessian here
 
   // Set the initial values for gamma from the internal
   optimizer->setPenaltyGamma(penalty_gamma);
@@ -488,11 +583,13 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
         if (z[i] > infeas_tol &&
             con_infeas[i] < infeas_tol &&
             penalty_gamma[i] >= 2.0*z[i]){
-          penalty_gamma[i] = 0.5*(penalty_gamma[i] + z[i]); // Reduce gamma
+          // Reduce gamma
+          penalty_gamma[i] = 0.5*(penalty_gamma[i] + z[i]);
         }
         else if (con_infeas[i] > infeas_tol &&
                  0.995*best_reduction > infeas_reduction){
-          penalty_gamma[i] = min2(1.5*penalty_gamma[i], gamma_max); // Increase gamma
+          // Increase gamma
+          penalty_gamma[i] = min2(1.5*penalty_gamma[i], gamma_max);
         }
       }
     }
@@ -620,12 +717,6 @@ void ParOptTrustRegion::getVarsAndBounds( ParOptVec *x, ParOptVec *l,
   x->copyValues(xk);
   l->copyValues(lk);
   u->copyValues(uk);
-
-  ParOptScalar *lvals, *uvals;
-  int size = u->getArray(&uvals);
-  l->getArray(&lvals);
-  int mpi_rank;
-  MPI_Comm_rank(prob->getMPIComm(), &mpi_rank);
 }
 
 /*

@@ -104,22 +104,16 @@ class ParOptTrustRegion : public ParOptProblem {
                         const ParOptScalar *z, ParOptVec *zw,
                         double *l1, double *linfty );
   // Print the options summary
-  void printOptionsSummary( FILE *fp );
+  void printOptionSummary( FILE *fp );
 
   // File pointer for the summary file - depending on the settings
   FILE *fp;
-  int first_print;
-
-  // Settings for what to write out to a file or not...
-  int print_level; // == 0 => no print, 1 MMA iters, 2 MMA+subproblem
-  // File pointer for the summary file - depending on the settings
-  // FILE *fp;
-  // int first_print;
+  int iter_count;
 
   int n; // The number of design variables (local)
   int m; // The number of dense constraints (global)
-  int nw; // The number of sparse constraints (local)
-  int nwblock; // The block count
+  // int nw; // The number of sparse constraints (local)
+  // int nwblock; // The block count
 
   // Set the parameters
   double tr_size;
