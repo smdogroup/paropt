@@ -518,7 +518,7 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
       // Compute the best-case infeasibility achieved by setting the
       // penalty parameters to a large value
       for ( int j = 0; j < m; j++ ){
-        ParOptScalar cj = ck[j] + Ak[j]->dot(x);
+        ParOptScalar cj = ck[j] + Ak[j]->dot(x) - Ak[j]->dot(xk);
         best_con_infeas[j] = -min2(cj, 0.0);
       }
 
@@ -549,7 +549,7 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
       for ( int j = 0; j < m; j++ ){
         con_infeas[j] = -min2(ck[j], 0.0);
 
-        ParOptScalar cj = ck[j] + Ak[j]->dot(x);
+        ParOptScalar cj = ck[j] + Ak[j]->dot(x) - Ak[j]->dot(xk);
         model_con_infeas[j] = -min2(cj, 0.0);
       }
     }
