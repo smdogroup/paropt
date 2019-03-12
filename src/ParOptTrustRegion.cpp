@@ -387,6 +387,10 @@ void ParOptTrustRegion::update( ParOptVec *xt,
       Ak[i]->copyValues(At[i]);
     }
   }
+  else {
+    // Set the step size to zero (rejected step)
+    smax = 0.0;
+  }
 
   // Reset the trust region radius bounds
   setTrustRegionBounds(tr_size, xk, lb, ub, lk, uk);

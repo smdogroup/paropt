@@ -153,6 +153,7 @@ ParOpt::ParOpt( ParOptProblem *_prob,
                 ParOptQuasiNewtonType qn_type,
                 double _max_bound_val ){
   prob = _prob;
+  prob->incref();
 
   // Record the communicator
   comm = prob->getMPIComm();
@@ -428,6 +429,7 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   Free the data allocated during the creation of the object
 */
 ParOpt::~ParOpt(){
+  prob->decref();
   if (qn){
     qn->decref();
   }
