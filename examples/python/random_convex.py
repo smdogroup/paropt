@@ -71,10 +71,10 @@ class ConvexProblem(ParOpt.pyParOptProblem):
     def evalObjConGradient(self, x, g, A):
         '''Evaluate the objective and constraint gradient'''
         fail = 0
-        
+
         # The objective gradient
         g[:] = -np.dot(self.Q.T, self.u)**2
-        
+
         # The constraint gradient
         A[0][:] = -self.Acon[:]
 
@@ -105,7 +105,7 @@ def solve_problem(eigs, filename=None, data_type='orthogonal',
     if data_type == 'orthogonal':
         B = np.random.uniform(size=(n, n))
         Q, s, v = np.linalg.svd(B)
-        
+
         # Create a random Affine matrix
         Affine = create_random_spd(eigs)
     else:
@@ -156,6 +156,7 @@ def solve_problem(eigs, filename=None, data_type='orthogonal',
 
         # optimize
         tr.setOutputFile(filename + '_tr')
+        tr.setPrintLevel(1)
         tr.optimize(tr_opt)
 
         # Get the optimized point from the trust-region subproblem
@@ -196,4 +197,3 @@ print('n = ', n)
 
 # Solve the problem
 x = solve_problem(n, filename='opt_convex.out', use_tr=use_tr)
-

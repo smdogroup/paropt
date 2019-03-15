@@ -882,11 +882,11 @@ cdef class pyParOpt:
         g = <double*>malloc(num_gam*sizeof(double));
         for i in range(num_gam):
             g[i] = <double>gamma[i];
-            
-        
+
+
         self.ptr.setPenaltyGamma(g)
         free(g)
-    
+
     def getPenaltyGamma(self):
         cdef const double *penalty_gamma
         cdef int ncon
@@ -1150,18 +1150,13 @@ cdef class pyTrustRegion(pyParOptProblemBase):
             Av.append(_init_PVec(A[i]))
 
         return _init_PVec(g), Av
-    
-    def setOutputFile(self, fname, print_level=0, lname=None):
-        cdef char *filename = convert_to_chars(fname)
-        cdef char *logname = convert_to_chars(lname)
-        if (filename is not None) and (logname is not None):
-            self.tr.setOutputFile(filename, print_level,
-                                  logname)
-        elif filename is not None:
-            self.tr.setOutputFile(filename, print_level, NULL)
 
-        elif logname is not None:
-            self.tr.setOutputFile(NULL, print_level, logname)
+    def setOutputFile(self, fname):
+        cdef char *filename = convert_to_chars(fname)
+        self.tr.setOutputFile(filename)
+
+    def setPrintLevel(self, int lev):
+        self.tr.setPrintLevel(lev)
 
     def setAdaptiveGammaUpdate(self, truth):
         if truth:
@@ -1185,4 +1180,3 @@ cdef class pyTrustRegion(pyParOptProblemBase):
 
     def optimize(self, pyParOpt optimizer):
         self.tr.optimize(optimizer.ptr)
-

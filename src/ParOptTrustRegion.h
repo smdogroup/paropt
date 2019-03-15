@@ -91,9 +91,8 @@ class ParOptTrustRegion : public ParOptProblem {
   int getGradients( ParOptVec **gk, ParOptVec ***Ak );
 
   // Set the output file (only on the root proc)
-  void setOutputFile( const char *filename,
-		      int _print_level = 0,
-		      const char *logname = NULL);
+  void setOutputFile( const char *filename );
+  void setPrintLevel( int _print_level );
 
  private:
   // Set the trust region bounds
@@ -109,7 +108,7 @@ class ParOptTrustRegion : public ParOptProblem {
   void printOptionSummary( FILE *fp );
 
   // File pointer for the summary file - depending on the settings
-  FILE *fp, *fp_log;
+  FILE *fp;
   int iter_count;
   int print_level;
 

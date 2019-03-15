@@ -149,7 +149,6 @@ ParOptProblem(_prob->getMPIComm()){
   // Set the file pointer to NULL
   fp = NULL;
   print_level = 0;
-  fp_log = NULL;
 }
 
 /*
@@ -184,9 +183,6 @@ ParOptTrustRegion::~ParOptTrustRegion(){
   if (fp){
     fclose(fp);
   }
-  if (fp_log){
-    fclose(fp_log);
-  }
 }
 
 /*
@@ -217,9 +213,7 @@ void ParOptTrustRegion::setTrustRegionBounds( double tr,
 /*
   Set the output file (only on the root proc)
 */
-void ParOptTrustRegion::setOutputFile( const char *filename,
-				       int _print_level,
-				       const char *logname ){
+void ParOptTrustRegion::setOutputFile( const char *filename ){
   int rank;
   MPI_Comm_rank(comm, &rank);
   if (rank == 0){
@@ -237,17 +231,15 @@ void ParOptTrustRegion::setOutputFile( const char *filename,
       }
     }
   }
-  print_level = _print_level;
-  // Create a log file for debugging
-  if (print_level > 0){
-    if (rank == 0){
-      if (fp_log && fp_log != stdout){
-	fclose(fp_log);
-      }
-      fp_log = fopen(logname, "w");
-    }
-  }
 }
+
+/*
+  Set the print level
+*/
+void ParOptTrustRegion::setPrintLevel( int _print_level ){
+  print_level = _print_level;
+}
+
 /*
   Write the parameters to the output file
 */
@@ -319,38 +311,21 @@ void ParOptTrustRegion::update( ParOptVec *xt,
 
   // Compute the decrease in the model objective function
   ParOptScalar obj_reduc = -(gk->dot(s));
-
   if (qn){
     qn->mult(s, t);
     obj_reduc -= 0.5*t->dot(s);
   }
 
+  // Get the mpi rank for printing
   int mpi_rank;
   MPI_Comm_rank(prob->getMPIComm(), &mpi_rank);
 
-  if (mpi_rank == 0 && print_level > 0){
-    FILE *outfp = stdout;
-    if (fp_log){
-      outfp = fp_log;
-    }
-    fprintf(outfp, "Iteration[%d]\n", iter_count);
-    fflush(outfp);
-  }
-
   // Compute the model infeasibility
   ParOptScalar infeas_model = 0.0;
+  ParOptScalar *cvals = new ParOptScalar[ m ];
   for ( int i = 0; i < m; i++ ){
-    ParOptScalar cval = ck[i] + Ak[i]->dot(s);
-    infeas_model += penalty_gamma[i]*max2(0.0, -cval);
-    if (mpi_rank == 0 && print_level > 0){
-      FILE *outfp = stdout;
-      if (fp_log){
-	outfp = fp_log;
-      }
-      fprintf(outfp,
-	      "cval[%d]: %e\n", i, cval);
-      fflush(outfp);
-    }
+    cvals[i] = ck[i] + Ak[i]->dot(s);
+    infeas_model += penalty_gamma[i]*max2(0.0, -cvals[i]);
   }
 
   // Evaluate the objective and constraints and their gradients at
@@ -364,15 +339,6 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   for ( int i = 0; i < m; i++ ){
     infeas_k += penalty_gamma[i]*max2(0.0, -ck[i]);
     infeas_t += penalty_gamma[i]*max2(0.0, -ct[i]);
-    if (mpi_rank == 0 && print_level > 0){
-      FILE *outfp = stdout;
-      if (fp_log){
-	outfp = fp_log;
-      }
-      fprintf(outfp, "ck[%d]: %e\n", i, ck[i]);
-      fprintf(outfp, "ct[%d]: %e\n", i, ct[i]);
-      fflush(outfp);
-    }
   }
 
   // Compute the actual reduction and the predicted reduction
@@ -383,15 +349,22 @@ void ParOptTrustRegion::update( ParOptVec *xt,
 
   if (mpi_rank == 0 && print_level > 0){
     FILE *outfp = stdout;
-    if (fp_log){
-      outfp = fp_log;
+    if (fp){
+      outfp = fp;
     }
-    fprintf(outfp,"Actual reduction for obj: %e\n", fk-ft);
-    fprintf(outfp,"Model reduction for obj: %e\n", obj_reduc);
-    fprintf(outfp,"Actual reduction for infeas: %e\n", infeas_k-infeas_t);
-    fprintf(outfp,"Model reduction for infeas: %e\n", infeas_k-infeas_model);
-    fflush(outfp);
+    fprintf(outfp, "%-12s %2s %9s %9s %9s %9s\n",
+            "Constraints", "i", "c(x)", "c(x+p)", "c+Ap", "gamma");
+    for ( int i = 0; i < m; i++ ){
+      fprintf(outfp, "%12s %2d %9.2e %9.2e %9.2e %9.2e\n",
+              " ", i, ck[i], ct[i], cvals[i], penalty_gamma[i]);
+    }
+    fprintf(outfp, "\n%-15s %9s %9s %9s %9s\n",
+            "Model", "ared(f)", "pred(f)", "ared(c)", "pred(c)");
+    fprintf(outfp, "%15s %9.2e %9.2e %9.2e %9.2e\n",
+            " ", fk - ft, obj_reduc,
+            infeas_k-infeas_t, infeas_k-infeas_model);
   }
+  delete [] cvals;
 
   // Compute the ratio
   ParOptScalar rho = actual_reduc/model_reduc;
@@ -485,15 +458,16 @@ void ParOptTrustRegion::update( ParOptVec *xt,
     if (fp){
       outfp = fp;
     }
-    if (iter_count % 10 == 0){
+    if (iter_count % 10 == 0 || print_level > 0){
       fprintf(outfp,
               "\n%5s %12s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s\n",
-              "iter", "fobj", "infeas", "l1", "linfty", "|x - xk|", "tr", "rho",
-              "mod red.", "avg z", "max z", "avg pen.", "max pen.");
+              "iter", "fobj", "infeas", "l1", "linfty", "|x - xk|", "tr",
+              "rho", "mod red.", "avg z", "max z", "avg pen.", "max pen.");
       fflush(outfp);
     }
     fprintf(outfp,
-            "%5d %12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e\n",
+            "%5d %12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e \
+%9.2e %9.2e %9.2e %9.2e\n",
             iter_count, fk, *infeas, *l1, *linfty, smax, tr_size, rho,
             model_reduc, zav/m, zmax, gav/m, gmax);
     fflush(outfp);
@@ -574,17 +548,15 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
     best_con_infeas = new ParOptScalar[ m ];
   }
 
+  // Get the MPI rank
+  int mpi_rank;
+  MPI_Comm_rank(prob->getMPIComm(), &mpi_rank);
+
   // Initialize the trust region problem for the first iteration
   initialize();
 
   // Iterate over the trust region subproblem until convergence
   for ( int i = 0; i < max_tr_iterations; i++ ){
-    int mpi_rank;
-    MPI_Comm_rank(prob->getMPIComm(), &mpi_rank);
-    if (mpi_rank == 0){
-      printf("Iteration[%d]\n", iter_count);
-    }
-    optimizer->checkGradients(1e-6);
     if (adaptive_gamma_update){
       // Set the penalty parameter to a large value
       optimizer->setPenaltyGamma(1e6);
@@ -654,6 +626,16 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
       }
     }
 
+    FILE *outfp = stdout;
+    if (fp){
+      outfp = fp;
+    }
+    if (mpi_rank == 0 && print_level > 0){
+      fprintf(outfp, "%-12s %2s %9s %9s %9s %9s %9s %9s %9s\n",
+              "Penalty", "i", "|c(x)|", "|c+Ap|", "min|c+Ap|",
+              "pred", "min. pred", "gamma", "update");
+    }
+
     // Adapat the penalty parameters
     if (adaptive_gamma_update){
       for ( int i = 0; i < m; i++ ){
@@ -662,16 +644,10 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
         double infeas_reduction = con_infeas[i] - model_con_infeas[i];
         double best_reduction = con_infeas[i] - best_con_infeas[i];
 
-	if (mpi_rank == 0 && print_level > 0){
-	  FILE *outfp = stdout;
-	  if (fp_log){
-	    outfp = fp_log;
-	  }
-	  fprintf(outfp, "Infeas: con %e best %e model %e reduction %e %e\n",
-		  con_infeas[i], best_con_infeas[i], model_con_infeas[i],
-		  best_reduction, infeas_reduction);
-	  fflush(outfp);
-	}
+        char info[8];
+        if (print_level > 0){
+          sprintf(info, "---");
+        }
 
         // If the ratio of the predicted to actual improvement is good,
         // and the constraints are satisfied, decrease the penalty
@@ -682,13 +658,30 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
             penalty_gamma[i] >= 2.0*z[i]){
           // Reduce gamma
           penalty_gamma[i] = 0.5*(penalty_gamma[i] + z[i]);
+          if (print_level > 0){
+            sprintf(info, "decr");
+          }
         }
         else if (con_infeas[i] > infeas_tol &&
                  0.995*best_reduction > infeas_reduction){
           // Increase gamma
           penalty_gamma[i] = min2(1.5*penalty_gamma[i], gamma_max);
+          if (print_level > 0){
+            sprintf(info, "incr");
+          }
         }
+
+	if (mpi_rank == 0 && print_level > 0){
+          fprintf(outfp, "%12s %2d %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9s\n",
+                  " ", i, con_infeas[i], model_con_infeas[i], best_con_infeas[i],
+                  infeas_reduction, best_reduction, penalty_gamma[i], info);
+	}
       }
+    }
+
+    if (mpi_rank == 0 && print_level > 0){
+      fprintf(outfp, "\n");
+      fflush(outfp);
     }
   }
 
