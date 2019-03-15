@@ -245,7 +245,7 @@ cdef extern from "ParOptTrustRegion.h":
         void update(ParOptVec*, const ParOptScalar*, ParOptVec*,
                     double*, double*, double*)
         int getGradients(ParOptVec**, ParOptVec***)
-        void setOutputFile(const char*)
+        void setOutputFile(const char*, int, const char*)
         void setAdaptiveGammaUpdate(int)
         void setMaxTrustRegionIterations(int)
         void setTrustRegionTolerances(double, double, double)

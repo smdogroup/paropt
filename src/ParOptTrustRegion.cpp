@@ -78,9 +78,7 @@ ParOptProblem(_prob->getMPIComm()){
     qn->incref();
   }
   else {
-    // Use a limited memory BFGS update scheme
-    qn = new ParOptLBFGS(_prob, 10);
-    qn->incref();
+    qn = NULL;
   }
 
   // Set the solution parameters
@@ -150,6 +148,8 @@ ParOptProblem(_prob->getMPIComm()){
 
   // Set the file pointer to NULL
   fp = NULL;
+  print_level = 0;
+  fp_log = NULL;
 }
 
 /*
@@ -157,8 +157,9 @@ ParOptProblem(_prob->getMPIComm()){
 */
 ParOptTrustRegion::~ParOptTrustRegion(){
   prob->decref();
-  qn->decref();
-
+  if (qn){
+    qn->decref();
+  }
   delete [] penalty_gamma;
 
   xk->decref();
@@ -182,6 +183,9 @@ ParOptTrustRegion::~ParOptTrustRegion(){
   // Close the file when we quit
   if (fp){
     fclose(fp);
+  }
+  if (fp_log){
+    fclose(fp_log);
   }
 }
 
@@ -213,7 +217,9 @@ void ParOptTrustRegion::setTrustRegionBounds( double tr,
 /*
   Set the output file (only on the root proc)
 */
-void ParOptTrustRegion::setOutputFile( const char *filename ){
+void ParOptTrustRegion::setOutputFile( const char *filename,
+				       int _print_level,
+				       const char *logname ){
   int rank;
   MPI_Comm_rank(comm, &rank);
   if (rank == 0){
@@ -229,6 +235,16 @@ void ParOptTrustRegion::setOutputFile( const char *filename ){
                 trust_regions_parameter_help[i][0],
                 trust_regions_parameter_help[i][1]);
       }
+    }
+  }
+  print_level = _print_level;
+  // Create a log file for debugging
+  if (print_level > 0){
+    if (rank == 0){
+      if (fp_log && fp_log != stdout){
+	fclose(fp_log);
+      }
+      fp_log = fopen(logname, "w");
     }
   }
 }
@@ -302,14 +318,39 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   s->axpy(-1.0, xk);
 
   // Compute the decrease in the model objective function
-  qn->mult(s, t);
-  ParOptScalar obj_reduc = -(gk->dot(s) + 0.5*t->dot(s));
+  ParOptScalar obj_reduc = -(gk->dot(s));
+
+  if (qn){
+    qn->mult(s, t);
+    obj_reduc -= 0.5*t->dot(s);
+  }
+
+  int mpi_rank;
+  MPI_Comm_rank(prob->getMPIComm(), &mpi_rank);
+
+  if (mpi_rank == 0 && print_level > 0){
+    FILE *outfp = stdout;
+    if (fp_log){
+      outfp = fp_log;
+    }
+    fprintf(outfp, "Iteration[%d]\n", iter_count);
+    fflush(outfp);
+  }
 
   // Compute the model infeasibility
   ParOptScalar infeas_model = 0.0;
   for ( int i = 0; i < m; i++ ){
     ParOptScalar cval = ck[i] + Ak[i]->dot(s);
     infeas_model += penalty_gamma[i]*max2(0.0, -cval);
+    if (mpi_rank == 0 && print_level > 0){
+      FILE *outfp = stdout;
+      if (fp_log){
+	outfp = fp_log;
+      }
+      fprintf(outfp,
+	      "cval[%d]: %e\n", i, cval);
+      fflush(outfp);
+    }
   }
 
   // Evaluate the objective and constraints and their gradients at
@@ -323,6 +364,15 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   for ( int i = 0; i < m; i++ ){
     infeas_k += penalty_gamma[i]*max2(0.0, -ck[i]);
     infeas_t += penalty_gamma[i]*max2(0.0, -ct[i]);
+    if (mpi_rank == 0 && print_level > 0){
+      FILE *outfp = stdout;
+      if (fp_log){
+	outfp = fp_log;
+      }
+      fprintf(outfp, "ck[%d]: %e\n", i, ck[i]);
+      fprintf(outfp, "ct[%d]: %e\n", i, ct[i]);
+      fflush(outfp);
+    }
   }
 
   // Compute the actual reduction and the predicted reduction
@@ -331,30 +381,49 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   ParOptScalar model_reduc =
     obj_reduc + (infeas_k - infeas_model);
 
+  if (mpi_rank == 0 && print_level > 0){
+    FILE *outfp = stdout;
+    if (fp_log){
+      outfp = fp_log;
+    }
+    fprintf(outfp,"Actual reduction for obj: %e\n", fk-ft);
+    fprintf(outfp,"Model reduction for obj: %e\n", obj_reduc);
+    fprintf(outfp,"Actual reduction for infeas: %e\n", infeas_k-infeas_t);
+    fprintf(outfp,"Model reduction for infeas: %e\n", infeas_k-infeas_model);
+    fflush(outfp);
+  }
+
   // Compute the ratio
   ParOptScalar rho = actual_reduc/model_reduc;
 
-  // Compute the difference between the gradient of the
-  // Lagrangian between the current point and the previous point
-  t->copyValues(gt);
-  for ( int i = 0; i < m; i++ ){
-    t->axpy(-z[i], At[i]);
-  }
-  if (nwcon > 0){
-    prob->addSparseJacobianTranspose(-1.0, xt, zw, t);
-  }
+  // Set whether to estimate the Lagrangian using the quasi-Newton method
+  int use_quasi_newton_lagrangian_estimate = 0;
+  if (qn){
+    // Compute the difference between the gradient of the
+    // Lagrangian between the current point and the previous point
+    t->copyValues(gt);
+    if (use_quasi_newton_lagrangian_estimate){
+      for ( int i = 0; i < m; i++ ){
+	t->axpy(-z[i], At[i]);
+      }
+      if (nwcon > 0){
+	prob->addSparseJacobianTranspose(-1.0, xt, zw, t);
+      }
+    }
 
-  t->axpy(-1.0, gk);
-  for ( int i = 0; i < m; i++ ){
-    t->axpy(z[i], Ak[i]);
-  }
-  if (nwcon > 0){
-    prob->addSparseJacobianTranspose(1.0, xk, zw, t);
-  }
+    t->axpy(-1.0, gk);
+    if (use_quasi_newton_lagrangian_estimate){
+      for ( int i = 0; i < m; i++ ){
+	t->axpy(z[i], Ak[i]);
+      }
+      if (nwcon > 0){
+	prob->addSparseJacobianTranspose(1.0, xk, zw, t);
+      }
+    }
 
-  // Perform an update of the quasi-Newton approximation
-  qn->update(s, t);
-
+    // Perform an update of the quasi-Newton approximation
+    qn->update(s, t);
+  }
   // Compute the KKT error at the current point
   computeKKTError(xt, gt, At, z, zw, l1, linfty);
 
@@ -368,17 +437,9 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   // Compute the max absolute value
   double smax = RealPart(s->maxabs());
 
-  // Set the new trust region radius
-  if (RealPart(rho) < 0.25){
-    tr_size = max2(0.25*tr_size, tr_min_size);
-  }
-  else if (RealPart(rho) > 0.75 &&
-           smax >= 0.95*tr_size){
-    tr_size = min2(2.0*tr_size, tr_max_size);
-  }
-
-  // Check whether to accept the new point or not
-  if (RealPart(rho) >= eta){
+  // Check whether to accept the new point or not. If the trust region
+  // radius size is at the lower bound, the step is always accepted
+  if (RealPart(rho) >= eta || tr_size <= tr_min_size){
     fk = ft;
     xk->copyValues(xt);
     gk->copyValues(gt);
@@ -390,6 +451,15 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   else {
     // Set the step size to zero (rejected step)
     smax = 0.0;
+  }
+
+  // Set the new trust region radius
+  if (RealPart(rho) < 0.25){
+    tr_size = max2(0.25*tr_size, tr_min_size);
+  }
+  else if (RealPart(rho) > 0.75 &&
+           smax >= 0.95*tr_size){
+    tr_size = min2(2.0*tr_size, tr_max_size);
   }
 
   // Reset the trust region radius bounds
@@ -408,7 +478,7 @@ void ParOptTrustRegion::update( ParOptVec *xt,
     }
   }
 
-  int mpi_rank;
+  //int mpi_rank;
   MPI_Comm_rank(prob->getMPIComm(), &mpi_rank);
   if (mpi_rank == 0){
     FILE *outfp = stdout;
@@ -426,6 +496,7 @@ void ParOptTrustRegion::update( ParOptVec *xt,
             "%5d %12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e\n",
             iter_count, fk, *infeas, *l1, *linfty, smax, tr_size, rho,
             model_reduc, zav/m, zmax, gav/m, gmax);
+    fflush(outfp);
   }
 
   // Update the iteration counter
@@ -486,6 +557,11 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
   optimizer->setUseQuasiNewtonUpdates(0); // Don't update the Hessian here
 
   // Set the initial values for gamma from the internal
+  const double *temp_gamma = new double[m];
+  optimizer->getPenaltyGamma(&temp_gamma);
+  for (int i = 0; i < m; i++){
+    penalty_gamma[i] = temp_gamma[i];
+  }
   optimizer->setPenaltyGamma(penalty_gamma);
 
   // Allocate arrays to store infeasibility information
@@ -503,6 +579,12 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
 
   // Iterate over the trust region subproblem until convergence
   for ( int i = 0; i < max_tr_iterations; i++ ){
+    int mpi_rank;
+    MPI_Comm_rank(prob->getMPIComm(), &mpi_rank);
+    if (mpi_rank == 0){
+      printf("Iteration[%d]\n", iter_count);
+    }
+    optimizer->checkGradients(1e-6);
     if (adaptive_gamma_update){
       // Set the penalty parameter to a large value
       optimizer->setPenaltyGamma(1e6);
@@ -523,7 +605,7 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
       // penalty parameters to a large value
       for ( int j = 0; j < m; j++ ){
         ParOptScalar cj = ck[j] + Ak[j]->dot(x) - Ak[j]->dot(xk);
-        best_con_infeas[j] = -min2(cj, 0.0);
+        best_con_infeas[j] = max2(0.0, -cj);
       }
 
       // Set the penalty parameters
@@ -551,7 +633,7 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
     if (adaptive_gamma_update){
       // Find the actual infeasibility reduction
       for ( int j = 0; j < m; j++ ){
-        con_infeas[j] = -min2(ck[j], 0.0);
+        con_infeas[j] = max2(0.0, -ck[j]);
 
         ParOptScalar cj = ck[j] + Ak[j]->dot(x) - Ak[j]->dot(xk);
         model_con_infeas[j] = -min2(cj, 0.0);
@@ -579,6 +661,17 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
         // possible infeasibility reduction
         double infeas_reduction = con_infeas[i] - model_con_infeas[i];
         double best_reduction = con_infeas[i] - best_con_infeas[i];
+
+	if (mpi_rank == 0 && print_level > 0){
+	  FILE *outfp = stdout;
+	  if (fp_log){
+	    outfp = fp_log;
+	  }
+	  fprintf(outfp, "Infeas: con %e best %e model %e reduction %e %e\n",
+		  con_infeas[i], best_con_infeas[i], model_con_infeas[i],
+		  best_reduction, infeas_reduction);
+	  fflush(outfp);
+	}
 
         // If the ratio of the predicted to actual improvement is good,
         // and the constraints are satisfied, decrease the penalty
@@ -730,10 +823,13 @@ int ParOptTrustRegion::evalObjCon( ParOptVec *x, ParOptScalar *fobj,
                                    ParOptScalar *cons ){
   s->copyValues(x);
   s->axpy(-1.0, xk);
-  qn->mult(s, t);
 
   // Compute the objective function
-  *fobj = fk + gk->dot(s) + 0.5*s->dot(t);
+  *fobj = fk + gk->dot(s);
+  if (qn){
+    qn->mult(s, t);
+    *fobj += 0.5*s->dot(t);
+  }
 
   // Compute the constraint functions
   for ( int i = 0; i < m; i++ ){
@@ -757,8 +853,13 @@ int ParOptTrustRegion::evalObjConGradient( ParOptVec *x, ParOptVec *g,
   s->axpy(-1.0, xk);
 
   // Evaluate the gradient of the quadratic objective
-  qn->mult(s, g);
-  g->axpy(1.0, gk);
+  if (qn){
+    qn->mult(s, g);
+    g->axpy(1.0, gk);
+  }
+  else {
+    g->copyValues(gk);
+  }
 
   return 0;
 }

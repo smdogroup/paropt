@@ -4162,6 +4162,11 @@ int ParOpt::optimize( const char *checkpoint ){
   // Zero out the number of function/gradient evaluations
   neval = ngeval = nhvec = 0;
 
+  // If no quasi-Newton method is defined, use a sequential linear method instead
+  if (!qn){
+    sequential_linear_method = 1;
+  }
+
   // Initialize and check the design variables and bounds
   initAndCheckDesignAndBounds();
 

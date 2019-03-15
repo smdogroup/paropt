@@ -91,7 +91,9 @@ class ParOptTrustRegion : public ParOptProblem {
   int getGradients( ParOptVec **gk, ParOptVec ***Ak );
 
   // Set the output file (only on the root proc)
-  void setOutputFile( const char *filename );
+  void setOutputFile( const char *filename,
+		      int _print_level = 0,
+		      const char *logname = NULL);
 
  private:
   // Set the trust region bounds
@@ -107,8 +109,9 @@ class ParOptTrustRegion : public ParOptProblem {
   void printOptionSummary( FILE *fp );
 
   // File pointer for the summary file - depending on the settings
-  FILE *fp;
+  FILE *fp, *fp_log;
   int iter_count;
+  int print_level;
 
   int n; // The number of design variables (local)
   int m; // The number of dense constraints (global)

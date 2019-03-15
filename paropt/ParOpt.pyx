@@ -21,6 +21,7 @@ np.import_array()
 
 # Import C methods for python
 from cpython cimport PyObject, Py_INCREF
+from libc.stdlib cimport malloc, free
 
 # Include the definitions
 include "ParOptDefs.pxi"
@@ -874,6 +875,18 @@ cdef class pyParOpt:
     def setPenaltyGamma(self, double gamma):
         self.ptr.setPenaltyGamma(gamma)
 
+    def setMultiplePenaltyGamma(self, list gamma):
+        cdef double *g = NULL
+        cdef int num_gam = 0
+        num_gam = len(gamma)
+        g = <double*>malloc(num_gam*sizeof(double));
+        for i in range(num_gam):
+            g[i] = <double>gamma[i];
+            
+        
+        self.ptr.setPenaltyGamma(g)
+        free(g)
+    
     def getPenaltyGamma(self):
         cdef const double *penalty_gamma
         cdef int ncon
@@ -923,7 +936,10 @@ cdef class pyParOpt:
 
     # Reset the design variables and bounds
     def setQuasiNewton(self, CompactQuasiNewton qn):
-        self.ptr.setQuasiNewton(qn.ptr)
+        if qn is not None:
+            self.ptr.setQuasiNewton(qn.ptr)
+        else:
+            self.ptr.setQuasiNewton(NULL)
 
     def setUseQuasiNewtonUpdates(self, int truth):
         self.ptr.setUseQuasiNewtonUpdates(truth)
@@ -1135,10 +1151,17 @@ cdef class pyTrustRegion(pyParOptProblemBase):
 
         return _init_PVec(g), Av
     
-    def setOutputFile(self, fname):
+    def setOutputFile(self, fname, print_level=0, lname=None):
         cdef char *filename = convert_to_chars(fname)
-        if filename is not None:
-            self.tr.setOutputFile(filename)
+        cdef char *logname = convert_to_chars(lname)
+        if (filename is not None) and (logname is not None):
+            self.tr.setOutputFile(filename, print_level,
+                                  logname)
+        elif filename is not None:
+            self.tr.setOutputFile(filename, print_level, NULL)
+
+        elif logname is not None:
+            self.tr.setOutputFile(NULL, print_level, logname)
 
     def setAdaptiveGammaUpdate(self, truth):
         if truth:
