@@ -123,11 +123,12 @@ int main( int argc, char* argv[] ){
   MPI_Init(&argc, &argv);
 
   // Allocate the Sellar function
-  Sellar * sellar = new Sellar(MPI_COMM_SELF);
+  Sellar *sellar = new Sellar(MPI_COMM_SELF);
+  sellar->incref();
   
   // Allocate the optimizer
   int max_lbfgs = 20;
-  ParOpt * opt = new ParOpt(sellar, max_lbfgs);
+  ParOpt *opt = new ParOpt(sellar, max_lbfgs);
 
   opt->setMaxMajorIterations(100);
   opt->checkGradients(1e-6);
@@ -137,8 +138,8 @@ int main( int argc, char* argv[] ){
   double diff = MPI_Wtime() - start;
   printf("Time taken: %f seconds \n", diff);
 
-  delete sellar;
-  delete opt;
+  sellar->decref();
+  opt->decref();
 
   MPI_Finalize();
   return (0);

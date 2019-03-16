@@ -305,6 +305,9 @@ void ParOptTrustRegion::update( ParOptVec *xt,
                                 double *infeas,
                                 double *l1,
                                 double *linfty ){
+  // Compute the KKT error at the current point
+  computeKKTError(xk, gk, Ak, z, zw, l1, linfty);
+
   // Compute the step
   s->copyValues(xt);
   s->axpy(-1.0, xk);
@@ -369,36 +372,29 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   // Compute the ratio
   ParOptScalar rho = actual_reduc/model_reduc;
 
-  // Set whether to estimate the Lagrangian using the quasi-Newton method
-  int use_quasi_newton_lagrangian_estimate = 0;
+  // If we're using a quasi-Newton Hessian approximation
   if (qn){
     // Compute the difference between the gradient of the
     // Lagrangian between the current point and the previous point
     t->copyValues(gt);
-    if (use_quasi_newton_lagrangian_estimate){
-      for ( int i = 0; i < m; i++ ){
-	t->axpy(-z[i], At[i]);
-      }
-      if (nwcon > 0){
-	prob->addSparseJacobianTranspose(-1.0, xt, zw, t);
-      }
+    for ( int i = 0; i < m; i++ ){
+      t->axpy(-z[i], At[i]);
+    }
+    if (nwcon > 0){
+      prob->addSparseJacobianTranspose(-1.0, xt, zw, t);
     }
 
     t->axpy(-1.0, gk);
-    if (use_quasi_newton_lagrangian_estimate){
-      for ( int i = 0; i < m; i++ ){
-	t->axpy(z[i], Ak[i]);
-      }
-      if (nwcon > 0){
-	prob->addSparseJacobianTranspose(1.0, xk, zw, t);
-      }
+    for ( int i = 0; i < m; i++ ){
+      t->axpy(z[i], Ak[i]);
+    }
+    if (nwcon > 0){
+      prob->addSparseJacobianTranspose(1.0, xk, zw, t);
     }
 
     // Perform an update of the quasi-Newton approximation
     qn->update(s, t);
   }
-  // Compute the KKT error at the current point
-  computeKKTError(xt, gt, At, z, zw, l1, linfty);
 
   // Compute the infeasibility
   ParOptScalar infeas_new = 0.0;
@@ -626,18 +622,18 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
       }
     }
 
-    FILE *outfp = stdout;
-    if (fp){
-      outfp = fp;
-    }
-    if (mpi_rank == 0 && print_level > 0){
-      fprintf(outfp, "%-12s %2s %9s %9s %9s %9s %9s %9s %9s\n",
-              "Penalty", "i", "|c(x)|", "|c+Ap|", "min|c+Ap|",
-              "pred", "min. pred", "gamma", "update");
-    }
-
     // Adapat the penalty parameters
     if (adaptive_gamma_update){
+      FILE *outfp = stdout;
+      if (fp){
+        outfp = fp;
+      }
+      if (mpi_rank == 0 && print_level > 0){
+        fprintf(outfp, "%-12s %2s %9s %9s %9s %9s %9s %9s %9s\n",
+                "Penalty", "i", "|c(x)|", "|c+Ap|", "min|c+Ap|",
+                "pred", "min. pred", "gamma", "update");
+      }
+
       for ( int i = 0; i < m; i++ ){
         // Compute the actual infeasibility reduction and the best
         // possible infeasibility reduction
@@ -677,11 +673,11 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
                   infeas_reduction, best_reduction, penalty_gamma[i], info);
 	}
       }
-    }
 
-    if (mpi_rank == 0 && print_level > 0){
-      fprintf(outfp, "\n");
-      fflush(outfp);
+      if (mpi_rank == 0 && print_level > 0){
+        fprintf(outfp, "\n");
+        fflush(outfp);
+      }
     }
   }
 

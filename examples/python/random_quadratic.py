@@ -127,6 +127,7 @@ def solve_problem(eigs, filename=None, use_stdout=False, use_tr=False):
 
         # optimize
         tr.setOutputFile(filename + '_tr')
+        tr.setPrintLevel(1)
         tr.optimize(tr_opt)
     else:
         # Set up the optimization problem
