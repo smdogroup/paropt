@@ -45,7 +45,8 @@ cdef extern from "ParOptQuasiNewton.h":
     cdef cppclass ParOptCompactQuasiNewton(ParOptBase):
         ParOptCompactQuasiNewton()
         void reset()
-        int update(ParOptVec*, ParOptVec*)
+        int update(ParOptVec*, const double*, ParOptVec*,
+                   ParOptVec*, ParOptVec*)
         void mult(ParOptVec*, ParOptVec*)
         void multAdd(ParOptScalar, ParOptVec*, ParOptVec*)
 

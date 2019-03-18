@@ -739,7 +739,7 @@ cdef class CompactQuasiNewton:
 
     def update(self, PVec s, PVec y):
         if self.ptr:
-            self.ptr.update(s.ptr, y.ptr)
+            self.ptr.update(NULL, NULL, NULL, s.ptr, y.ptr)
 
     def mult(self, PVec x, PVec y):
         if self.ptr:

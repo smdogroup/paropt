@@ -25,7 +25,9 @@ class ParOptCompactQuasiNewton : public ParOptBase {
 
   // Perform the BFGS update
   // -----------------------
-  virtual int update( ParOptVec *s, ParOptVec *y ) = 0;
+  virtual int update( ParOptVec *x, const ParOptScalar *z,
+                      ParOptVec *zw,
+                      ParOptVec *s, ParOptVec *y ) = 0;
 
   // Perform a matrix-vector multiplication
   // --------------------------------------
@@ -77,7 +79,9 @@ class ParOptLBFGS : public ParOptCompactQuasiNewton {
 
   // Perform the BFGS update
   // -----------------------
-  int update( ParOptVec *s, ParOptVec *y );
+  int update( ParOptVec *x, const ParOptScalar *z,
+              ParOptVec *zw,
+              ParOptVec *s, ParOptVec *y );
 
   // Perform a matrix-vector multiplication
   // --------------------------------------
@@ -93,7 +97,7 @@ class ParOptLBFGS : public ParOptCompactQuasiNewton {
   // -----------------------------------------------
   int getMaxLimitedMemorySize();
 
- private:
+ protected:
   // Store the type of curvature handling update
   ParOptBFGSUpdateType hessian_update_type;
 
@@ -147,7 +151,9 @@ class ParOptLSR1 : public ParOptCompactQuasiNewton {
 
   // Perform the BFGS update
   // -----------------------
-  int update( ParOptVec *s, ParOptVec *y );
+  int update( ParOptVec *x, const ParOptScalar *z,
+              ParOptVec *zw,
+              ParOptVec *s, ParOptVec *y );
 
   // Perform a matrix-vector multiplication
   // --------------------------------------
@@ -163,7 +169,7 @@ class ParOptLSR1 : public ParOptCompactQuasiNewton {
   // -----------------------------------------------
   int getMaxLimitedMemorySize();
 
- private:
+ protected:
   // The size of the BFGS subspace
   int msub, msub_max;
 

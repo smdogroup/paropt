@@ -147,7 +147,9 @@ void ParOptLBFGS::reset(){
   returns:
   update type: 0 = normal, 1 = damped update, 2 = skipped update
 */
-int ParOptLBFGS::update( ParOptVec *s, ParOptVec *y ){
+int ParOptLBFGS::update( ParOptVec *x, const ParOptScalar *z,
+                         ParOptVec *zw,
+                         ParOptVec *s, ParOptVec *y ){
   int update_type = 0;
 
   // Set the pointer for the new value of y
@@ -545,7 +547,9 @@ void ParOptLSR1::reset(){
   returns:
   update type: 0 = normal, 1 = damped update
 */
-int ParOptLSR1::update( ParOptVec *s, ParOptVec *y ){
+int ParOptLSR1::update( ParOptVec *x, const ParOptScalar *z,
+                        ParOptVec *zw,
+                        ParOptVec *s, ParOptVec *y ){
   int update_type = 0;
   
   // Set the diagonal components to the identity matrix

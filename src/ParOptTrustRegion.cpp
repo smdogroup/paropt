@@ -393,7 +393,7 @@ void ParOptTrustRegion::update( ParOptVec *xt,
     }
 
     // Perform an update of the quasi-Newton approximation
-    qn->update(s, t);
+    qn->update(xk, z, zw, s, t);
   }
 
   // Compute the infeasibility
