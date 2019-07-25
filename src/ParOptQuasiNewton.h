@@ -25,14 +25,16 @@ class ParOptCompactQuasiNewton : public ParOptBase {
 
   // Perform the BFGS update
   // -----------------------
-  virtual int update( ParOptVec *x, const ParOptScalar *z,
-                      ParOptVec *zw,
+  virtual int update( ParOptVec *x, const ParOptScalar *z, ParOptVec *zw ){
+    return 0;
+  }
+  virtual int update( ParOptVec *x, const ParOptScalar *z, ParOptVec *zw,
                       ParOptVec *s, ParOptVec *y ) = 0;
 
   // Perform a matrix-vector multiplication
   // --------------------------------------
   virtual void mult( ParOptVec *x, ParOptVec *y ) = 0;
-  virtual void multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y) = 0;
+  virtual void multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ) = 0;
 
   // Get the information for the limited-memory BFGS update
   // ------------------------------------------------------
@@ -79,8 +81,7 @@ class ParOptLBFGS : public ParOptCompactQuasiNewton {
 
   // Perform the BFGS update
   // -----------------------
-  int update( ParOptVec *x, const ParOptScalar *z,
-              ParOptVec *zw,
+  int update( ParOptVec *x, const ParOptScalar *z, ParOptVec *zw,
               ParOptVec *s, ParOptVec *y );
 
   // Perform a matrix-vector multiplication
@@ -151,8 +152,7 @@ class ParOptLSR1 : public ParOptCompactQuasiNewton {
 
   // Perform the BFGS update
   // -----------------------
-  int update( ParOptVec *x, const ParOptScalar *z,
-              ParOptVec *zw,
+  int update( ParOptVec *x, const ParOptScalar *z, ParOptVec *zw,
               ParOptVec *s, ParOptVec *y );
 
   // Perform a matrix-vector multiplication

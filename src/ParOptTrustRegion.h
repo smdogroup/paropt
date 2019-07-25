@@ -94,7 +94,7 @@ class ParOptTrustRegion : public ParOptProblem {
   void setOutputFile( const char *filename );
   void setPrintLevel( int _print_level );
 
- private:
+ protected:
   // Set the trust region bounds
   void setTrustRegionBounds( double tr, ParOptVec *x,
                              ParOptVec *l, ParOptVec *u,
@@ -104,35 +104,6 @@ class ParOptTrustRegion : public ParOptProblem {
   void computeKKTError( ParOptVec *xt, ParOptVec *g, ParOptVec **A,
                         const ParOptScalar *z, ParOptVec *zw,
                         double *l1, double *linfty );
-  // Print the options summary
-  void printOptionSummary( FILE *fp );
-
-  // File pointer for the summary file - depending on the settings
-  FILE *fp;
-  int iter_count;
-  int print_level;
-
-  int n; // The number of design variables (local)
-  int m; // The number of dense constraints (global)
-  // int nw; // The number of sparse constraints (local)
-  // int nwblock; // The block count
-
-  // Set the parameters
-  double tr_size;
-  double tr_min_size, tr_max_size;
-  double eta;
-  double bound_relax;
-  double *penalty_gamma;
-
-  // Set the output parameters
-  int write_output_frequency;
-
-  // Set the trust region solution parameters
-  int adaptive_gamma_update;
-  int max_tr_iterations;
-  double l1_tol, linfty_tol;
-  double infeas_tol;
-  double gamma_max;
 
   // Pointer to the optimization problem
   ParOptProblem *prob;
@@ -161,6 +132,39 @@ class ParOptTrustRegion : public ParOptProblem {
   ParOptScalar ft, *ct;
   ParOptVec *gt;
   ParOptVec **At;
+
+ private:
+  // Print the options summary
+  void printOptionSummary( FILE *fp );
+
+  // File pointer for the summary file - depending on the settings
+  FILE *fp;
+  int iter_count;
+  int print_level;
+
+  int n; // The number of design variables (local)
+  int m; // The number of dense constraints (global)
+  // int nw; // The number of sparse constraints (local)
+  // int nwblock; // The block count
+
+  // Set the parameters
+  double tr_size;
+  double tr_min_size, tr_max_size;
+  double eta;
+  double bound_relax;
+
+  // Control the adaptive penalty update
+  int adaptive_gamma_update;
+  double *penalty_gamma;
+  double penalty_gamma_max;
+
+  // Set the output parameters
+  int write_output_frequency;
+
+  // Set the trust region solution parameters
+  int max_tr_iterations;
+  double l1_tol, linfty_tol;
+  double infeas_tol;
 
   // Temporary vectors
   ParOptVec *s, *t;

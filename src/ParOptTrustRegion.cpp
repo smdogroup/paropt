@@ -97,7 +97,7 @@ ParOptProblem(_prob->getMPIComm()){
   l1_tol = 1e-6;
   linfty_tol = 1e-6;
   infeas_tol = 1e-5;
-  gamma_max = 1e4;
+  penalty_gamma_max = 1e4;
 
   // Set the penalty parameters
   penalty_gamma = new double[ m ];
@@ -263,7 +263,7 @@ void ParOptTrustRegion::printOptionSummary( FILE *fp ){
     fprintf(fp, "%-30s %15g\n", "l1_tol", l1_tol);
     fprintf(fp, "%-30s %15g\n", "linfty_tol", linfty_tol);
     fprintf(fp, "%-30s %15g\n", "infeas_tol", infeas_tol);
-    fprintf(fp, "%-30s %15g\n", "gamma_max", gamma_max);
+    fprintf(fp, "%-30s %15g\n", "gamma_max", penalty_gamma_max);
   }
 }
 
@@ -502,7 +502,7 @@ void ParOptTrustRegion::setTrustRegionTolerances( double _infeas_tol,
   Set the maximum value of the penalty parameters
 */
 void ParOptTrustRegion::setPenaltyGammaMax( double _gamma_max ){
-  gamma_max = _gamma_max;
+  penalty_gamma_max = _gamma_max;
 }
 
 /*
@@ -661,7 +661,8 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
         else if (con_infeas[i] > infeas_tol &&
                  0.995*best_reduction > infeas_reduction){
           // Increase gamma
-          penalty_gamma[i] = min2(1.5*penalty_gamma[i], gamma_max);
+          penalty_gamma[i] = min2(1.5*penalty_gamma[i],
+                                  penalty_gamma_max);
           if (print_level > 0){
             sprintf(info, "incr");
           }

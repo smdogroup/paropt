@@ -276,8 +276,6 @@ class ParOptDriver(Driver):
         opt.setMaxMajorIterations(self.options['maxiter'])
         if self.options['dh']:
             opt.checkGradients(self.options['dh'])
-        if self.options['norm_type']:
-            opt.setNormType(self.options['norm_type'])
 
         # Set barrier strategy
         if self.options['barrier_strategy']:

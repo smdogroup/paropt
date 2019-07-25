@@ -5055,9 +5055,13 @@ int ParOpt::optimize( const char *checkpoint ){
 
     // Compute the Quasi-Newton update
     int up_type = 0;
-    if (qn && !sequential_linear_method && !line_fail &&
-        use_quasi_newton_update){
-      up_type = qn->update(x, z, zw, s_qn, y_qn);
+    if (qn && !sequential_linear_method && !line_fail){
+      if (use_quasi_newton_update){
+        up_type = qn->update(x, z, zw, s_qn, y_qn);
+      }
+      else {
+        up_type = qn->update(x, z, zw);
+      }
     }
 
     // Reset the quasi-Newton Hessian if there is a line search failure
