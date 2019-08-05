@@ -1,8 +1,18 @@
 #include <string.h>
 #include "CyParOptProblem.h"
 
-/*
-  The constructor for the ParOptProblem wrapper
+/**
+  The constructor for the ParOptProblem wrapper.
+
+  This wrapper is used when generating a Python instance of a
+  ParOptProblem class. The wrapper is instantiated by Cython
+  and callbacks are used to implement the required API.
+
+  @param _comm the MPI communicator
+  @param _nvars the local number of variables
+  @param _ncon the number of global constraints
+  @param _nwcon the number of sparse constraints
+  @param _nwblock the size of the sparse constraint block
 */ 
 CyParOptProblem::CyParOptProblem( MPI_Comm _comm,
                                   int _nvars, int _ncon, 
@@ -29,8 +39,13 @@ ParOptProblem(_comm, _nvars, _ncon, _nwcon, _nwblock){
 
 CyParOptProblem::~CyParOptProblem(){}
 
-/*
+/**
   Set options associated with the inequality constraints
+
+  @param _isDenseInequal indicates the type of dense constraint
+  @param _isSparseInequal indicates the type of sparse constraint
+  @param _useLower indicates whether to use the lower bounds
+  @param _useUpper indicates whether to use the upper boundss
 */
 void CyParOptProblem::setInequalityOptions( int _isDenseInequal,
                                             int _isSparseInequal,

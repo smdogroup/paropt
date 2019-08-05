@@ -133,8 +133,8 @@ ParOptScalar min2( const ParOptScalar a, const ParOptScalar b ){
   return b;
 }
 
-/*
-  The Parallel Optimizer constructor
+/**
+  ParOpt interior point optimization constructor.
 
   This function allocates and initializes the data that is required
   for parallel optimization. This includes initialization of the
@@ -143,15 +143,15 @@ ParOptScalar min2( const ParOptScalar a, const ParOptScalar b ){
   optimization. These parameters can be modified through member
   functions.
 
-  input:
-  prob:        the optimization problem
-  max_qn_size: the number of steps to store in memory
-  qn_type:     the type of quasi-Newton method to use
+  @param prob the optimization problem
+  @param max_qn_size the number of steps to store in memory
+  @param qn_type the type of quasi-Newton method to use
+  @param max_bound_value the maximum value of any variable bound
 */
 ParOpt::ParOpt( ParOptProblem *_prob,
-                int max_qn_subspace,
+                int max_qn_size,
                 ParOptQuasiNewtonType qn_type,
-                double _max_bound_val ){
+                double max_bound_value ){
   prob = _prob;
   prob->incref();
 
@@ -201,11 +201,11 @@ ParOpt::ParOpt( ParOptProblem *_prob,
 
   // Allocate the quasi-Newton approximation
   if (qn_type == PAROPT_BFGS){
-    qn = new ParOptLBFGS(prob, max_qn_subspace);
+    qn = new ParOptLBFGS(prob, max_qn_size);
     qn->incref();
   }
   else if (qn_type == PAROPT_SR1){
-    qn = new ParOptLSR1(prob, max_qn_subspace);
+    qn = new ParOptLSR1(prob, max_qn_size);
     qn->incref();
   }
   else {
@@ -213,7 +213,7 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   }
 
   // Set the default maximum variable bound
-  max_bound_val = _max_bound_val;
+  max_bound_val = max_bound_value;
 
   // Set the values of the variables/bounds
   x = prob->createDesignVec(); x->incref();
@@ -287,22 +287,22 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   dpiv = new int[ ncon ];
 
   // Get the maximum subspace size
-  max_qn_subspace = 0;
+  max_qn_size = 0;
   if (qn){
-    max_qn_subspace = qn->getMaxLimitedMemorySize();
+    max_qn_size = qn->getMaxLimitedMemorySize();
   }
 
-  if (max_qn_subspace > 0){
+  if (max_qn_size > 0){
     // Allocate storage for bfgs/constraint sized things
-    int zsize = 2*max_qn_subspace;
+    int zsize = 2*max_qn_size;
     if (ncon > zsize){
       zsize = ncon;
     }
     ztemp = new ParOptScalar[ zsize ];
 
     // Allocate space for the Ce matrix
-    Ce = new ParOptScalar[ 4*max_qn_subspace*max_qn_subspace ];
-    cpiv = new int[ 2*max_qn_subspace ];
+    Ce = new ParOptScalar[ 4*max_qn_size*max_qn_size ];
+    cpiv = new int[ 2*max_qn_size ];
   }
   else {
     ztemp = NULL;
@@ -425,7 +425,7 @@ ParOpt::ParOpt( ParOptProblem *_prob,
   }
 }
 
-/*
+/**
   Free the data allocated during the creation of the object
 */
 ParOpt::~ParOpt(){
@@ -539,8 +539,14 @@ ParOpt::~ParOpt(){
   }
 }
 
-/*
-  Reset the problem instance
+/**
+  Reset the problem instance.
+
+  The new problem instance must have the same number of constraints
+  design variables, and design vector distribution as the original
+  problem.
+
+  @param problem ParOptProblem instance
 */
 void ParOpt::resetProblemInstance( ParOptProblem *problem ){
   // Check to see if the new problem instance is congruent with
@@ -559,15 +565,20 @@ void ParOpt::resetProblemInstance( ParOptProblem *problem ){
   }
 }
 
-/*
+/**
   Retrieve the problem sizes from the underlying problem class
+
+  @param _nvars the local number of variables
+  @param _ncon the number of global constraints
+  @param _nwcon the number of sparse constraints
+  @param _nwblock the size of the sparse constraint block
 */
 void ParOpt::getProblemSizes( int *_nvars, int *_ncon,
                               int *_nwcon, int *_nwblock ){
   prob->getProblemSizes(_nvars, _ncon, _nwcon, _nwblock);
 }
 
-/*
+/**
   Retrieve the values of the design variables and multipliers.
 
   This call can be made during the course of an optimization, but
@@ -575,6 +586,12 @@ void ParOpt::getProblemSizes( int *_nvars, int *_ncon,
   behavior after doing so is not defined. Note that inputs that are
   NULL are not assigned. If no output is available, for instance if
   use_lower == False, then NULL is assigned to the output.
+
+  @param _x the design variable values
+  @param _z the dense constraint multipliers
+  @param _zw the sparse constraint multipliers
+  @param _zl the lower bound multipliers
+  @param _zu the upper bound multipliers
 */
 void ParOpt::getOptimizedPoint( ParOptVec **_x,
                                 ParOptScalar **_z,
@@ -610,8 +627,8 @@ void ParOpt::getOptimizedPoint( ParOptVec **_x,
   }
 }
 
-/*
-  Get the values of the optimized slack variables
+/**
+  Retrieve the values of the optimized slack variables.
 
   Note that the dense inequality constraints are formualted as
 
@@ -624,6 +641,10 @@ void ParOpt::getOptimizedPoint( ParOptVec **_x,
 
   where sw > 0. When equality rather than inequality constraints are
   present, sw may be NULL.
+
+  @param _s the postive slack for the dense constraints
+  @param _t the negative slack for the dense constraints
+  @param _sw the slack variable vector for the sparse constraints
 */
 void ParOpt::getOptimizedSlacks( ParOptScalar **_s,
                                  ParOptScalar **_t,
@@ -642,9 +663,14 @@ void ParOpt::getOptimizedSlacks( ParOptScalar **_s,
   }
 }
 
-/*
+/**
   Write out all of the options that have been set to a output
-  stream. This is usually the output summary file.
+  stream.
+
+  This function is typically invoked when the output summary file
+  is written.
+
+  @param fp an open file handle
 */
 void ParOpt::printOptionSummary( FILE *fp ){
   // Print out all the parameter values to the screen
@@ -741,9 +767,11 @@ void ParOpt::printOptionSummary( FILE *fp ){
   }
 }
 
-/*
-  Write out all of the design variables, Lagrange multipliers and
-  slack variables to a binary file.
+/**
+  Write out the design variables, Lagrange multipliers and
+  slack variables to a binary file in parallel.
+
+  @param filename is the name of the file to write
 */
 int ParOpt::writeSolutionFile( const char *filename ){
   char *fname = new char[ strlen(filename)+1 ];
@@ -832,9 +860,14 @@ int ParOpt::writeSolutionFile( const char *filename ){
   return fail;
 }
 
-/*
-  Read in the design variables, lagrange multipliers and slack
-  variables from a binary file
+/**
+  Read in the design variables, Lagrange multipliers and slack
+  variables from a binary file.
+
+  This function requires that the same problem structure as the
+  original problem.
+
+  @param filename is the name of the file input
 */
 int ParOpt::readSolutionFile( const char *filename ){
   char *fname = new char[ strlen(filename)+1 ];
@@ -949,12 +982,16 @@ int ParOpt::readSolutionFile( const char *filename ){
   return fail;
 }
 
-/*
-  Set the maximum variable bound. Bounds that exceed this value will
-  be ignored within the optimization problem.
+/**
+  Set the maximum variable bound.
+
+  Bounds that exceed this value will be ignored within the
+  optimization problem.
+
+  @param max_bound_value the maximum value of any variable bound
 */
-void ParOpt::setMaxAbsVariableBound( double max_bound ){
-  max_bound_val = max_bound;
+void ParOpt::setMaxAbsVariableBound( double max_bound_value ){
+  max_bound_val = max_bound_value;
 
   // Set the largrange multipliers with bounds outside the
   // limits to zero
@@ -974,29 +1011,37 @@ void ParOpt::setMaxAbsVariableBound( double max_bound ){
   }
 }
 
-/*
-  Set what type of norm to use in the convergence criteria
+/**
+  Set the type of norm to use in the convergence criteria.
+
+  @param _norm_type is the type of the norm used in the KKT conditions
 */
 void ParOpt::setNormType( ParOptNormType _norm_type ){
   norm_type = _norm_type;
 }
 
-/*
-  Set the type of barrier strategy to use
+/**
+  Set the type of barrier strategy to use.
+
+  @param strategy is the type of barrier update strategy
 */
 void ParOpt::setBarrierStrategy( ParOptBarrierStrategy strategy ){
   barrier_strategy = strategy;
 }
 
-/*
-  Set the starting point strategy to use
+/**
+  Set the starting point strategy to use.
+
+  @param strategy is the type of strategy used to initialize the multipliers
 */
 void ParOpt::setStartingPointStrategy( ParOptStartingPointStrategy strategy ){
   starting_point_strategy = strategy;
 }
 
-/*
-  Set the maximum number of major iterations
+/**
+  Set the maximum number of major iterations.
+
+  @param iters is the maximum number of inteior-point iterations
 */
 void ParOpt::setMaxMajorIterations( int iters ){
   if (iters >= 1){
@@ -1004,8 +1049,10 @@ void ParOpt::setMaxMajorIterations( int iters ){
   }
 }
 
-/*
-  Set the absolute KKT tolerance
+/**
+  Set the absolute KKT tolerance.
+
+  @param tol is the absolute stopping tolerance
 */
 void ParOpt::setAbsOptimalityTol( double tol ){
   if (tol < 1e-2 && tol >= 0.0){
@@ -1013,8 +1060,10 @@ void ParOpt::setAbsOptimalityTol( double tol ){
   }
 }
 
-/*
-  Set the relative function tolerance
+/**
+  Set the relative function tolerance.
+
+  @param tol is the relative stopping tolerance
 */
 void ParOpt::setRelFunctionTol( double tol ){
   if (tol < 1e-2 && tol >= 0.0){
@@ -1022,8 +1071,10 @@ void ParOpt::setRelFunctionTol( double tol ){
   }
 }
 
-/*
-  Set the initial barrier parameter
+/**
+  Set the initial barrier parameter.
+
+  @param mu is the initial barrier parameter value
 */
 void ParOpt::setInitBarrierParameter( double mu ){
   if (mu > 0.0){
@@ -1031,14 +1082,16 @@ void ParOpt::setInitBarrierParameter( double mu ){
   }
 }
 
-/*
+/**
   Retrieve the barrier parameter
+
+  @return the barrier parameter value.
 */
 double ParOpt::getBarrierParameter(){
   return barrier_param;
 }
 
-/*
+/**
   Set the relative barrier value for the variable bounds
 */
 void ParOpt::setRelativeBarrier( double rel ){
@@ -1047,16 +1100,20 @@ void ParOpt::setRelativeBarrier( double rel ){
   }
 }
 
-/*
+/**
   Get the average of the complementarity products at the current
-  point.  Note that this call is collective on all processors.
+  point.  This function call is collective on all processors.
+
+  @return the current complementarity.
 */
 ParOptScalar ParOpt::getComplementarity(){
   return computeComp();
 }
 
-/*
-  Set fraction for the barrier update
+/**
+  Set fraction for the barrier update.
+
+  @param frac is the barrier reduction factor.
 */
 void ParOpt::setBarrierFraction( double frac ){
   if (frac > 0.0 && frac < 1.0){
@@ -1064,8 +1121,10 @@ void ParOpt::setBarrierFraction( double frac ){
   }
 }
 
-/*
-  Set the power for the barrier update
+/**
+  Set the power for the barrier update.
+
+  @param power is the exponent for the barrier update.
 */
 void ParOpt::setBarrierPower( double power ){
   if (power >= 1.0 && power < 10.0){
@@ -1073,8 +1132,10 @@ void ParOpt::setBarrierPower( double power ){
   }
 }
 
-/*
-  Set the penalty parameter
+/**
+  Set the penalty parameter for the l1 penalty function.
+
+  @param gamma is the value of the penalty parameter
 */
 void ParOpt::setPenaltyGamma( double gamma ){
   if (gamma >= 0.0){
@@ -1084,8 +1145,10 @@ void ParOpt::setPenaltyGamma( double gamma ){
   }
 }
 
-/*
-  Set the individual penalty parameters
+/**
+  Set the individual penalty parameters for the l1 penalty function.
+
+  @param gamma is the array of penalty parameter values.
 */
 void ParOpt::setPenaltyGamma( const double *gamma ){
   for ( int i = 0; i < ncon; i++ ){
@@ -1095,16 +1158,20 @@ void ParOpt::setPenaltyGamma( const double *gamma ){
   }
 }
 
-/*
-   Retrieve the gamma penalty parameter
+/**
+   Retrieve the penalty parameter values.
+
+   @param _penalty_gamma is the array of penalty parameter values.
  */
 int ParOpt::getPenaltyGamma( const double **_penalty_gamma ){
   if (_penalty_gamma){ *_penalty_gamma = penalty_gamma;}
   return ncon;
 }
 
-/*
-  Set the frequency with which the Hessian is updated
+/**
+  Set the frequency with which the Hessian is updated.
+
+  @param freq is the Hessian update frequency
 */
 void ParOpt::setHessianResetFreq( int freq ){
   if (freq > 0){
@@ -1112,8 +1179,10 @@ void ParOpt::setHessianResetFreq( int freq ){
   }
 }
 
-/*
-  Set the diagonal entry to add to the quasi-Newton Hessian approximation
+/**
+  Set the diagonal entry to add to the quasi-Newton Hessian approximation.
+
+  @param sigma is the factor added to the diagonal of the quasi-Newton approximation.
 */
 void ParOpt::setQNDiagonalFactor( double sigma ){
   if (sigma >= 0.0){
@@ -1121,15 +1190,19 @@ void ParOpt::setQNDiagonalFactor( double sigma ){
   }
 }
 
-/*
-  Set parameters associated with the line search
+/**
+  Set whether to use a line search or not.
+
+  @param truth indicates whether to use the line search or skip it.
 */
 void ParOpt::setUseLineSearch( int truth ){
   use_line_search = truth;
 }
 
-/*
-  Set the maximum number of line search iterations
+/**
+  Set the maximum number of line search iterations.
+
+  @param iters sets the maximum number of line search iterations.
 */
 void ParOpt::setMaxLineSearchIters( int iters ){
   if (iters > 0){
@@ -1137,15 +1210,19 @@ void ParOpt::setMaxLineSearchIters( int iters ){
   }
 }
 
-/*
-  Set whether to use a backtracking line search
+/**
+  Set whether to use a backtracking line search.
+
+  @param truth indicates whether to use a simple backtracking line search.
 */
 void ParOpt::setBacktrackingLineSearch( int truth ){
   use_backtracking_alpha = truth;
 }
 
-/*
-  Set the Armijo parameter
+/**
+  Set the Armijo parameter.
+
+  @param c1 is the Armijo parameter value
 */
 void ParOpt::setArmijoParam( double c1 ){
   if (c1 >= 0){
@@ -1153,8 +1230,10 @@ void ParOpt::setArmijoParam( double c1 ){
   }
 }
 
-/*
-  Set a penalty descent fraction
+/**
+  Set the penalty descent fraction.
+
+  @param frac is the penalty descent fraction used to ensure a descent direction.
 */
 void ParOpt::setPenaltyDescentFraction( double frac ){
   if (frac > 0.0){
@@ -1162,8 +1241,10 @@ void ParOpt::setPenaltyDescentFraction( double frac ){
   }
 }
 
-/*
-  Set the minimum allowable penalty parameter
+/**
+  Set the minimum allowable penalty parameter.
+
+  @param rho_min is the minimum line search penalty parameter
 */
 void ParOpt::setMinPenaltyParameter( double rho_min ){
   if (rho_min >= 0.0){
@@ -1172,8 +1253,10 @@ void ParOpt::setMinPenaltyParameter( double rho_min ){
   }
 }
 
-/*
-  Set the type of BFGS update
+/**
+  Set the type of BFGS update.
+
+  @param update is the type of BFGS update to use
 */
 void ParOpt::setBFGSUpdateType( ParOptBFGSUpdateType update ){
   if (qn){
@@ -1184,23 +1267,30 @@ void ParOpt::setBFGSUpdateType( ParOptBFGSUpdateType update ){
   }
 }
 
-/*
-  Set whether to use a sequential linear method or not
+/**
+  Set whether to use a sequential linear method or not.
+
+  @param truth indicates whether to use a SLP method
 */
 void ParOpt::setSequentialLinearMethod( int truth ){
   sequential_linear_method = truth;
 }
 
-/*
+/**
   Set the minimum value of the multiplier/slack variable allowed in
-  the affine step start up point initialization procedure
+  the affine step start up point initialization procedure.
+
+  @param value is the minimum multiplier value used during an affine
+  starting point initialization procedure.
 */
 void ParOpt::setStartAffineStepMultiplierMin( double value ){
   start_affine_multiplier_min = value;
 }
 
-/*
-  Set other parameters
+/**
+  Set the frequency with which the output is written.
+
+  @param freq controls the output frequency
 */
 void ParOpt::setOutputFrequency( int freq ){
   if (freq >= 1){
@@ -1208,23 +1298,28 @@ void ParOpt::setOutputFrequency( int freq ){
   }
 }
 
-/*
-  Set the step at which to check the step
+/**
+  Set the step at which to check the step.
+
+  @param step sets the iteration to check
 */
 void ParOpt::setMajorIterStepCheck( int step ){
   major_iter_step_check = step;
 }
 
-/*
-  Check the gradient information every freq iterations
+/**
+  Set the frequency with which the gradient information is checked.
+
+  @param freq sets the frequency of the check
+  @param step_size controls the step size for the check
 */
 void ParOpt::setGradientCheckFrequency( int freq, double step_size ){
   gradient_check_frequency = freq;
   gradient_check_step = step_size;
 }
 
-/*
-  Set the flag to use a diagonal hessian
+/**
+  Set the flag to use a diagonal hessian.
 */
 void ParOpt::setUseDiagHessian( int truth ){
   if (truth){
@@ -1264,7 +1359,7 @@ void ParOpt::setUseDiagHessian( int truth ){
   use_diag_hessian = truth;
 }
 
-/*
+/**
   Set the flag for whether to use the Hessian-vector products or not
 */
 void ParOpt::setUseHvecProduct( int truth ){
@@ -1278,34 +1373,45 @@ void ParOpt::setUseHvecProduct( int truth ){
   use_hvec_product = truth;
 }
 
-/*
-  Use the limited-memory BFGS update as a preconditioner
+/**
+  Use the limited-memory BFGS update as a preconditioner.
 */
 void ParOpt::setUseQNGMRESPreCon( int truth ){
   use_qn_gmres_precon = truth;
 }
 
-/*
-  Set information about when to use the Newton-Krylov method
+/**
+  Set information about when to use the Newton-Krylov method.
+
+  @param tol sets the tolerance at which to switch to an inexact
+  Newton-Krylov method
 */
 void ParOpt::setNKSwitchTolerance( double tol ){
   nk_switch_tol = tol;
 }
 
-/*
-  Set the GMRES tolerances
+/**
+  Set the GMRES tolerances.
+
+  @param rtol the relative tolerance
+  @param atol the absolute tolerance
 */
 void ParOpt::setGMRESTolerances( double rtol, double atol ){
   max_gmres_rtol = rtol;
   gmres_atol = atol;
 }
 
-/*
+/**
   Set the parameters for choosing the forcing term in an inexact
-  Newton method. These parameters are used to compute the forcing term
-  as follows:
+  Newton method.
+
+  The Newton forcing parameters are used to compute the relative
+  convergence tolerance as:
 
   eta = gamma*(||r_{k}||/||r_{k-1}||)^{alpha}
+
+  @param gamma the linear factor
+  @param alpha the exponent
 */
 void ParOpt::setEisenstatWalkerParameters( double gamma, double alpha ){
   if (gamma > 0.0 && gamma <= 1.0){
@@ -1316,8 +1422,10 @@ void ParOpt::setEisenstatWalkerParameters( double gamma, double alpha ){
   }
 }
 
-/*
-  Set the quasi-Newton update object
+/**
+  Set the quasi-Newton update object.
+
+  @param _qn the compact quasi-Newton approximation
 */
 void ParOpt::setQuasiNewton( ParOptCompactQuasiNewton *_qn ){
   if (_qn){
@@ -1358,8 +1466,8 @@ void ParOpt::setQuasiNewton( ParOptCompactQuasiNewton *_qn ){
   }
 }
 
-/*
-  Reset the Quasi-Newton Hessian approximation if it is used
+/**
+  Reset the Quasi-Newton Hessian approximation if it is used.
 */
 void ParOpt::resetQuasiNewtonHessian(){
   if (qn){
@@ -1367,25 +1475,29 @@ void ParOpt::resetQuasiNewtonHessian(){
   }
 }
 
-/*
+/**
   Set the flag to indicate whether quasi-Newton updates should be used
   or not.
+
+  @param truth set whether to use quasi-Newton updates.
 */
 void ParOpt::setUseQuasiNewtonUpdates( int truth ){
   use_quasi_newton_update = truth;
 }
 
-/*
-  Reset the design variables and bounds
+/**
+  Reset the design variables and bounds.
 */
 void ParOpt::resetDesignAndBounds(){
   prob->getVarsAndBounds(x, lb, ub);
 }
 
-/*
+/**
   Set the size of the GMRES subspace and allocate the vectors
   required. Note that the old subspace information is deleted before
   the new subspace data is allocated.
+
+  @param m the GMRES subspace size.
 */
 void ParOpt::setGMRESSubspaceSize( int m ){
   if (gmres_H){
@@ -1426,10 +1538,12 @@ void ParOpt::setGMRESSubspaceSize( int m ){
   }
 }
 
-/*
+/**
   Set the optimization history file name to use.
 
-  The file is only opened on the root processor
+  Note that the file is only opened on the root processor.
+
+  @param filename the output file name
 */
 void ParOpt::setOutputFile( const char *filename ){
   if (outfp && outfp != stdout){
@@ -1454,14 +1568,16 @@ void ParOpt::setOutputFile( const char *filename ){
   }
 }
 
-/*
+/**
   Set the output file level
+
+  @param level 0, 1, 2 the verbosity level.
 */
 void ParOpt::setOutputLevel( int level ){
   output_level = level;
 }
 
-/*
+/**
   Compute the residual of the KKT system. This code utilizes the data
   stored internally in the ParOpt optimizer.
 
@@ -4134,8 +4250,8 @@ void ParOpt::initAndCheckDesignAndBounds(){
   }
 }
 
-/*
-  Perform the actual optimization.
+/**
+  Perform the optimization.
 
   This is the main function that performs the actual optimization.
   The optimization uses an interior-point method. The barrier
@@ -4153,6 +4269,8 @@ void ParOpt::initAndCheckDesignAndBounds(){
   constraints with the special structure that the rows of the
   constraints are nearly orthogonal. This capability is still under
   development.
+
+  @param checkpoint the name of the checkpoint file (NULL if not needed)
 */
 int ParOpt::optimize( const char *checkpoint ){
   if (gradient_check_frequency > 0){
