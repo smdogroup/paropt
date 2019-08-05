@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8">
+    
+    <title>Class reference &mdash; paropt  documentation</title>
+    
+    <link rel="stylesheet" type="text/css" href="_static/css/spc-bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="_static/css/spc-extend.css">
+    <link rel="stylesheet" href="_static/scipy.css" type="text/css" >
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" >
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/js/copybutton.js"></script>
+    <link rel="index" title="Index" href="genindex.html" >
+    <link rel="search" title="Search" href="search.html" >
+    <link rel="top" title="paropt  documentation" href="index.html" >
+    <link rel="prev" title="Parallel Rosenbrock function" href="rosenbrock.html" > 
+  </head>
+  <body>
+
+  <div class="container">
+    <div class="header">
+    </div>
+  </div>
+
+
+    <div class="container">
+      <div class="main">
+        
+	<div class="row-fluid">
+	  <div class="span12">
+	    <div class="spc-navbar">
+              
+    <ul class="nav nav-pills pull-left">
+        <li class="active"><a href="["></a></li>
+        <li class="active"><a href="]"></a></li>
+	
+        <li class="active"><a href="index.html">paropt  documentation</a></li>
+	 
+    </ul>
+              
+              
+    <ul class="nav nav-pills pull-right">
+      <li class="active">
+        <a href="genindex.html" title="General Index"
+           accesskey="I">index</a>
+      </li>
+      <li class="active">
+        <a href="rosenbrock.html" title="Parallel Rosenbrock function"
+           accesskey="P">previous</a>
+      </li>
+    </ul>
+              
+	    </div>
+	  </div>
+	</div>
+        
+
+	<div class="row-fluid">
+      <div class="spc-rightsidebar span3">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="rosenbrock.html"
+                        title="previous chapter">Parallel Rosenbrock function</a></p>
+  <h3>This Page</h3>
+  <div>
+    <a href="_sources/reference.rst.txt"
+       rel="nofollow">Show Source</a>
+  </div>
+<div class="this-page-menu">
+  <a href="/scipy/docs/scipy-docs/reference.rst.rst">Edit page</a>
+</div>
+
+        </div>
+      </div>
+          <div class="span9">
+            
+        <div class="bodywrapper">
+          <div class="body" id="spc-section-body">
+            
+  <div class="section" id="class-reference">
+<h1>Class reference<a class="headerlink" href="#class-reference" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="_CPPv413ParOptProblem">
+<span id="_CPPv313ParOptProblem"></span><span id="_CPPv213ParOptProblem"></span><span id="ParOptProblem"></span><span class="target" id="class_par_opt_problem"></span><em class="property">class </em><code class="sig-name descname">ParOptProblem</code> : <em class="property">public</em> ParOptBase<a class="headerlink" href="#_CPPv413ParOptProblem" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Subclassed by CyParOptProblem, ParOptMMA, <a class="reference internal" href="#class_par_opt_trust_region"><span class="std std-ref">ParOptTrustRegion</span></a></p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Public Functions</p>
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem13ParOptProblemE8MPI_Comm">
+<span id="_CPPv3N13ParOptProblem13ParOptProblemE8MPI_Comm"></span><span id="_CPPv2N13ParOptProblem13ParOptProblemE8MPI_Comm"></span><span id="ParOptProblem::ParOptProblem__MPI_Comm"></span><span class="target" id="class_par_opt_problem_1ac9257c2b7c7e21e44cf1e21c902a5ba3"></span><code class="sig-name descname">ParOptProblem</code><span class="sig-paren">(</span>MPI_Comm <em>_comm</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem13ParOptProblemE8MPI_Comm" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Create an empty <a class="reference internal" href="#class_par_opt_problem"><span class="std std-ref">ParOptProblem</span></a> class without defining the problem layout.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_comm</span></code>: is the MPI communicator </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem13ParOptProblemE8MPI_Commiiii">
+<span id="_CPPv3N13ParOptProblem13ParOptProblemE8MPI_Commiiii"></span><span id="_CPPv2N13ParOptProblem13ParOptProblemE8MPI_Commiiii"></span><span id="ParOptProblem::ParOptProblem__MPI_Comm.i.i.i.i"></span><span class="target" id="class_par_opt_problem_1a98b7a5c380dd6695f33f32eb94a206a8"></span><code class="sig-name descname">ParOptProblem</code><span class="sig-paren">(</span>MPI_Comm <em>_comm</em>, int <em>_nvars</em>, int <em>_ncon</em>, int <em>_nwcon</em>, int <em>_nwblock</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem13ParOptProblemE8MPI_Commiiii" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Create a <a class="reference internal" href="#class_par_opt_problem"><span class="std std-ref">ParOptProblem</span></a> class and define the problem layout.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_comm</span></code>: is the MPI communicator </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_nvars</span></code>: the number of local design variables </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_ncon</span></code>: the global number of dense constraints </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_nwcon</span></code>: the local number of sparse separable constraints </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_nwblock</span></code>: the block size of the separable constraints </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem15createDesignVecEv">
+<span id="_CPPv3N13ParOptProblem15createDesignVecEv"></span><span id="_CPPv2N13ParOptProblem15createDesignVecEv"></span><span id="ParOptProblem::createDesignVec"></span><span class="target" id="class_par_opt_problem_1a27a58689897252ba1aeaf2e5c1b1fd32"></span><em class="property">virtual</em> ParOptVec *<code class="sig-name descname">createDesignVec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem15createDesignVecEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Create a new distributed design vector</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>a new distributed design vector </p>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem19createConstraintVecEv">
+<span id="_CPPv3N13ParOptProblem19createConstraintVecEv"></span><span id="_CPPv2N13ParOptProblem19createConstraintVecEv"></span><span id="ParOptProblem::createConstraintVec"></span><span class="target" id="class_par_opt_problem_1a50d80faca1bfa90ea0b6acb1b2b199ca"></span><em class="property">virtual</em> ParOptVec *<code class="sig-name descname">createConstraintVec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem19createConstraintVecEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Create a new distributed sparse constraint vector</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>a new distributed sparse constraint vector </p>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem10getMPICommEv">
+<span id="_CPPv3N13ParOptProblem10getMPICommEv"></span><span id="_CPPv2N13ParOptProblem10getMPICommEv"></span><span id="ParOptProblem::getMPIComm"></span><span class="target" id="class_par_opt_problem_1a321ae5aebdf240076c749b7f14e1934c"></span>MPI_Comm <code class="sig-name descname">getMPIComm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem10getMPICommEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Get the communicator for the problem</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>the MPI communicator for the problem </p>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem15setProblemSizesEiiii">
+<span id="_CPPv3N13ParOptProblem15setProblemSizesEiiii"></span><span id="_CPPv2N13ParOptProblem15setProblemSizesEiiii"></span><span id="ParOptProblem::setProblemSizes__i.i.i.i"></span><span class="target" id="class_par_opt_problem_1a2bdbee8e73fbc5f00f9ca58b0dfb47ad"></span>void <code class="sig-name descname">setProblemSizes</code><span class="sig-paren">(</span>int <em>_nvars</em>, int <em>_ncon</em>, int <em>_nwcon</em>, int <em>_nwblock</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem15setProblemSizesEiiii" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the problem size</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_nvars</span></code>: the number of local design variables </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_ncon</span></code>: the global number of dense constraints </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_nwcon</span></code>: the local number of sparse separable constraints </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_nwblock</span></code>: the block size of the separable constraints </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem15getProblemSizesEPiPiPiPi">
+<span id="_CPPv3N13ParOptProblem15getProblemSizesEPiPiPiPi"></span><span id="_CPPv2N13ParOptProblem15getProblemSizesEPiPiPiPi"></span><span id="ParOptProblem::getProblemSizes__iP.iP.iP.iP"></span><span class="target" id="class_par_opt_problem_1a41d91209caa688e2937938182a830753"></span>void <code class="sig-name descname">getProblemSizes</code><span class="sig-paren">(</span>int *<em>_nvars</em>, int *<em>_ncon</em>, int *<em>_nwcon</em>, int *<em>_nwblock</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem15getProblemSizesEPiPiPiPi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Get the problem size</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_nvars</span></code>: the number of local design variables </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_ncon</span></code>: the global number of dense constraints </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_nwcon</span></code>: the local number of sparse separable constraints </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_nwblock</span></code>: the block size of the separable constraints </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem17isDenseInequalityEv">
+<span id="_CPPv3N13ParOptProblem17isDenseInequalityEv"></span><span id="_CPPv2N13ParOptProblem17isDenseInequalityEv"></span><span id="ParOptProblem::isDenseInequality"></span><span class="target" id="class_par_opt_problem_1a542fd57788bbac04f806a7d6c0d7a702"></span><em class="property">virtual</em> int <code class="sig-name descname">isDenseInequality</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem17isDenseInequalityEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Are the dense constraints inequalities? Default is true.</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>flag indicating if the dense constraints are inequalities </p>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem18isSparseInequalityEv">
+<span id="_CPPv3N13ParOptProblem18isSparseInequalityEv"></span><span id="_CPPv2N13ParOptProblem18isSparseInequalityEv"></span><span id="ParOptProblem::isSparseInequality"></span><span class="target" id="class_par_opt_problem_1a5aab3bfbfce4d47dcb321c4e0354d9ee"></span><em class="property">virtual</em> int <code class="sig-name descname">isSparseInequality</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem18isSparseInequalityEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Are the dense constraints inequalities? Default is true.</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>flag indicating if the dense constraints are inequalities </p>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem14useLowerBoundsEv">
+<span id="_CPPv3N13ParOptProblem14useLowerBoundsEv"></span><span id="_CPPv2N13ParOptProblem14useLowerBoundsEv"></span><span id="ParOptProblem::useLowerBounds"></span><span class="target" id="class_par_opt_problem_1afb8b5cb71e738c4777a349d024845498"></span><em class="property">virtual</em> int <code class="sig-name descname">useLowerBounds</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem14useLowerBoundsEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Indicate whether to use the lower variable bounds. Default is true.</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>flag indicating whether to use lower variable bound. </p>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem14useUpperBoundsEv">
+<span id="_CPPv3N13ParOptProblem14useUpperBoundsEv"></span><span id="_CPPv2N13ParOptProblem14useUpperBoundsEv"></span><span id="ParOptProblem::useUpperBounds"></span><span class="target" id="class_par_opt_problem_1a1100418c2bfc8ef00d79540643eff493"></span><em class="property">virtual</em> int <code class="sig-name descname">useUpperBounds</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem14useUpperBoundsEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Indicate whether to use the upper variable bounds. Default is true.</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>flag indicating whether to use upper variable bounds. </p>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem16getVarsAndBoundsEP9ParOptVecP9ParOptVecP9ParOptVec">
+<span id="_CPPv3N13ParOptProblem16getVarsAndBoundsEP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem16getVarsAndBoundsEP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::getVarsAndBounds__ParOptVecP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1a7c0b37f9a0f711318f9d5dc3a5bb43ab"></span><em class="property">virtual</em> void <code class="sig-name descname">getVarsAndBounds</code><span class="sig-paren">(</span>ParOptVec *<em>x</em>, ParOptVec *<em>lb</em>, ParOptVec *<em>ub</em><span class="sig-paren">)</span> = 0<a class="headerlink" href="#_CPPv4N13ParOptProblem16getVarsAndBoundsEP9ParOptVecP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Get the initial variable values and bounds for the problem</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>: is a vector of the initial design variable values </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">lb</span></code>: are the lower variable bounds </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ub</span></code>: are the upper variable bounds </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem10evalObjConEP9ParOptVecP12ParOptScalarP12ParOptScalar">
+<span id="_CPPv3N13ParOptProblem10evalObjConEP9ParOptVecP12ParOptScalarP12ParOptScalar"></span><span id="_CPPv2N13ParOptProblem10evalObjConEP9ParOptVecP12ParOptScalarP12ParOptScalar"></span><span id="ParOptProblem::evalObjCon__ParOptVecP.ParOptScalarP.ParOptScalarP"></span><span class="target" id="class_par_opt_problem_1a57b75d26141f9470e409186155748c15"></span><em class="property">virtual</em> int <code class="sig-name descname">evalObjCon</code><span class="sig-paren">(</span>ParOptVec *<em>x</em>, ParOptScalar *<em>fobj</em>, ParOptScalar *<em>cons</em><span class="sig-paren">)</span> = 0<a class="headerlink" href="#_CPPv4N13ParOptProblem10evalObjConEP9ParOptVecP12ParOptScalarP12ParOptScalar" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Evaluate the objective and constraints.</p>
+<p>Given the design variables x, compute the scalar objective value and the dense constraints. The constraints and objective must be consistent across all processors.</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>zero on success, non-zero fail flag on error </p>
+</dd>
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>: is the design variable vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fobj</span></code>: is the objective value at x </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cons</span></code>: is the array of constraint vaules at x </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem18evalObjConGradientEP9ParOptVecP9ParOptVecPP9ParOptVec">
+<span id="_CPPv3N13ParOptProblem18evalObjConGradientEP9ParOptVecP9ParOptVecPP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem18evalObjConGradientEP9ParOptVecP9ParOptVecPP9ParOptVec"></span><span id="ParOptProblem::evalObjConGradient__ParOptVecP.ParOptVecP.ParOptVecPP"></span><span class="target" id="class_par_opt_problem_1accb7e8213be4e08ca82cfaacedecc5b6"></span><em class="property">virtual</em> int <code class="sig-name descname">evalObjConGradient</code><span class="sig-paren">(</span>ParOptVec *<em>x</em>, ParOptVec *<em>g</em>, ParOptVec **<em>Ac</em><span class="sig-paren">)</span> = 0<a class="headerlink" href="#_CPPv4N13ParOptProblem18evalObjConGradientEP9ParOptVecP9ParOptVecPP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Evaluate the objective and constraint gradients.</p>
+<p>Given the desgin variables x, compute the gradient of the objective and dense constraint functions. This call is made only after a call to evaluate the objective and dense constraint functions.</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>zero on success, non-zero fail flag on error </p>
+</dd>
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>: is the design variable vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">g</span></code>: is the gradient of the objective at x </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Ac</span></code>: are the gradients of the dense constraints at x </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem15evalHvecProductEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec">
+<span id="_CPPv3N13ParOptProblem15evalHvecProductEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem15evalHvecProductEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::evalHvecProduct__ParOptVecP.ParOptScalarP.ParOptVecP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1af5e6b93090c533f5840cc2fbc37613b9"></span><em class="property">virtual</em> int <code class="sig-name descname">evalHvecProduct</code><span class="sig-paren">(</span>ParOptVec *<em>x</em>, ParOptScalar *<em>z</em>, ParOptVec *<em>zw</em>, ParOptVec *<em>px</em>, ParOptVec *<em>hvec</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem15evalHvecProductEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Evaluate the product of the Hessian with a given vector.</p>
+<p>This function is only called if Hessian-vector products are requested by the optimizer. By default, no implementation is provided.</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>zero on success, non-zero flag on error </p>
+</dd>
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>: is the design variable vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">z</span></code>: is the array of multipliers for the dense constraints </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">zw</span></code>: is the vector of multipliers for the sparse constraints </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">px</span></code>: is the direction vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hvec</span></code>: is the output vector hvec = H(x,z,zw)*px </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem15evalHessianDiagEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVec">
+<span id="_CPPv3N13ParOptProblem15evalHessianDiagEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem15evalHessianDiagEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::evalHessianDiag__ParOptVecP.ParOptScalarP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1a1550b868a4acd54c6fc297c49a14f1c4"></span><em class="property">virtual</em> int <code class="sig-name descname">evalHessianDiag</code><span class="sig-paren">(</span>ParOptVec *<em>x</em>, ParOptScalar *<em>z</em>, ParOptVec *<em>zw</em>, ParOptVec *<em>hdiag</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem15evalHessianDiagEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Evaluate the diagonal of the Hessian.</p>
+<p>This is only used by MMA. </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem13evalSparseConEP9ParOptVecP9ParOptVec">
+<span id="_CPPv3N13ParOptProblem13evalSparseConEP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem13evalSparseConEP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::evalSparseCon__ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1acece78f3d46efd0d288cfd64d01ac820"></span><em class="property">virtual</em> void <code class="sig-name descname">evalSparseCon</code><span class="sig-paren">(</span>ParOptVec *<em>x</em>, ParOptVec *<em>out</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem13evalSparseConEP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Evaluate the sparse constraints.</p>
+<p>Give the design variable vector x, compute the sparse constraints.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>: is the design variable vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">out</span></code>: is the sparse constraint vector </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem17addSparseJacobianE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec">
+<span id="_CPPv3N13ParOptProblem17addSparseJacobianE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem17addSparseJacobianE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::addSparseJacobian__ParOptScalar.ParOptVecP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1ab61b53a690e2a7199b68e461e5936196"></span><em class="property">virtual</em> void <code class="sig-name descname">addSparseJacobian</code><span class="sig-paren">(</span>ParOptScalar <em>alpha</em>, ParOptVec *<em>x</em>, ParOptVec *<em>px</em>, ParOptVec *<em>out</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem17addSparseJacobianE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Compute the Jacobian-vector product of the sparse constraints.</p>
+<p>This code computes the action of the Jacobian of the sparse constraint matrix on the input vector px, to compute out = alpha*J(x)*px.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">alpha</span></code>: is a scalar factor </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>: is the design variable vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">px</span></code>: is the input direction vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">out</span></code>: is the sparse product vector </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem26addSparseJacobianTransposeE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec">
+<span id="_CPPv3N13ParOptProblem26addSparseJacobianTransposeE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem26addSparseJacobianTransposeE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::addSparseJacobianTranspose__ParOptScalar.ParOptVecP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1ae462335c5ddc4d86c4dcf0d29cdcd102"></span><em class="property">virtual</em> void <code class="sig-name descname">addSparseJacobianTranspose</code><span class="sig-paren">(</span>ParOptScalar <em>alpha</em>, ParOptVec *<em>x</em>, ParOptVec *<em>pzw</em>, ParOptVec *<em>out</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem26addSparseJacobianTransposeE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Compute the tranpose Jacobian-vector product of the sparse constraints.</p>
+<p>This code computes the action of the transpose Jacobian of the sparse constraint matrix on the input vector pzw, to compute out = alpha*J(x)^{T}*pzw.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">alpha</span></code>: is a scalar factor </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>: is the design variable vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pzw</span></code>: is the input direction vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">out</span></code>: is the sparse product vector </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem21addSparseInnerProductE12ParOptScalarP9ParOptVecP9ParOptVecP12ParOptScalar">
+<span id="_CPPv3N13ParOptProblem21addSparseInnerProductE12ParOptScalarP9ParOptVecP9ParOptVecP12ParOptScalar"></span><span id="_CPPv2N13ParOptProblem21addSparseInnerProductE12ParOptScalarP9ParOptVecP9ParOptVecP12ParOptScalar"></span><span id="ParOptProblem::addSparseInnerProduct__ParOptScalar.ParOptVecP.ParOptVecP.ParOptScalarP"></span><span class="target" id="class_par_opt_problem_1a58508c9278111b1a63d41e72ec5f5df3"></span><em class="property">virtual</em> void <code class="sig-name descname">addSparseInnerProduct</code><span class="sig-paren">(</span>ParOptScalar <em>alpha</em>, ParOptVec *<em>x</em>, ParOptVec *<em>cvec</em>, ParOptScalar *<em>A</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem21addSparseInnerProductE12ParOptScalarP9ParOptVecP9ParOptVecP12ParOptScalar" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Add the inner product of the constraints to the matrix such that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">alpha</span></code>: is a scalar factor </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>: is the design variable vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cvec</span></code>: are input components of the diagonal matrix </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">A</span></code>: is the output block-diagonal matrix </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N13ParOptProblem11writeOutputEiP9ParOptVec">
+<span id="_CPPv3N13ParOptProblem11writeOutputEiP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem11writeOutputEiP9ParOptVec"></span><span id="ParOptProblem::writeOutput__i.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1aa3d6c9f84c6f97a5d5ae242fa7b0a3d2"></span><em class="property">virtual</em> void <code class="sig-name descname">writeOutput</code><span class="sig-paren">(</span>int <em>iter</em>, ParOptVec *<em>x</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem11writeOutputEiP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Implement this function if you'd like to print out something with the same frequency as the output files </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="class">
+<dt id="_CPPv46ParOpt">
+<span id="_CPPv36ParOpt"></span><span id="_CPPv26ParOpt"></span><span id="ParOpt"></span><span class="target" id="class_par_opt"></span><em class="property">class </em><code class="sig-name descname">ParOpt</code> : <em class="property">public</em> ParOptBase<a class="headerlink" href="#_CPPv46ParOpt" title="Permalink to this definition">¶</a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Public Functions</p>
+<dl class="function">
+<dt id="_CPPv4N6ParOpt6ParOptEP13ParOptProblemi21ParOptQuasiNewtonTyped">
+<span id="_CPPv3N6ParOpt6ParOptEP13ParOptProblemi21ParOptQuasiNewtonTyped"></span><span id="_CPPv2N6ParOpt6ParOptEP13ParOptProblemi21ParOptQuasiNewtonTyped"></span><span id="ParOpt::ParOpt__ParOptProblemP.i.ParOptQuasiNewtonType.double"></span><span class="target" id="class_par_opt_1ad04c6437e326b314ea32392c2507926f"></span><code class="sig-name descname">ParOpt</code><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv413ParOptProblem" title="ParOptProblem">ParOptProblem</a> *<em>_prob</em>, int <em>_max_qn_subspace</em> = 10, ParOptQuasiNewtonType <em>qn_type</em> = PAROPT_BFGS, double <em>_max_bound_val</em> = 1e20<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt6ParOptEP13ParOptProblemi21ParOptQuasiNewtonTyped" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p><a class="reference internal" href="#class_par_opt"><span class="std std-ref">ParOpt</span></a> interior point optimization constructor.</p>
+<p>This function allocates and initializes the data that is required for parallel optimization. This includes initialization of the variables, allocation of the matrices and the BFGS approximate Hessian. This code also sets the default parameters for optimization. These parameters can be modified through member functions.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">prob</span></code>: the optimization problem </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_qn_size</span></code>: the number of steps to store in memory </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">qn_type</span></code>: the type of quasi-Newton method to use </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_bound_value</span></code>: the maximum value of any variable bound </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOptD0Ev">
+<span id="_CPPv3N6ParOptD0Ev"></span><span id="_CPPv2N6ParOptD0Ev"></span><span id="ParOpt::~ParOpt"></span><span class="target" id="class_par_opt_1a6d65120ffaf1e1806f8753ac085f68d3"></span><code class="sig-name descname">~ParOpt</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOptD0Ev" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Free the data allocated during the creation of the object </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt20resetProblemInstanceEP13ParOptProblem">
+<span id="_CPPv3N6ParOpt20resetProblemInstanceEP13ParOptProblem"></span><span id="_CPPv2N6ParOpt20resetProblemInstanceEP13ParOptProblem"></span><span id="ParOpt::resetProblemInstance__ParOptProblemP"></span><span class="target" id="class_par_opt_1a4bb6580a15605fee888e32bcbc2a480f"></span>void <code class="sig-name descname">resetProblemInstance</code><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv413ParOptProblem" title="ParOptProblem">ParOptProblem</a> *<em>_prob</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt20resetProblemInstanceEP13ParOptProblem" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Reset the problem instance.</p>
+<p>The new problem instance must have the same number of constraints design variables, and design vector distribution as the original problem.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">problem</span></code>: <a class="reference internal" href="#class_par_opt_problem"><span class="std std-ref">ParOptProblem</span></a> instance </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt8optimizeEPKc">
+<span id="_CPPv3N6ParOpt8optimizeEPKc"></span><span id="_CPPv2N6ParOpt8optimizeEPKc"></span><span id="ParOpt::optimize__cCP"></span><span class="target" id="class_par_opt_1a9df1684e5a924a5aabc47da873530f37"></span>int <code class="sig-name descname">optimize</code><span class="sig-paren">(</span><em class="property">const</em> char *<em>checkpoint</em> = NULL<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt8optimizeEPKc" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Perform the optimization.</p>
+<p>This is the main function that performs the actual optimization. The optimization uses an interior-point method. The barrier parameter (mu/barrier_param) is controlled using a monotone approach where successive barrier problems are solved and the barrier parameter is subsequently reduced.</p>
+<p>The method uses a quasi-Newton method where the Hessian is approximated using a limited-memory BFGS approximation. The special structure of the Hessian approximation is used to compute the updates. This computation relies on there being relatively few dense global inequality constraints (e.g. &lt; 100).</p>
+<p>The code also has the capability to handle very sparse linear constraints with the special structure that the rows of the constraints are nearly orthogonal. This capability is still under development.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">checkpoint</span></code>: the name of the checkpoint file (NULL if not needed) </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt15getProblemSizesEPiPiPiPi">
+<span id="_CPPv3N6ParOpt15getProblemSizesEPiPiPiPi"></span><span id="_CPPv2N6ParOpt15getProblemSizesEPiPiPiPi"></span><span id="ParOpt::getProblemSizes__iP.iP.iP.iP"></span><span class="target" id="class_par_opt_1af9b6d2f4bee2a7e55f447637f95e2eb1"></span>void <code class="sig-name descname">getProblemSizes</code><span class="sig-paren">(</span>int *<em>_nvars</em>, int *<em>_ncon</em>, int *<em>_nwcon</em>, int *<em>_nwblock</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt15getProblemSizesEPiPiPiPi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Retrieve the problem sizes from the underlying problem class</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_nvars</span></code>: the local number of variables </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_ncon</span></code>: the number of global constraints </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_nwcon</span></code>: the number of sparse constraints </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_nwblock</span></code>: the size of the sparse constraint block </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec">
+<span id="_CPPv3N6ParOpt17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec"></span><span id="_CPPv2N6ParOpt17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec"></span><span id="ParOpt::getOptimizedPoint__ParOptVecPP.ParOptScalarPP.ParOptVecPP.ParOptVecPP.ParOptVecPP"></span><span class="target" id="class_par_opt_1ad85fb8051744c58a2096fa95017be60b"></span>void <code class="sig-name descname">getOptimizedPoint</code><span class="sig-paren">(</span>ParOptVec **<em>_x</em>, ParOptScalar **<em>_z</em>, ParOptVec **<em>_zw</em>, ParOptVec **<em>_zl</em>, ParOptVec **<em>_zu</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Retrieve the values of the design variables and multipliers.</p>
+<p>This call can be made during the course of an optimization, but changing the values in x/zw/zl/zu is not recommended and the behavior after doing so is not defined. Note that inputs that are NULL are not assigned. If no output is available, for instance if use_lower == False, then NULL is assigned to the output.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_x</span></code>: the design variable values </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_z</span></code>: the dense constraint multipliers </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_zw</span></code>: the sparse constraint multipliers </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_zl</span></code>: the lower bound multipliers </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_zu</span></code>: the upper bound multipliers </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec">
+<span id="_CPPv3N6ParOpt18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec"></span><span id="_CPPv2N6ParOpt18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec"></span><span id="ParOpt::getOptimizedSlacks__ParOptScalarPP.ParOptScalarPP.ParOptVecPP"></span><span class="target" id="class_par_opt_1a2ab70c010b8a6d8ee6396cc71d8a542f"></span>void <code class="sig-name descname">getOptimizedSlacks</code><span class="sig-paren">(</span>ParOptScalar **<em>_s</em>, ParOptScalar **<em>_t</em>, ParOptVec **<em>_sw</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Retrieve the values of the optimized slack variables.</p>
+<p>Note that the dense inequality constraints are formualted as</p>
+<p>c(x) = s - t</p>
+<p>where s, t &gt; 0. And the sparse inequality constraints are formulated as:</p>
+<p>cw(x) = sw</p>
+<p>where sw &gt; 0. When equality rather than inequality constraints are present, sw may be NULL.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_s</span></code>: the postive slack for the dense constraints </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_t</span></code>: the negative slack for the dense constraints </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_sw</span></code>: the slack variable vector for the sparse constraints </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt22setMaxAbsVariableBoundEd">
+<span id="_CPPv3N6ParOpt22setMaxAbsVariableBoundEd"></span><span id="_CPPv2N6ParOpt22setMaxAbsVariableBoundEd"></span><span id="ParOpt::setMaxAbsVariableBound__double"></span><span class="target" id="class_par_opt_1a4b1e2e7c6f787a779de53888840e649a"></span>void <code class="sig-name descname">setMaxAbsVariableBound</code><span class="sig-paren">(</span>double <em>max_bound</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt22setMaxAbsVariableBoundEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the maximum variable bound.</p>
+<p>Bounds that exceed this value will be ignored within the optimization problem.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">max_bound_value</span></code>: the maximum value of any variable bound </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt11setNormTypeE14ParOptNormType">
+<span id="_CPPv3N6ParOpt11setNormTypeE14ParOptNormType"></span><span id="_CPPv2N6ParOpt11setNormTypeE14ParOptNormType"></span><span id="ParOpt::setNormType__ParOptNormType"></span><span class="target" id="class_par_opt_1a71943a92c09631f4c5c41ecb2c5e8cff"></span>void <code class="sig-name descname">setNormType</code><span class="sig-paren">(</span>ParOptNormType <em>_norm_type</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt11setNormTypeE14ParOptNormType" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the type of norm to use in the convergence criteria.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_norm_type</span></code>: is the type of the norm used in the KKT conditions </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt18setBarrierStrategyE21ParOptBarrierStrategy">
+<span id="_CPPv3N6ParOpt18setBarrierStrategyE21ParOptBarrierStrategy"></span><span id="_CPPv2N6ParOpt18setBarrierStrategyE21ParOptBarrierStrategy"></span><span id="ParOpt::setBarrierStrategy__ParOptBarrierStrategy"></span><span class="target" id="class_par_opt_1a675b2ca0508e331df20acb9102efecb0"></span>void <code class="sig-name descname">setBarrierStrategy</code><span class="sig-paren">(</span>ParOptBarrierStrategy <em>strategy</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt18setBarrierStrategyE21ParOptBarrierStrategy" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the type of barrier strategy to use.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">strategy</span></code>: is the type of barrier update strategy </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt24setStartingPointStrategyE27ParOptStartingPointStrategy">
+<span id="_CPPv3N6ParOpt24setStartingPointStrategyE27ParOptStartingPointStrategy"></span><span id="_CPPv2N6ParOpt24setStartingPointStrategyE27ParOptStartingPointStrategy"></span><span id="ParOpt::setStartingPointStrategy__ParOptStartingPointStrategy"></span><span class="target" id="class_par_opt_1af547f2ac473e09e0aadce9f93bf72485"></span>void <code class="sig-name descname">setStartingPointStrategy</code><span class="sig-paren">(</span>ParOptStartingPointStrategy <em>strategy</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt24setStartingPointStrategyE27ParOptStartingPointStrategy" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the starting point strategy to use.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">strategy</span></code>: is the type of strategy used to initialize the multipliers </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt21setMaxMajorIterationsEi">
+<span id="_CPPv3N6ParOpt21setMaxMajorIterationsEi"></span><span id="_CPPv2N6ParOpt21setMaxMajorIterationsEi"></span><span id="ParOpt::setMaxMajorIterations__i"></span><span class="target" id="class_par_opt_1aed41536c267bd5740358ad59a887dabf"></span>void <code class="sig-name descname">setMaxMajorIterations</code><span class="sig-paren">(</span>int <em>iters</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt21setMaxMajorIterationsEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the maximum number of major iterations.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">iters</span></code>: is the maximum number of inteior-point iterations </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt19setAbsOptimalityTolEd">
+<span id="_CPPv3N6ParOpt19setAbsOptimalityTolEd"></span><span id="_CPPv2N6ParOpt19setAbsOptimalityTolEd"></span><span id="ParOpt::setAbsOptimalityTol__double"></span><span class="target" id="class_par_opt_1a9346dd64cbdbd39ed2fdd4cb200f6049"></span>void <code class="sig-name descname">setAbsOptimalityTol</code><span class="sig-paren">(</span>double <em>tol</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt19setAbsOptimalityTolEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the absolute KKT tolerance.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">tol</span></code>: is the absolute stopping tolerance </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt17setRelFunctionTolEd">
+<span id="_CPPv3N6ParOpt17setRelFunctionTolEd"></span><span id="_CPPv2N6ParOpt17setRelFunctionTolEd"></span><span id="ParOpt::setRelFunctionTol__double"></span><span class="target" id="class_par_opt_1a7d7aad0424f5849c755f80a4f4b16432"></span>void <code class="sig-name descname">setRelFunctionTol</code><span class="sig-paren">(</span>double <em>tol</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt17setRelFunctionTolEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the relative function tolerance.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">tol</span></code>: is the relative stopping tolerance </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt15setPenaltyGammaEd">
+<span id="_CPPv3N6ParOpt15setPenaltyGammaEd"></span><span id="_CPPv2N6ParOpt15setPenaltyGammaEd"></span><span id="ParOpt::setPenaltyGamma__double"></span><span class="target" id="class_par_opt_1abd15e007e773f8c5b67dda23bf6a5ce8"></span>void <code class="sig-name descname">setPenaltyGamma</code><span class="sig-paren">(</span>double <em>gamma</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt15setPenaltyGammaEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the penalty parameter for the l1 penalty function.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">gamma</span></code>: is the value of the penalty parameter </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt15setPenaltyGammaEPKd">
+<span id="_CPPv3N6ParOpt15setPenaltyGammaEPKd"></span><span id="_CPPv2N6ParOpt15setPenaltyGammaEPKd"></span><span id="ParOpt::setPenaltyGamma__doubleCP"></span><span class="target" id="class_par_opt_1a43318d321f07dc052e302010d44a5c7d"></span>void <code class="sig-name descname">setPenaltyGamma</code><span class="sig-paren">(</span><em class="property">const</em> double *<em>gamma</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt15setPenaltyGammaEPKd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the individual penalty parameters for the l1 penalty function.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">gamma</span></code>: is the array of penalty parameter values. </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt15getPenaltyGammaEPPKd">
+<span id="_CPPv3N6ParOpt15getPenaltyGammaEPPKd"></span><span id="_CPPv2N6ParOpt15getPenaltyGammaEPPKd"></span><span id="ParOpt::getPenaltyGamma__doubleCPP"></span><span class="target" id="class_par_opt_1a8bed6b6202c392aca78c49983b07b1f0"></span>int <code class="sig-name descname">getPenaltyGamma</code><span class="sig-paren">(</span><em class="property">const</em> double **<em>gamma</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt15getPenaltyGammaEPPKd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Retrieve the penalty parameter values.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_penalty_gamma</span></code>: is the array of penalty parameter values. </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt18setBarrierFractionEd">
+<span id="_CPPv3N6ParOpt18setBarrierFractionEd"></span><span id="_CPPv2N6ParOpt18setBarrierFractionEd"></span><span id="ParOpt::setBarrierFraction__double"></span><span class="target" id="class_par_opt_1a63c26f43a5eacf6c8783c94425aaad00"></span>void <code class="sig-name descname">setBarrierFraction</code><span class="sig-paren">(</span>double <em>frac</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt18setBarrierFractionEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set fraction for the barrier update.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">frac</span></code>: is the barrier reduction factor. </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt15setBarrierPowerEd">
+<span id="_CPPv3N6ParOpt15setBarrierPowerEd"></span><span id="_CPPv2N6ParOpt15setBarrierPowerEd"></span><span id="ParOpt::setBarrierPower__double"></span><span class="target" id="class_par_opt_1ad212cec635a74d28af4c68cb657ec22b"></span>void <code class="sig-name descname">setBarrierPower</code><span class="sig-paren">(</span>double <em>power</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt15setBarrierPowerEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the power for the barrier update.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">power</span></code>: is the exponent for the barrier update. </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt19setHessianResetFreqEi">
+<span id="_CPPv3N6ParOpt19setHessianResetFreqEi"></span><span id="_CPPv2N6ParOpt19setHessianResetFreqEi"></span><span id="ParOpt::setHessianResetFreq__i"></span><span class="target" id="class_par_opt_1a68c46045bd54bcd752c1ec3e5baf55e9"></span>void <code class="sig-name descname">setHessianResetFreq</code><span class="sig-paren">(</span>int <em>freq</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt19setHessianResetFreqEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the frequency with which the Hessian is updated.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">freq</span></code>: is the Hessian update frequency </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt19setQNDiagonalFactorEd">
+<span id="_CPPv3N6ParOpt19setQNDiagonalFactorEd"></span><span id="_CPPv2N6ParOpt19setQNDiagonalFactorEd"></span><span id="ParOpt::setQNDiagonalFactor__double"></span><span class="target" id="class_par_opt_1af89b7bd09fa29e65c2fcbc67f4184494"></span>void <code class="sig-name descname">setQNDiagonalFactor</code><span class="sig-paren">(</span>double <em>sigma</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt19setQNDiagonalFactorEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the diagonal entry to add to the quasi-Newton Hessian approximation.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">sigma</span></code>: is the factor added to the diagonal of the quasi-Newton approximation. </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt17setBFGSUpdateTypeE20ParOptBFGSUpdateType">
+<span id="_CPPv3N6ParOpt17setBFGSUpdateTypeE20ParOptBFGSUpdateType"></span><span id="_CPPv2N6ParOpt17setBFGSUpdateTypeE20ParOptBFGSUpdateType"></span><span id="ParOpt::setBFGSUpdateType__ParOptBFGSUpdateType"></span><span class="target" id="class_par_opt_1a9830561295d54d2b942142d177bcfa47"></span>void <code class="sig-name descname">setBFGSUpdateType</code><span class="sig-paren">(</span>ParOptBFGSUpdateType <em>bfgs_update</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt17setBFGSUpdateTypeE20ParOptBFGSUpdateType" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the type of BFGS update.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">update</span></code>: is the type of BFGS update to use </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt25setSequentialLinearMethodEi">
+<span id="_CPPv3N6ParOpt25setSequentialLinearMethodEi"></span><span id="_CPPv2N6ParOpt25setSequentialLinearMethodEi"></span><span id="ParOpt::setSequentialLinearMethod__i"></span><span class="target" id="class_par_opt_1a27a4f999c52b63d074bf136ad8a3fac5"></span>void <code class="sig-name descname">setSequentialLinearMethod</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt25setSequentialLinearMethodEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set whether to use a sequential linear method or not.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">truth</span></code>: indicates whether to use a SLP method </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt31setStartAffineStepMultiplierMinEd">
+<span id="_CPPv3N6ParOpt31setStartAffineStepMultiplierMinEd"></span><span id="_CPPv2N6ParOpt31setStartAffineStepMultiplierMinEd"></span><span id="ParOpt::setStartAffineStepMultiplierMin__double"></span><span class="target" id="class_par_opt_1a8975318609f557b7fdf988c916a025d7"></span>void <code class="sig-name descname">setStartAffineStepMultiplierMin</code><span class="sig-paren">(</span>double <em>value</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt31setStartAffineStepMultiplierMinEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the minimum value of the multiplier/slack variable allowed in the affine step start up point initialization procedure.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">value</span></code>: is the minimum multiplier value used during an affine starting point initialization procedure. </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt23setInitBarrierParameterEd">
+<span id="_CPPv3N6ParOpt23setInitBarrierParameterEd"></span><span id="_CPPv2N6ParOpt23setInitBarrierParameterEd"></span><span id="ParOpt::setInitBarrierParameter__double"></span><span class="target" id="class_par_opt_1aabc797817c2dff6464ac12cf2bc0d465"></span>void <code class="sig-name descname">setInitBarrierParameter</code><span class="sig-paren">(</span>double <em>mu</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt23setInitBarrierParameterEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the initial barrier parameter.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mu</span></code>: is the initial barrier parameter value </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt19getBarrierParameterEv">
+<span id="_CPPv3N6ParOpt19getBarrierParameterEv"></span><span id="_CPPv2N6ParOpt19getBarrierParameterEv"></span><span id="ParOpt::getBarrierParameter"></span><span class="target" id="class_par_opt_1a78b914b741ce2ae1831095c6a72ec5a5"></span>double <code class="sig-name descname">getBarrierParameter</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt19getBarrierParameterEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Retrieve the barrier parameter</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>the barrier parameter value. </p>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt18setRelativeBarrierEd">
+<span id="_CPPv3N6ParOpt18setRelativeBarrierEd"></span><span id="_CPPv2N6ParOpt18setRelativeBarrierEd"></span><span id="ParOpt::setRelativeBarrier__double"></span><span class="target" id="class_par_opt_1ab883b917705c60802791b2f2d960642b"></span>void <code class="sig-name descname">setRelativeBarrier</code><span class="sig-paren">(</span>double <em>rel</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt18setRelativeBarrierEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the relative barrier value for the variable bounds </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt18getComplementarityEv">
+<span id="_CPPv3N6ParOpt18getComplementarityEv"></span><span id="_CPPv2N6ParOpt18getComplementarityEv"></span><span id="ParOpt::getComplementarity"></span><span class="target" id="class_par_opt_1a1dfcf79a69b822036eb390b4a986e357"></span>ParOptScalar <code class="sig-name descname">getComplementarity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt18getComplementarityEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Get the average of the complementarity products at the current point. This function call is collective on all processors.</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>the current complementarity. </p>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt16setUseLineSearchEi">
+<span id="_CPPv3N6ParOpt16setUseLineSearchEi"></span><span id="_CPPv2N6ParOpt16setUseLineSearchEi"></span><span id="ParOpt::setUseLineSearch__i"></span><span class="target" id="class_par_opt_1ae57090ef938571ef75bbb5d7aeeaf22e"></span>void <code class="sig-name descname">setUseLineSearch</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt16setUseLineSearchEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set whether to use a line search or not.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">truth</span></code>: indicates whether to use the line search or skip it. </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt21setMaxLineSearchItersEi">
+<span id="_CPPv3N6ParOpt21setMaxLineSearchItersEi"></span><span id="_CPPv2N6ParOpt21setMaxLineSearchItersEi"></span><span id="ParOpt::setMaxLineSearchIters__i"></span><span class="target" id="class_par_opt_1a6cd446e0fced1da1818ab92e4a107f47"></span>void <code class="sig-name descname">setMaxLineSearchIters</code><span class="sig-paren">(</span>int <em>iters</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt21setMaxLineSearchItersEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the maximum number of line search iterations.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">iters</span></code>: sets the maximum number of line search iterations. </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt25setBacktrackingLineSearchEi">
+<span id="_CPPv3N6ParOpt25setBacktrackingLineSearchEi"></span><span id="_CPPv2N6ParOpt25setBacktrackingLineSearchEi"></span><span id="ParOpt::setBacktrackingLineSearch__i"></span><span class="target" id="class_par_opt_1abbd8fb45902903d6fa14ed9b02836723"></span>void <code class="sig-name descname">setBacktrackingLineSearch</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt25setBacktrackingLineSearchEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set whether to use a backtracking line search.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">truth</span></code>: indicates whether to use a simple backtracking line search. </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt14setArmijoParamEd">
+<span id="_CPPv3N6ParOpt14setArmijoParamEd"></span><span id="_CPPv2N6ParOpt14setArmijoParamEd"></span><span id="ParOpt::setArmijoParam__double"></span><span class="target" id="class_par_opt_1ab8ecd0b2c48dbe005eacbcf031e4e470"></span>void <code class="sig-name descname">setArmijoParam</code><span class="sig-paren">(</span>double <em>c1</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt14setArmijoParamEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the Armijo parameter.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">c1</span></code>: is the Armijo parameter value </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt25setPenaltyDescentFractionEd">
+<span id="_CPPv3N6ParOpt25setPenaltyDescentFractionEd"></span><span id="_CPPv2N6ParOpt25setPenaltyDescentFractionEd"></span><span id="ParOpt::setPenaltyDescentFraction__double"></span><span class="target" id="class_par_opt_1a781fcab73637c75ffa2c1f351cc2cae6"></span>void <code class="sig-name descname">setPenaltyDescentFraction</code><span class="sig-paren">(</span>double <em>frac</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt25setPenaltyDescentFractionEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the penalty descent fraction.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">frac</span></code>: is the penalty descent fraction used to ensure a descent direction. </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt22setMinPenaltyParameterEd">
+<span id="_CPPv3N6ParOpt22setMinPenaltyParameterEd"></span><span id="_CPPv2N6ParOpt22setMinPenaltyParameterEd"></span><span id="ParOpt::setMinPenaltyParameter__double"></span><span class="target" id="class_par_opt_1ab2076065104cfa0462e65c48559db1ac"></span>void <code class="sig-name descname">setMinPenaltyParameter</code><span class="sig-paren">(</span>double <em>rho_min</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt22setMinPenaltyParameterEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the minimum allowable penalty parameter.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">rho_min</span></code>: is the minimum line search penalty parameter </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt17setUseDiagHessianEi">
+<span id="_CPPv3N6ParOpt17setUseDiagHessianEi"></span><span id="_CPPv2N6ParOpt17setUseDiagHessianEi"></span><span id="ParOpt::setUseDiagHessian__i"></span><span class="target" id="class_par_opt_1ab6061f4c8bf2bb107dd090d9772ffcca"></span>void <code class="sig-name descname">setUseDiagHessian</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt17setUseDiagHessianEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the flag to use a diagonal hessian. </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt17setUseHvecProductEi">
+<span id="_CPPv3N6ParOpt17setUseHvecProductEi"></span><span id="_CPPv2N6ParOpt17setUseHvecProductEi"></span><span id="ParOpt::setUseHvecProduct__i"></span><span class="target" id="class_par_opt_1a75234bab6ab2450ba6e3f0e796cc8c8c"></span>void <code class="sig-name descname">setUseHvecProduct</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt17setUseHvecProductEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the flag for whether to use the Hessian-vector products or not </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt19setUseQNGMRESPreConEi">
+<span id="_CPPv3N6ParOpt19setUseQNGMRESPreConEi"></span><span id="_CPPv2N6ParOpt19setUseQNGMRESPreConEi"></span><span id="ParOpt::setUseQNGMRESPreCon__i"></span><span class="target" id="class_par_opt_1a9249fddb2c369ff1ca4fb7a96e666f84"></span>void <code class="sig-name descname">setUseQNGMRESPreCon</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt19setUseQNGMRESPreConEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Use the limited-memory BFGS update as a preconditioner. </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt20setNKSwitchToleranceEd">
+<span id="_CPPv3N6ParOpt20setNKSwitchToleranceEd"></span><span id="_CPPv2N6ParOpt20setNKSwitchToleranceEd"></span><span id="ParOpt::setNKSwitchTolerance__double"></span><span class="target" id="class_par_opt_1acf82175217699457618847ee0aff00c1"></span>void <code class="sig-name descname">setNKSwitchTolerance</code><span class="sig-paren">(</span>double <em>tol</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt20setNKSwitchToleranceEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set information about when to use the Newton-Krylov method.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">tol</span></code>: sets the tolerance at which to switch to an inexact Newton-Krylov method </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt28setEisenstatWalkerParametersEdd">
+<span id="_CPPv3N6ParOpt28setEisenstatWalkerParametersEdd"></span><span id="_CPPv2N6ParOpt28setEisenstatWalkerParametersEdd"></span><span id="ParOpt::setEisenstatWalkerParameters__double.double"></span><span class="target" id="class_par_opt_1abc1ee80e3844d7ad725df0808d3c5b37"></span>void <code class="sig-name descname">setEisenstatWalkerParameters</code><span class="sig-paren">(</span>double <em>gamma</em>, double <em>alpha</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt28setEisenstatWalkerParametersEdd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the parameters for choosing the forcing term in an inexact Newton method.</p>
+<p>The Newton forcing parameters are used to compute the relative convergence tolerance as:</p>
+<p>eta = gamma*(||r_{k}||/||r_{k-1}||)^{alpha}</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">gamma</span></code>: the linear factor </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">alpha</span></code>: the exponent </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt18setGMRESTolerancesEdd">
+<span id="_CPPv3N6ParOpt18setGMRESTolerancesEdd"></span><span id="_CPPv2N6ParOpt18setGMRESTolerancesEdd"></span><span id="ParOpt::setGMRESTolerances__double.double"></span><span class="target" id="class_par_opt_1ab70e3d49b23d06138cb34ef8fbaec4bf"></span>void <code class="sig-name descname">setGMRESTolerances</code><span class="sig-paren">(</span>double <em>rtol</em>, double <em>atol</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt18setGMRESTolerancesEdd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the GMRES tolerances.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">rtol</span></code>: the relative tolerance </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">atol</span></code>: the absolute tolerance </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt20setGMRESSubspaceSizeEi">
+<span id="_CPPv3N6ParOpt20setGMRESSubspaceSizeEi"></span><span id="_CPPv2N6ParOpt20setGMRESSubspaceSizeEi"></span><span id="ParOpt::setGMRESSubspaceSize__i"></span><span class="target" id="class_par_opt_1a02ede31fe66c2a312ccca2b991448abf"></span>void <code class="sig-name descname">setGMRESSubspaceSize</code><span class="sig-paren">(</span>int <em>_gmres_subspace_size</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt20setGMRESSubspaceSizeEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the size of the GMRES subspace and allocate the vectors required. Note that the old subspace information is deleted before the new subspace data is allocated.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">m</span></code>: the GMRES subspace size. </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt14setQuasiNewtonEP24ParOptCompactQuasiNewton">
+<span id="_CPPv3N6ParOpt14setQuasiNewtonEP24ParOptCompactQuasiNewton"></span><span id="_CPPv2N6ParOpt14setQuasiNewtonEP24ParOptCompactQuasiNewton"></span><span id="ParOpt::setQuasiNewton__ParOptCompactQuasiNewtonP"></span><span class="target" id="class_par_opt_1a7269d01095f51a5d9843f2f4502be8c8"></span>void <code class="sig-name descname">setQuasiNewton</code><span class="sig-paren">(</span>ParOptCompactQuasiNewton *<em>_qn</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt14setQuasiNewtonEP24ParOptCompactQuasiNewton" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the quasi-Newton update object.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_qn</span></code>: the compact quasi-Newton approximation </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt24setUseQuasiNewtonUpdatesEi">
+<span id="_CPPv3N6ParOpt24setUseQuasiNewtonUpdatesEi"></span><span id="_CPPv2N6ParOpt24setUseQuasiNewtonUpdatesEi"></span><span id="ParOpt::setUseQuasiNewtonUpdates__i"></span><span class="target" id="class_par_opt_1af87648ecb87f0a4bb9725f055bc1da59"></span>void <code class="sig-name descname">setUseQuasiNewtonUpdates</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt24setUseQuasiNewtonUpdatesEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the flag to indicate whether quasi-Newton updates should be used or not.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">truth</span></code>: set whether to use quasi-Newton updates. </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt23resetQuasiNewtonHessianEv">
+<span id="_CPPv3N6ParOpt23resetQuasiNewtonHessianEv"></span><span id="_CPPv2N6ParOpt23resetQuasiNewtonHessianEv"></span><span id="ParOpt::resetQuasiNewtonHessian"></span><span class="target" id="class_par_opt_1ab5b33cbfc39dee9d34e9f03f6229bf2e"></span>void <code class="sig-name descname">resetQuasiNewtonHessian</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt23resetQuasiNewtonHessianEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Reset the Quasi-Newton Hessian approximation if it is used. </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt20resetDesignAndBoundsEv">
+<span id="_CPPv3N6ParOpt20resetDesignAndBoundsEv"></span><span id="_CPPv2N6ParOpt20resetDesignAndBoundsEv"></span><span id="ParOpt::resetDesignAndBounds"></span><span class="target" id="class_par_opt_1a37469757435006edf1d7472af63fe2f4"></span>void <code class="sig-name descname">resetDesignAndBounds</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt20resetDesignAndBoundsEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Reset the design variables and bounds. </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt18setOutputFrequencyEi">
+<span id="_CPPv3N6ParOpt18setOutputFrequencyEi"></span><span id="_CPPv2N6ParOpt18setOutputFrequencyEi"></span><span id="ParOpt::setOutputFrequency__i"></span><span class="target" id="class_par_opt_1a7ec131d82c50cc64b2b19e6745ab0d73"></span>void <code class="sig-name descname">setOutputFrequency</code><span class="sig-paren">(</span>int <em>freq</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt18setOutputFrequencyEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the frequency with which the output is written.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">freq</span></code>: controls the output frequency </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt21setMajorIterStepCheckEi">
+<span id="_CPPv3N6ParOpt21setMajorIterStepCheckEi"></span><span id="_CPPv2N6ParOpt21setMajorIterStepCheckEi"></span><span id="ParOpt::setMajorIterStepCheck__i"></span><span class="target" id="class_par_opt_1a024a94420cb2f89801fc60f0b93fd24a"></span>void <code class="sig-name descname">setMajorIterStepCheck</code><span class="sig-paren">(</span>int <em>step</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt21setMajorIterStepCheckEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the step at which to check the step.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">step</span></code>: sets the iteration to check </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt25setGradientCheckFrequencyEid">
+<span id="_CPPv3N6ParOpt25setGradientCheckFrequencyEid"></span><span id="_CPPv2N6ParOpt25setGradientCheckFrequencyEid"></span><span id="ParOpt::setGradientCheckFrequency__i.double"></span><span class="target" id="class_par_opt_1a715c04ac69cffea9822496d09f2705f6"></span>void <code class="sig-name descname">setGradientCheckFrequency</code><span class="sig-paren">(</span>int <em>freq</em>, double <em>step_size</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt25setGradientCheckFrequencyEid" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the frequency with which the gradient information is checked.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">freq</span></code>: sets the frequency of the check </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">step_size</span></code>: controls the step size for the check </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt13setOutputFileEPKc">
+<span id="_CPPv3N6ParOpt13setOutputFileEPKc"></span><span id="_CPPv2N6ParOpt13setOutputFileEPKc"></span><span id="ParOpt::setOutputFile__cCP"></span><span class="target" id="class_par_opt_1a56bdea0344482e9410fd362582c283f5"></span>void <code class="sig-name descname">setOutputFile</code><span class="sig-paren">(</span><em class="property">const</em> char *<em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt13setOutputFileEPKc" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the optimization history file name to use.</p>
+<p>Note that the file is only opened on the root processor.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">filename</span></code>: the output file name </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt14setOutputLevelEi">
+<span id="_CPPv3N6ParOpt14setOutputLevelEi"></span><span id="_CPPv2N6ParOpt14setOutputLevelEi"></span><span id="ParOpt::setOutputLevel__i"></span><span class="target" id="class_par_opt_1a65f88cb634ea37e32aa20a6685349776"></span>void <code class="sig-name descname">setOutputLevel</code><span class="sig-paren">(</span>int <em>level</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt14setOutputLevelEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the output file level</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">level</span></code>: 0, 1, 2 the verbosity level. </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt17writeSolutionFileEPKc">
+<span id="_CPPv3N6ParOpt17writeSolutionFileEPKc"></span><span id="_CPPv2N6ParOpt17writeSolutionFileEPKc"></span><span id="ParOpt::writeSolutionFile__cCP"></span><span class="target" id="class_par_opt_1a9a44b61824a318f14c6004f299cb54b2"></span>int <code class="sig-name descname">writeSolutionFile</code><span class="sig-paren">(</span><em class="property">const</em> char *<em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt17writeSolutionFileEPKc" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Write out the design variables, Lagrange multipliers and slack variables to a binary file in parallel.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">filename</span></code>: is the name of the file to write </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N6ParOpt16readSolutionFileEPKc">
+<span id="_CPPv3N6ParOpt16readSolutionFileEPKc"></span><span id="_CPPv2N6ParOpt16readSolutionFileEPKc"></span><span id="ParOpt::readSolutionFile__cCP"></span><span class="target" id="class_par_opt_1af392fe7a95a2818fe5ed36c8f64dbcc5"></span>int <code class="sig-name descname">readSolutionFile</code><span class="sig-paren">(</span><em class="property">const</em> char *<em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt16readSolutionFileEPKc" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Read in the design variables, Lagrange multipliers and slack variables from a binary file.</p>
+<p>This function requires that the same problem structure as the original problem.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">filename</span></code>: is the name of the file input </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="class">
+<dt id="_CPPv417ParOptTrustRegion">
+<span id="_CPPv317ParOptTrustRegion"></span><span id="_CPPv217ParOptTrustRegion"></span><span id="ParOptTrustRegion"></span><span class="target" id="class_par_opt_trust_region"></span><em class="property">class </em><code class="sig-name descname">ParOptTrustRegion</code> : <em class="property">public</em> <a class="reference internal" href="#_CPPv413ParOptProblem" title="ParOptProblem">ParOptProblem</a><a class="headerlink" href="#_CPPv417ParOptTrustRegion" title="Permalink to this definition">¶</a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric">Public Functions</p>
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion15createDesignVecEv">
+<span id="_CPPv3N17ParOptTrustRegion15createDesignVecEv"></span><span id="_CPPv2N17ParOptTrustRegion15createDesignVecEv"></span><span id="ParOptTrustRegion::createDesignVec"></span><span class="target" id="class_par_opt_trust_region_1a0f93836ef2f2a51c31a926de479e3153"></span>ParOptVec *<code class="sig-name descname">createDesignVec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion15createDesignVecEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Create a new distributed design vector</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>a new distributed design vector </p>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion19createConstraintVecEv">
+<span id="_CPPv3N17ParOptTrustRegion19createConstraintVecEv"></span><span id="_CPPv2N17ParOptTrustRegion19createConstraintVecEv"></span><span id="ParOptTrustRegion::createConstraintVec"></span><span class="target" id="class_par_opt_trust_region_1a38556b9889716b7e722961baaf145b75"></span>ParOptVec *<code class="sig-name descname">createConstraintVec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion19createConstraintVecEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Create a new distributed sparse constraint vector</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>a new distributed sparse constraint vector </p>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion17isDenseInequalityEv">
+<span id="_CPPv3N17ParOptTrustRegion17isDenseInequalityEv"></span><span id="_CPPv2N17ParOptTrustRegion17isDenseInequalityEv"></span><span id="ParOptTrustRegion::isDenseInequality"></span><span class="target" id="class_par_opt_trust_region_1a839537c5cee816d06ab5c4971187b396"></span>int <code class="sig-name descname">isDenseInequality</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion17isDenseInequalityEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Are the dense constraints inequalities? Default is true.</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>flag indicating if the dense constraints are inequalities </p>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion18isSparseInequalityEv">
+<span id="_CPPv3N17ParOptTrustRegion18isSparseInequalityEv"></span><span id="_CPPv2N17ParOptTrustRegion18isSparseInequalityEv"></span><span id="ParOptTrustRegion::isSparseInequality"></span><span class="target" id="class_par_opt_trust_region_1a269cd2197e65355d4a0c720348c98f2a"></span>int <code class="sig-name descname">isSparseInequality</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion18isSparseInequalityEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Are the dense constraints inequalities? Default is true.</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>flag indicating if the dense constraints are inequalities </p>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion14useLowerBoundsEv">
+<span id="_CPPv3N17ParOptTrustRegion14useLowerBoundsEv"></span><span id="_CPPv2N17ParOptTrustRegion14useLowerBoundsEv"></span><span id="ParOptTrustRegion::useLowerBounds"></span><span class="target" id="class_par_opt_trust_region_1a399d05752b4be432227f406d817dcd01"></span>int <code class="sig-name descname">useLowerBounds</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion14useLowerBoundsEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Indicate whether to use the lower variable bounds. Default is true.</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>flag indicating whether to use lower variable bound. </p>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion14useUpperBoundsEv">
+<span id="_CPPv3N17ParOptTrustRegion14useUpperBoundsEv"></span><span id="_CPPv2N17ParOptTrustRegion14useUpperBoundsEv"></span><span id="ParOptTrustRegion::useUpperBounds"></span><span class="target" id="class_par_opt_trust_region_1ae08cc4b3ec260bffef4b5cbe363d5ab0"></span>int <code class="sig-name descname">useUpperBounds</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion14useUpperBoundsEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Indicate whether to use the upper variable bounds. Default is true.</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>flag indicating whether to use upper variable bounds. </p>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion16getVarsAndBoundsEP9ParOptVecP9ParOptVecP9ParOptVec">
+<span id="_CPPv3N17ParOptTrustRegion16getVarsAndBoundsEP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N17ParOptTrustRegion16getVarsAndBoundsEP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="ParOptTrustRegion::getVarsAndBounds__ParOptVecP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_trust_region_1a075d0de89869fdc30373a1975ff54c77"></span>void <code class="sig-name descname">getVarsAndBounds</code><span class="sig-paren">(</span>ParOptVec *<em>x</em>, ParOptVec *<em>lb</em>, ParOptVec *<em>ub</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion16getVarsAndBoundsEP9ParOptVecP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Get the initial variable values and bounds for the problem</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>: is a vector of the initial design variable values </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">lb</span></code>: are the lower variable bounds </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ub</span></code>: are the upper variable bounds </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion10evalObjConEP9ParOptVecP12ParOptScalarP12ParOptScalar">
+<span id="_CPPv3N17ParOptTrustRegion10evalObjConEP9ParOptVecP12ParOptScalarP12ParOptScalar"></span><span id="_CPPv2N17ParOptTrustRegion10evalObjConEP9ParOptVecP12ParOptScalarP12ParOptScalar"></span><span id="ParOptTrustRegion::evalObjCon__ParOptVecP.ParOptScalarP.ParOptScalarP"></span><span class="target" id="class_par_opt_trust_region_1a878ff3c54f749b98cabcccf9ef852835"></span>int <code class="sig-name descname">evalObjCon</code><span class="sig-paren">(</span>ParOptVec *<em>x</em>, ParOptScalar *<em>fobj</em>, ParOptScalar *<em>cons</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion10evalObjConEP9ParOptVecP12ParOptScalarP12ParOptScalar" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Evaluate the objective and constraints.</p>
+<p>Given the design variables x, compute the scalar objective value and the dense constraints. The constraints and objective must be consistent across all processors.</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>zero on success, non-zero fail flag on error </p>
+</dd>
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>: is the design variable vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fobj</span></code>: is the objective value at x </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cons</span></code>: is the array of constraint vaules at x </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion18evalObjConGradientEP9ParOptVecP9ParOptVecPP9ParOptVec">
+<span id="_CPPv3N17ParOptTrustRegion18evalObjConGradientEP9ParOptVecP9ParOptVecPP9ParOptVec"></span><span id="_CPPv2N17ParOptTrustRegion18evalObjConGradientEP9ParOptVecP9ParOptVecPP9ParOptVec"></span><span id="ParOptTrustRegion::evalObjConGradient__ParOptVecP.ParOptVecP.ParOptVecPP"></span><span class="target" id="class_par_opt_trust_region_1a4f61339f4afaae3f1f662689b4024166"></span>int <code class="sig-name descname">evalObjConGradient</code><span class="sig-paren">(</span>ParOptVec *<em>x</em>, ParOptVec *<em>g</em>, ParOptVec **<em>Ac</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion18evalObjConGradientEP9ParOptVecP9ParOptVecPP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Evaluate the objective and constraint gradients.</p>
+<p>Given the desgin variables x, compute the gradient of the objective and dense constraint functions. This call is made only after a call to evaluate the objective and dense constraint functions.</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>zero on success, non-zero fail flag on error </p>
+</dd>
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>: is the design variable vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">g</span></code>: is the gradient of the objective at x </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Ac</span></code>: are the gradients of the dense constraints at x </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion15evalHvecProductEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec">
+<span id="_CPPv3N17ParOptTrustRegion15evalHvecProductEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N17ParOptTrustRegion15evalHvecProductEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="ParOptTrustRegion::evalHvecProduct__ParOptVecP.ParOptScalarP.ParOptVecP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_trust_region_1a8c9aeb9358d3dcda8bfc8920e5639939"></span>int <code class="sig-name descname">evalHvecProduct</code><span class="sig-paren">(</span>ParOptVec *<em>x</em>, ParOptScalar *<em>z</em>, ParOptVec *<em>zw</em>, ParOptVec *<em>px</em>, ParOptVec *<em>hvec</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion15evalHvecProductEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Evaluate the product of the Hessian with a given vector.</p>
+<p>This function is only called if Hessian-vector products are requested by the optimizer. By default, no implementation is provided.</p>
+<p><dl class="simple">
+<dt><strong>Return</strong></dt><dd><p>zero on success, non-zero flag on error </p>
+</dd>
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>: is the design variable vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">z</span></code>: is the array of multipliers for the dense constraints </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">zw</span></code>: is the vector of multipliers for the sparse constraints </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">px</span></code>: is the direction vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hvec</span></code>: is the output vector hvec = H(x,z,zw)*px </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion15evalHessianDiagEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVec">
+<span id="_CPPv3N17ParOptTrustRegion15evalHessianDiagEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N17ParOptTrustRegion15evalHessianDiagEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVec"></span><span id="ParOptTrustRegion::evalHessianDiag__ParOptVecP.ParOptScalarP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_trust_region_1a032cb06e429182c39e9044cb7ea21e99"></span>int <code class="sig-name descname">evalHessianDiag</code><span class="sig-paren">(</span>ParOptVec *<em>x</em>, ParOptScalar *<em>z</em>, ParOptVec *<em>zw</em>, ParOptVec *<em>hdiag</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion15evalHessianDiagEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Evaluate the diagonal of the Hessian.</p>
+<p>This is only used by MMA. </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion13evalSparseConEP9ParOptVecP9ParOptVec">
+<span id="_CPPv3N17ParOptTrustRegion13evalSparseConEP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N17ParOptTrustRegion13evalSparseConEP9ParOptVecP9ParOptVec"></span><span id="ParOptTrustRegion::evalSparseCon__ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_trust_region_1a510b62b32c2f804c88ad2e716f2d73bc"></span>void <code class="sig-name descname">evalSparseCon</code><span class="sig-paren">(</span>ParOptVec *<em>x</em>, ParOptVec *<em>out</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion13evalSparseConEP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Evaluate the sparse constraints.</p>
+<p>Give the design variable vector x, compute the sparse constraints.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>: is the design variable vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">out</span></code>: is the sparse constraint vector </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion17addSparseJacobianE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec">
+<span id="_CPPv3N17ParOptTrustRegion17addSparseJacobianE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N17ParOptTrustRegion17addSparseJacobianE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="ParOptTrustRegion::addSparseJacobian__ParOptScalar.ParOptVecP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_trust_region_1aa57adc13388384d8f2db1b89ef91a35b"></span>void <code class="sig-name descname">addSparseJacobian</code><span class="sig-paren">(</span>ParOptScalar <em>alpha</em>, ParOptVec *<em>x</em>, ParOptVec *<em>px</em>, ParOptVec *<em>out</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion17addSparseJacobianE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Compute the Jacobian-vector product of the sparse constraints.</p>
+<p>This code computes the action of the Jacobian of the sparse constraint matrix on the input vector px, to compute out = alpha*J(x)*px.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">alpha</span></code>: is a scalar factor </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>: is the design variable vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">px</span></code>: is the input direction vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">out</span></code>: is the sparse product vector </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion26addSparseJacobianTransposeE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec">
+<span id="_CPPv3N17ParOptTrustRegion26addSparseJacobianTransposeE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N17ParOptTrustRegion26addSparseJacobianTransposeE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="ParOptTrustRegion::addSparseJacobianTranspose__ParOptScalar.ParOptVecP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_trust_region_1ad902e268525d2fdbd251dbf4e42c4bf2"></span>void <code class="sig-name descname">addSparseJacobianTranspose</code><span class="sig-paren">(</span>ParOptScalar <em>alpha</em>, ParOptVec *<em>x</em>, ParOptVec *<em>pzw</em>, ParOptVec *<em>out</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion26addSparseJacobianTransposeE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Compute the tranpose Jacobian-vector product of the sparse constraints.</p>
+<p>This code computes the action of the transpose Jacobian of the sparse constraint matrix on the input vector pzw, to compute out = alpha*J(x)^{T}*pzw.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">alpha</span></code>: is a scalar factor </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>: is the design variable vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pzw</span></code>: is the input direction vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">out</span></code>: is the sparse product vector </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion21addSparseInnerProductE12ParOptScalarP9ParOptVecP9ParOptVecP12ParOptScalar">
+<span id="_CPPv3N17ParOptTrustRegion21addSparseInnerProductE12ParOptScalarP9ParOptVecP9ParOptVecP12ParOptScalar"></span><span id="_CPPv2N17ParOptTrustRegion21addSparseInnerProductE12ParOptScalarP9ParOptVecP9ParOptVecP12ParOptScalar"></span><span id="ParOptTrustRegion::addSparseInnerProduct__ParOptScalar.ParOptVecP.ParOptVecP.ParOptScalarP"></span><span class="target" id="class_par_opt_trust_region_1a58fed340c22461646a98e4673fc99af2"></span>void <code class="sig-name descname">addSparseInnerProduct</code><span class="sig-paren">(</span>ParOptScalar <em>alpha</em>, ParOptVec *<em>x</em>, ParOptVec *<em>cvec</em>, ParOptScalar *<em>A</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion21addSparseInnerProductE12ParOptScalarP9ParOptVecP9ParOptVecP12ParOptScalar" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Add the inner product of the constraints to the matrix such that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">alpha</span></code>: is a scalar factor </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>: is the design variable vector </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cvec</span></code>: are input components of the diagonal matrix </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">A</span></code>: is the output block-diagonal matrix </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion11writeOutputEiP9ParOptVec">
+<span id="_CPPv3N17ParOptTrustRegion11writeOutputEiP9ParOptVec"></span><span id="_CPPv2N17ParOptTrustRegion11writeOutputEiP9ParOptVec"></span><span id="ParOptTrustRegion::writeOutput__i.ParOptVecP"></span><span class="target" id="class_par_opt_trust_region_1a320191924429b64b3dd38f9a2c74b1de"></span>void <code class="sig-name descname">writeOutput</code><span class="sig-paren">(</span>int <em>iter</em>, ParOptVec *<em>x</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion11writeOutputEiP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Implement this function if you'd like to print out something with the same frequency as the output files </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container container-navbar-bottom">
+      <div class="spc-navbar">
+        
+      </div>
+    </div>
+    <div class="container">
+    <div class="footer">
+    <div class="row-fluid">
+    <ul class="inline pull-left">
+      <li>
+        &copy; Copyright 2019, Graeme Kennedy.
+      </li>
+      <li>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 2.1.2.
+      </li>
+    </ul>
+    </div>
+    </div>
+    </div>
+  </body>
+</html>

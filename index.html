@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8">
+    
+    <title>ParOpt Overview &mdash; paropt  documentation</title>
+    
+    <link rel="stylesheet" type="text/css" href="_static/css/spc-bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="_static/css/spc-extend.css">
+    <link rel="stylesheet" href="_static/scipy.css" type="text/css" >
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" >
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/js/copybutton.js"></script>
+    <link rel="index" title="Index" href="genindex.html" >
+    <link rel="search" title="Search" href="search.html" >
+    <link rel="top" title="paropt  documentation" href="#" >
+    <link rel="next" title="Sellar problem" href="sellar.html" > 
+  </head>
+  <body>
+
+  <div class="container">
+    <div class="header">
+    </div>
+  </div>
+
+
+    <div class="container">
+      <div class="main">
+        
+	<div class="row-fluid">
+	  <div class="span12">
+	    <div class="spc-navbar">
+              
+    <ul class="nav nav-pills pull-left">
+        <li class="active"><a href="["></a></li>
+        <li class="active"><a href="]"></a></li>
+	 
+    </ul>
+              
+              
+    <ul class="nav nav-pills pull-right">
+      <li class="active">
+        <a href="genindex.html" title="General Index"
+           accesskey="I">index</a>
+      </li>
+      <li class="active">
+        <a href="sellar.html" title="Sellar problem"
+           accesskey="N">next</a>
+      </li>
+    </ul>
+              
+	    </div>
+	  </div>
+	</div>
+        
+
+	<div class="row-fluid">
+      <div class="spc-rightsidebar span3">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">ParOpt Overview</a><ul>
+<li><a class="reference internal" href="#please-cite-us">Please cite us</a></li>
+<li><a class="reference internal" href="#installation">Installation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#introduction-and-examples">Introduction and examples</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+  <h4>Next topic</h4>
+  <p class="topless"><a href="sellar.html"
+                        title="next chapter">Sellar problem</a></p>
+  <h3>This Page</h3>
+  <div>
+    <a href="_sources/index.rst.txt"
+       rel="nofollow">Show Source</a>
+  </div>
+<div class="this-page-menu">
+  <a href="/scipy/docs/scipy-docs/index.rst.rst">Edit page</a>
+</div>
+
+        </div>
+      </div>
+          <div class="span9">
+            
+        <div class="bodywrapper">
+          <div class="body" id="spc-section-body">
+            
+  <div class="section" id="paropt-overview">
+<h1>ParOpt Overview<a class="headerlink" href="#paropt-overview" title="Permalink to this headline">¶</a></h1>
+<p>ParOpt is a parallel optimization library for large-scale optimization using distributed design variables.
+ParOpt is implemented in C++ with a Python wrapper generated using Cython.
+ParOpt contains both an interior-point optimization algorithm with a line search globalization strategy and an <span class="math notranslate nohighlight">\(l_{\infty}\)</span> trust region algorithm with an <span class="math notranslate nohighlight">\(l_{1}\)</span> penalty function.</p>
+<div class="section" id="please-cite-us">
+<h2>Please cite us<a class="headerlink" href="#please-cite-us" title="Permalink to this headline">¶</a></h2>
+<p>The key contributions and development of ParOpt are described in the following paper:
+Ting Wei Chin, Mark K. Leader, Graeme J. Kennedy, A scalable framework for large-scale 3D multimaterial topology optimization with octree-based mesh adaptation, Advances in Engineering Software, Volume 135, 2019.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>@article{Chin:2019,
+         title = {A scalable framework for large-scale 3D multimaterial topology optimization with octree-based mesh adaptation},
+         journal = {Advances in Engineering Software},
+         volume = {135},
+         year = {2019},
+         doi = {10.1016/j.advengsoft.2019.05.004},
+         author = {Ting Wei Chin and Mark K. Leader and Graeme J. Kennedy}}
+</pre></div>
+</div>
+</div>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<p>The installation process for ParOpt consists of first compiling the C++ source and then installing the python interface.
+The C++ source requires a BLAS/LAPACK installation and a MPI compiler for C++.
+Using the Python interface additional requires numpy, mpi4py and Cython.</p>
+<p>Currently ParOpt does not use an build system so all options are set in the file &quot;Makefile.in&quot;.
+Default settings for these options are contained within the file &quot;Makefile.in.info&quot;.
+The first step in compling ParOpt is to first copy the file &quot;Makefile.in.info&quot; to &quot;Makefile.in&quot;.</p>
+<p>Key parameters that should be set within the &quot;Makefile.in&quot; file are:</p>
+<ol class="arabic simple">
+<li><p>&quot;PAROPT_DIR&quot; the root ParOpt directory</p></li>
+<li><p>&quot;CXX&quot; the MPI-enabled C++ compiler</p></li>
+<li><p>&quot;LAPACK_LIBS&quot; the link command for the BLAS/LAPACK libraries</p></li>
+</ol>
+<p>By default, the shared and static library are complied to the directory &quot;PAROPT_DIR/lib&quot;.</p>
+<p>Installation of the python interface is performed using the &quot;setup.py&quot; script.
+The recommended python installation command &quot;python setup.py build_ext --inplace&quot; can be executed by typing &quot;make interface&quot; in the root directory.</p>
+</div>
+</div>
+<div class="section" id="introduction-and-examples">
+<h1>Introduction and examples<a class="headerlink" href="#introduction-and-examples" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="sellar.html">Sellar problem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rosenbrock.html">Parallel Rosenbrock function</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Class reference</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</div>
+
+
+          </div>
+        </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container container-navbar-bottom">
+      <div class="spc-navbar">
+        
+      </div>
+    </div>
+    <div class="container">
+    <div class="footer">
+    <div class="row-fluid">
+    <ul class="inline pull-left">
+      <li>
+        &copy; Copyright 2019, Graeme Kennedy.
+      </li>
+      <li>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 2.1.2.
+      </li>
+    </ul>
+    </div>
+    </div>
+    </div>
+  </body>
+</html>
