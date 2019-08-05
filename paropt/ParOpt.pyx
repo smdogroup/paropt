@@ -729,7 +729,6 @@ cdef class PVec:
 
 # Python classes for the ParOptCompactQuasiNewton methods
 cdef class CompactQuasiNewton:
-    cdef ParOptCompactQuasiNewton *ptr
     def __cinit__(self):
         self.ptr = NULL
 

@@ -56,6 +56,9 @@ cdef extern from "ParOptQuasiNewton.h":
     cdef cppclass ParOptLSR1(ParOptCompactQuasiNewton):
         ParOptLSR1(ParOptProblem*, int)
 
+cdef class CompactQuasiNewton:
+    cdef ParOptCompactQuasiNewton *ptr
+
 cdef extern from "CyParOptProblem.h":
     # Define the callback types
     ctypedef void (*getvarsandbounds)(void *_self, int nvars, ParOptVec *x,
