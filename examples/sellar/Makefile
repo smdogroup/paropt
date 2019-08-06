@@ -1,8 +1,8 @@
 include ../../Makefile.in
 include ../../ParOpt_Common.mk
 
-default: Sellar.o
-	${CXX} ${CCFLAGS} -o sellar Sellar.o ${PAROPT_LD_FLAGS}
+default: sellar.o
+	${CXX} ${CCFLAGS} -o sellar sellar.o ${PAROPT_LD_FLAGS}
 
 debug: CCFLAGS=${CCFLAGS_DEBUG}
 debug: default

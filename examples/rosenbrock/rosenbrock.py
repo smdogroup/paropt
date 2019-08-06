@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from paropt import ParOpt
 
 # Create the rosenbrock function class
-class Rosenbrock(ParOpt.pyParOptProblem):
+class Rosenbrock(ParOpt.Problem):
     def __init__(self):
         # Set the communicator pointer
         self.comm = MPI.COMM_WORLD
@@ -64,7 +64,7 @@ def plot_it_all(problem):
 
     # Set up the optimization problem
     max_lbfgs = 20
-    opt = ParOpt.pyParOpt(problem, max_lbfgs, ParOpt.BFGS)
+    opt = ParOpt.InteriorPoint(problem, max_lbfgs, ParOpt.BFGS)
 
     # Create the data for the carpet plot
     n = 150
@@ -103,7 +103,7 @@ def plot_it_all(problem):
             sd[1, i] = problem.x_hist[i][1]
 
         plt.plot(sd[0, :], sd[1, :], colours[k],
-                 label='SD %d'%(sd.shape[1]))
+                 label='IP %d'%(sd.shape[1]))
         plt.plot(sd[0, -1], sd[1, -1], '-ro')
 
     plt.legend()

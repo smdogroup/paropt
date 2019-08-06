@@ -433,7 +433,7 @@ cdef void _addsparseinnerproduct(void *_self, int nvars,
 
     return
 
-cdef class pyParOptProblemBase:
+cdef class ProblemBase:
     def __cinit__(self):
         self.ptr = NULL
 
@@ -447,8 +447,7 @@ cdef class pyParOptProblemBase:
         vec = self.ptr.createConstraintVec()
         return _init_PVec(vec)
 
-# "Wrap" the abtract base class ParOptProblem
-cdef class pyParOptProblem(pyParOptProblemBase):
+cdef class Problem(ProblemBase):
     cdef CyParOptProblem *me
     def __init__(self, MPI.Comm comm, int nvars, int ncon,
                  int nwcon=0, int nwblock=0):
@@ -711,20 +710,25 @@ cdef class PVec:
         return
 
     def copyValues(self, PVec vec):
+        '''Copy values from the provided PVec'''
         if self.ptr and vec.ptr:
             self.ptr.copyValues(vec.ptr)
         return
 
     def norm(self):
+        '''Compute the l2 norm of the vector'''
         return self.ptr.norm()
 
     def l1norm(self):
+        '''Compute the l1 norm of the vector'''
         return self.ptr.l1norm()
 
     def maxabs(self):
+        '''Compute the linfty norm of the vector'''
         return self.ptr.maxabs()
 
     def dot(self, PVec vec):
+        '''Compute the dot product with the provided PVec'''
         return self.ptr.dot(vec.ptr)
 
 # Python classes for the ParOptCompactQuasiNewton methods
@@ -749,22 +753,22 @@ cdef class CompactQuasiNewton:
             self.ptr.multAdd(alpha, x.ptr, y.ptr)
 
 cdef class LBFGS(CompactQuasiNewton):
-    def __cinit__(self, pyParOptProblemBase prob, int subspace=10):
+    def __cinit__(self, ProblemBase prob, int subspace=10):
         self.ptr = new ParOptLBFGS(prob.ptr, subspace)
         self.ptr.incref()
 
 cdef class LSR1(CompactQuasiNewton):
-    def __cinit__(self, pyParOptProblemBase prob, int subspace=10):
+    def __cinit__(self, ProblemBase prob, int subspace=10):
         self.ptr = new ParOptLSR1(prob.ptr, subspace)
         self.ptr.incref()
 
 # Python class for corresponding instance ParOpt
-cdef class pyParOpt:
-    cdef ParOpt *ptr
-    def __cinit__(self, pyParOptProblemBase _prob,
+cdef class InteriorPoint:
+    cdef ParOptInteriorPoint *ptr
+    def __cinit__(self, ProblemBase _prob,
                   int max_qn_subspace,
                   ParOptQuasiNewtonType qn_type):
-        self.ptr = new ParOpt(_prob.ptr, max_qn_subspace, qn_type)
+        self.ptr = new ParOptInteriorPoint(_prob.ptr, max_qn_subspace, qn_type)
         self.ptr.incref()
         return
 
@@ -1017,9 +1021,9 @@ cdef class pyParOpt:
         if filename is not None:
             return self.ptr.readSolutionFile(filename)
 
-cdef class pyMMA(pyParOptProblemBase):
+cdef class MMA(ProblemBase):
     cdef ParOptMMA *mma
-    def __cinit__(self, pyParOptProblemBase _prob, use_mma=True):
+    def __cinit__(self, ProblemBase _prob, use_mma=True):
         cdef int use_true_mma = 0
         if use_mma:
             use_true_mma = 1
@@ -1103,18 +1107,33 @@ cdef class pyMMA(pyParOptProblemBase):
     def setRegularization(self, double eps, double delta):
         self.mma.setRegularization(eps, delta)
 
-cdef class pyTrustRegion(pyParOptProblemBase):
+cdef class TrustRegion(ProblemBase):
     cdef ParOptTrustRegion *tr
-    def __cinit__(self, pyParOptProblemBase _prob, CompactQuasiNewton qn=None,
+    def __cinit__(self, ProblemBase prob, CompactQuasiNewton qn=None,
                   double tr_size=1.0, double tr_min_size=1e-4,
                   double tr_max_size=1.0, double eta=0.25,
                   double penalty=10.0, double bound_relax=1e-4):
+        '''
+        Create a trust region optimization object
+
+        Args:
+            prob: ProblemBase type
+
+        Kwargs:
+            qn: CompactQuasiNewton defaults to None
+            tr_size: Initial trust region size
+            tr_min_size: Minimum trust region size
+            tr_max_size: Maximum trust region size
+            eta: Trust region update tolerance
+            penalty: Initial l1 penalty parameter
+            bound_relax: Bound tolerance for the KKT error 
+        '''
         if qn is None:
-            self.tr = new ParOptTrustRegion(_prob.ptr, NULL, tr_size,
+            self.tr = new ParOptTrustRegion(prob.ptr, NULL, tr_size,
                                             tr_min_size, tr_max_size,
                                             eta, penalty, bound_relax)
         else:
-            self.tr = new ParOptTrustRegion(_prob.ptr, qn.ptr, tr_size,
+            self.tr = new ParOptTrustRegion(prob.ptr, qn.ptr, tr_size,
                                             tr_min_size, tr_max_size,
                                             eta, penalty, bound_relax)
         self.tr.incref()
@@ -1177,5 +1196,5 @@ cdef class pyTrustRegion(pyParOptProblemBase):
     def setOutputFrequency(self, int output_frequency):
         self.tr.setOutputFrequency(output_frequency)
 
-    def optimize(self, pyParOpt optimizer):
+    def optimize(self, InteriorPoint optimizer):
         self.tr.optimize(optimizer.ptr)

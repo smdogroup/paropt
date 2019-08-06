@@ -3,7 +3,7 @@
 
 #include "ParOptProblem.h"
 
-/*
+/**
   This code implements a simplifed interface for the ParOptProblem
   that can be wrapped using Cython. The class uses function pointers
   as an intermediate layer between the ParOptProblem class and the
@@ -18,6 +18,7 @@
   min    f(x)
   w.r.t. lb <= x <= ub
   s.t.   c(x) >= 0
+         cw(x) >= 0
 */
 class CyParOptProblem : public ParOptProblem {
  public:

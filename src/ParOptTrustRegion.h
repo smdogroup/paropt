@@ -1,10 +1,10 @@
 #ifndef PAR_OPT_TRUST_REGION_H
 #define PAR_OPT_TRUST_REGION_H
 
-#include "ParOpt.h"
+#include "ParOptInteriorPoint.h"
 
 /*
-  Trust Region method
+  ParOptTrustRegion implements a trust-region method
 */
 class ParOptTrustRegion : public ParOptProblem {
  public:
@@ -31,7 +31,7 @@ class ParOptTrustRegion : public ParOptProblem {
   void setOutputFrequency( int _write_output_frequency );
 
   // Optimization loop using the trust region subproblem
-  void optimize( ParOpt *optimize );
+  void optimize( ParOptInteriorPoint *optimize );
 
   // Create the design vectors
   ParOptVec *createDesignVec();

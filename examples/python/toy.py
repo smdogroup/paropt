@@ -11,7 +11,7 @@ import os
 # Import ParOpt
 from paropt import ParOpt
 
-class Toy(ParOpt.pyParOptProblem):
+class Toy(ParOpt.Problem):
     def __init__(self, comm):
         # Set the communicator pointer
         self.comm = comm
@@ -25,11 +25,12 @@ class Toy(ParOpt.pyParOptProblem):
         super(Toy, self).__init__(self.comm, self.nvars, self.ncon)
 
         return
+
     def getVarsAndBounds(self, x, lb, ub):
         '''Set the values of the bounds'''
-        x[0] = 4.;
-        x[1] = 3.;
-        x[2] = 2.;
+        x[0] = 4.0
+        x[1] = 3.0
+        x[2] = 2.0
         
         lb[:] = .0
         ub[:] = 5.0
@@ -43,11 +44,11 @@ class Toy(ParOpt.pyParOptProblem):
         # Evaluate the objective and constraints
         fail = 0
         con = np.zeros(self.ncon)
-        fobj = x[0]**2+x[1]**2+x[2]**2
+        fobj = x[0]**2 + x[1]**2 + x[2]**2
         print("x is ", np.array(x))
         print("Objective is ", fobj)
-        con[0] = 9-(x[0]-5.)**2-(x[1]-2)**2-(x[2]-1)**2
-        con[1] = 9-(x[0]-3.)**2-(x[1]-4)**2-(x[2]-3)**2
+        con[0] = 9.0 - (x[0]-5.)**2 - (x[1]-2)**2 - (x[2]-1)**2
+        con[1] = 9.0 - (x[0]-3.)**2 - (x[1]-4)**2 - (x[2]-3)**2
         print("constraint values are ", np.array(con))
         return fail, fobj, con
 
@@ -60,20 +61,14 @@ class Toy(ParOpt.pyParOptProblem):
         g[1] = 2.0*x[1]
         g[2] = 2.0*x[2]
 
-        A[0][0] = -2.0*(x[0]-5.)
-        A[0][1] = -2.0*(x[1]-2.)
-        A[0][2] = -2.0*(x[2]-1.)
+        A[0][0] = -2.0*(x[0] - 5.)
+        A[0][1] = -2.0*(x[1] - 2.)
+        A[0][2] = -2.0*(x[2] - 1.)
 
-        A[1][0] = -2.0*(x[0]-3.)
-        A[1][1] = -2.0*(x[1]-4.)
-        A[1][2] = -2.0*(x[2]-3.)
+        A[1][0] = -2.0*(x[0] - 3.)
+        A[1][1] = -2.0*(x[1] - 4.)
+        A[1][2] = -2.0*(x[2] - 3.)
         return fail
-
-    def evalSparseCon(self, x, out):
-        return 1
-
-    def addSparseJacobianTranspose(self, alpha, x, px, out):
-        return 1
     
 # The communicator
 comm = MPI.COMM_WORLD
@@ -94,8 +89,9 @@ max_mma_iters = 10
 problem = Toy(comm)
 problem.setInequalityOptions(dense_ineq=True, sparse_ineq=False,
                              use_lower=True, use_upper=True)
+
 # Set the ParOpt problem into MMA
-mma = ParOpt.pyMMA(problem, use_mma=True)
+mma = ParOpt.MMA(problem, use_mma=True)
 mma.setInitAsymptoteOffset(0.5)
 mma.setMinAsymptoteOffset(0.01)
 mma.setBoundRelax(1e-4)
@@ -103,8 +99,7 @@ mma.setOutputFile(os.path.join(args.prefix,
                             'mma_output.out'))
 
 # Create the ParOpt problem
-opt = ParOpt.pyParOpt(mma, args.max_lbfgs,
-                      ParOpt.BFGS)
+opt = ParOpt.InteriorPoint(mma, args.max_lbfgs, ParOpt.BFGS)
 
 # Set parameters
 opt.setMaxMajorIterations(args.max_opt_iters)
@@ -119,7 +114,6 @@ opt.setUseDiagHessian(1)
 # Set the starting point using the mass fraction
 x = mma.getOptimizedPoint()
 print('Initial x = ', np.array(x))
-#problem.setInitDesignVars(x)
 
 # Initialize the subproblem
 mma.initializeSubProblem()

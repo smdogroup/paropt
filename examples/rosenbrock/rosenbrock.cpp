@@ -1,17 +1,10 @@
-#include "ParOpt.h"
+#include "ParOptInteriorPoint.h"
 
 /*
   The following is a simple implementation of a scalable Rosenbrock
   function with constraints that can be used to test the parallel
   optimizer.
 */
-
-ParOptScalar min2( ParOptScalar a, ParOptScalar b ){
-  if (a < b){
-    return a;
-  }
-  return b;
-}
 
 class Rosenbrock : public ParOptProblem {
  public:
@@ -229,7 +222,7 @@ int main( int argc, char* argv[] ){
 
   // Allocate the optimizer
   int max_lbfgs = 20;
-  ParOpt *opt = new ParOpt(rosen, max_lbfgs);
+  ParOptInteriorPoint *opt = new ParOptInteriorPoint(rosen, max_lbfgs);
   opt->incref();
 
   opt->setMaxMajorIterations(1500);

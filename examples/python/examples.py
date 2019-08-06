@@ -8,7 +8,7 @@ import argparse
 # Import ParOpt
 from paropt import ParOpt
 
-class Problem1(ParOpt.pyParOptProblem):
+class Problem1(ParOpt.Problem):
     def __init__(self):
         self.x_hist = []
         super(Problem1, self).__init__(MPI.COMM_SELF, 2, 1)
@@ -41,7 +41,7 @@ class Problem1(ParOpt.pyParOptProblem):
         A[0][1] = 1.0
         return fail
 
-class Problem2(ParOpt.pyParOptProblem):
+class Problem2(ParOpt.Problem):
     def __init__(self):
         self.x_hist = []
         super(Problem2, self).__init__(MPI.COMM_SELF, 2, 1)
@@ -74,7 +74,7 @@ class Problem2(ParOpt.pyParOptProblem):
         A[0][1] = 1.0
         return fail
 
-class Problem3(ParOpt.pyParOptProblem):
+class Problem3(ParOpt.Problem):
     def __init__(self):
         self.x_hist = []
         super(Problem3, self).__init__(MPI.COMM_SELF, 2, 1)
@@ -107,7 +107,7 @@ class Problem3(ParOpt.pyParOptProblem):
         A[0][1] = 1.0
         return fail
 
-class Problem4(ParOpt.pyParOptProblem):
+class Problem4(ParOpt.Problem):
     def __init__(self):
         self.x_hist = []
         super(Problem4, self).__init__(MPI.COMM_SELF, 2, 1)
@@ -140,7 +140,7 @@ class Problem4(ParOpt.pyParOptProblem):
         A[0][1] = 1.0
         return fail
 
-class Problem5(ParOpt.pyParOptProblem):
+class Problem5(ParOpt.Problem):
     def __init__(self):
         self.x_hist = []
         super(Problem5, self).__init__(MPI.COMM_SELF, 2, 1)
@@ -181,7 +181,7 @@ def plot_it_all(problem, use_tr=False):
 
     # Set up the optimization problem
     max_lbfgs = 20
-    opt = ParOpt.pyParOpt(problem, max_lbfgs, ParOpt.BFGS)
+    opt = ParOpt.InteriorPoint(problem, max_lbfgs, ParOpt.BFGS)
     opt.checkGradients(1e-6)
 
     # Create the data for the carpet plot
@@ -225,12 +225,12 @@ def plot_it_all(problem, use_tr=False):
             tr_max_size = 10.0
             tr_eta = 0.25
             tr_penalty_gamma = 10.0
-            tr = ParOpt.pyTrustRegion(problem, qn, tr_init_size,
-                                      tr_min_size, tr_max_size,
-                                      tr_eta, tr_penalty_gamma)
+            tr = ParOpt.TrustRegion(problem, qn, tr_init_size,
+                                    tr_min_size, tr_max_size,
+                                    tr_eta, tr_penalty_gamma)
 
             # Set up the optimization problem
-            tr_opt = ParOpt.pyParOpt(tr, 2, ParOpt.BFGS)
+            tr_opt = ParOpt.InteriorPoint(tr, 2, ParOpt.BFGS)
 
             # Optimize
             tr.optimize(tr_opt)

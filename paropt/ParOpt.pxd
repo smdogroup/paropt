@@ -118,7 +118,7 @@ cdef extern from "ParOptQuasiNewton.h":
         PAROPT_SKIP_NEGATIVE_CURVATURE
         PAROPT_DAMPED_UPDATE
 
-cdef extern from "ParOpt.h":
+cdef extern from "ParOptInteriorPoint.h":
     # Set the quasi-Newton type to use
     enum ParOptQuasiNewtonType:
         PAROPT_BFGS
@@ -140,9 +140,9 @@ cdef extern from "ParOpt.h":
         PAROPT_LEAST_SQUARES_MULTIPLIERS
         PAROPT_AFFINE_STEP
 
-    cppclass ParOpt(ParOptBase):
-        ParOpt(ParOptProblem*, int,
-               ParOptQuasiNewtonType qn_type) except +
+    cppclass ParOptInteriorPoint(ParOptBase):
+        ParOptInteriorPoint(ParOptProblem*, int,
+                            ParOptQuasiNewtonType qn_type) except +
 
         # Perform the optimiztion
         int optimize(const char*)
@@ -256,7 +256,7 @@ cdef extern from "ParOptTrustRegion.h":
         void setTrustRegionTolerances(double, double, double)
         void setPenaltyGammaMax(double)
         void setOutputFrequency(int)
-        void optimize(ParOpt*)
+        void optimize(ParOptInteriorPoint*)
 
-cdef class pyParOptProblemBase:
+cdef class ProblemBase:
     cdef ParOptProblem *ptr

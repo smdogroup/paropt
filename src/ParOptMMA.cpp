@@ -1,5 +1,5 @@
 #include <string.h>
-#include "ComplexStep.h"
+#include "ParOptComplexStep.h"
 #include "ParOptBlasLapack.h"
 #include "ParOptMMA.h"
 
@@ -179,9 +179,11 @@ void ParOptMMA::initialize(){
     b = NULL;
   }
 
-  cwvec = prob->createConstraintVec();
-  if (cwvec){
-    cwvec->incref();
+  if (nwcon > 0){
+    cwvec = prob->createConstraintVec();
+    if (cwvec){
+      cwvec->incref();
+    }
   }
 
   // Get the design variables and bounds
@@ -364,7 +366,7 @@ void ParOptMMA::computeKKTError( double *l1,
   }
 
   // If zw exists, compute r = r - Aw^{T}*zw
-  if (zwvec){
+  if (nwcon > 0){
     prob->addSparseJacobianTranspose(-1.0, xvec, zwvec, rvec);
   }
 
@@ -486,7 +488,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
   }
 
   // Evaluate the sparse constraints
-  if (cwvec){
+  if (nwcon > 0){
     prob->evalSparseCon(xvec, cwvec);
   }
 
@@ -945,9 +947,11 @@ int ParOptMMA::evalHessianDiag( ParOptVec *xv,
   Evaluate the constraints
 */
 void ParOptMMA::evalSparseCon( ParOptVec *x, ParOptVec *out ){
-  out->copyValues(cwvec);
-  prob->addSparseJacobian(1.0, xvec, x, out);
-  prob->addSparseJacobian(-1.0, xvec, xvec, out);
+  if (nwcon > 0){
+    out->copyValues(cwvec);
+    prob->addSparseJacobian(1.0, xvec, x, out);
+    prob->addSparseJacobian(-1.0, xvec, xvec, out);
+  }
 }
 
 /*
@@ -955,7 +959,9 @@ void ParOptMMA::evalSparseCon( ParOptVec *x, ParOptVec *out ){
 */
 void ParOptMMA::addSparseJacobian( ParOptScalar alpha, ParOptVec *x,
                                    ParOptVec *px, ParOptVec *out ){
-  prob->addSparseJacobian(alpha, xvec, px, out);
+  if (nwcon > 0){
+    prob->addSparseJacobian(alpha, xvec, px, out);
+  }
 }
 
 /*
@@ -963,7 +969,9 @@ void ParOptMMA::addSparseJacobian( ParOptScalar alpha, ParOptVec *x,
 */
 void ParOptMMA::addSparseJacobianTranspose( ParOptScalar alpha, ParOptVec *x,
                                             ParOptVec *pzw, ParOptVec *out ){
-  prob->addSparseJacobianTranspose(alpha, xvec, pzw, out);
+  if (nwcon > 0){
+    prob->addSparseJacobianTranspose(alpha, xvec, pzw, out);
+  }
 }
 
 /*
@@ -972,5 +980,7 @@ void ParOptMMA::addSparseJacobianTranspose( ParOptScalar alpha, ParOptVec *x,
 */
 void ParOptMMA::addSparseInnerProduct( ParOptScalar alpha, ParOptVec *x,
                                        ParOptVec *cvec, ParOptScalar *A ){
-  prob->addSparseInnerProduct(alpha, xvec, cvec, A);
+  if (nwcon > 0){
+    prob->addSparseInnerProduct(alpha, xvec, cvec, A);
+  }
 }

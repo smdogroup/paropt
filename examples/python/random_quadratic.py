@@ -14,7 +14,7 @@ import argparse
 import matplotlib.pylab as plt
 
 # Random quadratic problem class
-class Quadratic(ParOpt.pyParOptProblem):
+class Quadratic(ParOpt.Problem):
     def __init__(self, A, b, Acon, bcon):
         # Set the communicator pointer
         self.comm = MPI.COMM_WORLD
@@ -104,9 +104,9 @@ def solve_problem(eigs, filename=None, use_stdout=False, use_tr=False):
         tr_penalty_gamma = 10.0
 
         qn = ParOpt.LBFGS(problem, subspace=max_lbfgs)
-        tr = ParOpt.pyTrustRegion(problem, qn, tr_init_size,
-                                  tr_min_size, tr_max_size,
-                                  tr_eta, tr_penalty_gamma)
+        tr = ParOpt.TrustRegion(problem, qn, tr_init_size,
+                                tr_min_size, tr_max_size,
+                                tr_eta, tr_penalty_gamma)
         tr.setMaxTrustRegionIterations(500)
 
         # Set up the optimization problem
@@ -132,7 +132,7 @@ def solve_problem(eigs, filename=None, use_stdout=False, use_tr=False):
     else:
         # Set up the optimization problem
         max_lbfgs = 10
-        opt = ParOpt.pyParOpt(problem, max_lbfgs, ParOpt.BFGS)
+        opt = ParOpt.InteriorPoint(problem, max_lbfgs, ParOpt.BFGS)
         if filename is not None and use_stdout is False:
             opt.setOutputFile(filename)
 

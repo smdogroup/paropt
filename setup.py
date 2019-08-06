@@ -63,6 +63,10 @@ exts.append(Ext('paropt.ParOpt', sources=['paropt/ParOpt.pyx'],
                 include_dirs=inc_dirs, libraries=libs, 
                 library_dirs=lib_dirs, runtime_library_dirs=runtime_lib_dirs))
 
+for e in exts:
+    e.cython_directives = {'embedsignature': True,
+                           'binding': True}
+
 setup(name='paropt',
       version=0.1,
       description='Parallel interior-point optimizer',

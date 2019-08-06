@@ -21,7 +21,7 @@ typedef std::complex<double> ParOptScalar;
 typedef double ParOptScalar;
 #endif // PAROPT_USE_COMPLEX
 
-/*
+/**
   ParOpt base class for reference counting
 */
 class ParOptBase {
@@ -31,11 +31,13 @@ class ParOptBase {
   }
   virtual ~ParOptBase(){}
 
-  // Incref/decref the reference count
-  // ---------------------------------
+  /// Increase the reference count
   void incref(){
     ref_count++;
   }
+
+  /// Decrease the reference count and delete the object once
+  /// the reference count is zero.
   void decref(){
     ref_count--;
     if (ref_count == 0){
@@ -98,4 +100,4 @@ class ParOptBasicVec : public ParOptVec {
   ParOptScalar *x;
 };
 
-#endif
+#endif // PAR_OPT_VEC_H

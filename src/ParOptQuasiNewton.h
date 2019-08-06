@@ -7,7 +7,7 @@
 enum ParOptBFGSUpdateType { PAROPT_SKIP_NEGATIVE_CURVATURE,
                             PAROPT_DAMPED_UPDATE };
 
-/*
+/**
   This is the abstract base class for compact limited-memory
   quasi-Newton update schemes.
 
@@ -46,7 +46,7 @@ class ParOptCompactQuasiNewton : public ParOptBase {
   virtual int getMaxLimitedMemorySize() = 0;
 };
 
-/*
+/**
   This class implements a limited-memory BFGS updating scheme based on
   computed differences in the step and Lagrange graidents during a
   line search.
@@ -125,7 +125,7 @@ class ParOptLBFGS : public ParOptCompactQuasiNewton {
   ParOptScalar *d0; // The diagonal matrix
 };
 
-/*
+/**
   This class implements a limited-memory SR1 updating scheme based on
   computed differences in the step and Lagrange graidents during a
   line search.

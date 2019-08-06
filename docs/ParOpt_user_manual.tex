@@ -24,7 +24,7 @@ filecolor=black, urlcolor=blue]{hyperref}
 
 \section{Introduction}
 
-ParOpt is a parallel gradient-based optimizer implemented in C++ and is intended for solving large-scale constrained optimization problems.
+ParOpt is a parallel gradient-based optimization library implemented in C++ and is intended for solving large-scale constrained optimization problems.
 ParOpt can be applied to general purpose optimization problems, but is often used for large-scale topology optimization. 
 The constraints in ParOpt fall into one of two categories: (1) constraints with full dependence on the design vector such that the constraint Jacobian is fully populated, or (2) constraints that have a specific sparse structure, described below, that enables them to be grouped independently.
 All operations in ParOpt use distributed design vectors and almost all computations are performed in parallel, with a small number of factorization operations performed on small dense matrices in serial.
@@ -534,10 +534,10 @@ The function \texttt{void writeOutput( int iter, ParOptVec *x )} can be overridd
 The prototype for the constructor for the \texttt{ParOpt} class is:
 %
 \begin{verbatim}
-ParOpt( ParOptProblem *_prob,
-        int _max_qn_subspace,
-        QuasiNewtonType qn_type=BFGS,
-        double _max_bound_val=1e20 );
+ParOptInteriorPoint( ParOptProblem *_prob,
+                     int _max_qn_subspace,
+                     QuasiNewtonType qn_type=BFGS,
+                     double _max_bound_val=1e20 );
 \end{verbatim}
 %
 The \texttt{ParOptProblem} defines the problem size, structure, and serves as a factory for generating problem-specific vectors.

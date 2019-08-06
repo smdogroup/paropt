@@ -1,4 +1,4 @@
-#include "ParOpt.h"
+#include "ParOptInteriorPoint.h"
 
 /*
   The following is a simple implementation of a Sellar function with
@@ -84,7 +84,8 @@ int main( int argc, char* argv[] ){
   
   // Allocate the optimizer
   int max_lbfgs = 20;
-  ParOpt *opt = new ParOpt(sellar, max_lbfgs);
+  ParOptInteriorPoint *opt = new ParOptInteriorPoint(sellar, max_lbfgs);
+  opt->incref();
 
   opt->setMaxMajorIterations(100);
   opt->checkGradients(1e-6);

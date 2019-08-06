@@ -1,7 +1,7 @@
 include ../Makefile.in
 include ../ParOpt_Common.mk
 
-OBJS = ParOpt.o \
+OBJS = ParOptInteriorPoint.o \
 	ParOptVec.o \
 	ParOptQuasiNewton.o \
 	ParOptMMA.o \

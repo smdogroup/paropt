@@ -1,15 +1,14 @@
 #include <math.h>
 #include <string.h>
-#include "ComplexStep.h"
-#include "ParOptVec.h"
+#include "ParOptComplexStep.h"
 #include "ParOptBlasLapack.h"
+#include "ParOptVec.h"
 
-/*
+/**
   Create a parallel vector for optimization
 
-  input:
-  comm: the communicator for this vector
-  n:    the number of vector components on this processor
+  @param comm the communicator for this vector
+  @param n the number of vector components on this processor
 */
 ParOptBasicVec::ParOptBasicVec( MPI_Comm _comm, int n ){
   comm = _comm;
@@ -18,15 +17,17 @@ ParOptBasicVec::ParOptBasicVec( MPI_Comm _comm, int n ){
   memset(x, 0, size*sizeof(ParOptScalar));
 }
 
-/*
+/**
   Free the internally stored data
 */
 ParOptBasicVec::~ParOptBasicVec(){
   delete [] x;
 }
 
-/*
+/**
   Set the vector value
+
+  @param alpha the scalar value to set in all components
 */
 void ParOptBasicVec::set( ParOptScalar alpha ){
   for ( int i = 0; i < size; i++ ){
@@ -34,15 +35,17 @@ void ParOptBasicVec::set( ParOptScalar alpha ){
   }
 }
 
-/*
+/**
   Zero the entries of the vector
 */
 void ParOptBasicVec::zeroEntries(){
   memset(x, 0, size*sizeof(ParOptScalar));
 }
 
-/*
+/**
   Copy the values from the given vector
+
+  @param pvec copy the values from pvec to this vector
 */
 void ParOptBasicVec::copyValues( ParOptVec *pvec ){
   ParOptBasicVec *vec = dynamic_cast<ParOptBasicVec*>(pvec);
@@ -52,8 +55,10 @@ void ParOptBasicVec::copyValues( ParOptVec *pvec ){
   }
 }
 
-/*
+/**
   Compute the l2 norm of the vector
+
+  @return the l2 norm of the vector
 */
 double ParOptBasicVec::norm(){
   int one = 1;
@@ -66,8 +71,10 @@ double ParOptBasicVec::norm(){
   return sqrt(sum);
 }
 
-/*
+/**
   Compute the l-infinity norm of the vector
+
+  @return the l-infinity norm of the vector
 */
 double ParOptBasicVec::maxabs(){
   double res = 0.0;
@@ -83,8 +90,10 @@ double ParOptBasicVec::maxabs(){
   return infty_norm;
 }
 
-/*
+/**
   Compute the l1 norm of the vector
+
+  @return the l1 norm of the vector
 */
 double ParOptBasicVec::l1norm(){
   double res = 0.0;
@@ -98,8 +107,11 @@ double ParOptBasicVec::l1norm(){
   return l1_norm;
 }
 
-/*
+/**
   Compute the dot-product of two vectors and return the result.
+
+  @param pvec the other vector in the dot product
+  @return the dot product of the two vectors
 */
 ParOptScalar ParOptBasicVec::dot( ParOptVec *pvec ){
   ParOptBasicVec *vec = dynamic_cast<ParOptBasicVec*>(pvec);
@@ -114,9 +126,12 @@ ParOptScalar ParOptBasicVec::dot( ParOptVec *pvec ){
   return sum;
 }
 
-/*
+/**
   Compute multiple dot-products simultaneously. This reduces the
   parallel communication overhead.
+
+  @param pvecs an array of vectors
+  @param output an array of the dot product results
 */
 void ParOptBasicVec::mdot( ParOptVec **pvecs, int nvecs, ParOptScalar *output ){
   int one = 1;
@@ -132,15 +147,17 @@ void ParOptBasicVec::mdot( ParOptVec **pvecs, int nvecs, ParOptScalar *output ){
   MPI_Allreduce(MPI_IN_PLACE, output, nvecs, PAROPT_MPI_TYPE, MPI_SUM, comm);
 }
 
-/*
-  Compute the dot product of the
+/**
+  Scale the components of the vector
+  
+  @param alpha the scalar factor
 */
 void ParOptBasicVec::scale( ParOptScalar alpha ){
   int one = 1;
   BLASdscal(&size, &alpha, x, &one);
 }
 
-/*
+/**
   Compute: self <- self + alpha*x
 */
 void ParOptBasicVec::axpy( ParOptScalar alpha, ParOptVec *pvec ){
@@ -152,8 +169,11 @@ void ParOptBasicVec::axpy( ParOptScalar alpha, ParOptVec *pvec ){
   }
 }
 
-/*
+/**
   Retrieve the locally stored values from the array
+
+  @param array pointer assigned to the memory location of the 
+  local vector components
 */
 int ParOptBasicVec::getArray( ParOptScalar **array ){
   if (array){

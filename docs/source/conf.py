@@ -48,8 +48,7 @@ extensions = ['breathe',
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
     'sphinx.ext.mathjax',
-    'sphinxcontrib.bibtex'
-]
+    'sphinxcontrib.bibtex']
 
 # Breathe configuration
 breathe_projects = {'paropt': '../xml'}

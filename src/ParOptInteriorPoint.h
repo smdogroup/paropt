@@ -1,5 +1,5 @@
-#ifndef PAR_OPT_OPTIMIZER_H
-#define PAR_OPT_OPTIMIZER_H
+#ifndef PAR_OPT_INTERIOR_POINT_H
+#define PAR_OPT_INTERIOR_POINT_H
 
 #include <stdio.h>
 #include "ParOptVec.h"
@@ -129,13 +129,13 @@ enum ParOptStartingPointStrategy { PAROPT_NO_START_STRATEGY,
   J*J_{B}^{-1}, takes a special form where only entries associated
   with the design vector need to be stored.
 */
-class ParOpt : public ParOptBase {
+class ParOptInteriorPoint : public ParOptBase {
  public:
-  ParOpt( ParOptProblem *_prob,
-          int _max_qn_subspace=10,
-          ParOptQuasiNewtonType qn_type=PAROPT_BFGS,
-          double _max_bound_val=1e20 );
-  ~ParOpt();
+  ParOptInteriorPoint( ParOptProblem *_prob,
+                       int _max_qn_subspace=10,
+                       ParOptQuasiNewtonType qn_type=PAROPT_BFGS,
+                       double _max_bound_val=1e20 );
+  ~ParOptInteriorPoint();
 
   // Retrieve the optimization problem class
   // ---------------------------------------
@@ -523,4 +523,4 @@ class ParOpt : public ParOptBase {
   int output_level;
 };
 
-#endif // PAR_OPT_OPTIMIZER_H
+#endif // PAR_OPT_INTERIOR_POINT_H

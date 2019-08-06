@@ -14,7 +14,7 @@ import argparse
 import matplotlib.pylab as plt
 
 # Random quadratic problem class
-class Quadratic(ParOpt.pyParOptProblem):
+class Quadratic(ParOpt.Problem):
     def __init__(self, eigs):
         # Set the communicator pointer
         self.comm = MPI.COMM_WORLD

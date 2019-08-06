@@ -1,5 +1,5 @@
 #include "ParOptTrustRegion.h"
-#include "ComplexStep.h"
+#include "ParOptComplexStep.h"
 
 /*
   Summary of the different trust region algorithm options
@@ -55,6 +55,23 @@ inline ParOptScalar max2( ParOptScalar a, ParOptScalar b ){
   }
 }
 
+/**
+  A parallel optimizer with trust region globalization
+
+  The following code implements a trust region method. The algorithm
+  uses an l1 penalty function for the constraints with an l-infinity (box)
+  constraint for the trust region. The trust region sub-problems are
+  solved at each step by an instance of the ParOptInteriorPoint optimizer.
+
+  @param _prob the ParOptProblem class
+  @param _qn the quasi-Newton Hessian approximation to be used
+  @param _tr_size the initial trust-region size
+  @param _tr_min_size the minimum trust-region size
+  @param _tr_max_size the maximum trust-region size
+  @param _eta the trust-region acceptance parameter
+  @param _penalty_value the initial l1 penalty paramter value
+  @param _bound_relax bound relaxation parameter
+*/
 ParOptTrustRegion::ParOptTrustRegion( ParOptProblem *_prob,
                                       ParOptCompactQuasiNewton *_qn,
                                       double _tr_size,
@@ -151,7 +168,7 @@ ParOptProblem(_prob->getMPIComm()){
   print_level = 0;
 }
 
-/*
+/**
   Delete the trust region object
 */
 ParOptTrustRegion::~ParOptTrustRegion(){
@@ -185,7 +202,7 @@ ParOptTrustRegion::~ParOptTrustRegion(){
   }
 }
 
-/*
+/**
   Set the trust region bounds
 */
 void ParOptTrustRegion::setTrustRegionBounds( double tr,
@@ -210,8 +227,10 @@ void ParOptTrustRegion::setTrustRegionBounds( double tr,
   }
 }
 
-/*
+/**
   Set the output file (only on the root proc)
+
+  @param filename the output file name
 */
 void ParOptTrustRegion::setOutputFile( const char *filename ){
   int rank;
@@ -233,15 +252,19 @@ void ParOptTrustRegion::setOutputFile( const char *filename ){
   }
 }
 
-/*
+/**
   Set the print level
+
+  @param _print_level the integer print level
 */
 void ParOptTrustRegion::setPrintLevel( int _print_level ){
   print_level = _print_level;
 }
 
-/*
+/**
   Write the parameters to the output file
+
+  @param fp an open file handle
 */
 void ParOptTrustRegion::printOptionSummary( FILE *fp ){
   int rank;
@@ -267,7 +290,7 @@ void ParOptTrustRegion::printOptionSummary( FILE *fp ){
   }
 }
 
-/*
+/**
   Initialize the problem
 */
 void ParOptTrustRegion::initialize(){
@@ -296,7 +319,7 @@ void ParOptTrustRegion::initialize(){
   }
 }
 
-/*
+/**
   Update the trust region problem
 */
 void ParOptTrustRegion::update( ParOptVec *xt,
@@ -462,8 +485,8 @@ void ParOptTrustRegion::update( ParOptVec *xt,
       fflush(outfp);
     }
     fprintf(outfp,
-            "%5d %12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e \
-%9.2e %9.2e %9.2e %9.2e\n",
+            "%5d %12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e "
+            "%9.2e %9.2e %9.2e %9.2e\n",
             iter_count, fk, *infeas, *l1, *linfty, smax, tr_size, rho,
             model_reduc, zav/m, zmax, gav/m, gmax);
     fflush(outfp);
@@ -473,22 +496,32 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   iter_count++;
 }
 
-/*
+/**
   Set whether or not to adaptively update the penalty parameters
+
+  @param truth flag to indicate whether or not to use adaptive penalty
 */
 void ParOptTrustRegion::setAdaptiveGammaUpdate( int truth ){
   adaptive_gamma_update = truth;
 }
 
-/*
+/**
   Set the maximum number of trust region steps
+
+  @param max_iters the maximum number of trust region iterations
 */
 void ParOptTrustRegion::setMaxTrustRegionIterations( int max_iters ){
   max_tr_iterations = max_iters;
 }
 
-/*
-  Set the trust region stopping criterion values
+/**
+  Set the trust region stopping criterion values.
+
+  The trust region algorithm terminates when the infeasibility tolerance and
+  either the l1 or l-infinity tolerances are satisfied.
+
+  @param _infeas_tol the infeasibility tolerance
+  @param _l1_tol the l1 norm
 */
 void ParOptTrustRegion::setTrustRegionTolerances( double _infeas_tol,
                                                   double _l1_tol,
@@ -498,24 +531,33 @@ void ParOptTrustRegion::setTrustRegionTolerances( double _infeas_tol,
   linfty_tol = _linfty_tol;
 }
 
-/*
+/**
   Set the maximum value of the penalty parameters
+
+  @param _gamma_max the maximum penalty value
 */
 void ParOptTrustRegion::setPenaltyGammaMax( double _gamma_max ){
   penalty_gamma_max = _gamma_max;
 }
 
-/*
+/**
   Set the output frequency
+
+  @param _write_output_frequency frequency with which ouput is written
 */
 void ParOptTrustRegion::setOutputFrequency( int _write_output_frequency ){
   write_output_frequency = _write_output_frequency;
 }
 
-/*
-  Perform the optimization problem
+/**
+  Perform the optimization
+
+  This performs all steps in the optimization: initialization, trust-region
+  updates and quasi-Newton updates. This should be called once In some cases, you 
+
+  @param optimizer the instance of the ParOptInteriorPoint optimizer
 */
-void ParOptTrustRegion::optimize( ParOpt *optimizer ){
+void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
   if (optimizer->getOptProblem() != this){
     fprintf(stderr,
             "ParOptTrustRegion: The optimizer must be associated with this object\n");
@@ -668,11 +710,11 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
           }
         }
 
-	if (mpi_rank == 0 && print_level > 0){
-          fprintf(outfp, "%12s %2d %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9s\n",
-                  " ", i, con_infeas[i], model_con_infeas[i], best_con_infeas[i],
-                  infeas_reduction, best_reduction, penalty_gamma[i], info);
-	}
+        if (mpi_rank == 0 && print_level > 0){
+                fprintf(outfp, "%12s %2d %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9s\n",
+                        " ", i, con_infeas[i], model_con_infeas[i], best_con_infeas[i],
+                        infeas_reduction, best_reduction, penalty_gamma[i], info);
+        }
       }
 
       if (mpi_rank == 0 && print_level > 0){
@@ -690,7 +732,7 @@ void ParOptTrustRegion::optimize( ParOpt *optimizer ){
   }
 }
 
-/*
+/**
   Compute the KKT error based on the current values of the multipliers
   set in ParOptMMA. If you do not update the multipliers, you will not
   get the correct KKT error.

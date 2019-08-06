@@ -1,18 +1,17 @@
 #include <string.h>
-#include "ComplexStep.h"
-#include "ParOptBlasLapack.h"
 #include "ParOptQuasiNewton.h"
+#include "ParOptComplexStep.h"
+#include "ParOptBlasLapack.h"
 
-/*
+/**
   The following class implements the limited-memory BFGS update.
 
   The limited-memory BFGS formula takes the following form:
 
   b0*I - Z*diag{d)*M^{-1}*diag{d}*Z^{T}
 
-  input:
-  prob:      the ParOptProblem class
-  msub_max:  the maximum subspace size
+  @param prob the ParOptProblem class
+  @param msub_max the maximum subspace size
 */
 ParOptLBFGS::ParOptLBFGS( ParOptProblem *prob,
                           int _msub_max ){
@@ -71,7 +70,7 @@ ParOptLBFGS::ParOptLBFGS( ParOptProblem *prob,
   memset(B, 0, msub_max*msub_max*sizeof(ParOptScalar));
 }
 
-/*
+/**
   Free the memory allocated by the BFGS update
 */
 ParOptLBFGS::~ParOptLBFGS(){
@@ -98,21 +97,25 @@ ParOptLBFGS::~ParOptLBFGS(){
   delete [] d0;
 }
 
-/*
-  Set the Hessian update type
+/**
+  Set the quasi-Newton Hessian update type.
+
+  @param _hessian_update_type the new quasi-Newton Hessian update type
 */
 void ParOptLBFGS::setBFGSUpdateType( ParOptBFGSUpdateType _hessian_update_type ){
   hessian_update_type = _hessian_update_type;
 }
 
-/*
-  Get the maximum size of the limited-memory BFGS update
+/**
+  Get the maximum size of the limited-memory BFGS update.
+
+  @return the maximum limited memory size
 */
 int ParOptLBFGS::getMaxLimitedMemorySize(){
   return msub_max;
 }
 
-/*
+/**
   Reset the Hessian approximation
 */
 void ParOptLBFGS::reset(){
@@ -131,7 +134,7 @@ void ParOptLBFGS::reset(){
   memset(B, 0, msub_max*msub_max*sizeof(ParOptScalar));
 }
 
-/*
+/**
   Compute the update to the limited-memory BFGS approximate Hessian.
   The BFGS formula takes the form:
 
@@ -140,12 +143,10 @@ void ParOptLBFGS::reset(){
   This code computes a damped update to ensure that the curvature
   condition is satisfied.
 
-  input:
-  s:  the step in the design variable values
-  y:  the difference in the gradient of the Lagrangian
+  @param s the step in the design variable values
+  @param y the difference in the gradient of the Lagrangian
 
-  returns:
-  update type: 0 = normal, 1 = damped update, 2 = skipped update
+  @return update type: 0 = normal, 1 = damped update, 2 = skipped update
 */
 int ParOptLBFGS::update( ParOptVec *x, const ParOptScalar *z,
                          ParOptVec *zw,
@@ -317,13 +318,16 @@ int ParOptLBFGS::update( ParOptVec *x, const ParOptScalar *z,
   return update_type;
 }
 
-/*
+/**
   Given the input vector, multiply the BFGS approximation by the input
   vector
 
   This code computes the product of the ParOptLBFGS matrix with the vector x:
 
   y <- b0*x - Z*diag{d}*M^{-1}*diag{d}*Z^{T}*x
+
+  @param x the input vector
+  @param y the result of the matrix-vector product
 */
 void ParOptLBFGS::mult( ParOptVec *x, ParOptVec *y ){
   // Set y = b0*x
@@ -357,13 +361,17 @@ void ParOptLBFGS::mult( ParOptVec *x, ParOptVec *y ){
   }
 }
 
-/*
+/**
   Given the input vector, multiply the BFGS approximation by the input
   vector and add the result to the output vector
 
   This code computes the product of the LBFGS matrix with the vector x:
 
   y <- y + alpha*(b0*x - Z*diag{d}*M^{-1}*diag{d}*Z^{T}*x)
+
+  @param alpha scalar multiplication factor
+  @param x the input vector
+  @param y the result of the matrix-vector product
 */
 void ParOptLBFGS::multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ){
   // Set y = b0*x
@@ -396,9 +404,15 @@ void ParOptLBFGS::multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ){
   }
 }
 
-/*
+/**
   Retrieve the internal data for the limited-memory BFGS
   representation
+
+  @param _b0 the diagonal factor
+  @param _d the diagonal matrix of scaling factors
+  @param _M the small matrix in the compact form
+  @param _Z an array of the vectors
+  @return the size of the _Z and _M matrices
 */
 int ParOptLBFGS::getCompactMat( ParOptScalar *_b0,
                                 const ParOptScalar **_d,
@@ -412,16 +426,15 @@ int ParOptLBFGS::getCompactMat( ParOptScalar *_b0,
   return 2*msub;
 }
 
-/*
+/**
   The following class implements the limited-memory SR1 update.
 
   The limited-memory SR1 formula takes the following form:
 
   b0*I - Z*diag{d)*M^{-1}*diag{d}*Z^{T}
 
-  input:
-  prob:      the ParOptProblem class
-  msub_max:  the maximum subspace size
+  @param prob the ParOptProblem class
+  @param msub_max the maximum subspace size
 */
 ParOptLSR1::ParOptLSR1( ParOptProblem *prob, int _msub_max ){
   msub_max = _msub_max;
@@ -478,7 +491,7 @@ ParOptLSR1::ParOptLSR1( ParOptProblem *prob, int _msub_max ){
   memset(B, 0, msub_max*msub_max*sizeof(ParOptScalar));
 }
 
-/*
+/**
   Free the memory allocated by the BFGS update
 */
 ParOptLSR1::~ParOptLSR1(){
@@ -506,14 +519,16 @@ ParOptLSR1::~ParOptLSR1(){
   delete [] d0;
 }
 
-/*
+/**
   Get the maximum size of the limited-memory BFGS update
+
+  @return the maximum size of the limited memory subspace
 */
 int ParOptLSR1::getMaxLimitedMemorySize(){
   return msub_max;
 }
 
-/*
+/**
   Reset the Hessian approximation
 */
 void ParOptLSR1::reset(){
@@ -532,7 +547,7 @@ void ParOptLSR1::reset(){
   memset(B, 0, msub_max*msub_max*sizeof(ParOptScalar));
 }
 
-/*
+/**
   Compute the update to the limited-memory SR1 approximate
   Hessian. The SR1 formula takes the form:
 
@@ -540,12 +555,9 @@ void ParOptLSR1::reset(){
 
   Note that the
 
-  input:
-  s:  the step in the design variable values
-  y:  the difference in the gradient
-
-  returns:
-  update type: 0 = normal, 1 = damped update
+  @param s the step in the design variable values
+  @param y the difference in the gradient
+  @return update type: 0 = normal, 1 = damped update
 */
 int ParOptLSR1::update( ParOptVec *x, const ParOptScalar *z,
                         ParOptVec *zw,
@@ -650,13 +662,16 @@ int ParOptLSR1::update( ParOptVec *x, const ParOptScalar *z,
   return update_type;
 }
 
-/*
+/**
   Given the input vector, multiply the SR1 approximation by the input
   vector
 
   This code computes the product of the LSR1 matrix with the vector x:
 
   y <- b0*x - Z*M^{-1}*Z^{T}*x
+
+  @param x the input vector
+  @param y the result of the matrix-vector product
 */
 void ParOptLSR1::mult( ParOptVec *x, ParOptVec *y ){
   // Set y = b0*x
@@ -680,13 +695,17 @@ void ParOptLSR1::mult( ParOptVec *x, ParOptVec *y ){
   }
 }
 
-/*
+/**
   Given the input vector, multiply the SR1 approximation by the input
   vector and add the result to the output vector
 
   This code computes the product of the LSR1 matrix with the vector x:
 
   y <- y + alpha*(b0*x - Z*M^{-1}*Z^{T}*x)
+
+  @param alpha scalar multiplication factor
+  @param x the input vector
+  @param y the result of the matrix-vector product
 */
 void ParOptLSR1::multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ){
   // Set y = b0*x
@@ -709,9 +728,15 @@ void ParOptLSR1::multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ){
   }
 }
 
-/*
+/**
   Retrieve the internal data for the limited-memory BFGS
   representation
+
+  @param _b0 the diagonal factor
+  @param _d the diagonal matrix of scaling factors
+  @param _M the small matrix in the compact form
+  @param _Z an array of the vectors
+  @return the size of the _Z and _M matrices
 */
 int ParOptLSR1::getCompactMat( ParOptScalar *_b0,
                                const ParOptScalar **_d,

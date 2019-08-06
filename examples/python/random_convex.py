@@ -14,7 +14,7 @@ import argparse
 import matplotlib.pylab as plt
 
 # Create the rosenbrock function class
-class ConvexProblem(ParOpt.pyParOptProblem):
+class ConvexProblem(ParOpt.Problem):
     def __init__(self, Q, Affine, b, Acon, bcon):
         # Set the communicator pointer
         self.comm = MPI.COMM_WORLD
@@ -132,14 +132,14 @@ def solve_problem(eigs, filename=None, data_type='orthogonal',
         tr_penalty_gamma = 10.0
 
         qn = ParOpt.LBFGS(problem, subspace=max_lbfgs)
-        tr = ParOpt.pyTrustRegion(problem, qn, tr_init_size,
-                                  tr_min_size, tr_max_size,
-                                  tr_eta, tr_penalty_gamma)
+        tr = ParOpt.TrustRegion(problem, qn, tr_init_size,
+                                tr_min_size, tr_max_size,
+                                tr_eta, tr_penalty_gamma)
         tr.setMaxTrustRegionIterations(500)
         tr.setTrustRegionTolerances(1e-5, 1e-4, 0.0)
 
         # Set up the optimization problem
-        tr_opt = ParOpt.pyParOpt(tr, 10, ParOpt.BFGS)
+        tr_opt = ParOpt.InteriorPoint(tr, 10, ParOpt.BFGS)
         if filename is not None:
             tr_opt.setOutputFile(filename)
 
@@ -164,7 +164,7 @@ def solve_problem(eigs, filename=None, data_type='orthogonal',
     else:
         # Set up the optimization problem
         max_lbfgs = 50
-        opt = ParOpt.pyParOpt(problem, max_lbfgs, ParOpt.BFGS)
+        opt = ParOpt.InteriorPoint(problem, max_lbfgs, ParOpt.BFGS)
         if filename is not None:
             opt.setOutputFile(filename)
 
