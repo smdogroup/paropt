@@ -64,7 +64,6 @@ Introduction and examples
 
 .. toctree::
     :maxdepth: 2
-    :titlesonly:
    
     rosenbrock
     sellar

@@ -4,6 +4,9 @@ Class reference
 .. automodule:: paropt
    :members:
 
+.. autoclass:: paropt.paropt_driver.ParOptDriver
+   :members:
+   
 .. automodule:: paropt.ParOpt
    :members:
 
