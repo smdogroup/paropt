@@ -127,7 +127,7 @@ def paropt_truss(truss, use_hessian=False,
 
     # Create the optimizer
     max_qn_subspace = 10
-    opt = ParOpt.pyParOpt(truss, max_qn_subspace, ParOpt.BFGS)
+    opt = ParOpt.InteriorPoint(truss, max_qn_subspace, ParOpt.BFGS)
 
     # Set the optimality tolerance
     opt.setAbsOptimalityTol(1e-6)

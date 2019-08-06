@@ -11,7 +11,7 @@ from mpi4py import MPI
 # Import ParOpt
 from paropt import ParOpt
 
-class TrussAnalysis(ParOpt.pyParOptProblem):
+class TrussAnalysis(ParOpt.Problem):
     def __init__(self, conn, xpos, loads, bcs,
                  E, rho, m_fixed, A_min, A_max, A_init=None,
                  Area_scale=1e-3, mass_scale=None):

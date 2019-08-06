@@ -110,7 +110,7 @@ def solve_problem(eigs, filename=None, use_stdout=False, use_tr=False):
         tr.setMaxTrustRegionIterations(500)
 
         # Set up the optimization problem
-        tr_opt = ParOpt.pyParOpt(tr, 10, ParOpt.BFGS)
+        tr_opt = ParOpt.InteriorPoint(tr, 10, ParOpt.BFGS)
         if filename is not None and use_stdout is False:
             tr_opt.setOutputFile(filename)
 
