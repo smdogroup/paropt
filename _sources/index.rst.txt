@@ -5,6 +5,22 @@ ParOpt is a parallel optimization library for large-scale optimization using dis
 ParOpt is implemented in C++ with a Python wrapper generated using Cython.
 ParOpt contains both an interior-point optimization algorithm with a line search globalization strategy and an :math:`l_{\infty}` trust region algorithm with an :math:`l_{1}` penalty function.
 
+ParOpt is designed to solve optimization problems that take the form:
+
+.. math::
+
+    \begin{align}
+        \text{min} \qquad & f(x) \\
+        \text{with respect to} \qquad & l \le x \le u \\
+        \text{subject to} \qquad & c(x) \ge 0 \\
+        & c_{w}(x) \ge 0 \\
+    \end{align}
+
+where :math:`x` is a vector of distributed design variables with lower and upper bounds :math:`l` and :math:`u`.
+The constraints :math:`c(x)`, which we refer to as dense constraints, are a small number of global constraints.
+The constraints :math:`c_{w}(x)` are sparse and separable, where their Jacobian :math:`A_{w}(x) = \nabla c_{w}(x)`.
+The separable constraints satisfy the property that the matrix :math:`A_{w} C A_{w}^{T}` is block diagonal when :math:`C` is a diagonal matrix.
+
 Please cite us
 --------------
 
@@ -47,12 +63,12 @@ Introduction and examples
 =========================
 
 .. toctree::
-   :maxdepth: 2
-   :titlesonly:
+    :maxdepth: 2
    
-   sellar
-   rosenbrock
-   reference
+    rosenbrock
+    sellar
+    parallel_rosenbrock
+    reference
 
 Indices and tables
 ==================

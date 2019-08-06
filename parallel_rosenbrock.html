@@ -1,0 +1,418 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="python">
+  <head>
+    <meta charset="utf-8" />
+    <title>Parallel Rosenbrock &#8212; paropt  documentation</title>
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Class reference" href="reference.html" />
+    <link rel="prev" title="Sellar problem" href="sellar.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="reference.html" title="Class reference"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="sellar.html" title="Sellar problem"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Parallel Rosenbrock</a><ul>
+<li><a class="reference internal" href="#c-implementation">C++ implementation</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="sellar.html"
+                        title="previous chapter">Sellar problem</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="reference.html"
+                        title="next chapter">Class reference</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/parallel_rosenbrock.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="parallel-rosenbrock">
+<h1>Parallel Rosenbrock<a class="headerlink" href="#parallel-rosenbrock" title="Permalink to this headline">¶</a></h1>
+<p>This problem deals with a generalized Rosenbrock function in parallel. In this case the objective function is</p>
+<div class="math notranslate nohighlight">
+\[f(x) = \sum_{i=1}^{n-1} (1 - x_{i})^{2} + 100(x_{i+1} - x_{i}^2)^2\]</div>
+<p>Two constraints are imposed in this problem. The first is that the point remain within a ball of radius 1/2 centered on the origin:</p>
+<div class="math notranslate nohighlight">
+\[c_{1}(x) = \frac{1}{4} - \sum_{i=1}^{n} x_{i}^{2} \ge 0\]</div>
+<p>The second is a linear constraint that the sum of all variables be greater than -10:</p>
+<div class="math notranslate nohighlight">
+\[c_{2}(x) = \sum_{i=1}^{n} x_{i} + 10 \ge 0\]</div>
+<div class="section" id="c-implementation">
+<h2>C++ implementation<a class="headerlink" href="#c-implementation" title="Permalink to this headline">¶</a></h2>
+<p>This example is a further demonstration of the ParOptProblem interface class making use of a distributed design vector, separable sparse constraints, and Hessian-vector products.</p>
+<p>The Hessian-vector products can be used to accelerate the convergence of the optimizer.
+They are generally used once the optimization problem has converged to a point that is closer to the optimum.
+These products are implemented by the user in the ParOptProblem class, using the following prototype:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span> <span class="nf">evalHvecProduct</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
+                     <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">z</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">zwvec</span><span class="p">,</span>
+                     <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">pxvec</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">hvec</span> <span class="p">);</span>
+</pre></div>
+</div>
+<p>This function provides access to Hessian-vector products of the Lagrangian.
+In ParOpt the Lagrangian function is defined as</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{L} \triangleq f(x) - z^{T} c(x) - z_{w}^{T} c_{w}(x)\]</div>
+<p>where <span class="math notranslate nohighlight">\(\mathcal{L}\)</span> is the Lagrangian, <span class="math notranslate nohighlight">\(f(x), c(x), c_{w}(x)\)</span> are the objective, dense constraints and sparse separable constraints, respectively, and <span class="math notranslate nohighlight">\(z, z_{w}\)</span> are multipliers associated with the dense and sparse constraints.
+The Hessian-vector product is then computed as</p>
+<div class="math notranslate nohighlight">
+\[h = \nabla^{2} \mathcal{L}(x, z, z_{w}) p_{x}\]</div>
+<p>The interface to the sparse separable constraint code consists of four functions.
+These functions consist of the following:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">evalSparseCon</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">out</span> <span class="p">);</span>
+<span class="kt">void</span> <span class="nf">addSparseJacobian</span><span class="p">(</span> <span class="n">ParOptScalar</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span>
+                        <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">px</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">out</span> <span class="p">);</span>
+<span class="kt">void</span> <span class="nf">addSparseJacobianTranspose</span><span class="p">(</span> <span class="n">ParOptScalar</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span>
+                                 <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">pzw</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">out</span> <span class="p">);</span>
+<span class="kt">void</span> <span class="nf">addSparseInnerProduct</span><span class="p">(</span> <span class="n">ParOptScalar</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span>
+                            <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">cvec</span><span class="p">,</span> <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">A</span> <span class="p">);</span>
+</pre></div>
+</div>
+<p>These member functions provide the following mathematical operations:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+    \mathrm{out} &amp; \leftarrow c_{w} \leftarrow c_{w}(x) \\
+    \mathrm{out} &amp; \leftarrow \alpha A_{w}(x) p_{x} \\
+    \mathrm{out} &amp; \leftarrow \alpha A_{w}(x)^{T} p_{z_{w}} \\
+    \mathrm{out} &amp; \leftarrow \alpha A_{w} C A_{w}(x)^{T}  \\
+\end{align}\end{split}\]</div>
+<p>Here <span class="math notranslate nohighlight">\(A_{w}(x) = \nabla c_{w}(x)$\)</span> and <span class="math notranslate nohighlight">\(C\)</span> is a diagonal matrix.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;ParOptInteriorPoint.h&quot;</span><span class="cp"></span>
+
+<span class="cm">/*</span>
+<span class="cm">  The following is a simple implementation of a scalable Rosenbrock</span>
+<span class="cm">  function with constraints that can be used to test the parallel</span>
+<span class="cm">  optimizer.</span>
+<span class="cm">*/</span>
+
+<span class="k">class</span> <span class="nc">Rosenbrock</span> <span class="o">:</span> <span class="k">public</span> <span class="n">ParOptProblem</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+  <span class="n">Rosenbrock</span><span class="p">(</span> <span class="n">MPI_Comm</span> <span class="n">comm</span><span class="p">,</span> <span class="kt">int</span> <span class="n">_nvars</span><span class="p">,</span>
+              <span class="kt">int</span> <span class="n">_nwcon</span><span class="p">,</span> <span class="kt">int</span> <span class="n">_nwstart</span><span class="p">,</span>
+              <span class="kt">int</span> <span class="n">_nw</span><span class="p">,</span> <span class="kt">int</span> <span class="n">_nwskip</span> <span class="p">)</span><span class="o">:</span>
+  <span class="n">ParOptProblem</span><span class="p">(</span><span class="n">comm</span><span class="p">,</span> <span class="n">_nvars</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">_nwcon</span><span class="p">,</span> <span class="mi">1</span><span class="p">){</span>
+    <span class="n">nwcon</span> <span class="o">=</span> <span class="n">_nwcon</span><span class="p">;</span>
+    <span class="n">nwstart</span> <span class="o">=</span> <span class="n">_nwstart</span><span class="p">;</span>
+    <span class="n">nw</span> <span class="o">=</span> <span class="n">_nw</span><span class="p">;</span>
+    <span class="n">nwskip</span> <span class="o">=</span> <span class="n">_nwskip</span><span class="p">;</span>
+    <span class="n">scale</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="c1">//! Get the variables/bounds</span>
+  <span class="kt">void</span> <span class="n">getVarsAndBounds</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
+                         <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">lbvec</span><span class="p">,</span>
+                         <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">ubvec</span> <span class="p">){</span>
+    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">lb</span><span class="p">,</span> <span class="o">*</span><span class="n">ub</span><span class="p">;</span>
+    <span class="n">xvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">x</span><span class="p">);</span>
+    <span class="n">lbvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">lb</span><span class="p">);</span>
+    <span class="n">ubvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ub</span><span class="p">);</span>
+
+    <span class="c1">// Set the design variable bounds</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nvars</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">){</span>
+      <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">;</span>
+      <span class="n">lb</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span><span class="p">;</span>
+      <span class="n">ub</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="c1">//! Evaluate the objective and constraints</span>
+  <span class="kt">int</span> <span class="n">evalObjCon</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
+                  <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">fobj</span><span class="p">,</span> <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">cons</span> <span class="p">){</span>
+    <span class="n">ParOptScalar</span> <span class="n">obj</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">x</span><span class="p">;</span>
+    <span class="n">xvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">x</span><span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nvars</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">){</span>
+      <span class="n">obj</span> <span class="o">+=</span> <span class="p">((</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">+</span>
+              <span class="mi">100</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]));</span>
+    <span class="p">}</span>
+
+    <span class="n">ParOptScalar</span> <span class="n">con</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="n">con</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">con</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nvars</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">){</span>
+      <span class="n">con</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-=</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nvars</span><span class="p">;</span> <span class="n">i</span> <span class="o">+=</span> <span class="mi">2</span> <span class="p">){</span>
+      <span class="n">con</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+
+    <span class="n">MPI_Allreduce</span><span class="p">(</span><span class="o">&amp;</span><span class="n">obj</span><span class="p">,</span> <span class="n">fobj</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">PAROPT_MPI_TYPE</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">comm</span><span class="p">);</span>
+    <span class="n">MPI_Allreduce</span><span class="p">(</span><span class="n">con</span><span class="p">,</span> <span class="n">cons</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">PAROPT_MPI_TYPE</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">comm</span><span class="p">);</span>
+
+    <span class="n">cons</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">0.25</span><span class="p">;</span>
+    <span class="n">cons</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">10.0</span><span class="p">;</span>
+    <span class="n">cons</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*=</span> <span class="n">scale</span><span class="p">;</span>
+    <span class="n">cons</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*=</span> <span class="n">scale</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="c1">//! Evaluate the objective and constraint gradients</span>
+  <span class="kt">int</span> <span class="n">evalObjConGradient</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
+                          <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">gvec</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">**</span><span class="n">Ac</span> <span class="p">){</span>
+    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">g</span><span class="p">,</span> <span class="o">*</span><span class="n">c</span><span class="p">;</span>
+    <span class="n">xvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">x</span><span class="p">);</span>
+    <span class="n">gvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">g</span><span class="p">);</span>
+    <span class="n">gvec</span><span class="o">-&gt;</span><span class="n">zeroEntries</span><span class="p">();</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nvars</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">){</span>
+      <span class="n">g</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="o">-</span><span class="mf">2.0</span><span class="o">*</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">+</span>
+              <span class="mi">200</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="o">-</span><span class="mf">2.0</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]));</span>
+      <span class="n">g</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">200</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+    <span class="p">}</span>
+
+    <span class="n">Ac</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">c</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nvars</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">){</span>
+      <span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span><span class="o">*</span><span class="n">scale</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+
+    <span class="n">Ac</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">c</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nvars</span><span class="p">;</span> <span class="n">i</span> <span class="o">+=</span> <span class="mi">2</span> <span class="p">){</span>
+      <span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">scale</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="c1">//! Evaluate the product of the Hessian with the given vector</span>
+  <span class="kt">int</span> <span class="n">evalHvecProduct</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
+                       <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">z</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">zwvec</span><span class="p">,</span>
+                       <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">pxvec</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">hvec</span> <span class="p">){</span>
+    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">hvals</span><span class="p">;</span>
+    <span class="n">hvec</span><span class="o">-&gt;</span><span class="n">zeroEntries</span><span class="p">();</span>
+    <span class="n">hvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">hvals</span><span class="p">);</span>
+
+    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">px</span><span class="p">,</span> <span class="o">*</span><span class="n">x</span><span class="p">;</span>
+    <span class="n">xvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">x</span><span class="p">);</span>
+    <span class="n">pxvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">px</span><span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nvars</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">){</span>
+      <span class="n">hvals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="mf">2.0</span><span class="o">*</span><span class="n">px</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span>
+                  <span class="mi">200</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="o">-</span><span class="mf">2.0</span><span class="o">*</span><span class="n">px</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">+</span>
+                  <span class="mi">200</span><span class="o">*</span><span class="p">(</span><span class="n">px</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mf">2.0</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">px</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="o">-</span><span class="mf">2.0</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]));</span>
+      <span class="n">hvals</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">200</span><span class="o">*</span><span class="p">(</span><span class="n">px</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mf">2.0</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">px</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nvars</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">){</span>
+      <span class="n">hvals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">2.0</span><span class="o">*</span><span class="n">scale</span><span class="o">*</span><span class="n">z</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">px</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="c1">//! Evaluate the sparse constraints</span>
+  <span class="kt">void</span> <span class="n">evalSparseCon</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">out</span> <span class="p">){</span>
+    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">xvals</span><span class="p">,</span> <span class="o">*</span><span class="n">outvals</span><span class="p">;</span>
+    <span class="n">x</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">xvals</span><span class="p">);</span>
+    <span class="n">out</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">outvals</span><span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">nwstart</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nwcon</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">,</span> <span class="n">j</span> <span class="o">+=</span> <span class="n">nwskip</span> <span class="p">){</span>
+      <span class="n">outvals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="n">nw</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span><span class="p">,</span> <span class="n">j</span><span class="o">++</span> <span class="p">){</span>
+        <span class="n">outvals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="n">xvals</span><span class="p">[</span><span class="n">j</span><span class="p">];</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="c1">//! Compute the Jacobian-vector product out = J(x)*px</span>
+  <span class="kt">void</span> <span class="n">addSparseJacobian</span><span class="p">(</span> <span class="n">ParOptScalar</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span>
+                          <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">px</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">out</span> <span class="p">){</span>
+    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">pxvals</span><span class="p">,</span> <span class="o">*</span><span class="n">outvals</span><span class="p">;</span>
+    <span class="n">px</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pxvals</span><span class="p">);</span>
+    <span class="n">out</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">outvals</span><span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">nwstart</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nwcon</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">,</span> <span class="n">j</span> <span class="o">+=</span> <span class="n">nwskip</span> <span class="p">){</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="n">nw</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span><span class="p">,</span> <span class="n">j</span><span class="o">++</span> <span class="p">){</span>
+        <span class="n">outvals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="n">alpha</span><span class="o">*</span><span class="n">pxvals</span><span class="p">[</span><span class="n">j</span><span class="p">];</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="c1">//! Compute the transpose Jacobian-vector product out = J(x)^{T}*pzw</span>
+  <span class="kt">void</span> <span class="n">addSparseJacobianTranspose</span><span class="p">(</span> <span class="n">ParOptScalar</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span>
+                                   <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">pzw</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">out</span> <span class="p">){</span>
+    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">outvals</span><span class="p">,</span> <span class="o">*</span><span class="n">pzwvals</span><span class="p">;</span>
+    <span class="n">out</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">outvals</span><span class="p">);</span>
+    <span class="n">pzw</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pzwvals</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">nwstart</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nwcon</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">,</span> <span class="n">j</span> <span class="o">+=</span> <span class="n">nwskip</span> <span class="p">){</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="n">nw</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span><span class="p">,</span> <span class="n">j</span><span class="o">++</span> <span class="p">){</span>
+        <span class="n">outvals</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-=</span> <span class="n">alpha</span><span class="o">*</span><span class="n">pzwvals</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="c1">//! Add the inner product of the constraints to the matrix such</span>
+  <span class="c1">//! that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix</span>
+  <span class="kt">void</span> <span class="n">addSparseInnerProduct</span><span class="p">(</span> <span class="n">ParOptScalar</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span>
+                              <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">cvec</span><span class="p">,</span> <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">A</span> <span class="p">){</span>
+    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">cvals</span><span class="p">;</span>
+    <span class="n">cvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">cvals</span><span class="p">);</span>
+
+    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">nwstart</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nwcon</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">,</span> <span class="n">j</span> <span class="o">+=</span> <span class="n">nwskip</span> <span class="p">){</span>
+      <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="n">nw</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span><span class="p">,</span> <span class="n">j</span><span class="o">++</span> <span class="p">){</span>
+        <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">alpha</span><span class="o">*</span><span class="n">cvals</span><span class="p">[</span><span class="n">j</span><span class="p">];</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="kt">int</span> <span class="n">nwcon</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">nwstart</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">nw</span><span class="p">,</span> <span class="n">nwskip</span><span class="p">;</span>
+  <span class="n">ParOptScalar</span> <span class="n">scale</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span> <span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[]</span> <span class="p">){</span>
+  <span class="n">MPI_Init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">argc</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">argv</span><span class="p">);</span>
+
+  <span class="c1">// Set the MPI communicator</span>
+  <span class="n">MPI_Comm</span> <span class="n">comm</span> <span class="o">=</span> <span class="n">MPI_COMM_WORLD</span><span class="p">;</span>
+
+  <span class="c1">// Get the rank</span>
+  <span class="kt">int</span> <span class="n">mpi_rank</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">MPI_Comm_rank</span><span class="p">(</span><span class="n">comm</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">mpi_rank</span><span class="p">);</span>
+
+  <span class="c1">// Get the prefix from the input arguments</span>
+  <span class="kt">int</span> <span class="n">nvars</span> <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">prefix</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+  <span class="kt">char</span> <span class="n">buff</span><span class="p">[</span><span class="mi">512</span><span class="p">];</span>
+  <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="n">argc</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span> <span class="p">){</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">sscanf</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="s">&quot;prefix=%s&quot;</span><span class="p">,</span> <span class="n">buff</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">){</span>
+      <span class="n">prefix</span> <span class="o">=</span> <span class="n">buff</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">sscanf</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="s">&quot;nvars=%d&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">nvars</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">){</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">nvars</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">){</span>
+        <span class="n">nvars</span> <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">){</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;prefix = %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">prefix</span><span class="p">);</span>
+    <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="c1">// Allocate the Rosenbrock function</span>
+  <span class="kt">int</span> <span class="n">nwcon</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">nw</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">nwstart</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nwskip</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="n">Rosenbrock</span> <span class="o">*</span><span class="n">rosen</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Rosenbrock</span><span class="p">(</span><span class="n">comm</span><span class="p">,</span> <span class="n">nvars</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                                    <span class="n">nwcon</span><span class="p">,</span> <span class="n">nwstart</span><span class="p">,</span> <span class="n">nw</span><span class="p">,</span> <span class="n">nwskip</span><span class="p">);</span>
+  <span class="n">rosen</span><span class="o">-&gt;</span><span class="n">incref</span><span class="p">();</span>
+
+  <span class="c1">// Allocate the optimizer</span>
+  <span class="kt">int</span> <span class="n">max_lbfgs</span> <span class="o">=</span> <span class="mi">20</span><span class="p">;</span>
+  <span class="n">ParOptInteriorPoint</span> <span class="o">*</span><span class="n">opt</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ParOptInteriorPoint</span><span class="p">(</span><span class="n">rosen</span><span class="p">,</span> <span class="n">max_lbfgs</span><span class="p">);</span>
+  <span class="n">opt</span><span class="o">-&gt;</span><span class="n">incref</span><span class="p">();</span>
+
+  <span class="n">opt</span><span class="o">-&gt;</span><span class="n">setMaxMajorIterations</span><span class="p">(</span><span class="mi">1500</span><span class="p">);</span>
+  <span class="n">opt</span><span class="o">-&gt;</span><span class="n">setBarrierStrategy</span><span class="p">(</span><span class="n">PAROPT_MEHROTRA</span><span class="p">);</span>
+  <span class="n">opt</span><span class="o">-&gt;</span><span class="n">setOutputFrequency</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+  <span class="n">opt</span><span class="o">-&gt;</span><span class="n">setOutputFile</span><span class="p">(</span><span class="s">&quot;paropt.out&quot;</span><span class="p">);</span>
+
+  <span class="c1">// Set the checkpoint file</span>
+  <span class="kt">double</span> <span class="n">start</span> <span class="o">=</span> <span class="n">MPI_Wtime</span><span class="p">();</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">prefix</span><span class="p">){</span>
+    <span class="kt">char</span> <span class="n">output</span><span class="p">[</span><span class="mi">512</span><span class="p">];</span>
+    <span class="n">sprintf</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="s">&quot;%s/rosenbrock_output.bin&quot;</span><span class="p">,</span> <span class="n">prefix</span><span class="p">);</span>
+    <span class="n">opt</span><span class="o">-&gt;</span><span class="n">optimize</span><span class="p">(</span><span class="n">output</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="k">else</span> <span class="p">{</span>
+    <span class="n">opt</span><span class="o">-&gt;</span><span class="n">optimize</span><span class="p">();</span>
+  <span class="p">}</span>
+  <span class="kt">double</span> <span class="n">diff</span> <span class="o">=</span> <span class="n">MPI_Wtime</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">){</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;ParOpt time: %f seconds </span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">diff</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">opt</span><span class="o">-&gt;</span><span class="n">decref</span><span class="p">();</span>
+  <span class="n">rosen</span><span class="o">-&gt;</span><span class="n">decref</span><span class="p">();</span>
+
+  <span class="n">MPI_Finalize</span><span class="p">();</span>
+  <span class="k">return</span> <span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="reference.html" title="Class reference"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="sellar.html" title="Sellar problem"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Graeme Kennedy.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.
+    </div>
+  </body>
+</html>

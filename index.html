@@ -1,76 +1,38 @@
+
 <!DOCTYPE html>
 
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="python">
   <head>
-    <meta charset="utf-8">
-    
-    <title>ParOpt Overview &mdash; paropt  documentation</title>
-    
-    <link rel="stylesheet" type="text/css" href="_static/css/spc-bootstrap.css">
-    <link rel="stylesheet" type="text/css" href="_static/css/spc-extend.css">
-    <link rel="stylesheet" href="_static/scipy.css" type="text/css" >
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" >
-    
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
-      };
-    </script>
+    <meta charset="utf-8" />
+    <title>ParOpt Overview &#8212; paropt  documentation</title>
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="_static/language_data.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <script type="text/javascript" src="_static/js/copybutton.js"></script>
-    <link rel="index" title="Index" href="genindex.html" >
-    <link rel="search" title="Search" href="search.html" >
-    <link rel="top" title="paropt  documentation" href="#" >
-    <link rel="next" title="Sellar problem" href="sellar.html" > 
-  </head>
-  <body>
-
-  <div class="container">
-    <div class="header">
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Rosenbrock example" href="rosenbrock.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="rosenbrock.html" title="Rosenbrock example"
+             accesskey="N">next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">paropt  documentation</a> &#187;</li> 
+      </ul>
     </div>
-  </div>
-
-
-    <div class="container">
-      <div class="main">
-        
-	<div class="row-fluid">
-	  <div class="span12">
-	    <div class="spc-navbar">
-              
-    <ul class="nav nav-pills pull-left">
-        <li class="active"><a href="["></a></li>
-        <li class="active"><a href="]"></a></li>
-	 
-    </ul>
-              
-              
-    <ul class="nav nav-pills pull-right">
-      <li class="active">
-        <a href="genindex.html" title="General Index"
-           accesskey="I">index</a>
-      </li>
-      <li class="active">
-        <a href="sellar.html" title="Sellar problem"
-           accesskey="N">next</a>
-      </li>
-    </ul>
-              
-	    </div>
-	  </div>
-	</div>
-        
-
-	<div class="row-fluid">
-      <div class="spc-rightsidebar span3">
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
   <h3><a href="#">Table of Contents</a></h3>
   <ul>
@@ -84,29 +46,50 @@
 </ul>
 
   <h4>Next topic</h4>
-  <p class="topless"><a href="sellar.html"
-                        title="next chapter">Sellar problem</a></p>
-  <h3>This Page</h3>
-  <div>
-    <a href="_sources/index.rst.txt"
-       rel="nofollow">Show Source</a>
-  </div>
-<div class="this-page-menu">
-  <a href="/scipy/docs/scipy-docs/index.rst.rst">Edit page</a>
+  <p class="topless"><a href="rosenbrock.html"
+                        title="next chapter">Rosenbrock example</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
 </div>
-
+<script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
       </div>
-          <div class="span9">
-            
+
+    <div class="document">
+      <div class="documentwrapper">
         <div class="bodywrapper">
-          <div class="body" id="spc-section-body">
+          <div class="body" role="main">
             
   <div class="section" id="paropt-overview">
 <h1>ParOpt Overview<a class="headerlink" href="#paropt-overview" title="Permalink to this headline">¶</a></h1>
 <p>ParOpt is a parallel optimization library for large-scale optimization using distributed design variables.
 ParOpt is implemented in C++ with a Python wrapper generated using Cython.
 ParOpt contains both an interior-point optimization algorithm with a line search globalization strategy and an <span class="math notranslate nohighlight">\(l_{\infty}\)</span> trust region algorithm with an <span class="math notranslate nohighlight">\(l_{1}\)</span> penalty function.</p>
+<p>ParOpt is designed to solve optimization problems that take the form:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+    \text{min} \qquad &amp; f(x) \\
+    \text{with respect to} \qquad &amp; l \le x \le u \\
+    \text{subject to} \qquad &amp; c(x) \ge 0 \\
+    &amp; c_{w}(x) \ge 0 \\
+\end{align}\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(x\)</span> is a vector of distributed design variables with lower and upper bounds <span class="math notranslate nohighlight">\(l\)</span> and <span class="math notranslate nohighlight">\(u\)</span>.
+The constraints <span class="math notranslate nohighlight">\(c(x)\)</span>, which we refer to as dense constraints, are a small number of global constraints.
+The constraints <span class="math notranslate nohighlight">\(c_{w}(x)\)</span> are sparse and separable, where their Jacobian <span class="math notranslate nohighlight">\(A_{w}(x) = \nabla c_{w}(x)\)</span>.
+The separable constraints satisfy the property that the matrix <span class="math notranslate nohighlight">\(A_{w} C A_{w}^{T}\)</span> is block diagonal when <span class="math notranslate nohighlight">\(C\)</span> is a diagonal matrix.</p>
 <div class="section" id="please-cite-us">
 <h2>Please cite us<a class="headerlink" href="#please-cite-us" title="Permalink to this headline">¶</a></h2>
 <p>The key contributions and development of ParOpt are described in the following paper:
@@ -144,8 +127,19 @@ The recommended python installation command &quot;python setup.py build_ext --in
 <h1>Introduction and examples<a class="headerlink" href="#introduction-and-examples" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="sellar.html">Sellar problem</a></li>
-<li class="toctree-l1"><a class="reference internal" href="rosenbrock.html">Rosenbrock function</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rosenbrock.html">Rosenbrock example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rosenbrock.html#python-implementation">Python implementation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sellar.html">Sellar problem</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sellar.html#c-implementation">C++ implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sellar.html#python-implementation">Python implementation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="parallel_rosenbrock.html">Parallel Rosenbrock</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="parallel_rosenbrock.html#c-implementation">C++ implementation</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="reference.html">Class reference</a></li>
 </ul>
 </div>
@@ -162,29 +156,27 @@ The recommended python installation command &quot;python setup.py build_ext --in
 
           </div>
         </div>
-          </div>
-        </div>
       </div>
+      <div class="clearer"></div>
     </div>
-
-    <div class="container container-navbar-bottom">
-      <div class="spc-navbar">
-        
-      </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="rosenbrock.html" title="Rosenbrock example"
+             >next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">paropt  documentation</a> &#187;</li> 
+      </ul>
     </div>
-    <div class="container">
-    <div class="footer">
-    <div class="row-fluid">
-    <ul class="inline pull-left">
-      <li>
-        &copy; Copyright 2019, Graeme Kennedy.
-      </li>
-      <li>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 2.1.2.
-      </li>
-    </ul>
-    </div>
-    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Graeme Kennedy.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.
     </div>
   </body>
 </html>

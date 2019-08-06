@@ -1,100 +1,230 @@
+
 <!DOCTYPE html>
 
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="python">
   <head>
-    <meta charset="utf-8">
-    
-    <title>Class reference &mdash; paropt  documentation</title>
-    
-    <link rel="stylesheet" type="text/css" href="_static/css/spc-bootstrap.css">
-    <link rel="stylesheet" type="text/css" href="_static/css/spc-extend.css">
-    <link rel="stylesheet" href="_static/scipy.css" type="text/css" >
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" >
-    
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
-      };
-    </script>
+    <meta charset="utf-8" />
+    <title>Class reference &#8212; paropt  documentation</title>
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="_static/language_data.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <script type="text/javascript" src="_static/js/copybutton.js"></script>
-    <link rel="index" title="Index" href="genindex.html" >
-    <link rel="search" title="Search" href="search.html" >
-    <link rel="top" title="paropt  documentation" href="index.html" >
-    <link rel="prev" title="Parallel Rosenbrock function" href="rosenbrock.html" > 
-  </head>
-  <body>
-
-  <div class="container">
-    <div class="header">
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Parallel Rosenbrock" href="parallel_rosenbrock.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="parallel_rosenbrock.html" title="Parallel Rosenbrock"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li> 
+      </ul>
     </div>
-  </div>
-
-
-    <div class="container">
-      <div class="main">
-        
-	<div class="row-fluid">
-	  <div class="span12">
-	    <div class="spc-navbar">
-              
-    <ul class="nav nav-pills pull-left">
-        <li class="active"><a href="["></a></li>
-        <li class="active"><a href="]"></a></li>
-	
-        <li class="active"><a href="index.html">paropt  documentation</a></li>
-	 
-    </ul>
-              
-              
-    <ul class="nav nav-pills pull-right">
-      <li class="active">
-        <a href="genindex.html" title="General Index"
-           accesskey="I">index</a>
-      </li>
-      <li class="active">
-        <a href="rosenbrock.html" title="Parallel Rosenbrock function"
-           accesskey="P">previous</a>
-      </li>
-    </ul>
-              
-	    </div>
-	  </div>
-	</div>
-        
-
-	<div class="row-fluid">
-      <div class="spc-rightsidebar span3">
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
   <h4>Previous topic</h4>
-  <p class="topless"><a href="rosenbrock.html"
-                        title="previous chapter">Parallel Rosenbrock function</a></p>
-  <h3>This Page</h3>
-  <div>
-    <a href="_sources/reference.rst.txt"
-       rel="nofollow">Show Source</a>
-  </div>
-<div class="this-page-menu">
-  <a href="/scipy/docs/scipy-docs/reference.rst.rst">Edit page</a>
+  <p class="topless"><a href="parallel_rosenbrock.html"
+                        title="previous chapter">Parallel Rosenbrock</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/reference.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
 </div>
-
+<script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
       </div>
-          <div class="span9">
-            
+
+    <div class="document">
+      <div class="documentwrapper">
         <div class="bodywrapper">
-          <div class="body" id="spc-section-body">
+          <div class="body" role="main">
             
-  <div class="section" id="class-reference">
-<h1>Class reference<a class="headerlink" href="#class-reference" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-paropt">
+<span id="class-reference"></span><h1>Class reference<a class="headerlink" href="#module-paropt" title="Permalink to this headline">¶</a></h1>
+<p>ParOpt is an interior point optimizer</p>
+<dl class="function">
+<dt id="paropt.get_cython_include">
+<code class="sig-prename descclassname">paropt.</code><code class="sig-name descname">get_cython_include</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/paropt.html#get_cython_include"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#paropt.get_cython_include" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the include directory for the Cython .pxd files in ParOpt</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="paropt.get_include">
+<code class="sig-prename descclassname">paropt.</code><code class="sig-name descname">get_include</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/paropt.html#get_include"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#paropt.get_include" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the include directory for the Cython .pxd files in ParOpt</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="paropt.get_libraries">
+<code class="sig-prename descclassname">paropt.</code><code class="sig-name descname">get_libraries</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/paropt.html#get_libraries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#paropt.get_libraries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the library directories</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="paropt.paropt_driver.ParOptDriver">
+<em class="property">class </em><code class="sig-prename descclassname">paropt.paropt_driver.</code><code class="sig-name descname">ParOptDriver</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/paropt/paropt_driver.html#ParOptDriver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#paropt.paropt_driver.ParOptDriver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Driver wrapper for ParOpt</p>
+<dl class="attribute">
+<dt id="paropt.paropt_driver.ParOptDriver.fail">
+<code class="sig-name descname">fail</code><a class="headerlink" href="#paropt.paropt_driver.ParOptDriver.fail" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flag that indicates failure of most recent optimization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="paropt.paropt_driver.ParOptDriver.iter_count">
+<code class="sig-name descname">iter_count</code><a class="headerlink" href="#paropt.paropt_driver.ParOptDriver.iter_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Counter for function evaluations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="paropt.paropt_driver.ParOptDriver.result">
+<code class="sig-name descname">result</code><a class="headerlink" href="#paropt.paropt_driver.ParOptDriver.result" title="Permalink to this definition">¶</a></dt>
+<dd><p>Result returned from scipy.optimize call.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>OptimizeResult</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="paropt.paropt_driver.ParOptDriver.opt_settings">
+<code class="sig-name descname">opt_settings</code><a class="headerlink" href="#paropt.paropt_driver.ParOptDriver.opt_settings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary of solver-specific options. See the ParOpt documentation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="paropt.paropt_driver.ParOptDriver.run">
+<code class="sig-name descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/paropt/paropt_driver.html#ParOptDriver.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#paropt.paropt_driver.ParOptDriver.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optimize the problem using selected Scipy optimizer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Failure flag; True if failed to converge, False is successful.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>boolean</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-paropt.ParOpt"></span><dl class="function">
+<dt id="paropt.ParOpt.unpack_checkpoint">
+<code class="sig-prename descclassname">paropt.ParOpt.</code><code class="sig-name descname">unpack_checkpoint</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_checkpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert the checkpoint file to usable python objects</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="paropt.ParOpt.unpack_mma_output">
+<code class="sig-prename descclassname">paropt.ParOpt.</code><code class="sig-name descname">unpack_mma_output</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_mma_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unpack the parameters from a file output from MMA</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="paropt.ParOpt.unpack_output">
+<code class="sig-prename descclassname">paropt.ParOpt.</code><code class="sig-name descname">unpack_output</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unpack the parameters from the paropt output file and return them
+in a list of numpy arrays. This also returns a small string
+description from the file itself. This code relies ont he
+fixed-width nature of the file, which is guaranteed.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="paropt.ParOpt.PVec">
+<em class="property">class </em><code class="sig-prename descclassname">paropt.ParOpt.</code><code class="sig-name descname">PVec</code><a class="headerlink" href="#paropt.ParOpt.PVec" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="paropt.ParOpt.PVec.copyValues">
+<code class="sig-name descname">copyValues</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.copyValues" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copy values from the provided PVec</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="paropt.ParOpt.PVec.dot">
+<code class="sig-name descname">dot</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.dot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the dot product with the provided PVec</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="paropt.ParOpt.PVec.l1norm">
+<code class="sig-name descname">l1norm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.l1norm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the l1 norm of the vector</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="paropt.ParOpt.PVec.maxabs">
+<code class="sig-name descname">maxabs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.maxabs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the linfty norm of the vector</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="paropt.ParOpt.PVec.norm">
+<code class="sig-name descname">norm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.norm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the l2 norm of the vector</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="paropt.ParOpt.InteriorPoint">
+<em class="property">class </em><code class="sig-prename descclassname">paropt.ParOpt.</code><code class="sig-name descname">InteriorPoint</code><a class="headerlink" href="#paropt.ParOpt.InteriorPoint" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="paropt.ParOpt.InteriorPoint.getOptimizedPoint">
+<code class="sig-name descname">getOptimizedPoint</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.InteriorPoint.getOptimizedPoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the optimized solution in PVec form for interpolation purposes</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="paropt.ParOpt.InteriorPoint.getOptimizedSlacks">
+<code class="sig-name descname">getOptimizedSlacks</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.InteriorPoint.getOptimizedSlacks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the optimized slack variables from the problem</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="paropt.ParOpt.TrustRegion">
+<em class="property">class </em><code class="sig-prename descclassname">paropt.ParOpt.</code><code class="sig-name descname">TrustRegion</code><a class="headerlink" href="#paropt.ParOpt.TrustRegion" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="class">
 <dt id="_CPPv413ParOptProblem">
 <span id="_CPPv313ParOptProblem"></span><span id="_CPPv213ParOptProblem"></span><span id="ParOptProblem"></span><span class="target" id="class_par_opt_problem"></span><em class="property">class </em><code class="sig-name descname">ParOptProblem</code> : <em class="property">public</em> ParOptBase<a class="headerlink" href="#_CPPv413ParOptProblem" title="Permalink to this definition">¶</a><br /></dt>
@@ -393,14 +523,14 @@
 </dd></dl>
 
 <dl class="class">
-<dt id="_CPPv46ParOpt">
-<span id="_CPPv36ParOpt"></span><span id="_CPPv26ParOpt"></span><span id="ParOpt"></span><span class="target" id="class_par_opt"></span><em class="property">class </em><code class="sig-name descname">ParOpt</code> : <em class="property">public</em> ParOptBase<a class="headerlink" href="#_CPPv46ParOpt" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv419ParOptInteriorPoint">
+<span id="_CPPv319ParOptInteriorPoint"></span><span id="_CPPv219ParOptInteriorPoint"></span><span id="ParOptInteriorPoint"></span><span class="target" id="class_par_opt_interior_point"></span><em class="property">class </em><code class="sig-name descname">ParOptInteriorPoint</code> : <em class="property">public</em> ParOptBase<a class="headerlink" href="#_CPPv419ParOptInteriorPoint" title="Permalink to this definition">¶</a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric">Public Functions</p>
 <dl class="function">
-<dt id="_CPPv4N6ParOpt6ParOptEP13ParOptProblemi21ParOptQuasiNewtonTyped">
-<span id="_CPPv3N6ParOpt6ParOptEP13ParOptProblemi21ParOptQuasiNewtonTyped"></span><span id="_CPPv2N6ParOpt6ParOptEP13ParOptProblemi21ParOptQuasiNewtonTyped"></span><span id="ParOpt::ParOpt__ParOptProblemP.i.ParOptQuasiNewtonType.double"></span><span class="target" id="class_par_opt_1ad04c6437e326b314ea32392c2507926f"></span><code class="sig-name descname">ParOpt</code><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv413ParOptProblem" title="ParOptProblem">ParOptProblem</a> *<em>_prob</em>, int <em>_max_qn_subspace</em> = 10, ParOptQuasiNewtonType <em>qn_type</em> = PAROPT_BFGS, double <em>_max_bound_val</em> = 1e20<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt6ParOptEP13ParOptProblemi21ParOptQuasiNewtonTyped" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p><a class="reference internal" href="#class_par_opt"><span class="std std-ref">ParOpt</span></a> interior point optimization constructor.</p>
+<dt id="_CPPv4N19ParOptInteriorPoint19ParOptInteriorPointEP13ParOptProblemi21ParOptQuasiNewtonTyped">
+<span id="_CPPv3N19ParOptInteriorPoint19ParOptInteriorPointEP13ParOptProblemi21ParOptQuasiNewtonTyped"></span><span id="_CPPv2N19ParOptInteriorPoint19ParOptInteriorPointEP13ParOptProblemi21ParOptQuasiNewtonTyped"></span><span id="ParOptInteriorPoint::ParOptInteriorPoint__ParOptProblemP.i.ParOptQuasiNewtonType.double"></span><span class="target" id="class_par_opt_interior_point_1a47578201b87aed669cf08bab8548fc16"></span><code class="sig-name descname">ParOptInteriorPoint</code><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv413ParOptProblem" title="ParOptProblem">ParOptProblem</a> *<em>_prob</em>, int <em>_max_qn_subspace</em> = 10, ParOptQuasiNewtonType <em>qn_type</em> = PAROPT_BFGS, double <em>_max_bound_val</em> = 1e20<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint19ParOptInteriorPointEP13ParOptProblemi21ParOptQuasiNewtonTyped" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>ParOpt interior point optimization constructor.</p>
 <p>This function allocates and initializes the data that is required for parallel optimization. This includes initialization of the variables, allocation of the matrices and the BFGS approximate Hessian. This code also sets the default parameters for optimization. These parameters can be modified through member functions.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -415,14 +545,14 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOptD0Ev">
-<span id="_CPPv3N6ParOptD0Ev"></span><span id="_CPPv2N6ParOptD0Ev"></span><span id="ParOpt::~ParOpt"></span><span class="target" id="class_par_opt_1a6d65120ffaf1e1806f8753ac085f68d3"></span><code class="sig-name descname">~ParOpt</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOptD0Ev" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPointD0Ev">
+<span id="_CPPv3N19ParOptInteriorPointD0Ev"></span><span id="_CPPv2N19ParOptInteriorPointD0Ev"></span><span id="ParOptInteriorPoint::~ParOptInteriorPoint"></span><span class="target" id="class_par_opt_interior_point_1ae4d829a5ece19b7ce649712ac003ae0e"></span><code class="sig-name descname">~ParOptInteriorPoint</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPointD0Ev" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Free the data allocated during the creation of the object </p>
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt20resetProblemInstanceEP13ParOptProblem">
-<span id="_CPPv3N6ParOpt20resetProblemInstanceEP13ParOptProblem"></span><span id="_CPPv2N6ParOpt20resetProblemInstanceEP13ParOptProblem"></span><span id="ParOpt::resetProblemInstance__ParOptProblemP"></span><span class="target" id="class_par_opt_1a4bb6580a15605fee888e32bcbc2a480f"></span>void <code class="sig-name descname">resetProblemInstance</code><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv413ParOptProblem" title="ParOptProblem">ParOptProblem</a> *<em>_prob</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt20resetProblemInstanceEP13ParOptProblem" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint20resetProblemInstanceEP13ParOptProblem">
+<span id="_CPPv3N19ParOptInteriorPoint20resetProblemInstanceEP13ParOptProblem"></span><span id="_CPPv2N19ParOptInteriorPoint20resetProblemInstanceEP13ParOptProblem"></span><span id="ParOptInteriorPoint::resetProblemInstance__ParOptProblemP"></span><span class="target" id="class_par_opt_interior_point_1a03a14f51e90c0ca161d5b0a3bb07ad3a"></span>void <code class="sig-name descname">resetProblemInstance</code><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv413ParOptProblem" title="ParOptProblem">ParOptProblem</a> *<em>_prob</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint20resetProblemInstanceEP13ParOptProblem" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Reset the problem instance.</p>
 <p>The new problem instance must have the same number of constraints design variables, and design vector distribution as the original problem.</p>
 <p><dl class="simple">
@@ -435,8 +565,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt8optimizeEPKc">
-<span id="_CPPv3N6ParOpt8optimizeEPKc"></span><span id="_CPPv2N6ParOpt8optimizeEPKc"></span><span id="ParOpt::optimize__cCP"></span><span class="target" id="class_par_opt_1a9df1684e5a924a5aabc47da873530f37"></span>int <code class="sig-name descname">optimize</code><span class="sig-paren">(</span><em class="property">const</em> char *<em>checkpoint</em> = NULL<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt8optimizeEPKc" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint8optimizeEPKc">
+<span id="_CPPv3N19ParOptInteriorPoint8optimizeEPKc"></span><span id="_CPPv2N19ParOptInteriorPoint8optimizeEPKc"></span><span id="ParOptInteriorPoint::optimize__cCP"></span><span class="target" id="class_par_opt_interior_point_1aedc8fd27ea31aec52b0d536b68823397"></span>int <code class="sig-name descname">optimize</code><span class="sig-paren">(</span><em class="property">const</em> char *<em>checkpoint</em> = NULL<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint8optimizeEPKc" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Perform the optimization.</p>
 <p>This is the main function that performs the actual optimization. The optimization uses an interior-point method. The barrier parameter (mu/barrier_param) is controlled using a monotone approach where successive barrier problems are solved and the barrier parameter is subsequently reduced.</p>
 <p>The method uses a quasi-Newton method where the Hessian is approximated using a limited-memory BFGS approximation. The special structure of the Hessian approximation is used to compute the updates. This computation relies on there being relatively few dense global inequality constraints (e.g. &lt; 100).</p>
@@ -451,8 +581,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt15getProblemSizesEPiPiPiPi">
-<span id="_CPPv3N6ParOpt15getProblemSizesEPiPiPiPi"></span><span id="_CPPv2N6ParOpt15getProblemSizesEPiPiPiPi"></span><span id="ParOpt::getProblemSizes__iP.iP.iP.iP"></span><span class="target" id="class_par_opt_1af9b6d2f4bee2a7e55f447637f95e2eb1"></span>void <code class="sig-name descname">getProblemSizes</code><span class="sig-paren">(</span>int *<em>_nvars</em>, int *<em>_ncon</em>, int *<em>_nwcon</em>, int *<em>_nwblock</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt15getProblemSizesEPiPiPiPi" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint15getProblemSizesEPiPiPiPi">
+<span id="_CPPv3N19ParOptInteriorPoint15getProblemSizesEPiPiPiPi"></span><span id="_CPPv2N19ParOptInteriorPoint15getProblemSizesEPiPiPiPi"></span><span id="ParOptInteriorPoint::getProblemSizes__iP.iP.iP.iP"></span><span class="target" id="class_par_opt_interior_point_1a25f3805923a039e0f0df52176b320649"></span>void <code class="sig-name descname">getProblemSizes</code><span class="sig-paren">(</span>int *<em>_nvars</em>, int *<em>_ncon</em>, int *<em>_nwcon</em>, int *<em>_nwblock</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint15getProblemSizesEPiPiPiPi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Retrieve the problem sizes from the underlying problem class</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -467,8 +597,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec">
-<span id="_CPPv3N6ParOpt17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec"></span><span id="_CPPv2N6ParOpt17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec"></span><span id="ParOpt::getOptimizedPoint__ParOptVecPP.ParOptScalarPP.ParOptVecPP.ParOptVecPP.ParOptVecPP"></span><span class="target" id="class_par_opt_1ad85fb8051744c58a2096fa95017be60b"></span>void <code class="sig-name descname">getOptimizedPoint</code><span class="sig-paren">(</span>ParOptVec **<em>_x</em>, ParOptScalar **<em>_z</em>, ParOptVec **<em>_zw</em>, ParOptVec **<em>_zl</em>, ParOptVec **<em>_zu</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec">
+<span id="_CPPv3N19ParOptInteriorPoint17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec"></span><span id="_CPPv2N19ParOptInteriorPoint17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec"></span><span id="ParOptInteriorPoint::getOptimizedPoint__ParOptVecPP.ParOptScalarPP.ParOptVecPP.ParOptVecPP.ParOptVecPP"></span><span class="target" id="class_par_opt_interior_point_1a5cf602e5359da9fec86d96504dc286e5"></span>void <code class="sig-name descname">getOptimizedPoint</code><span class="sig-paren">(</span>ParOptVec **<em>_x</em>, ParOptScalar **<em>_z</em>, ParOptVec **<em>_zw</em>, ParOptVec **<em>_zl</em>, ParOptVec **<em>_zu</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Retrieve the values of the design variables and multipliers.</p>
 <p>This call can be made during the course of an optimization, but changing the values in x/zw/zl/zu is not recommended and the behavior after doing so is not defined. Note that inputs that are NULL are not assigned. If no output is available, for instance if use_lower == False, then NULL is assigned to the output.</p>
 <p><dl class="simple">
@@ -485,8 +615,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec">
-<span id="_CPPv3N6ParOpt18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec"></span><span id="_CPPv2N6ParOpt18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec"></span><span id="ParOpt::getOptimizedSlacks__ParOptScalarPP.ParOptScalarPP.ParOptVecPP"></span><span class="target" id="class_par_opt_1a2ab70c010b8a6d8ee6396cc71d8a542f"></span>void <code class="sig-name descname">getOptimizedSlacks</code><span class="sig-paren">(</span>ParOptScalar **<em>_s</em>, ParOptScalar **<em>_t</em>, ParOptVec **<em>_sw</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec">
+<span id="_CPPv3N19ParOptInteriorPoint18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec"></span><span id="_CPPv2N19ParOptInteriorPoint18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec"></span><span id="ParOptInteriorPoint::getOptimizedSlacks__ParOptScalarPP.ParOptScalarPP.ParOptVecPP"></span><span class="target" id="class_par_opt_interior_point_1a6d33920dcbe309b2bc13aeb6602f27d0"></span>void <code class="sig-name descname">getOptimizedSlacks</code><span class="sig-paren">(</span>ParOptScalar **<em>_s</em>, ParOptScalar **<em>_t</em>, ParOptVec **<em>_sw</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Retrieve the values of the optimized slack variables.</p>
 <p>Note that the dense inequality constraints are formualted as</p>
 <p>c(x) = s - t</p>
@@ -505,8 +635,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt22setMaxAbsVariableBoundEd">
-<span id="_CPPv3N6ParOpt22setMaxAbsVariableBoundEd"></span><span id="_CPPv2N6ParOpt22setMaxAbsVariableBoundEd"></span><span id="ParOpt::setMaxAbsVariableBound__double"></span><span class="target" id="class_par_opt_1a4b1e2e7c6f787a779de53888840e649a"></span>void <code class="sig-name descname">setMaxAbsVariableBound</code><span class="sig-paren">(</span>double <em>max_bound</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt22setMaxAbsVariableBoundEd" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint22setMaxAbsVariableBoundEd">
+<span id="_CPPv3N19ParOptInteriorPoint22setMaxAbsVariableBoundEd"></span><span id="_CPPv2N19ParOptInteriorPoint22setMaxAbsVariableBoundEd"></span><span id="ParOptInteriorPoint::setMaxAbsVariableBound__double"></span><span class="target" id="class_par_opt_interior_point_1a2199af8924a7fe5ddf4c08dfcafc6a6d"></span>void <code class="sig-name descname">setMaxAbsVariableBound</code><span class="sig-paren">(</span>double <em>max_bound</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint22setMaxAbsVariableBoundEd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the maximum variable bound.</p>
 <p>Bounds that exceed this value will be ignored within the optimization problem.</p>
 <p><dl class="simple">
@@ -519,8 +649,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt11setNormTypeE14ParOptNormType">
-<span id="_CPPv3N6ParOpt11setNormTypeE14ParOptNormType"></span><span id="_CPPv2N6ParOpt11setNormTypeE14ParOptNormType"></span><span id="ParOpt::setNormType__ParOptNormType"></span><span class="target" id="class_par_opt_1a71943a92c09631f4c5c41ecb2c5e8cff"></span>void <code class="sig-name descname">setNormType</code><span class="sig-paren">(</span>ParOptNormType <em>_norm_type</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt11setNormTypeE14ParOptNormType" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint11setNormTypeE14ParOptNormType">
+<span id="_CPPv3N19ParOptInteriorPoint11setNormTypeE14ParOptNormType"></span><span id="_CPPv2N19ParOptInteriorPoint11setNormTypeE14ParOptNormType"></span><span id="ParOptInteriorPoint::setNormType__ParOptNormType"></span><span class="target" id="class_par_opt_interior_point_1a3fd17e62729c278d46519666733e463a"></span>void <code class="sig-name descname">setNormType</code><span class="sig-paren">(</span>ParOptNormType <em>_norm_type</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint11setNormTypeE14ParOptNormType" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the type of norm to use in the convergence criteria.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -532,8 +662,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt18setBarrierStrategyE21ParOptBarrierStrategy">
-<span id="_CPPv3N6ParOpt18setBarrierStrategyE21ParOptBarrierStrategy"></span><span id="_CPPv2N6ParOpt18setBarrierStrategyE21ParOptBarrierStrategy"></span><span id="ParOpt::setBarrierStrategy__ParOptBarrierStrategy"></span><span class="target" id="class_par_opt_1a675b2ca0508e331df20acb9102efecb0"></span>void <code class="sig-name descname">setBarrierStrategy</code><span class="sig-paren">(</span>ParOptBarrierStrategy <em>strategy</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt18setBarrierStrategyE21ParOptBarrierStrategy" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint18setBarrierStrategyE21ParOptBarrierStrategy">
+<span id="_CPPv3N19ParOptInteriorPoint18setBarrierStrategyE21ParOptBarrierStrategy"></span><span id="_CPPv2N19ParOptInteriorPoint18setBarrierStrategyE21ParOptBarrierStrategy"></span><span id="ParOptInteriorPoint::setBarrierStrategy__ParOptBarrierStrategy"></span><span class="target" id="class_par_opt_interior_point_1a56e6f66e8ef39132c5a779f668bfcc27"></span>void <code class="sig-name descname">setBarrierStrategy</code><span class="sig-paren">(</span>ParOptBarrierStrategy <em>strategy</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint18setBarrierStrategyE21ParOptBarrierStrategy" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the type of barrier strategy to use.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -545,8 +675,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt24setStartingPointStrategyE27ParOptStartingPointStrategy">
-<span id="_CPPv3N6ParOpt24setStartingPointStrategyE27ParOptStartingPointStrategy"></span><span id="_CPPv2N6ParOpt24setStartingPointStrategyE27ParOptStartingPointStrategy"></span><span id="ParOpt::setStartingPointStrategy__ParOptStartingPointStrategy"></span><span class="target" id="class_par_opt_1af547f2ac473e09e0aadce9f93bf72485"></span>void <code class="sig-name descname">setStartingPointStrategy</code><span class="sig-paren">(</span>ParOptStartingPointStrategy <em>strategy</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt24setStartingPointStrategyE27ParOptStartingPointStrategy" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint24setStartingPointStrategyE27ParOptStartingPointStrategy">
+<span id="_CPPv3N19ParOptInteriorPoint24setStartingPointStrategyE27ParOptStartingPointStrategy"></span><span id="_CPPv2N19ParOptInteriorPoint24setStartingPointStrategyE27ParOptStartingPointStrategy"></span><span id="ParOptInteriorPoint::setStartingPointStrategy__ParOptStartingPointStrategy"></span><span class="target" id="class_par_opt_interior_point_1acae9154f04a0d83847884967291008d3"></span>void <code class="sig-name descname">setStartingPointStrategy</code><span class="sig-paren">(</span>ParOptStartingPointStrategy <em>strategy</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint24setStartingPointStrategyE27ParOptStartingPointStrategy" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the starting point strategy to use.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -558,8 +688,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt21setMaxMajorIterationsEi">
-<span id="_CPPv3N6ParOpt21setMaxMajorIterationsEi"></span><span id="_CPPv2N6ParOpt21setMaxMajorIterationsEi"></span><span id="ParOpt::setMaxMajorIterations__i"></span><span class="target" id="class_par_opt_1aed41536c267bd5740358ad59a887dabf"></span>void <code class="sig-name descname">setMaxMajorIterations</code><span class="sig-paren">(</span>int <em>iters</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt21setMaxMajorIterationsEi" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint21setMaxMajorIterationsEi">
+<span id="_CPPv3N19ParOptInteriorPoint21setMaxMajorIterationsEi"></span><span id="_CPPv2N19ParOptInteriorPoint21setMaxMajorIterationsEi"></span><span id="ParOptInteriorPoint::setMaxMajorIterations__i"></span><span class="target" id="class_par_opt_interior_point_1a18b991637701ed9f2c3f04d123f5d48c"></span>void <code class="sig-name descname">setMaxMajorIterations</code><span class="sig-paren">(</span>int <em>iters</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint21setMaxMajorIterationsEi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the maximum number of major iterations.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -571,8 +701,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt19setAbsOptimalityTolEd">
-<span id="_CPPv3N6ParOpt19setAbsOptimalityTolEd"></span><span id="_CPPv2N6ParOpt19setAbsOptimalityTolEd"></span><span id="ParOpt::setAbsOptimalityTol__double"></span><span class="target" id="class_par_opt_1a9346dd64cbdbd39ed2fdd4cb200f6049"></span>void <code class="sig-name descname">setAbsOptimalityTol</code><span class="sig-paren">(</span>double <em>tol</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt19setAbsOptimalityTolEd" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint19setAbsOptimalityTolEd">
+<span id="_CPPv3N19ParOptInteriorPoint19setAbsOptimalityTolEd"></span><span id="_CPPv2N19ParOptInteriorPoint19setAbsOptimalityTolEd"></span><span id="ParOptInteriorPoint::setAbsOptimalityTol__double"></span><span class="target" id="class_par_opt_interior_point_1a0cff2459b6a62b36df7a2352d2d39cc1"></span>void <code class="sig-name descname">setAbsOptimalityTol</code><span class="sig-paren">(</span>double <em>tol</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint19setAbsOptimalityTolEd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the absolute KKT tolerance.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -584,8 +714,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt17setRelFunctionTolEd">
-<span id="_CPPv3N6ParOpt17setRelFunctionTolEd"></span><span id="_CPPv2N6ParOpt17setRelFunctionTolEd"></span><span id="ParOpt::setRelFunctionTol__double"></span><span class="target" id="class_par_opt_1a7d7aad0424f5849c755f80a4f4b16432"></span>void <code class="sig-name descname">setRelFunctionTol</code><span class="sig-paren">(</span>double <em>tol</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt17setRelFunctionTolEd" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint17setRelFunctionTolEd">
+<span id="_CPPv3N19ParOptInteriorPoint17setRelFunctionTolEd"></span><span id="_CPPv2N19ParOptInteriorPoint17setRelFunctionTolEd"></span><span id="ParOptInteriorPoint::setRelFunctionTol__double"></span><span class="target" id="class_par_opt_interior_point_1a96450e3ceb708e4b838aa27def4d73c3"></span>void <code class="sig-name descname">setRelFunctionTol</code><span class="sig-paren">(</span>double <em>tol</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint17setRelFunctionTolEd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the relative function tolerance.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -597,8 +727,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt15setPenaltyGammaEd">
-<span id="_CPPv3N6ParOpt15setPenaltyGammaEd"></span><span id="_CPPv2N6ParOpt15setPenaltyGammaEd"></span><span id="ParOpt::setPenaltyGamma__double"></span><span class="target" id="class_par_opt_1abd15e007e773f8c5b67dda23bf6a5ce8"></span>void <code class="sig-name descname">setPenaltyGamma</code><span class="sig-paren">(</span>double <em>gamma</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt15setPenaltyGammaEd" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint15setPenaltyGammaEd">
+<span id="_CPPv3N19ParOptInteriorPoint15setPenaltyGammaEd"></span><span id="_CPPv2N19ParOptInteriorPoint15setPenaltyGammaEd"></span><span id="ParOptInteriorPoint::setPenaltyGamma__double"></span><span class="target" id="class_par_opt_interior_point_1a24e821c7ad1e95e1e0dce44a7f200b9d"></span>void <code class="sig-name descname">setPenaltyGamma</code><span class="sig-paren">(</span>double <em>gamma</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint15setPenaltyGammaEd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the penalty parameter for the l1 penalty function.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -610,8 +740,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt15setPenaltyGammaEPKd">
-<span id="_CPPv3N6ParOpt15setPenaltyGammaEPKd"></span><span id="_CPPv2N6ParOpt15setPenaltyGammaEPKd"></span><span id="ParOpt::setPenaltyGamma__doubleCP"></span><span class="target" id="class_par_opt_1a43318d321f07dc052e302010d44a5c7d"></span>void <code class="sig-name descname">setPenaltyGamma</code><span class="sig-paren">(</span><em class="property">const</em> double *<em>gamma</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt15setPenaltyGammaEPKd" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint15setPenaltyGammaEPKd">
+<span id="_CPPv3N19ParOptInteriorPoint15setPenaltyGammaEPKd"></span><span id="_CPPv2N19ParOptInteriorPoint15setPenaltyGammaEPKd"></span><span id="ParOptInteriorPoint::setPenaltyGamma__doubleCP"></span><span class="target" id="class_par_opt_interior_point_1a40b9ae428794e2907a54ec5ba86a4d00"></span>void <code class="sig-name descname">setPenaltyGamma</code><span class="sig-paren">(</span><em class="property">const</em> double *<em>gamma</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint15setPenaltyGammaEPKd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the individual penalty parameters for the l1 penalty function.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -623,8 +753,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt15getPenaltyGammaEPPKd">
-<span id="_CPPv3N6ParOpt15getPenaltyGammaEPPKd"></span><span id="_CPPv2N6ParOpt15getPenaltyGammaEPPKd"></span><span id="ParOpt::getPenaltyGamma__doubleCPP"></span><span class="target" id="class_par_opt_1a8bed6b6202c392aca78c49983b07b1f0"></span>int <code class="sig-name descname">getPenaltyGamma</code><span class="sig-paren">(</span><em class="property">const</em> double **<em>gamma</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt15getPenaltyGammaEPPKd" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint15getPenaltyGammaEPPKd">
+<span id="_CPPv3N19ParOptInteriorPoint15getPenaltyGammaEPPKd"></span><span id="_CPPv2N19ParOptInteriorPoint15getPenaltyGammaEPPKd"></span><span id="ParOptInteriorPoint::getPenaltyGamma__doubleCPP"></span><span class="target" id="class_par_opt_interior_point_1a2e3ce67f64b60e22551339dd2dfabae5"></span>int <code class="sig-name descname">getPenaltyGamma</code><span class="sig-paren">(</span><em class="property">const</em> double **<em>gamma</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint15getPenaltyGammaEPPKd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Retrieve the penalty parameter values.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -636,8 +766,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt18setBarrierFractionEd">
-<span id="_CPPv3N6ParOpt18setBarrierFractionEd"></span><span id="_CPPv2N6ParOpt18setBarrierFractionEd"></span><span id="ParOpt::setBarrierFraction__double"></span><span class="target" id="class_par_opt_1a63c26f43a5eacf6c8783c94425aaad00"></span>void <code class="sig-name descname">setBarrierFraction</code><span class="sig-paren">(</span>double <em>frac</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt18setBarrierFractionEd" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint18setBarrierFractionEd">
+<span id="_CPPv3N19ParOptInteriorPoint18setBarrierFractionEd"></span><span id="_CPPv2N19ParOptInteriorPoint18setBarrierFractionEd"></span><span id="ParOptInteriorPoint::setBarrierFraction__double"></span><span class="target" id="class_par_opt_interior_point_1a7ca3115bf50cce852c14ddad494dce6c"></span>void <code class="sig-name descname">setBarrierFraction</code><span class="sig-paren">(</span>double <em>frac</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint18setBarrierFractionEd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set fraction for the barrier update.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -649,8 +779,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt15setBarrierPowerEd">
-<span id="_CPPv3N6ParOpt15setBarrierPowerEd"></span><span id="_CPPv2N6ParOpt15setBarrierPowerEd"></span><span id="ParOpt::setBarrierPower__double"></span><span class="target" id="class_par_opt_1ad212cec635a74d28af4c68cb657ec22b"></span>void <code class="sig-name descname">setBarrierPower</code><span class="sig-paren">(</span>double <em>power</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt15setBarrierPowerEd" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint15setBarrierPowerEd">
+<span id="_CPPv3N19ParOptInteriorPoint15setBarrierPowerEd"></span><span id="_CPPv2N19ParOptInteriorPoint15setBarrierPowerEd"></span><span id="ParOptInteriorPoint::setBarrierPower__double"></span><span class="target" id="class_par_opt_interior_point_1a1f21067969b0e82a927e6744b17ab686"></span>void <code class="sig-name descname">setBarrierPower</code><span class="sig-paren">(</span>double <em>power</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint15setBarrierPowerEd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the power for the barrier update.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -662,8 +792,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt19setHessianResetFreqEi">
-<span id="_CPPv3N6ParOpt19setHessianResetFreqEi"></span><span id="_CPPv2N6ParOpt19setHessianResetFreqEi"></span><span id="ParOpt::setHessianResetFreq__i"></span><span class="target" id="class_par_opt_1a68c46045bd54bcd752c1ec3e5baf55e9"></span>void <code class="sig-name descname">setHessianResetFreq</code><span class="sig-paren">(</span>int <em>freq</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt19setHessianResetFreqEi" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint19setHessianResetFreqEi">
+<span id="_CPPv3N19ParOptInteriorPoint19setHessianResetFreqEi"></span><span id="_CPPv2N19ParOptInteriorPoint19setHessianResetFreqEi"></span><span id="ParOptInteriorPoint::setHessianResetFreq__i"></span><span class="target" id="class_par_opt_interior_point_1a4a1ba8d2b54381bb60184fa1412ca0b6"></span>void <code class="sig-name descname">setHessianResetFreq</code><span class="sig-paren">(</span>int <em>freq</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint19setHessianResetFreqEi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the frequency with which the Hessian is updated.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -675,8 +805,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt19setQNDiagonalFactorEd">
-<span id="_CPPv3N6ParOpt19setQNDiagonalFactorEd"></span><span id="_CPPv2N6ParOpt19setQNDiagonalFactorEd"></span><span id="ParOpt::setQNDiagonalFactor__double"></span><span class="target" id="class_par_opt_1af89b7bd09fa29e65c2fcbc67f4184494"></span>void <code class="sig-name descname">setQNDiagonalFactor</code><span class="sig-paren">(</span>double <em>sigma</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt19setQNDiagonalFactorEd" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint19setQNDiagonalFactorEd">
+<span id="_CPPv3N19ParOptInteriorPoint19setQNDiagonalFactorEd"></span><span id="_CPPv2N19ParOptInteriorPoint19setQNDiagonalFactorEd"></span><span id="ParOptInteriorPoint::setQNDiagonalFactor__double"></span><span class="target" id="class_par_opt_interior_point_1aa294dea6cdb8573b9a5b211ff2e67ed3"></span>void <code class="sig-name descname">setQNDiagonalFactor</code><span class="sig-paren">(</span>double <em>sigma</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint19setQNDiagonalFactorEd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the diagonal entry to add to the quasi-Newton Hessian approximation.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -688,8 +818,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt17setBFGSUpdateTypeE20ParOptBFGSUpdateType">
-<span id="_CPPv3N6ParOpt17setBFGSUpdateTypeE20ParOptBFGSUpdateType"></span><span id="_CPPv2N6ParOpt17setBFGSUpdateTypeE20ParOptBFGSUpdateType"></span><span id="ParOpt::setBFGSUpdateType__ParOptBFGSUpdateType"></span><span class="target" id="class_par_opt_1a9830561295d54d2b942142d177bcfa47"></span>void <code class="sig-name descname">setBFGSUpdateType</code><span class="sig-paren">(</span>ParOptBFGSUpdateType <em>bfgs_update</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt17setBFGSUpdateTypeE20ParOptBFGSUpdateType" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint17setBFGSUpdateTypeE20ParOptBFGSUpdateType">
+<span id="_CPPv3N19ParOptInteriorPoint17setBFGSUpdateTypeE20ParOptBFGSUpdateType"></span><span id="_CPPv2N19ParOptInteriorPoint17setBFGSUpdateTypeE20ParOptBFGSUpdateType"></span><span id="ParOptInteriorPoint::setBFGSUpdateType__ParOptBFGSUpdateType"></span><span class="target" id="class_par_opt_interior_point_1abb28109c38fb3eada3ce444f1bbd8d1a"></span>void <code class="sig-name descname">setBFGSUpdateType</code><span class="sig-paren">(</span>ParOptBFGSUpdateType <em>bfgs_update</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint17setBFGSUpdateTypeE20ParOptBFGSUpdateType" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the type of BFGS update.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -701,8 +831,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt25setSequentialLinearMethodEi">
-<span id="_CPPv3N6ParOpt25setSequentialLinearMethodEi"></span><span id="_CPPv2N6ParOpt25setSequentialLinearMethodEi"></span><span id="ParOpt::setSequentialLinearMethod__i"></span><span class="target" id="class_par_opt_1a27a4f999c52b63d074bf136ad8a3fac5"></span>void <code class="sig-name descname">setSequentialLinearMethod</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt25setSequentialLinearMethodEi" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint25setSequentialLinearMethodEi">
+<span id="_CPPv3N19ParOptInteriorPoint25setSequentialLinearMethodEi"></span><span id="_CPPv2N19ParOptInteriorPoint25setSequentialLinearMethodEi"></span><span id="ParOptInteriorPoint::setSequentialLinearMethod__i"></span><span class="target" id="class_par_opt_interior_point_1a82279164f5c6e455de15d2af4c4fa60d"></span>void <code class="sig-name descname">setSequentialLinearMethod</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint25setSequentialLinearMethodEi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set whether to use a sequential linear method or not.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -714,8 +844,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt31setStartAffineStepMultiplierMinEd">
-<span id="_CPPv3N6ParOpt31setStartAffineStepMultiplierMinEd"></span><span id="_CPPv2N6ParOpt31setStartAffineStepMultiplierMinEd"></span><span id="ParOpt::setStartAffineStepMultiplierMin__double"></span><span class="target" id="class_par_opt_1a8975318609f557b7fdf988c916a025d7"></span>void <code class="sig-name descname">setStartAffineStepMultiplierMin</code><span class="sig-paren">(</span>double <em>value</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt31setStartAffineStepMultiplierMinEd" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint31setStartAffineStepMultiplierMinEd">
+<span id="_CPPv3N19ParOptInteriorPoint31setStartAffineStepMultiplierMinEd"></span><span id="_CPPv2N19ParOptInteriorPoint31setStartAffineStepMultiplierMinEd"></span><span id="ParOptInteriorPoint::setStartAffineStepMultiplierMin__double"></span><span class="target" id="class_par_opt_interior_point_1ade379e11d4a8f874f91b81dd5141799c"></span>void <code class="sig-name descname">setStartAffineStepMultiplierMin</code><span class="sig-paren">(</span>double <em>value</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint31setStartAffineStepMultiplierMinEd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the minimum value of the multiplier/slack variable allowed in the affine step start up point initialization procedure.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -727,8 +857,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt23setInitBarrierParameterEd">
-<span id="_CPPv3N6ParOpt23setInitBarrierParameterEd"></span><span id="_CPPv2N6ParOpt23setInitBarrierParameterEd"></span><span id="ParOpt::setInitBarrierParameter__double"></span><span class="target" id="class_par_opt_1aabc797817c2dff6464ac12cf2bc0d465"></span>void <code class="sig-name descname">setInitBarrierParameter</code><span class="sig-paren">(</span>double <em>mu</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt23setInitBarrierParameterEd" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint23setInitBarrierParameterEd">
+<span id="_CPPv3N19ParOptInteriorPoint23setInitBarrierParameterEd"></span><span id="_CPPv2N19ParOptInteriorPoint23setInitBarrierParameterEd"></span><span id="ParOptInteriorPoint::setInitBarrierParameter__double"></span><span class="target" id="class_par_opt_interior_point_1aefd29bb776ace61df6beea887cf235f3"></span>void <code class="sig-name descname">setInitBarrierParameter</code><span class="sig-paren">(</span>double <em>mu</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint23setInitBarrierParameterEd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the initial barrier parameter.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -740,8 +870,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt19getBarrierParameterEv">
-<span id="_CPPv3N6ParOpt19getBarrierParameterEv"></span><span id="_CPPv2N6ParOpt19getBarrierParameterEv"></span><span id="ParOpt::getBarrierParameter"></span><span class="target" id="class_par_opt_1a78b914b741ce2ae1831095c6a72ec5a5"></span>double <code class="sig-name descname">getBarrierParameter</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt19getBarrierParameterEv" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint19getBarrierParameterEv">
+<span id="_CPPv3N19ParOptInteriorPoint19getBarrierParameterEv"></span><span id="_CPPv2N19ParOptInteriorPoint19getBarrierParameterEv"></span><span id="ParOptInteriorPoint::getBarrierParameter"></span><span class="target" id="class_par_opt_interior_point_1a5e303b429db8fcf03a4091fd6d857f52"></span>double <code class="sig-name descname">getBarrierParameter</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint19getBarrierParameterEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Retrieve the barrier parameter</p>
 <p><dl class="simple">
 <dt><strong>Return</strong></dt><dd><p>the barrier parameter value. </p>
@@ -751,14 +881,14 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt18setRelativeBarrierEd">
-<span id="_CPPv3N6ParOpt18setRelativeBarrierEd"></span><span id="_CPPv2N6ParOpt18setRelativeBarrierEd"></span><span id="ParOpt::setRelativeBarrier__double"></span><span class="target" id="class_par_opt_1ab883b917705c60802791b2f2d960642b"></span>void <code class="sig-name descname">setRelativeBarrier</code><span class="sig-paren">(</span>double <em>rel</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt18setRelativeBarrierEd" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint18setRelativeBarrierEd">
+<span id="_CPPv3N19ParOptInteriorPoint18setRelativeBarrierEd"></span><span id="_CPPv2N19ParOptInteriorPoint18setRelativeBarrierEd"></span><span id="ParOptInteriorPoint::setRelativeBarrier__double"></span><span class="target" id="class_par_opt_interior_point_1ae66bb6896468a0f7286ff1d30d948958"></span>void <code class="sig-name descname">setRelativeBarrier</code><span class="sig-paren">(</span>double <em>rel</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint18setRelativeBarrierEd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the relative barrier value for the variable bounds </p>
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt18getComplementarityEv">
-<span id="_CPPv3N6ParOpt18getComplementarityEv"></span><span id="_CPPv2N6ParOpt18getComplementarityEv"></span><span id="ParOpt::getComplementarity"></span><span class="target" id="class_par_opt_1a1dfcf79a69b822036eb390b4a986e357"></span>ParOptScalar <code class="sig-name descname">getComplementarity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt18getComplementarityEv" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint18getComplementarityEv">
+<span id="_CPPv3N19ParOptInteriorPoint18getComplementarityEv"></span><span id="_CPPv2N19ParOptInteriorPoint18getComplementarityEv"></span><span id="ParOptInteriorPoint::getComplementarity"></span><span class="target" id="class_par_opt_interior_point_1a358e0877902ab5337d580f067a646e66"></span>ParOptScalar <code class="sig-name descname">getComplementarity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint18getComplementarityEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Get the average of the complementarity products at the current point. This function call is collective on all processors.</p>
 <p><dl class="simple">
 <dt><strong>Return</strong></dt><dd><p>the current complementarity. </p>
@@ -768,8 +898,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt16setUseLineSearchEi">
-<span id="_CPPv3N6ParOpt16setUseLineSearchEi"></span><span id="_CPPv2N6ParOpt16setUseLineSearchEi"></span><span id="ParOpt::setUseLineSearch__i"></span><span class="target" id="class_par_opt_1ae57090ef938571ef75bbb5d7aeeaf22e"></span>void <code class="sig-name descname">setUseLineSearch</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt16setUseLineSearchEi" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint16setUseLineSearchEi">
+<span id="_CPPv3N19ParOptInteriorPoint16setUseLineSearchEi"></span><span id="_CPPv2N19ParOptInteriorPoint16setUseLineSearchEi"></span><span id="ParOptInteriorPoint::setUseLineSearch__i"></span><span class="target" id="class_par_opt_interior_point_1a64f3356c4688a379f12d94a86c9f0cc6"></span>void <code class="sig-name descname">setUseLineSearch</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint16setUseLineSearchEi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set whether to use a line search or not.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -781,8 +911,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt21setMaxLineSearchItersEi">
-<span id="_CPPv3N6ParOpt21setMaxLineSearchItersEi"></span><span id="_CPPv2N6ParOpt21setMaxLineSearchItersEi"></span><span id="ParOpt::setMaxLineSearchIters__i"></span><span class="target" id="class_par_opt_1a6cd446e0fced1da1818ab92e4a107f47"></span>void <code class="sig-name descname">setMaxLineSearchIters</code><span class="sig-paren">(</span>int <em>iters</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt21setMaxLineSearchItersEi" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint21setMaxLineSearchItersEi">
+<span id="_CPPv3N19ParOptInteriorPoint21setMaxLineSearchItersEi"></span><span id="_CPPv2N19ParOptInteriorPoint21setMaxLineSearchItersEi"></span><span id="ParOptInteriorPoint::setMaxLineSearchIters__i"></span><span class="target" id="class_par_opt_interior_point_1a3e114cc2d13ab0704deaf91492875ec2"></span>void <code class="sig-name descname">setMaxLineSearchIters</code><span class="sig-paren">(</span>int <em>iters</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint21setMaxLineSearchItersEi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the maximum number of line search iterations.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -794,8 +924,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt25setBacktrackingLineSearchEi">
-<span id="_CPPv3N6ParOpt25setBacktrackingLineSearchEi"></span><span id="_CPPv2N6ParOpt25setBacktrackingLineSearchEi"></span><span id="ParOpt::setBacktrackingLineSearch__i"></span><span class="target" id="class_par_opt_1abbd8fb45902903d6fa14ed9b02836723"></span>void <code class="sig-name descname">setBacktrackingLineSearch</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt25setBacktrackingLineSearchEi" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint25setBacktrackingLineSearchEi">
+<span id="_CPPv3N19ParOptInteriorPoint25setBacktrackingLineSearchEi"></span><span id="_CPPv2N19ParOptInteriorPoint25setBacktrackingLineSearchEi"></span><span id="ParOptInteriorPoint::setBacktrackingLineSearch__i"></span><span class="target" id="class_par_opt_interior_point_1a26c35612d6ffc41de51f653139c47122"></span>void <code class="sig-name descname">setBacktrackingLineSearch</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint25setBacktrackingLineSearchEi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set whether to use a backtracking line search.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -807,8 +937,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt14setArmijoParamEd">
-<span id="_CPPv3N6ParOpt14setArmijoParamEd"></span><span id="_CPPv2N6ParOpt14setArmijoParamEd"></span><span id="ParOpt::setArmijoParam__double"></span><span class="target" id="class_par_opt_1ab8ecd0b2c48dbe005eacbcf031e4e470"></span>void <code class="sig-name descname">setArmijoParam</code><span class="sig-paren">(</span>double <em>c1</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt14setArmijoParamEd" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint14setArmijoParamEd">
+<span id="_CPPv3N19ParOptInteriorPoint14setArmijoParamEd"></span><span id="_CPPv2N19ParOptInteriorPoint14setArmijoParamEd"></span><span id="ParOptInteriorPoint::setArmijoParam__double"></span><span class="target" id="class_par_opt_interior_point_1ae80c8ad211cfccf379d35bd875bfd625"></span>void <code class="sig-name descname">setArmijoParam</code><span class="sig-paren">(</span>double <em>c1</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint14setArmijoParamEd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the Armijo parameter.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -820,8 +950,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt25setPenaltyDescentFractionEd">
-<span id="_CPPv3N6ParOpt25setPenaltyDescentFractionEd"></span><span id="_CPPv2N6ParOpt25setPenaltyDescentFractionEd"></span><span id="ParOpt::setPenaltyDescentFraction__double"></span><span class="target" id="class_par_opt_1a781fcab73637c75ffa2c1f351cc2cae6"></span>void <code class="sig-name descname">setPenaltyDescentFraction</code><span class="sig-paren">(</span>double <em>frac</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt25setPenaltyDescentFractionEd" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint25setPenaltyDescentFractionEd">
+<span id="_CPPv3N19ParOptInteriorPoint25setPenaltyDescentFractionEd"></span><span id="_CPPv2N19ParOptInteriorPoint25setPenaltyDescentFractionEd"></span><span id="ParOptInteriorPoint::setPenaltyDescentFraction__double"></span><span class="target" id="class_par_opt_interior_point_1a9ec43076b69776457386893ff2c7fcbe"></span>void <code class="sig-name descname">setPenaltyDescentFraction</code><span class="sig-paren">(</span>double <em>frac</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint25setPenaltyDescentFractionEd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the penalty descent fraction.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -833,8 +963,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt22setMinPenaltyParameterEd">
-<span id="_CPPv3N6ParOpt22setMinPenaltyParameterEd"></span><span id="_CPPv2N6ParOpt22setMinPenaltyParameterEd"></span><span id="ParOpt::setMinPenaltyParameter__double"></span><span class="target" id="class_par_opt_1ab2076065104cfa0462e65c48559db1ac"></span>void <code class="sig-name descname">setMinPenaltyParameter</code><span class="sig-paren">(</span>double <em>rho_min</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt22setMinPenaltyParameterEd" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint22setMinPenaltyParameterEd">
+<span id="_CPPv3N19ParOptInteriorPoint22setMinPenaltyParameterEd"></span><span id="_CPPv2N19ParOptInteriorPoint22setMinPenaltyParameterEd"></span><span id="ParOptInteriorPoint::setMinPenaltyParameter__double"></span><span class="target" id="class_par_opt_interior_point_1a96df88adc58a89cdc73e41a589192bd6"></span>void <code class="sig-name descname">setMinPenaltyParameter</code><span class="sig-paren">(</span>double <em>rho_min</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint22setMinPenaltyParameterEd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the minimum allowable penalty parameter.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -846,26 +976,26 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt17setUseDiagHessianEi">
-<span id="_CPPv3N6ParOpt17setUseDiagHessianEi"></span><span id="_CPPv2N6ParOpt17setUseDiagHessianEi"></span><span id="ParOpt::setUseDiagHessian__i"></span><span class="target" id="class_par_opt_1ab6061f4c8bf2bb107dd090d9772ffcca"></span>void <code class="sig-name descname">setUseDiagHessian</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt17setUseDiagHessianEi" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint17setUseDiagHessianEi">
+<span id="_CPPv3N19ParOptInteriorPoint17setUseDiagHessianEi"></span><span id="_CPPv2N19ParOptInteriorPoint17setUseDiagHessianEi"></span><span id="ParOptInteriorPoint::setUseDiagHessian__i"></span><span class="target" id="class_par_opt_interior_point_1a7abe0352295cb3c483cb3bcf6333e90b"></span>void <code class="sig-name descname">setUseDiagHessian</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint17setUseDiagHessianEi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the flag to use a diagonal hessian. </p>
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt17setUseHvecProductEi">
-<span id="_CPPv3N6ParOpt17setUseHvecProductEi"></span><span id="_CPPv2N6ParOpt17setUseHvecProductEi"></span><span id="ParOpt::setUseHvecProduct__i"></span><span class="target" id="class_par_opt_1a75234bab6ab2450ba6e3f0e796cc8c8c"></span>void <code class="sig-name descname">setUseHvecProduct</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt17setUseHvecProductEi" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint17setUseHvecProductEi">
+<span id="_CPPv3N19ParOptInteriorPoint17setUseHvecProductEi"></span><span id="_CPPv2N19ParOptInteriorPoint17setUseHvecProductEi"></span><span id="ParOptInteriorPoint::setUseHvecProduct__i"></span><span class="target" id="class_par_opt_interior_point_1a0be441ed29235fc4333bf634f94ce8ad"></span>void <code class="sig-name descname">setUseHvecProduct</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint17setUseHvecProductEi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the flag for whether to use the Hessian-vector products or not </p>
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt19setUseQNGMRESPreConEi">
-<span id="_CPPv3N6ParOpt19setUseQNGMRESPreConEi"></span><span id="_CPPv2N6ParOpt19setUseQNGMRESPreConEi"></span><span id="ParOpt::setUseQNGMRESPreCon__i"></span><span class="target" id="class_par_opt_1a9249fddb2c369ff1ca4fb7a96e666f84"></span>void <code class="sig-name descname">setUseQNGMRESPreCon</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt19setUseQNGMRESPreConEi" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint19setUseQNGMRESPreConEi">
+<span id="_CPPv3N19ParOptInteriorPoint19setUseQNGMRESPreConEi"></span><span id="_CPPv2N19ParOptInteriorPoint19setUseQNGMRESPreConEi"></span><span id="ParOptInteriorPoint::setUseQNGMRESPreCon__i"></span><span class="target" id="class_par_opt_interior_point_1a615662157ececd9d20bb9a21f5e41615"></span>void <code class="sig-name descname">setUseQNGMRESPreCon</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint19setUseQNGMRESPreConEi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Use the limited-memory BFGS update as a preconditioner. </p>
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt20setNKSwitchToleranceEd">
-<span id="_CPPv3N6ParOpt20setNKSwitchToleranceEd"></span><span id="_CPPv2N6ParOpt20setNKSwitchToleranceEd"></span><span id="ParOpt::setNKSwitchTolerance__double"></span><span class="target" id="class_par_opt_1acf82175217699457618847ee0aff00c1"></span>void <code class="sig-name descname">setNKSwitchTolerance</code><span class="sig-paren">(</span>double <em>tol</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt20setNKSwitchToleranceEd" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint20setNKSwitchToleranceEd">
+<span id="_CPPv3N19ParOptInteriorPoint20setNKSwitchToleranceEd"></span><span id="_CPPv2N19ParOptInteriorPoint20setNKSwitchToleranceEd"></span><span id="ParOptInteriorPoint::setNKSwitchTolerance__double"></span><span class="target" id="class_par_opt_interior_point_1a37df2351bb23506f63f2c9d2798de7ed"></span>void <code class="sig-name descname">setNKSwitchTolerance</code><span class="sig-paren">(</span>double <em>tol</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint20setNKSwitchToleranceEd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set information about when to use the Newton-Krylov method.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -877,8 +1007,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt28setEisenstatWalkerParametersEdd">
-<span id="_CPPv3N6ParOpt28setEisenstatWalkerParametersEdd"></span><span id="_CPPv2N6ParOpt28setEisenstatWalkerParametersEdd"></span><span id="ParOpt::setEisenstatWalkerParameters__double.double"></span><span class="target" id="class_par_opt_1abc1ee80e3844d7ad725df0808d3c5b37"></span>void <code class="sig-name descname">setEisenstatWalkerParameters</code><span class="sig-paren">(</span>double <em>gamma</em>, double <em>alpha</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt28setEisenstatWalkerParametersEdd" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint28setEisenstatWalkerParametersEdd">
+<span id="_CPPv3N19ParOptInteriorPoint28setEisenstatWalkerParametersEdd"></span><span id="_CPPv2N19ParOptInteriorPoint28setEisenstatWalkerParametersEdd"></span><span id="ParOptInteriorPoint::setEisenstatWalkerParameters__double.double"></span><span class="target" id="class_par_opt_interior_point_1a0570131770088c46c5f7c7f3158d4e50"></span>void <code class="sig-name descname">setEisenstatWalkerParameters</code><span class="sig-paren">(</span>double <em>gamma</em>, double <em>alpha</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint28setEisenstatWalkerParametersEdd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the parameters for choosing the forcing term in an inexact Newton method.</p>
 <p>The Newton forcing parameters are used to compute the relative convergence tolerance as:</p>
 <p>eta = gamma*(||r_{k}||/||r_{k-1}||)^{alpha}</p>
@@ -893,8 +1023,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt18setGMRESTolerancesEdd">
-<span id="_CPPv3N6ParOpt18setGMRESTolerancesEdd"></span><span id="_CPPv2N6ParOpt18setGMRESTolerancesEdd"></span><span id="ParOpt::setGMRESTolerances__double.double"></span><span class="target" id="class_par_opt_1ab70e3d49b23d06138cb34ef8fbaec4bf"></span>void <code class="sig-name descname">setGMRESTolerances</code><span class="sig-paren">(</span>double <em>rtol</em>, double <em>atol</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt18setGMRESTolerancesEdd" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint18setGMRESTolerancesEdd">
+<span id="_CPPv3N19ParOptInteriorPoint18setGMRESTolerancesEdd"></span><span id="_CPPv2N19ParOptInteriorPoint18setGMRESTolerancesEdd"></span><span id="ParOptInteriorPoint::setGMRESTolerances__double.double"></span><span class="target" id="class_par_opt_interior_point_1ac65f1b8690c0988173b389bdab0b4f2d"></span>void <code class="sig-name descname">setGMRESTolerances</code><span class="sig-paren">(</span>double <em>rtol</em>, double <em>atol</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint18setGMRESTolerancesEdd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the GMRES tolerances.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -907,8 +1037,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt20setGMRESSubspaceSizeEi">
-<span id="_CPPv3N6ParOpt20setGMRESSubspaceSizeEi"></span><span id="_CPPv2N6ParOpt20setGMRESSubspaceSizeEi"></span><span id="ParOpt::setGMRESSubspaceSize__i"></span><span class="target" id="class_par_opt_1a02ede31fe66c2a312ccca2b991448abf"></span>void <code class="sig-name descname">setGMRESSubspaceSize</code><span class="sig-paren">(</span>int <em>_gmres_subspace_size</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt20setGMRESSubspaceSizeEi" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint20setGMRESSubspaceSizeEi">
+<span id="_CPPv3N19ParOptInteriorPoint20setGMRESSubspaceSizeEi"></span><span id="_CPPv2N19ParOptInteriorPoint20setGMRESSubspaceSizeEi"></span><span id="ParOptInteriorPoint::setGMRESSubspaceSize__i"></span><span class="target" id="class_par_opt_interior_point_1a874e81c68efa3627588b3b532dbbb34b"></span>void <code class="sig-name descname">setGMRESSubspaceSize</code><span class="sig-paren">(</span>int <em>_gmres_subspace_size</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint20setGMRESSubspaceSizeEi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the size of the GMRES subspace and allocate the vectors required. Note that the old subspace information is deleted before the new subspace data is allocated.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -920,8 +1050,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt14setQuasiNewtonEP24ParOptCompactQuasiNewton">
-<span id="_CPPv3N6ParOpt14setQuasiNewtonEP24ParOptCompactQuasiNewton"></span><span id="_CPPv2N6ParOpt14setQuasiNewtonEP24ParOptCompactQuasiNewton"></span><span id="ParOpt::setQuasiNewton__ParOptCompactQuasiNewtonP"></span><span class="target" id="class_par_opt_1a7269d01095f51a5d9843f2f4502be8c8"></span>void <code class="sig-name descname">setQuasiNewton</code><span class="sig-paren">(</span>ParOptCompactQuasiNewton *<em>_qn</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt14setQuasiNewtonEP24ParOptCompactQuasiNewton" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint14setQuasiNewtonEP24ParOptCompactQuasiNewton">
+<span id="_CPPv3N19ParOptInteriorPoint14setQuasiNewtonEP24ParOptCompactQuasiNewton"></span><span id="_CPPv2N19ParOptInteriorPoint14setQuasiNewtonEP24ParOptCompactQuasiNewton"></span><span id="ParOptInteriorPoint::setQuasiNewton__ParOptCompactQuasiNewtonP"></span><span class="target" id="class_par_opt_interior_point_1a1fe73211ec57241c89f17003e0253f97"></span>void <code class="sig-name descname">setQuasiNewton</code><span class="sig-paren">(</span>ParOptCompactQuasiNewton *<em>_qn</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint14setQuasiNewtonEP24ParOptCompactQuasiNewton" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the quasi-Newton update object.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -933,8 +1063,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt24setUseQuasiNewtonUpdatesEi">
-<span id="_CPPv3N6ParOpt24setUseQuasiNewtonUpdatesEi"></span><span id="_CPPv2N6ParOpt24setUseQuasiNewtonUpdatesEi"></span><span id="ParOpt::setUseQuasiNewtonUpdates__i"></span><span class="target" id="class_par_opt_1af87648ecb87f0a4bb9725f055bc1da59"></span>void <code class="sig-name descname">setUseQuasiNewtonUpdates</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt24setUseQuasiNewtonUpdatesEi" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint24setUseQuasiNewtonUpdatesEi">
+<span id="_CPPv3N19ParOptInteriorPoint24setUseQuasiNewtonUpdatesEi"></span><span id="_CPPv2N19ParOptInteriorPoint24setUseQuasiNewtonUpdatesEi"></span><span id="ParOptInteriorPoint::setUseQuasiNewtonUpdates__i"></span><span class="target" id="class_par_opt_interior_point_1a457442b112c686fd95e1113eba6c51ca"></span>void <code class="sig-name descname">setUseQuasiNewtonUpdates</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint24setUseQuasiNewtonUpdatesEi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the flag to indicate whether quasi-Newton updates should be used or not.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -946,20 +1076,20 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt23resetQuasiNewtonHessianEv">
-<span id="_CPPv3N6ParOpt23resetQuasiNewtonHessianEv"></span><span id="_CPPv2N6ParOpt23resetQuasiNewtonHessianEv"></span><span id="ParOpt::resetQuasiNewtonHessian"></span><span class="target" id="class_par_opt_1ab5b33cbfc39dee9d34e9f03f6229bf2e"></span>void <code class="sig-name descname">resetQuasiNewtonHessian</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt23resetQuasiNewtonHessianEv" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint23resetQuasiNewtonHessianEv">
+<span id="_CPPv3N19ParOptInteriorPoint23resetQuasiNewtonHessianEv"></span><span id="_CPPv2N19ParOptInteriorPoint23resetQuasiNewtonHessianEv"></span><span id="ParOptInteriorPoint::resetQuasiNewtonHessian"></span><span class="target" id="class_par_opt_interior_point_1a2f31caaede09ae441ea1a5cfa6ac115e"></span>void <code class="sig-name descname">resetQuasiNewtonHessian</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint23resetQuasiNewtonHessianEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Reset the Quasi-Newton Hessian approximation if it is used. </p>
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt20resetDesignAndBoundsEv">
-<span id="_CPPv3N6ParOpt20resetDesignAndBoundsEv"></span><span id="_CPPv2N6ParOpt20resetDesignAndBoundsEv"></span><span id="ParOpt::resetDesignAndBounds"></span><span class="target" id="class_par_opt_1a37469757435006edf1d7472af63fe2f4"></span>void <code class="sig-name descname">resetDesignAndBounds</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt20resetDesignAndBoundsEv" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint20resetDesignAndBoundsEv">
+<span id="_CPPv3N19ParOptInteriorPoint20resetDesignAndBoundsEv"></span><span id="_CPPv2N19ParOptInteriorPoint20resetDesignAndBoundsEv"></span><span id="ParOptInteriorPoint::resetDesignAndBounds"></span><span class="target" id="class_par_opt_interior_point_1a2c87b5544d722c245ee16c6dfd02d18a"></span>void <code class="sig-name descname">resetDesignAndBounds</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint20resetDesignAndBoundsEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Reset the design variables and bounds. </p>
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt18setOutputFrequencyEi">
-<span id="_CPPv3N6ParOpt18setOutputFrequencyEi"></span><span id="_CPPv2N6ParOpt18setOutputFrequencyEi"></span><span id="ParOpt::setOutputFrequency__i"></span><span class="target" id="class_par_opt_1a7ec131d82c50cc64b2b19e6745ab0d73"></span>void <code class="sig-name descname">setOutputFrequency</code><span class="sig-paren">(</span>int <em>freq</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt18setOutputFrequencyEi" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint18setOutputFrequencyEi">
+<span id="_CPPv3N19ParOptInteriorPoint18setOutputFrequencyEi"></span><span id="_CPPv2N19ParOptInteriorPoint18setOutputFrequencyEi"></span><span id="ParOptInteriorPoint::setOutputFrequency__i"></span><span class="target" id="class_par_opt_interior_point_1ac147d56b2ae3653d9b87a2397de5f7b9"></span>void <code class="sig-name descname">setOutputFrequency</code><span class="sig-paren">(</span>int <em>freq</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint18setOutputFrequencyEi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the frequency with which the output is written.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -971,8 +1101,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt21setMajorIterStepCheckEi">
-<span id="_CPPv3N6ParOpt21setMajorIterStepCheckEi"></span><span id="_CPPv2N6ParOpt21setMajorIterStepCheckEi"></span><span id="ParOpt::setMajorIterStepCheck__i"></span><span class="target" id="class_par_opt_1a024a94420cb2f89801fc60f0b93fd24a"></span>void <code class="sig-name descname">setMajorIterStepCheck</code><span class="sig-paren">(</span>int <em>step</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt21setMajorIterStepCheckEi" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint21setMajorIterStepCheckEi">
+<span id="_CPPv3N19ParOptInteriorPoint21setMajorIterStepCheckEi"></span><span id="_CPPv2N19ParOptInteriorPoint21setMajorIterStepCheckEi"></span><span id="ParOptInteriorPoint::setMajorIterStepCheck__i"></span><span class="target" id="class_par_opt_interior_point_1a22585424d0b2178a2a583fe515645cf2"></span>void <code class="sig-name descname">setMajorIterStepCheck</code><span class="sig-paren">(</span>int <em>step</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint21setMajorIterStepCheckEi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the step at which to check the step.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -984,8 +1114,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt25setGradientCheckFrequencyEid">
-<span id="_CPPv3N6ParOpt25setGradientCheckFrequencyEid"></span><span id="_CPPv2N6ParOpt25setGradientCheckFrequencyEid"></span><span id="ParOpt::setGradientCheckFrequency__i.double"></span><span class="target" id="class_par_opt_1a715c04ac69cffea9822496d09f2705f6"></span>void <code class="sig-name descname">setGradientCheckFrequency</code><span class="sig-paren">(</span>int <em>freq</em>, double <em>step_size</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt25setGradientCheckFrequencyEid" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint25setGradientCheckFrequencyEid">
+<span id="_CPPv3N19ParOptInteriorPoint25setGradientCheckFrequencyEid"></span><span id="_CPPv2N19ParOptInteriorPoint25setGradientCheckFrequencyEid"></span><span id="ParOptInteriorPoint::setGradientCheckFrequency__i.double"></span><span class="target" id="class_par_opt_interior_point_1a8b754ebca3fca36cecf8d58df4befde4"></span>void <code class="sig-name descname">setGradientCheckFrequency</code><span class="sig-paren">(</span>int <em>freq</em>, double <em>step_size</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint25setGradientCheckFrequencyEid" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the frequency with which the gradient information is checked.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -998,8 +1128,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt13setOutputFileEPKc">
-<span id="_CPPv3N6ParOpt13setOutputFileEPKc"></span><span id="_CPPv2N6ParOpt13setOutputFileEPKc"></span><span id="ParOpt::setOutputFile__cCP"></span><span class="target" id="class_par_opt_1a56bdea0344482e9410fd362582c283f5"></span>void <code class="sig-name descname">setOutputFile</code><span class="sig-paren">(</span><em class="property">const</em> char *<em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt13setOutputFileEPKc" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint13setOutputFileEPKc">
+<span id="_CPPv3N19ParOptInteriorPoint13setOutputFileEPKc"></span><span id="_CPPv2N19ParOptInteriorPoint13setOutputFileEPKc"></span><span id="ParOptInteriorPoint::setOutputFile__cCP"></span><span class="target" id="class_par_opt_interior_point_1a31c02e6f49affa889cfac9a0582cf3f7"></span>void <code class="sig-name descname">setOutputFile</code><span class="sig-paren">(</span><em class="property">const</em> char *<em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint13setOutputFileEPKc" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the optimization history file name to use.</p>
 <p>Note that the file is only opened on the root processor.</p>
 <p><dl class="simple">
@@ -1012,8 +1142,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt14setOutputLevelEi">
-<span id="_CPPv3N6ParOpt14setOutputLevelEi"></span><span id="_CPPv2N6ParOpt14setOutputLevelEi"></span><span id="ParOpt::setOutputLevel__i"></span><span class="target" id="class_par_opt_1a65f88cb634ea37e32aa20a6685349776"></span>void <code class="sig-name descname">setOutputLevel</code><span class="sig-paren">(</span>int <em>level</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt14setOutputLevelEi" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint14setOutputLevelEi">
+<span id="_CPPv3N19ParOptInteriorPoint14setOutputLevelEi"></span><span id="_CPPv2N19ParOptInteriorPoint14setOutputLevelEi"></span><span id="ParOptInteriorPoint::setOutputLevel__i"></span><span class="target" id="class_par_opt_interior_point_1af7666094c7827d8db25bcd1bf32c6a43"></span>void <code class="sig-name descname">setOutputLevel</code><span class="sig-paren">(</span>int <em>level</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint14setOutputLevelEi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the output file level</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -1025,8 +1155,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt17writeSolutionFileEPKc">
-<span id="_CPPv3N6ParOpt17writeSolutionFileEPKc"></span><span id="_CPPv2N6ParOpt17writeSolutionFileEPKc"></span><span id="ParOpt::writeSolutionFile__cCP"></span><span class="target" id="class_par_opt_1a9a44b61824a318f14c6004f299cb54b2"></span>int <code class="sig-name descname">writeSolutionFile</code><span class="sig-paren">(</span><em class="property">const</em> char *<em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt17writeSolutionFileEPKc" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint17writeSolutionFileEPKc">
+<span id="_CPPv3N19ParOptInteriorPoint17writeSolutionFileEPKc"></span><span id="_CPPv2N19ParOptInteriorPoint17writeSolutionFileEPKc"></span><span id="ParOptInteriorPoint::writeSolutionFile__cCP"></span><span class="target" id="class_par_opt_interior_point_1ae69326b953f80f501499c878b77c562b"></span>int <code class="sig-name descname">writeSolutionFile</code><span class="sig-paren">(</span><em class="property">const</em> char *<em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint17writeSolutionFileEPKc" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Write out the design variables, Lagrange multipliers and slack variables to a binary file in parallel.</p>
 <p><dl class="simple">
 <dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
@@ -1038,8 +1168,8 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="_CPPv4N6ParOpt16readSolutionFileEPKc">
-<span id="_CPPv3N6ParOpt16readSolutionFileEPKc"></span><span id="_CPPv2N6ParOpt16readSolutionFileEPKc"></span><span id="ParOpt::readSolutionFile__cCP"></span><span class="target" id="class_par_opt_1af392fe7a95a2818fe5ed36c8f64dbcc5"></span>int <code class="sig-name descname">readSolutionFile</code><span class="sig-paren">(</span><em class="property">const</em> char *<em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N6ParOpt16readSolutionFileEPKc" title="Permalink to this definition">¶</a><br /></dt>
+<dt id="_CPPv4N19ParOptInteriorPoint16readSolutionFileEPKc">
+<span id="_CPPv3N19ParOptInteriorPoint16readSolutionFileEPKc"></span><span id="_CPPv2N19ParOptInteriorPoint16readSolutionFileEPKc"></span><span id="ParOptInteriorPoint::readSolutionFile__cCP"></span><span class="target" id="class_par_opt_interior_point_1a4157ed66c2d34bc409d1d8ac9b44b3b3"></span>int <code class="sig-name descname">readSolutionFile</code><span class="sig-paren">(</span><em class="property">const</em> char *<em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint16readSolutionFileEPKc" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Read in the design variables, Lagrange multipliers and slack variables from a binary file.</p>
 <p>This function requires that the same problem structure as the original problem.</p>
 <p><dl class="simple">
@@ -1059,6 +1189,126 @@
 <span id="_CPPv317ParOptTrustRegion"></span><span id="_CPPv217ParOptTrustRegion"></span><span id="ParOptTrustRegion"></span><span class="target" id="class_par_opt_trust_region"></span><em class="property">class </em><code class="sig-name descname">ParOptTrustRegion</code> : <em class="property">public</em> <a class="reference internal" href="#_CPPv413ParOptProblem" title="ParOptProblem">ParOptProblem</a><a class="headerlink" href="#_CPPv417ParOptTrustRegion" title="Permalink to this definition">¶</a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric">Public Functions</p>
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion17ParOptTrustRegionEP13ParOptProblemP24ParOptCompactQuasiNewtondddddd">
+<span id="_CPPv3N17ParOptTrustRegion17ParOptTrustRegionEP13ParOptProblemP24ParOptCompactQuasiNewtondddddd"></span><span id="_CPPv2N17ParOptTrustRegion17ParOptTrustRegionEP13ParOptProblemP24ParOptCompactQuasiNewtondddddd"></span><span id="ParOptTrustRegion::ParOptTrustRegion__ParOptProblemP.ParOptCompactQuasiNewtonP.double.double.double.double.double.double"></span><span class="target" id="class_par_opt_trust_region_1ab2d9e81b93bc29105e46247b083eae92"></span><code class="sig-name descname">ParOptTrustRegion</code><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv413ParOptProblem" title="ParOptProblem">ParOptProblem</a> *<em>_prob</em>, ParOptCompactQuasiNewton *<em>_qn</em>, double <em>_tr_size</em>, double <em>_tr_min_size</em>, double <em>_tr_max_size</em>, double <em>_eta</em> = 0.25, double <em>penalty_value</em> = 10.0, double <em>_bound_relax</em> = 1e-4<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion17ParOptTrustRegionEP13ParOptProblemP24ParOptCompactQuasiNewtondddddd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>A parallel optimizer with trust region globalization</p>
+<p>The following code implements a trust region method. The algorithm uses an l1 penalty function for the constraints with an l-infinity (box) constraint for the trust region. The trust region sub-problems are solved at each step by an instance of the <a class="reference internal" href="#class_par_opt_interior_point"><span class="std std-ref">ParOptInteriorPoint</span></a> optimizer.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_prob</span></code>: the <a class="reference internal" href="#class_par_opt_problem"><span class="std std-ref">ParOptProblem</span></a> class </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_qn</span></code>: the quasi-Newton Hessian approximation to be used </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_tr_size</span></code>: the initial trust-region size </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_tr_min_size</span></code>: the minimum trust-region size </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_tr_max_size</span></code>: the maximum trust-region size </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_eta</span></code>: the trust-region acceptance parameter </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_penalty_value</span></code>: the initial l1 penalty paramter value </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_bound_relax</span></code>: bound relaxation parameter </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegionD0Ev">
+<span id="_CPPv3N17ParOptTrustRegionD0Ev"></span><span id="_CPPv2N17ParOptTrustRegionD0Ev"></span><span id="ParOptTrustRegion::~ParOptTrustRegion"></span><span class="target" id="class_par_opt_trust_region_1a80e85363d445908a124060f8b66a83cc"></span><code class="sig-name descname">~ParOptTrustRegion</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegionD0Ev" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Delete the trust region object </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion10initializeEv">
+<span id="_CPPv3N17ParOptTrustRegion10initializeEv"></span><span id="_CPPv2N17ParOptTrustRegion10initializeEv"></span><span id="ParOptTrustRegion::initialize"></span><span class="target" id="class_par_opt_trust_region_1a10f75e51c6213d0fb8f5b6754bb60d7a"></span>void <code class="sig-name descname">initialize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion10initializeEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Initialize the problem </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion6updateEP9ParOptVecPK12ParOptScalarP9ParOptVecPdPdPd">
+<span id="_CPPv3N17ParOptTrustRegion6updateEP9ParOptVecPK12ParOptScalarP9ParOptVecPdPdPd"></span><span id="_CPPv2N17ParOptTrustRegion6updateEP9ParOptVecPK12ParOptScalarP9ParOptVecPdPdPd"></span><span id="ParOptTrustRegion::update__ParOptVecP.ParOptScalarCP.ParOptVecP.doubleP.doubleP.doubleP"></span><span class="target" id="class_par_opt_trust_region_1a507319cf4f9eb2ae9232864af8d54bc6"></span>void <code class="sig-name descname">update</code><span class="sig-paren">(</span>ParOptVec *<em>xt</em>, <em class="property">const</em> ParOptScalar *<em>z</em>, ParOptVec *<em>zw</em>, double *<em>infeas</em>, double *<em>l1</em>, double *<em>linfty</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion6updateEP9ParOptVecPK12ParOptScalarP9ParOptVecPdPdPd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Update the trust region problem </p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion22setAdaptiveGammaUpdateEi">
+<span id="_CPPv3N17ParOptTrustRegion22setAdaptiveGammaUpdateEi"></span><span id="_CPPv2N17ParOptTrustRegion22setAdaptiveGammaUpdateEi"></span><span id="ParOptTrustRegion::setAdaptiveGammaUpdate__i"></span><span class="target" id="class_par_opt_trust_region_1a1f16edfcf5292614ec5e93ccf430b806"></span>void <code class="sig-name descname">setAdaptiveGammaUpdate</code><span class="sig-paren">(</span>int <em>truth</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion22setAdaptiveGammaUpdateEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set whether or not to adaptively update the penalty parameters</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">truth</span></code>: flag to indicate whether or not to use adaptive penalty </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion27setMaxTrustRegionIterationsEi">
+<span id="_CPPv3N17ParOptTrustRegion27setMaxTrustRegionIterationsEi"></span><span id="_CPPv2N17ParOptTrustRegion27setMaxTrustRegionIterationsEi"></span><span id="ParOptTrustRegion::setMaxTrustRegionIterations__i"></span><span class="target" id="class_par_opt_trust_region_1acc68591cedce156d7f2ba5a285902b62"></span>void <code class="sig-name descname">setMaxTrustRegionIterations</code><span class="sig-paren">(</span>int <em>max_iters</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion27setMaxTrustRegionIterationsEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the maximum number of trust region steps</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">max_iters</span></code>: the maximum number of trust region iterations </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion24setTrustRegionTolerancesEddd">
+<span id="_CPPv3N17ParOptTrustRegion24setTrustRegionTolerancesEddd"></span><span id="_CPPv2N17ParOptTrustRegion24setTrustRegionTolerancesEddd"></span><span id="ParOptTrustRegion::setTrustRegionTolerances__double.double.double"></span><span class="target" id="class_par_opt_trust_region_1ab9e43afe350e3dc173486a1c68acedee"></span>void <code class="sig-name descname">setTrustRegionTolerances</code><span class="sig-paren">(</span>double <em>_infeas_tol</em>, double <em>_l1_tol</em>, double <em>_linfty_tol</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion24setTrustRegionTolerancesEddd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the trust region stopping criterion values.</p>
+<p>The trust region algorithm terminates when the infeasibility tolerance and either the l1 or l-infinity tolerances are satisfied.</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_infeas_tol</span></code>: the infeasibility tolerance </p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_l1_tol</span></code>: the l1 norm </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion18setPenaltyGammaMaxEd">
+<span id="_CPPv3N17ParOptTrustRegion18setPenaltyGammaMaxEd"></span><span id="_CPPv2N17ParOptTrustRegion18setPenaltyGammaMaxEd"></span><span id="ParOptTrustRegion::setPenaltyGammaMax__double"></span><span class="target" id="class_par_opt_trust_region_1acdf7b309a14aa787d5ef54035d1ee670"></span>void <code class="sig-name descname">setPenaltyGammaMax</code><span class="sig-paren">(</span>double <em>_gamma_max</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion18setPenaltyGammaMaxEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the maximum value of the penalty parameters</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_gamma_max</span></code>: the maximum penalty value </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion18setOutputFrequencyEi">
+<span id="_CPPv3N17ParOptTrustRegion18setOutputFrequencyEi"></span><span id="_CPPv2N17ParOptTrustRegion18setOutputFrequencyEi"></span><span id="ParOptTrustRegion::setOutputFrequency__i"></span><span class="target" id="class_par_opt_trust_region_1abb8607a8c8a7fa219a6e7c21b35c8b12"></span>void <code class="sig-name descname">setOutputFrequency</code><span class="sig-paren">(</span>int <em>_write_output_frequency</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion18setOutputFrequencyEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the output frequency</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_write_output_frequency</span></code>: frequency with which ouput is written </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion8optimizeEP19ParOptInteriorPoint">
+<span id="_CPPv3N17ParOptTrustRegion8optimizeEP19ParOptInteriorPoint"></span><span id="_CPPv2N17ParOptTrustRegion8optimizeEP19ParOptInteriorPoint"></span><span id="ParOptTrustRegion::optimize__ParOptInteriorPointP"></span><span class="target" id="class_par_opt_trust_region_1a6bdd9826b6b0dc53acca6b321212a843"></span>void <code class="sig-name descname">optimize</code><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv419ParOptInteriorPoint" title="ParOptInteriorPoint">ParOptInteriorPoint</a> *<em>optimize</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion8optimizeEP19ParOptInteriorPoint" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Perform the optimization</p>
+<p>This performs all steps in the optimization: initialization, trust-region updates and quasi-Newton updates. This should be called once In some cases, you</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">optimizer</span></code>: the instance of the <a class="reference internal" href="#class_par_opt_interior_point"><span class="std std-ref">ParOptInteriorPoint</span></a> optimizer </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
 <dl class="function">
 <dt id="_CPPv4N17ParOptTrustRegion15createDesignVecEv">
 <span id="_CPPv3N17ParOptTrustRegion15createDesignVecEv"></span><span id="_CPPv2N17ParOptTrustRegion15createDesignVecEv"></span><span id="ParOptTrustRegion::createDesignVec"></span><span class="target" id="class_par_opt_trust_region_1a0f93836ef2f2a51c31a926de479e3153"></span>ParOptVec *<code class="sig-name descname">createDesignVec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion15createDesignVecEv" title="Permalink to this definition">¶</a><br /></dt>
@@ -1274,6 +1524,32 @@
 <dd><p>Implement this function if you'd like to print out something with the same frequency as the output files </p>
 </dd></dl>
 
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion13setOutputFileEPKc">
+<span id="_CPPv3N17ParOptTrustRegion13setOutputFileEPKc"></span><span id="_CPPv2N17ParOptTrustRegion13setOutputFileEPKc"></span><span id="ParOptTrustRegion::setOutputFile__cCP"></span><span class="target" id="class_par_opt_trust_region_1a6d5b57d0968038d04cc096fb9146f84d"></span>void <code class="sig-name descname">setOutputFile</code><span class="sig-paren">(</span><em class="property">const</em> char *<em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion13setOutputFileEPKc" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the output file (only on the root proc)</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">filename</span></code>: the output file name </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="_CPPv4N17ParOptTrustRegion13setPrintLevelEi">
+<span id="_CPPv3N17ParOptTrustRegion13setPrintLevelEi"></span><span id="_CPPv2N17ParOptTrustRegion13setPrintLevelEi"></span><span id="ParOptTrustRegion::setPrintLevel__i"></span><span class="target" id="class_par_opt_trust_region_1a7a3ab1d6de7b1a5e00ae1ad744ca7cd0"></span>void <code class="sig-name descname">setPrintLevel</code><span class="sig-paren">(</span>int <em>_print_level</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion13setPrintLevelEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the print level</p>
+<p><dl class="simple">
+<dt><strong>Parameters</strong></dt><dd><ul class="breatheparameterlist simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_print_level</span></code>: the integer print level </p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd></dl>
+
 </div>
 </dd></dl>
 
@@ -1282,29 +1558,27 @@
 
           </div>
         </div>
-          </div>
-        </div>
       </div>
+      <div class="clearer"></div>
     </div>
-
-    <div class="container container-navbar-bottom">
-      <div class="spc-navbar">
-        
-      </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="parallel_rosenbrock.html" title="Parallel Rosenbrock"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li> 
+      </ul>
     </div>
-    <div class="container">
-    <div class="footer">
-    <div class="row-fluid">
-    <ul class="inline pull-left">
-      <li>
-        &copy; Copyright 2019, Graeme Kennedy.
-      </li>
-      <li>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 2.1.2.
-      </li>
-    </ul>
-    </div>
-    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Graeme Kennedy.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.
     </div>
   </body>
 </html>

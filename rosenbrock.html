@@ -1,435 +1,311 @@
+
 <!DOCTYPE html>
 
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="python">
   <head>
-    <meta charset="utf-8">
-    
-    <title>Rosenbrock function &mdash; paropt  documentation</title>
-    
-    <link rel="stylesheet" type="text/css" href="_static/css/spc-bootstrap.css">
-    <link rel="stylesheet" type="text/css" href="_static/css/spc-extend.css">
-    <link rel="stylesheet" href="_static/scipy.css" type="text/css" >
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" >
-    
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
-      };
-    </script>
+    <meta charset="utf-8" />
+    <title>Rosenbrock example &#8212; paropt  documentation</title>
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="_static/language_data.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <script type="text/javascript" src="_static/js/copybutton.js"></script>
-    <link rel="index" title="Index" href="genindex.html" >
-    <link rel="search" title="Search" href="search.html" >
-    <link rel="top" title="paropt  documentation" href="index.html" >
-    <link rel="next" title="Class reference" href="reference.html" >
-    <link rel="prev" title="Sellar problem" href="sellar.html" > 
-  </head>
-  <body>
-
-  <div class="container">
-    <div class="header">
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Sellar problem" href="sellar.html" />
+    <link rel="prev" title="ParOpt Overview" href="index.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="sellar.html" title="Sellar problem"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="ParOpt Overview"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li> 
+      </ul>
     </div>
-  </div>
-
-
-    <div class="container">
-      <div class="main">
-        
-	<div class="row-fluid">
-	  <div class="span12">
-	    <div class="spc-navbar">
-              
-    <ul class="nav nav-pills pull-left">
-        <li class="active"><a href="["></a></li>
-        <li class="active"><a href="]"></a></li>
-	
-        <li class="active"><a href="index.html">paropt  documentation</a></li>
-	 
-    </ul>
-              
-              
-    <ul class="nav nav-pills pull-right">
-      <li class="active">
-        <a href="genindex.html" title="General Index"
-           accesskey="I">index</a>
-      </li>
-      <li class="active">
-        <a href="reference.html" title="Class reference"
-           accesskey="N">next</a>
-      </li>
-      <li class="active">
-        <a href="sellar.html" title="Sellar problem"
-           accesskey="P">previous</a>
-      </li>
-    </ul>
-              
-	    </div>
-	  </div>
-	</div>
-        
-
-	<div class="row-fluid">
-      <div class="spc-rightsidebar span3">
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="sellar.html"
-                        title="previous chapter">Sellar problem</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="reference.html"
-                        title="next chapter">Class reference</a></p>
-  <h3>This Page</h3>
-  <div>
-    <a href="_sources/rosenbrock.rst.txt"
-       rel="nofollow">Show Source</a>
-  </div>
-<div class="this-page-menu">
-  <a href="/scipy/docs/scipy-docs/rosenbrock.rst.rst">Edit page</a>
-</div>
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Rosenbrock example</a><ul>
+<li><a class="reference internal" href="#python-implementation">Python implementation</a></li>
+</ul>
+</li>
+</ul>
 
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">ParOpt Overview</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="sellar.html"
+                        title="next chapter">Sellar problem</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/rosenbrock.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
       </div>
-          <div class="span9">
-            
+
+    <div class="document">
+      <div class="documentwrapper">
         <div class="bodywrapper">
-          <div class="body" id="spc-section-body">
+          <div class="body" role="main">
             
-  <div class="section" id="rosenbrock-function">
-<h1>Rosenbrock function<a class="headerlink" href="#rosenbrock-function" title="Permalink to this headline">¶</a></h1>
-<p>This example extends the previous Sellar problem by considering a distributed design vector, separable sparse constraints, and Hessian-vector products.</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span> <span class="nf">evalHvecProduct</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
-                     <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">z</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">zwvec</span><span class="p">,</span>
-                     <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">pxvec</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">hvec</span> <span class="p">);</span>
-</pre></div>
-</div>
-<p>The Hessian-vector products can be used to accelerate the convergence of the optimizer.
-They are generally used once the optimization problem has converged to a point that is closer to the optimum.
-These products are implemented by the user in the ParOptProblem class, using the template provided above.
-The Lagrangian function is defined as</p>
-<div class="math notranslate nohighlight">
-\[\mathcal{L} \triangleq f(x) - z^{T} c(x) - z_{w}^{T} c_{w}(x)\]</div>
-<p>where <span class="math notranslate nohighlight">\(\mathcal{L}\)</span> is the Lagrangian, <span class="math notranslate nohighlight">\(f(x), c(x), c_{w}(x)\)</span> are the objective, dense constraints and sparse separable constraints, respectively, and <span class="math notranslate nohighlight">\(z, z_{w}\)</span> are multipliers associated with the dense and sparse constraints.
-The Hessian-vector product is then computed as</p>
-<div class="math notranslate nohighlight">
-\[h = \nabla^{2} \mathcal{L}(x, z, z_{w}) p_{x}\]</div>
-<p>The interface to the sparse separable constraint code consists of four functions.
-These functions consist of the following:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">evalSparseCon</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">out</span> <span class="p">);</span>
-<span class="kt">void</span> <span class="nf">addSparseJacobian</span><span class="p">(</span> <span class="n">ParOptScalar</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span>
-                        <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">px</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">out</span> <span class="p">);</span>
-<span class="kt">void</span> <span class="nf">addSparseJacobianTranspose</span><span class="p">(</span> <span class="n">ParOptScalar</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span>
-                                 <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">pzw</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">out</span> <span class="p">);</span>
-<span class="kt">void</span> <span class="nf">addSparseInnerProduct</span><span class="p">(</span> <span class="n">ParOptScalar</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span>
-                            <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">cvec</span><span class="p">,</span> <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">A</span> <span class="p">);</span>
-</pre></div>
-</div>
-<p>These member functions provide the following mathematical operations:</p>
+  <div class="section" id="rosenbrock-example">
+<h1>Rosenbrock example<a class="headerlink" href="#rosenbrock-example" title="Permalink to this headline">¶</a></h1>
+<p>In this example we consider a python implementation of the following optimization problem:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{align}
-    \mathrm{out} &amp; \leftarrow c_{w} \leftarrow c_{w}(x) \\
-    \mathrm{out} &amp; \leftarrow \alpha A_{w}(x) p_{x} \\
-    \mathrm{out} &amp; \leftarrow \alpha A_{w}(x)^{T} p_{z_{w}} \\
-    \mathrm{out} &amp; \leftarrow \alpha A_{w} C A_{w}(x)^{T}  \\
+    \text{min} \qquad &amp; 100(x_2 - x_1^2)^2 + (1 - x_1)^2 \\
+    \text{with respect to} \qquad &amp; -2 \le x_{i} \le 2 \qquad i = 1, 2\\
+    \text{subject to} \qquad &amp; x_{1} + x_{2} + 5 \ge 0 \\
 \end{align}\end{split}\]</div>
-<p>Here <span class="math notranslate nohighlight">\(A_{w}(x) = \nabla c_{w}(x)$\)</span> and <span class="math notranslate nohighlight">\(C\)</span> is a diagonal matrix.</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;ParOpt.h&quot;</span><span class="cp"></span>
+<div class="section" id="python-implementation">
+<h2>Python implementation<a class="headerlink" href="#python-implementation" title="Permalink to this headline">¶</a></h2>
+<p>The python implementation of this problem is as follows</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import some utilities</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">mpi4py.MPI</span> <span class="kn">as</span> <span class="nn">MPI</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
 
-<span class="cm">/*</span>
-<span class="cm">  The following is a simple implementation of a scalable Rosenbrock</span>
-<span class="cm">  function with constraints that can be used to test the parallel</span>
-<span class="cm">  optimizer.</span>
-<span class="cm">*/</span>
+<span class="c1"># Import ParOpt</span>
+<span class="kn">from</span> <span class="nn">paropt</span> <span class="kn">import</span> <span class="n">ParOpt</span>
 
-<span class="n">ParOptScalar</span> <span class="nf">min2</span><span class="p">(</span> <span class="n">ParOptScalar</span> <span class="n">a</span><span class="p">,</span> <span class="n">ParOptScalar</span> <span class="n">b</span> <span class="p">){</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">&lt;</span> <span class="n">b</span><span class="p">){</span>
-    <span class="k">return</span> <span class="n">a</span><span class="p">;</span>
-  <span class="p">}</span>
-  <span class="k">return</span> <span class="n">b</span><span class="p">;</span>
-<span class="p">}</span>
+<span class="c1"># Create the rosenbrock function class</span>
+<span class="k">class</span> <span class="nc">Rosenbrock</span><span class="p">(</span><span class="n">ParOpt</span><span class="o">.</span><span class="n">Problem</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Set the communicator pointer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">comm</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nvars</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ncon</span> <span class="o">=</span> <span class="mi">1</span>
 
-<span class="k">class</span> <span class="nc">Rosenbrock</span> <span class="o">:</span> <span class="k">public</span> <span class="n">ParOptProblem</span> <span class="p">{</span>
-<span class="k">public</span><span class="o">:</span>
-  <span class="n">Rosenbrock</span><span class="p">(</span> <span class="n">MPI_Comm</span> <span class="n">comm</span><span class="p">,</span> <span class="kt">int</span> <span class="n">_nvars</span><span class="p">,</span>
-              <span class="kt">int</span> <span class="n">_nwcon</span><span class="p">,</span> <span class="kt">int</span> <span class="n">_nwstart</span><span class="p">,</span>
-              <span class="kt">int</span> <span class="n">_nw</span><span class="p">,</span> <span class="kt">int</span> <span class="n">_nwskip</span> <span class="p">)</span><span class="o">:</span>
-  <span class="n">ParOptProblem</span><span class="p">(</span><span class="n">comm</span><span class="p">,</span> <span class="n">_nvars</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">_nwcon</span><span class="p">,</span> <span class="mi">1</span><span class="p">){</span>
-    <span class="n">nwcon</span> <span class="o">=</span> <span class="n">_nwcon</span><span class="p">;</span>
-    <span class="n">nwstart</span> <span class="o">=</span> <span class="n">_nwstart</span><span class="p">;</span>
-    <span class="n">nw</span> <span class="o">=</span> <span class="n">_nw</span><span class="p">;</span>
-    <span class="n">nwskip</span> <span class="o">=</span> <span class="n">_nwskip</span><span class="p">;</span>
-    <span class="n">scale</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
-  <span class="p">}</span>
+        <span class="c1"># The design history file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_hist</span> <span class="o">=</span> <span class="p">[]</span>
 
-  <span class="c1">//! Get the variables/bounds</span>
-  <span class="kt">void</span> <span class="n">getVarsAndBounds</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
-                         <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">lbvec</span><span class="p">,</span>
-                         <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">ubvec</span> <span class="p">){</span>
-    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">lb</span><span class="p">,</span> <span class="o">*</span><span class="n">ub</span><span class="p">;</span>
-    <span class="n">xvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">x</span><span class="p">);</span>
-    <span class="n">lbvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">lb</span><span class="p">);</span>
-    <span class="n">ubvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ub</span><span class="p">);</span>
+        <span class="c1"># Initialize the base class</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Rosenbrock</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nvars</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncon</span><span class="p">)</span>
 
-    <span class="c1">// Set the design variable bounds</span>
-    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nvars</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">){</span>
-      <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">;</span>
-      <span class="n">lb</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span><span class="p">;</span>
-      <span class="n">ub</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
+        <span class="k">return</span>
 
-  <span class="c1">//! Evaluate the objective and constraints</span>
-  <span class="kt">int</span> <span class="n">evalObjCon</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
-                  <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">fobj</span><span class="p">,</span> <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">cons</span> <span class="p">){</span>
-    <span class="n">ParOptScalar</span> <span class="n">obj</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
-    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">x</span><span class="p">;</span>
-    <span class="n">xvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">x</span><span class="p">);</span>
+    <span class="k">def</span> <span class="nf">getVarsAndBounds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">lb</span><span class="p">,</span> <span class="n">ub</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Set the values of the bounds&#39;&#39;&#39;</span>
+        <span class="n">x</span><span class="p">[:]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+        <span class="n">lb</span><span class="p">[:]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span>
+        <span class="n">ub</span><span class="p">[:]</span> <span class="o">=</span> <span class="mf">2.0</span>
+        <span class="k">return</span>
 
-    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nvars</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">){</span>
-      <span class="n">obj</span> <span class="o">+=</span> <span class="p">((</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">+</span>
-              <span class="mi">100</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]));</span>
-    <span class="p">}</span>
+    <span class="k">def</span> <span class="nf">evalObjCon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Evaluate the objective and constraint&#39;&#39;&#39;</span>
+        <span class="c1"># Append the point to the solution history</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_hist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
 
-    <span class="n">ParOptScalar</span> <span class="n">con</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
-    <span class="n">con</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">con</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
-    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nvars</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">){</span>
-      <span class="n">con</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-=</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-    <span class="p">}</span>
+        <span class="c1"># Evaluate the objective and constraints</span>
+        <span class="n">fail</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">con</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">fobj</span> <span class="o">=</span> <span class="mi">100</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">con</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">5.0</span>
+        <span class="k">return</span> <span class="n">fail</span><span class="p">,</span> <span class="n">fobj</span><span class="p">,</span> <span class="n">con</span>
 
-    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nvars</span><span class="p">;</span> <span class="n">i</span> <span class="o">+=</span> <span class="mi">2</span> <span class="p">){</span>
-      <span class="n">con</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-    <span class="p">}</span>
+    <span class="k">def</span> <span class="nf">evalObjConGradient</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">A</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Evaluate the objective and constraint gradient&#39;&#39;&#39;</span>
+        <span class="n">fail</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="n">MPI_Allreduce</span><span class="p">(</span><span class="o">&amp;</span><span class="n">obj</span><span class="p">,</span> <span class="n">fobj</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">PAROPT_MPI_TYPE</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">comm</span><span class="p">);</span>
-    <span class="n">MPI_Allreduce</span><span class="p">(</span><span class="n">con</span><span class="p">,</span> <span class="n">cons</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">PAROPT_MPI_TYPE</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">comm</span><span class="p">);</span>
+        <span class="c1"># The objective gradient</span>
+        <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">g</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
 
-    <span class="n">cons</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">0.25</span><span class="p">;</span>
-    <span class="n">cons</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">10.0</span><span class="p">;</span>
-    <span class="n">cons</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*=</span> <span class="n">scale</span><span class="p">;</span>
-    <span class="n">cons</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*=</span> <span class="n">scale</span><span class="p">;</span>
+        <span class="c1"># The constraint gradient</span>
+        <span class="n">A</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="n">A</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="k">return</span> <span class="n">fail</span>
 
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="p">}</span>
+<span class="n">problem</span> <span class="o">=</span> <span class="n">Rosenbrock</span><span class="p">()</span>
+<span class="n">max_lbfgs</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="n">opt</span> <span class="o">=</span> <span class="n">ParOpt</span><span class="o">.</span><span class="n">InteriorPoint</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">max_lbfgs</span><span class="p">,</span> <span class="n">ParOpt</span><span class="o">.</span><span class="n">BFGS</span><span class="p">)</span>
+<span class="n">opt</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This code produces the output:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ParOpt</span><span class="p">:</span> <span class="n">Parameter</span> <span class="n">values</span>
+<span class="n">total</span> <span class="n">variables</span>                              <span class="mi">2</span>
+<span class="n">constraints</span>                                  <span class="mi">1</span>
+<span class="n">max_qn_size</span>                                 <span class="mi">20</span>
+<span class="n">norm_type</span>                           <span class="n">INFTY_NORM</span>
+<span class="n">penalty_gamma</span>                             <span class="mi">1000</span>
+<span class="n">max_major_iters</span>                           <span class="mi">1000</span>
+<span class="n">starting_point_strategy</span>          <span class="n">LEAST_SQUARES</span>
+<span class="n">barrier_param</span>                              <span class="mf">0.1</span>
+<span class="n">abs_res_tol</span>                              <span class="mf">1e-05</span>
+<span class="n">rel_func_tol</span>                                 <span class="mi">0</span>
+<span class="n">use_line_search</span>                              <span class="mi">1</span>
+<span class="n">use_backtracking_alpha</span>                       <span class="mi">0</span>
+<span class="n">max_line_iters</span>                              <span class="mi">10</span>
+<span class="n">penalty_descent_fraction</span>                   <span class="mf">0.3</span>
+<span class="n">min_rho_penalty_search</span>                       <span class="mi">0</span>
+<span class="n">armijo_constant</span>                          <span class="mf">1e-05</span>
+<span class="n">monotone_barrier_fraction</span>                 <span class="mf">0.25</span>
+<span class="n">monotone_barrier_power</span>                     <span class="mf">1.1</span>
+<span class="n">rel_bound_barrier</span>                            <span class="mi">1</span>
+<span class="n">min_fraction_to_boundary</span>                  <span class="mf">0.95</span>
+<span class="n">major_iter_step_check</span>                       <span class="o">-</span><span class="mi">1</span>
+<span class="n">write_output_frequency</span>                      <span class="mi">10</span>
+<span class="n">gradient_check_frequency</span>                    <span class="o">-</span><span class="mi">1</span>
+<span class="n">gradient_check_step</span>                      <span class="mf">1e-06</span>
+<span class="n">sequential_linear_method</span>                     <span class="mi">0</span>
+<span class="n">hessian_reset_freq</span>                   <span class="mi">100000000</span>
+<span class="n">use_quasi_newton_update</span>                      <span class="mi">1</span>
+<span class="n">qn_sigma</span>                                     <span class="mi">0</span>
+<span class="n">use_hvec_product</span>                             <span class="mi">0</span>
+<span class="n">use_diag_hessian</span>                             <span class="mi">0</span>
+<span class="n">use_qn_gmres_precon</span>                          <span class="mi">1</span>
+<span class="n">nk_switch_tol</span>                            <span class="mf">0.001</span>
+<span class="n">eisenstat_walker_alpha</span>                     <span class="mf">1.5</span>
+<span class="n">eisenstat_walker_gamma</span>                       <span class="mi">1</span>
+<span class="n">gmres_subspace_size</span>                          <span class="mi">0</span>
+<span class="n">max_gmres_rtol</span>                             <span class="mf">0.1</span>
+<span class="n">gmres_atol</span>                               <span class="mf">1e-30</span>
 
-  <span class="c1">//! Evaluate the objective and constraint gradients</span>
-  <span class="kt">int</span> <span class="n">evalObjConGradient</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
-                          <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">gvec</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">**</span><span class="n">Ac</span> <span class="p">){</span>
-    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">g</span><span class="p">,</span> <span class="o">*</span><span class="n">c</span><span class="p">;</span>
-    <span class="n">xvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">x</span><span class="p">);</span>
-    <span class="n">gvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">g</span><span class="p">);</span>
-    <span class="n">gvec</span><span class="o">-&gt;</span><span class="n">zeroEntries</span><span class="p">();</span>
+<span class="nb">iter</span> <span class="n">nobj</span> <span class="n">ngrd</span> <span class="n">nhvc</span>   <span class="n">alpha</span>   <span class="n">alphx</span>   <span class="n">alphz</span>         <span class="n">fobj</span>   <span class="o">|</span><span class="n">opt</span><span class="o">|</span> <span class="o">|</span><span class="n">infes</span><span class="o">|</span>  <span class="o">|</span><span class="n">dual</span><span class="o">|</span>      <span class="n">mu</span>    <span class="n">comp</span>   <span class="n">dmerit</span>     <span class="n">rho</span> <span class="n">info</span>
+  <span class="mi">0</span>    <span class="mi">1</span>    <span class="mi">1</span>    <span class="mi">0</span>      <span class="o">--</span>      <span class="o">--</span>      <span class="o">--</span>  <span class="mf">4.04000e+02</span> <span class="mf">1.0e+03</span> <span class="mf">3.0e+00</span> <span class="mf">2.9e+00</span> <span class="mf">1.0e-01</span> <span class="mf">1.7e+00</span>       <span class="o">--</span>      <span class="o">--</span>
+  <span class="mi">1</span>    <span class="mi">2</span>    <span class="mi">2</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.1e-03</span> <span class="mf">2.3e-03</span>  <span class="mf">1.01561e+02</span> <span class="mf">1.0e+03</span> <span class="mf">3.0e+00</span> <span class="mf">3.2e+00</span> <span class="mf">1.0e-01</span> <span class="mf">1.4e+00</span> <span class="o">-</span><span class="mf">1.4e+03</span> <span class="mf">0.0e+00</span>
+  <span class="mi">2</span>    <span class="mi">3</span>    <span class="mi">3</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">2.8e-03</span> <span class="mf">2.8e-01</span>  <span class="mf">1.01292e+02</span> <span class="mf">7.2e+02</span> <span class="mf">3.0e+00</span> <span class="mf">5.7e+00</span> <span class="mf">1.0e-01</span> <span class="mf">2.0e+00</span> <span class="o">-</span><span class="mf">4.8e+01</span> <span class="mf">0.0e+00</span>
+  <span class="mi">3</span>    <span class="mi">4</span>    <span class="mi">4</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">2.6e-01</span> <span class="mf">1.7e-01</span>  <span class="mf">7.03966e+01</span> <span class="mf">6.0e+02</span> <span class="mf">2.2e+00</span> <span class="mf">2.0e+00</span> <span class="mf">1.0e-01</span> <span class="mf">8.7e-01</span> <span class="o">-</span><span class="mf">3.7e+01</span> <span class="mf">0.0e+00</span>
+  <span class="mi">4</span>    <span class="mi">5</span>    <span class="mi">5</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">3.8e-01</span>  <span class="mf">3.81744e+00</span> <span class="mf">3.7e+02</span> <span class="mf">4.9e-17</span> <span class="mf">1.2e+00</span> <span class="mf">1.0e-01</span> <span class="mf">4.9e-01</span> <span class="o">-</span><span class="mf">1.2e+02</span> <span class="mf">0.0e+00</span>
+  <span class="mi">5</span>    <span class="mi">6</span>    <span class="mi">6</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">1.66498e+00</span> <span class="mf">3.9e+00</span> <span class="mf">4.2e-16</span> <span class="mf">5.7e-02</span> <span class="mf">1.0e-01</span> <span class="mf">1.1e-01</span> <span class="o">-</span><span class="mf">4.0e+00</span> <span class="mf">0.0e+00</span>
+  <span class="mi">6</span>    <span class="mi">7</span>    <span class="mi">7</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">1.63609e+00</span> <span class="mf">2.4e+00</span> <span class="mf">2.0e-16</span> <span class="mf">3.0e-04</span> <span class="mf">1.0e-01</span> <span class="mf">1.0e-01</span> <span class="o">-</span><span class="mf">5.2e-02</span> <span class="mf">0.0e+00</span>
+  <span class="mi">7</span>    <span class="mi">8</span>    <span class="mi">8</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">1.62224e+00</span> <span class="mf">2.0e+00</span> <span class="mf">4.1e-17</span> <span class="mf">1.5e-06</span> <span class="mf">1.0e-01</span> <span class="mf">1.0e-01</span> <span class="o">-</span><span class="mf">1.6e-02</span> <span class="mf">0.0e+00</span>
+  <span class="mi">8</span>    <span class="mi">9</span>    <span class="mi">9</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">1.49793e+00</span> <span class="mf">3.5e+00</span> <span class="mf">5.6e-16</span> <span class="mf">1.2e-04</span> <span class="mf">1.0e-01</span> <span class="mf">1.0e-01</span> <span class="o">-</span><span class="mf">1.4e-01</span> <span class="mf">0.0e+00</span>
+  <span class="mi">9</span>   <span class="mi">11</span>   <span class="mi">10</span>    <span class="mi">0</span> <span class="mf">1.0e-02</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">1.46101e+00</span> <span class="mf">3.6e+00</span> <span class="mf">5.0e-16</span> <span class="mf">1.3e-04</span> <span class="mf">1.0e-01</span> <span class="mf">1.0e-01</span> <span class="o">-</span><span class="mf">3.7e+00</span> <span class="mf">0.0e+00</span> <span class="n">skipH</span>
 
-    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nvars</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">){</span>
-      <span class="n">g</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="o">-</span><span class="mf">2.0</span><span class="o">*</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">+</span>
-              <span class="mi">200</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="o">-</span><span class="mf">2.0</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]));</span>
-      <span class="n">g</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">200</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
-    <span class="p">}</span>
+<span class="nb">iter</span> <span class="n">nobj</span> <span class="n">ngrd</span> <span class="n">nhvc</span>   <span class="n">alpha</span>   <span class="n">alphx</span>   <span class="n">alphz</span>         <span class="n">fobj</span>   <span class="o">|</span><span class="n">opt</span><span class="o">|</span> <span class="o">|</span><span class="n">infes</span><span class="o">|</span>  <span class="o">|</span><span class="n">dual</span><span class="o">|</span>      <span class="n">mu</span>    <span class="n">comp</span>   <span class="n">dmerit</span>     <span class="n">rho</span> <span class="n">info</span>
+  <span class="mi">10</span>   <span class="mi">13</span>   <span class="mi">11</span>    <span class="mi">0</span> <span class="mf">2.6e-02</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">1.41460e+00</span> <span class="mf">2.5e+00</span> <span class="mf">3.8e-16</span> <span class="mf">1.3e-04</span> <span class="mf">1.0e-01</span> <span class="mf">1.0e-01</span> <span class="o">-</span><span class="mf">3.1e+00</span> <span class="mf">0.0e+00</span>
+  <span class="mi">11</span>   <span class="mi">14</span>   <span class="mi">12</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">1.36112e+00</span> <span class="mf">2.7e+00</span> <span class="mf">7.2e-17</span> <span class="mf">1.5e-05</span> <span class="mf">1.0e-01</span> <span class="mf">1.0e-01</span> <span class="o">-</span><span class="mf">5.6e-02</span> <span class="mf">0.0e+00</span>
+  <span class="mi">12</span>   <span class="mi">16</span>   <span class="mi">13</span>    <span class="mi">0</span> <span class="mf">5.1e-02</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">1.29641e+00</span> <span class="mf">2.7e+00</span> <span class="mf">5.7e-17</span> <span class="mf">4.0e-05</span> <span class="mf">1.0e-01</span> <span class="mf">1.0e-01</span> <span class="o">-</span><span class="mf">1.3e+00</span> <span class="mf">0.0e+00</span>
+  <span class="mi">13</span>   <span class="mi">18</span>   <span class="mi">14</span>    <span class="mi">0</span> <span class="mf">7.9e-02</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">1.21616e+00</span> <span class="mf">2.6e+00</span> <span class="mf">3.9e-16</span> <span class="mf">7.8e-05</span> <span class="mf">1.0e-01</span> <span class="mf">1.0e-01</span> <span class="o">-</span><span class="mf">1.1e+00</span> <span class="mf">0.0e+00</span>
+  <span class="mi">14</span>   <span class="mi">20</span>   <span class="mi">15</span>    <span class="mi">0</span> <span class="mf">1.5e-01</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">1.11513e+00</span> <span class="mf">3.1e+00</span> <span class="mf">9.8e-17</span> <span class="mf">1.5e-04</span> <span class="mf">1.0e-01</span> <span class="mf">1.0e-01</span> <span class="o">-</span><span class="mf">7.6e-01</span> <span class="mf">0.0e+00</span>
+  <span class="mi">15</span>   <span class="mi">22</span>   <span class="mi">16</span>    <span class="mi">0</span> <span class="mf">3.5e-01</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">1.00562e+00</span> <span class="mf">5.3e+00</span> <span class="mf">6.9e-16</span> <span class="mf">2.5e-04</span> <span class="mf">1.0e-01</span> <span class="mf">1.0e-01</span> <span class="o">-</span><span class="mf">4.3e-01</span> <span class="mf">0.0e+00</span>
+  <span class="mi">16</span>   <span class="mi">23</span>   <span class="mi">17</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">8.97353e-01</span> <span class="mf">7.3e+00</span> <span class="mf">3.4e-16</span> <span class="mf">2.3e-04</span> <span class="mf">1.0e-01</span> <span class="mf">1.0e-01</span> <span class="o">-</span><span class="mf">1.7e-01</span> <span class="mf">0.0e+00</span>
+  <span class="mi">17</span>   <span class="mi">24</span>   <span class="mi">18</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">7.14752e-01</span> <span class="mf">4.2e+00</span> <span class="mf">4.1e-17</span> <span class="mf">9.6e-05</span> <span class="mf">1.0e-01</span> <span class="mf">1.0e-01</span> <span class="o">-</span><span class="mf">2.3e-01</span> <span class="mf">0.0e+00</span>
+  <span class="mi">18</span>   <span class="mi">25</span>   <span class="mi">19</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">5.43310e-01</span> <span class="mf">4.3e+00</span> <span class="mf">6.0e-17</span> <span class="mf">4.0e-04</span> <span class="mf">1.0e-01</span> <span class="mf">1.0e-01</span> <span class="o">-</span><span class="mf">2.4e-01</span> <span class="mf">0.0e+00</span>
+  <span class="mi">19</span>   <span class="mi">26</span>   <span class="mi">20</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">3.85438e-01</span> <span class="mf">2.5e+00</span> <span class="mf">4.0e-16</span> <span class="mf">3.0e-04</span> <span class="mf">1.0e-01</span> <span class="mf">1.0e-01</span> <span class="o">-</span><span class="mf">2.9e-01</span> <span class="mf">0.0e+00</span>
 
-    <span class="n">Ac</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">c</span><span class="p">);</span>
-    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nvars</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">){</span>
-      <span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span><span class="o">*</span><span class="n">scale</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-    <span class="p">}</span>
+<span class="nb">iter</span> <span class="n">nobj</span> <span class="n">ngrd</span> <span class="n">nhvc</span>   <span class="n">alpha</span>   <span class="n">alphx</span>   <span class="n">alphz</span>         <span class="n">fobj</span>   <span class="o">|</span><span class="n">opt</span><span class="o">|</span> <span class="o">|</span><span class="n">infes</span><span class="o">|</span>  <span class="o">|</span><span class="n">dual</span><span class="o">|</span>      <span class="n">mu</span>    <span class="n">comp</span>   <span class="n">dmerit</span>     <span class="n">rho</span> <span class="n">info</span>
+  <span class="mi">20</span>   <span class="mi">28</span>   <span class="mi">21</span>    <span class="mi">0</span> <span class="mf">7.7e-02</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">3.44610e-01</span> <span class="mf">1.8e+00</span> <span class="mf">1.4e-16</span> <span class="mf">3.1e-04</span> <span class="mf">1.0e-01</span> <span class="mf">1.0e-01</span> <span class="o">-</span><span class="mf">5.5e-01</span> <span class="mf">0.0e+00</span>
+  <span class="mi">21</span>   <span class="mi">30</span>   <span class="mi">22</span>    <span class="mi">0</span> <span class="mf">2.1e-02</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">3.29234e-01</span> <span class="mf">1.6e+00</span> <span class="mf">4.0e-16</span> <span class="mf">3.1e-04</span> <span class="mf">1.0e-01</span> <span class="mf">1.0e-01</span> <span class="o">-</span><span class="mf">7.6e-01</span> <span class="mf">0.0e+00</span>
+  <span class="mi">22</span>   <span class="mi">32</span>   <span class="mi">23</span>    <span class="mi">0</span> <span class="mf">5.3e-02</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">3.03766e-01</span> <span class="mf">1.1e+00</span> <span class="mf">3.4e-16</span> <span class="mf">3.1e-04</span> <span class="mf">1.0e-01</span> <span class="mf">1.0e-01</span> <span class="o">-</span><span class="mf">5.0e-01</span> <span class="mf">0.0e+00</span>
+  <span class="mi">23</span>   <span class="mi">34</span>   <span class="mi">24</span>    <span class="mi">0</span> <span class="mf">1.0e-01</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">2.72543e-01</span> <span class="mf">8.9e-01</span> <span class="mf">3.8e-16</span> <span class="mf">7.5e-02</span> <span class="mf">2.5e-02</span> <span class="mf">1.0e-01</span> <span class="o">-</span><span class="mf">3.3e-01</span> <span class="mf">0.0e+00</span>
+  <span class="mi">24</span>   <span class="mi">36</span>   <span class="mi">25</span>    <span class="mi">0</span> <span class="mf">3.9e-01</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">2.36299e-01</span> <span class="mf">3.2e+00</span> <span class="mf">2.9e-16</span> <span class="mf">4.7e-02</span> <span class="mf">2.5e-02</span> <span class="mf">7.1e-02</span> <span class="o">-</span><span class="mf">2.0e-01</span> <span class="mf">0.0e+00</span>
+  <span class="mi">25</span>   <span class="mi">37</span>   <span class="mi">26</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">2.21830e-01</span> <span class="mf">3.5e+00</span> <span class="mf">2.9e-18</span> <span class="mf">7.1e-04</span> <span class="mf">2.5e-02</span> <span class="mf">2.5e-02</span> <span class="o">-</span><span class="mf">4.7e-02</span> <span class="mf">0.0e+00</span>
+  <span class="mi">26</span>   <span class="mi">38</span>   <span class="mi">27</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">1.60158e-01</span> <span class="mf">3.6e+00</span> <span class="mf">8.6e-17</span> <span class="mf">3.9e-05</span> <span class="mf">2.5e-02</span> <span class="mf">2.5e-02</span> <span class="o">-</span><span class="mf">8.6e-02</span> <span class="mf">0.0e+00</span>
+  <span class="mi">27</span>   <span class="mi">39</span>   <span class="mi">28</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">1.00878e-01</span> <span class="mf">1.4e+00</span> <span class="mf">8.0e-16</span> <span class="mf">6.4e-05</span> <span class="mf">2.5e-02</span> <span class="mf">2.5e-02</span> <span class="o">-</span><span class="mf">8.1e-02</span> <span class="mf">0.0e+00</span>
+  <span class="mi">28</span>   <span class="mi">40</span>   <span class="mi">29</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">7.23458e-02</span> <span class="mf">4.5e+00</span> <span class="mf">1.1e-16</span> <span class="mf">1.8e-04</span> <span class="mf">2.5e-02</span> <span class="mf">2.5e-02</span> <span class="o">-</span><span class="mf">5.6e-02</span> <span class="mf">0.0e+00</span>
+  <span class="mi">29</span>   <span class="mi">41</span>   <span class="mi">30</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">3.66023e-02</span> <span class="mf">1.5e-01</span> <span class="mf">5.6e-16</span> <span class="mf">1.9e-02</span> <span class="mf">6.3e-03</span> <span class="mf">2.5e-02</span> <span class="o">-</span><span class="mf">6.1e-02</span> <span class="mf">0.0e+00</span>
 
-    <span class="n">Ac</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">c</span><span class="p">);</span>
-    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nvars</span><span class="p">;</span> <span class="n">i</span> <span class="o">+=</span> <span class="mi">2</span> <span class="p">){</span>
-      <span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">scale</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="nb">iter</span> <span class="n">nobj</span> <span class="n">ngrd</span> <span class="n">nhvc</span>   <span class="n">alpha</span>   <span class="n">alphx</span>   <span class="n">alphz</span>         <span class="n">fobj</span>   <span class="o">|</span><span class="n">opt</span><span class="o">|</span> <span class="o">|</span><span class="n">infes</span><span class="o">|</span>  <span class="o">|</span><span class="n">dual</span><span class="o">|</span>      <span class="n">mu</span>    <span class="n">comp</span>   <span class="n">dmerit</span>     <span class="n">rho</span> <span class="n">info</span>
+  <span class="mi">30</span>   <span class="mi">42</span>   <span class="mi">31</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">2.07562e-02</span> <span class="mf">3.1e+00</span> <span class="mf">3.3e-16</span> <span class="mf">1.6e-03</span> <span class="mf">6.3e-03</span> <span class="mf">6.3e-03</span> <span class="o">-</span><span class="mf">4.4e-02</span> <span class="mf">0.0e+00</span>
+  <span class="mi">31</span>   <span class="mi">43</span>   <span class="mi">32</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">1.21674e-02</span> <span class="mf">7.5e-01</span> <span class="mf">3.9e-16</span> <span class="mf">1.5e-05</span> <span class="mf">6.3e-03</span> <span class="mf">6.3e-03</span> <span class="o">-</span><span class="mf">1.3e-02</span> <span class="mf">0.0e+00</span>
+  <span class="mi">32</span>   <span class="mi">44</span>   <span class="mi">33</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">4.01074e-03</span> <span class="mf">8.8e-01</span> <span class="mf">2.8e-16</span> <span class="mf">3.4e-05</span> <span class="mf">6.3e-03</span> <span class="mf">6.2e-03</span> <span class="o">-</span><span class="mf">1.2e-02</span> <span class="mf">0.0e+00</span>
+  <span class="mi">33</span>   <span class="mi">45</span>   <span class="mi">34</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">1.24559e-03</span> <span class="mf">5.8e-01</span> <span class="mf">1.2e-15</span> <span class="mf">1.5e-05</span> <span class="mf">6.3e-03</span> <span class="mf">6.2e-03</span> <span class="o">-</span><span class="mf">3.7e-03</span> <span class="mf">0.0e+00</span>
+  <span class="mi">34</span>   <span class="mi">46</span>   <span class="mi">35</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">3.12305e-04</span> <span class="mf">1.2e-01</span> <span class="mf">5.0e-16</span> <span class="mf">4.9e-06</span> <span class="mf">6.3e-03</span> <span class="mf">6.2e-03</span> <span class="o">-</span><span class="mf">1.4e-03</span> <span class="mf">0.0e+00</span>
+  <span class="mi">35</span>   <span class="mi">47</span>   <span class="mi">36</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">1.25404e-04</span> <span class="mf">4.5e-01</span> <span class="mf">4.2e-16</span> <span class="mf">6.9e-06</span> <span class="mf">6.3e-03</span> <span class="mf">6.2e-03</span> <span class="o">-</span><span class="mf">5.1e-04</span> <span class="mf">0.0e+00</span>
+  <span class="mi">36</span>   <span class="mi">48</span>   <span class="mi">37</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">4.48419e-05</span> <span class="mf">4.1e-03</span> <span class="mf">2.8e-16</span> <span class="mf">4.7e-03</span> <span class="mf">1.6e-03</span> <span class="mf">6.2e-03</span> <span class="o">-</span><span class="mf">3.3e-04</span> <span class="mf">0.0e+00</span>
+  <span class="mi">37</span>   <span class="mi">49</span>   <span class="mi">38</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">7.00269e-06</span> <span class="mf">1.5e-02</span> <span class="mf">1.8e-15</span> <span class="mf">1.2e-03</span> <span class="mf">3.9e-04</span> <span class="mf">1.6e-03</span> <span class="o">-</span><span class="mf">3.6e-03</span> <span class="mf">0.0e+00</span>
+  <span class="mi">38</span>   <span class="mi">50</span>   <span class="mi">39</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">1.69068e-07</span> <span class="mf">8.0e-03</span> <span class="mf">6.4e-16</span> <span class="mf">5.4e-06</span> <span class="mf">3.9e-04</span> <span class="mf">3.9e-04</span> <span class="o">-</span><span class="mf">8.9e-04</span> <span class="mf">0.0e+00</span>
+  <span class="mi">39</span>   <span class="mi">51</span>   <span class="mi">40</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">9.65441e-08</span> <span class="mf">5.6e-04</span> <span class="mf">1.2e-15</span> <span class="mf">2.9e-04</span> <span class="mf">9.8e-05</span> <span class="mf">3.9e-04</span> <span class="o">-</span><span class="mf">8.0e-08</span> <span class="mf">0.0e+00</span>
 
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="p">}</span>
-
-  <span class="c1">//! Evaluate the product of the Hessian with the given vector</span>
-  <span class="kt">int</span> <span class="n">evalHvecProduct</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
-                       <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">z</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">zwvec</span><span class="p">,</span>
-                       <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">pxvec</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">hvec</span> <span class="p">){</span>
-    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">hvals</span><span class="p">;</span>
-    <span class="n">hvec</span><span class="o">-&gt;</span><span class="n">zeroEntries</span><span class="p">();</span>
-    <span class="n">hvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">hvals</span><span class="p">);</span>
-
-    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">px</span><span class="p">,</span> <span class="o">*</span><span class="n">x</span><span class="p">;</span>
-    <span class="n">xvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">x</span><span class="p">);</span>
-    <span class="n">pxvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">px</span><span class="p">);</span>
-
-    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nvars</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">){</span>
-      <span class="n">hvals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="mf">2.0</span><span class="o">*</span><span class="n">px</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span>
-                  <span class="mi">200</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="o">-</span><span class="mf">2.0</span><span class="o">*</span><span class="n">px</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">+</span>
-                  <span class="mi">200</span><span class="o">*</span><span class="p">(</span><span class="n">px</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mf">2.0</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">px</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">*</span><span class="p">(</span><span class="o">-</span><span class="mf">2.0</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]));</span>
-      <span class="n">hvals</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">200</span><span class="o">*</span><span class="p">(</span><span class="n">px</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mf">2.0</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">px</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
-    <span class="p">}</span>
-
-    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nvars</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">){</span>
-      <span class="n">hvals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">2.0</span><span class="o">*</span><span class="n">scale</span><span class="o">*</span><span class="n">z</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">px</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-    <span class="p">}</span>
-
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="p">}</span>
-
-  <span class="c1">//! Evaluate the sparse constraints</span>
-  <span class="kt">void</span> <span class="n">evalSparseCon</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">out</span> <span class="p">){</span>
-    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">xvals</span><span class="p">,</span> <span class="o">*</span><span class="n">outvals</span><span class="p">;</span>
-    <span class="n">x</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">xvals</span><span class="p">);</span>
-    <span class="n">out</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">outvals</span><span class="p">);</span>
-
-    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">nwstart</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nwcon</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">,</span> <span class="n">j</span> <span class="o">+=</span> <span class="n">nwskip</span> <span class="p">){</span>
-      <span class="n">outvals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
-      <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="n">nw</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span><span class="p">,</span> <span class="n">j</span><span class="o">++</span> <span class="p">){</span>
-        <span class="n">outvals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="n">xvals</span><span class="p">[</span><span class="n">j</span><span class="p">];</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="c1">//! Compute the Jacobian-vector product out = J(x)*px</span>
-  <span class="kt">void</span> <span class="n">addSparseJacobian</span><span class="p">(</span> <span class="n">ParOptScalar</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span>
-                          <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">px</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">out</span> <span class="p">){</span>
-    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">pxvals</span><span class="p">,</span> <span class="o">*</span><span class="n">outvals</span><span class="p">;</span>
-    <span class="n">px</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pxvals</span><span class="p">);</span>
-    <span class="n">out</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">outvals</span><span class="p">);</span>
-
-    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">nwstart</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nwcon</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">,</span> <span class="n">j</span> <span class="o">+=</span> <span class="n">nwskip</span> <span class="p">){</span>
-      <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="n">nw</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span><span class="p">,</span> <span class="n">j</span><span class="o">++</span> <span class="p">){</span>
-        <span class="n">outvals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="n">alpha</span><span class="o">*</span><span class="n">pxvals</span><span class="p">[</span><span class="n">j</span><span class="p">];</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="c1">//! Compute the transpose Jacobian-vector product out = J(x)^{T}*pzw</span>
-  <span class="kt">void</span> <span class="n">addSparseJacobianTranspose</span><span class="p">(</span> <span class="n">ParOptScalar</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span>
-                                   <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">pzw</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">out</span> <span class="p">){</span>
-    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">outvals</span><span class="p">,</span> <span class="o">*</span><span class="n">pzwvals</span><span class="p">;</span>
-    <span class="n">out</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">outvals</span><span class="p">);</span>
-    <span class="n">pzw</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">pzwvals</span><span class="p">);</span>
-    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">nwstart</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nwcon</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">,</span> <span class="n">j</span> <span class="o">+=</span> <span class="n">nwskip</span> <span class="p">){</span>
-      <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="n">nw</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span><span class="p">,</span> <span class="n">j</span><span class="o">++</span> <span class="p">){</span>
-        <span class="n">outvals</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-=</span> <span class="n">alpha</span><span class="o">*</span><span class="n">pzwvals</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="c1">//! Add the inner product of the constraints to the matrix such</span>
-  <span class="c1">//! that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix</span>
-  <span class="kt">void</span> <span class="n">addSparseInnerProduct</span><span class="p">(</span> <span class="n">ParOptScalar</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span>
-                              <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">cvec</span><span class="p">,</span> <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">A</span> <span class="p">){</span>
-    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">cvals</span><span class="p">;</span>
-    <span class="n">cvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">cvals</span><span class="p">);</span>
-
-    <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">nwstart</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nwcon</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">,</span> <span class="n">j</span> <span class="o">+=</span> <span class="n">nwskip</span> <span class="p">){</span>
-      <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="n">nw</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span><span class="p">,</span> <span class="n">j</span><span class="o">++</span> <span class="p">){</span>
-        <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">alpha</span><span class="o">*</span><span class="n">cvals</span><span class="p">[</span><span class="n">j</span><span class="p">];</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="kt">int</span> <span class="n">nwcon</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">nwstart</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">nw</span><span class="p">,</span> <span class="n">nwskip</span><span class="p">;</span>
-  <span class="n">ParOptScalar</span> <span class="n">scale</span><span class="p">;</span>
-<span class="p">};</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span> <span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[]</span> <span class="p">){</span>
-  <span class="n">MPI_Init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">argc</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">argv</span><span class="p">);</span>
-
-  <span class="c1">// Set the MPI communicator</span>
-  <span class="n">MPI_Comm</span> <span class="n">comm</span> <span class="o">=</span> <span class="n">MPI_COMM_WORLD</span><span class="p">;</span>
-
-  <span class="c1">// Get the rank</span>
-  <span class="kt">int</span> <span class="n">mpi_rank</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="n">MPI_Comm_rank</span><span class="p">(</span><span class="n">comm</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">mpi_rank</span><span class="p">);</span>
-
-  <span class="c1">// Get the prefix from the input arguments</span>
-  <span class="kt">int</span> <span class="n">nvars</span> <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
-  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">prefix</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="n">buff</span><span class="p">[</span><span class="mi">512</span><span class="p">];</span>
-  <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="n">argc</span><span class="p">;</span> <span class="n">k</span><span class="o">++</span> <span class="p">){</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">sscanf</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="s">&quot;prefix=%s&quot;</span><span class="p">,</span> <span class="n">buff</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">){</span>
-      <span class="n">prefix</span> <span class="o">=</span> <span class="n">buff</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">sscanf</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="s">&quot;nvars=%d&quot;</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">nvars</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">){</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">nvars</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">){</span>
-        <span class="n">nvars</span> <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">){</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;prefix = %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">prefix</span><span class="p">);</span>
-    <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
-  <span class="p">}</span>
-
-  <span class="c1">// Allocate the Rosenbrock function</span>
-  <span class="kt">int</span> <span class="n">nwcon</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">nw</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">nwstart</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nwskip</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
-  <span class="n">Rosenbrock</span> <span class="o">*</span><span class="n">rosen</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Rosenbrock</span><span class="p">(</span><span class="n">comm</span><span class="p">,</span> <span class="n">nvars</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-                                    <span class="n">nwcon</span><span class="p">,</span> <span class="n">nwstart</span><span class="p">,</span> <span class="n">nw</span><span class="p">,</span> <span class="n">nwskip</span><span class="p">);</span>
-  <span class="n">rosen</span><span class="o">-&gt;</span><span class="n">incref</span><span class="p">();</span>
-
-  <span class="c1">// Allocate the optimizer</span>
-  <span class="kt">int</span> <span class="n">max_lbfgs</span> <span class="o">=</span> <span class="mi">20</span><span class="p">;</span>
-  <span class="n">ParOpt</span> <span class="o">*</span><span class="n">opt</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ParOpt</span><span class="p">(</span><span class="n">rosen</span><span class="p">,</span> <span class="n">max_lbfgs</span><span class="p">);</span>
-  <span class="n">opt</span><span class="o">-&gt;</span><span class="n">incref</span><span class="p">();</span>
-
-  <span class="n">opt</span><span class="o">-&gt;</span><span class="n">setMaxMajorIterations</span><span class="p">(</span><span class="mi">1500</span><span class="p">);</span>
-  <span class="n">opt</span><span class="o">-&gt;</span><span class="n">setBarrierStrategy</span><span class="p">(</span><span class="n">PAROPT_MEHROTRA</span><span class="p">);</span>
-  <span class="n">opt</span><span class="o">-&gt;</span><span class="n">setOutputFrequency</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
-  <span class="n">opt</span><span class="o">-&gt;</span><span class="n">setOutputFile</span><span class="p">(</span><span class="s">&quot;paropt.out&quot;</span><span class="p">);</span>
-
-  <span class="c1">// Set the checkpoint file</span>
-  <span class="kt">double</span> <span class="n">start</span> <span class="o">=</span> <span class="n">MPI_Wtime</span><span class="p">();</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">prefix</span><span class="p">){</span>
-    <span class="kt">char</span> <span class="n">output</span><span class="p">[</span><span class="mi">512</span><span class="p">];</span>
-    <span class="n">sprintf</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="s">&quot;%s/rosenbrock_output.bin&quot;</span><span class="p">,</span> <span class="n">prefix</span><span class="p">);</span>
-    <span class="n">opt</span><span class="o">-&gt;</span><span class="n">optimize</span><span class="p">(</span><span class="n">output</span><span class="p">);</span>
-  <span class="p">}</span>
-  <span class="k">else</span> <span class="p">{</span>
-    <span class="n">opt</span><span class="o">-&gt;</span><span class="n">optimize</span><span class="p">();</span>
-  <span class="p">}</span>
-  <span class="kt">double</span> <span class="n">diff</span> <span class="o">=</span> <span class="n">MPI_Wtime</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span><span class="p">;</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">){</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;ParOpt time: %f seconds </span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">diff</span><span class="p">);</span>
-  <span class="p">}</span>
-
-  <span class="n">opt</span><span class="o">-&gt;</span><span class="n">decref</span><span class="p">();</span>
-  <span class="n">rosen</span><span class="o">-&gt;</span><span class="n">decref</span><span class="p">();</span>
-
-  <span class="n">MPI_Finalize</span><span class="p">();</span>
-  <span class="k">return</span> <span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="p">}</span>
+<span class="nb">iter</span> <span class="n">nobj</span> <span class="n">ngrd</span> <span class="n">nhvc</span>   <span class="n">alpha</span>   <span class="n">alphx</span>   <span class="n">alphz</span>         <span class="n">fobj</span>   <span class="o">|</span><span class="n">opt</span><span class="o">|</span> <span class="o">|</span><span class="n">infes</span><span class="o">|</span>  <span class="o">|</span><span class="n">dual</span><span class="o">|</span>      <span class="n">mu</span>    <span class="n">comp</span>   <span class="n">dmerit</span>     <span class="n">rho</span> <span class="n">info</span>
+  <span class="mi">40</span>   <span class="mi">52</span>   <span class="mi">41</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">6.07846e-09</span> <span class="mf">1.9e-05</span> <span class="mf">1.3e-15</span> <span class="mf">7.3e-05</span> <span class="mf">2.4e-05</span> <span class="mf">9.8e-05</span> <span class="o">-</span><span class="mf">2.2e-04</span> <span class="mf">0.0e+00</span>
+  <span class="mi">41</span>   <span class="mi">53</span>   <span class="mi">42</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">3.69844e-10</span> <span class="mf">6.8e-06</span> <span class="mf">6.4e-17</span> <span class="mf">1.8e-05</span> <span class="mf">6.1e-06</span> <span class="mf">2.4e-05</span> <span class="o">-</span><span class="mf">5.5e-05</span> <span class="mf">0.0e+00</span>
+  <span class="mi">42</span>   <span class="mi">54</span>   <span class="mi">43</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">2.30420e-11</span> <span class="mf">4.2e-07</span> <span class="mf">1.2e-15</span> <span class="mf">4.6e-06</span> <span class="mf">1.5e-06</span> <span class="mf">6.1e-06</span> <span class="o">-</span><span class="mf">1.4e-05</span> <span class="mf">0.0e+00</span>
+  <span class="mi">43</span>   <span class="mi">55</span>   <span class="mi">44</span>    <span class="mi">0</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span> <span class="mf">1.0e+00</span>  <span class="mf">1.43924e-12</span> <span class="mf">2.7e-08</span> <span class="mf">7.5e-17</span> <span class="mf">5.3e-07</span> <span class="mf">1.0e-06</span> <span class="mf">1.5e-06</span> <span class="o">-</span><span class="mf">3.4e-06</span> <span class="mf">0.0e+00</span>
+</pre></div>
+</div>
+<p>The output from ParOptInteriorPoint consists of a summary of the parameter values.
+A brief description of each parameter is provided if the file is not stdout.
+Next, the output consists of a summary of the iteration history with the following columns:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">iter</span></code> the current iteration</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nobj</span></code> the number of objective and constraint evaluations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ngrd</span></code> the number of objective and constraint gradient evaluations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nhvc</span></code> the number of Hessian-vector products</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">alpha</span></code> the step size</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">alphax</span></code> the scaling factor applied to the primal components of the step</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">alphaz</span></code> the scaling factor applied to the dual components of the step</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fobj</span></code> the objective value</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">|opt|</span></code> the optimality error in the specified norm</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">|infeas|</span></code> the infeasibility in the specified norm</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">|dual|</span></code> the error in the complementarity equation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mu</span></code> the barrier parameter</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">comp</span></code> the complementarity</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dmerit</span></code> the derivative of the merit function</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rho</span></code> the value of the penalty parameter in the line search</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">info</span></code> additional information, usually about the quasi-Newton Hessian update or line search</p></li>
+</ul>
+<p>Note that this output can be directed to a file by adding the following line of code:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">opt</span><span class="o">.</span><span class="n">setOutputFile</span><span class="p">(</span><span class="s1">&#39;paropt.out&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The file can be visualized using the example in <code class="docutils literal notranslate"><span class="pre">examples/plot_history/plot_history.py</span></code>.
+This output can be unpacked from the file using:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">values</span> <span class="o">=</span> <span class="n">paropt</span><span class="o">.</span><span class="n">unpack_output</span><span class="p">(</span><span class="s1">&#39;paropt.out&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
+</div>
 
 
           </div>
         </div>
-          </div>
-        </div>
       </div>
+      <div class="clearer"></div>
     </div>
-
-    <div class="container container-navbar-bottom">
-      <div class="spc-navbar">
-        
-      </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="sellar.html" title="Sellar problem"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="ParOpt Overview"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li> 
+      </ul>
     </div>
-    <div class="container">
-    <div class="footer">
-    <div class="row-fluid">
-    <ul class="inline pull-left">
-      <li>
-        &copy; Copyright 2019, Graeme Kennedy.
-      </li>
-      <li>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 2.1.2.
-      </li>
-    </ul>
-    </div>
-    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Graeme Kennedy.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.
     </div>
   </body>
 </html>

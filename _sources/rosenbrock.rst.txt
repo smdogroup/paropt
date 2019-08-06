@@ -1,316 +1,211 @@
-Rosenbrock function
-===================
+Rosenbrock example
+==================
 
-This example extends the previous Sellar problem by considering a distributed design vector, separable sparse constraints, and Hessian-vector products.
-
-.. code-block:: c++
-
-      int evalHvecProduct( ParOptVec *xvec,
-                           ParOptScalar *z, ParOptVec *zwvec,
-                           ParOptVec *pxvec, ParOptVec *hvec );
-
-The Hessian-vector products can be used to accelerate the convergence of the optimizer.
-They are generally used once the optimization problem has converged to a point that is closer to the optimum.
-These products are implemented by the user in the ParOptProblem class, using the template provided above.
-The Lagrangian function is defined as
-
-.. math::
-
-    \mathcal{L} \triangleq f(x) - z^{T} c(x) - z_{w}^{T} c_{w}(x)
-
-where :math:`\mathcal{L}` is the Lagrangian, :math:`f(x), c(x), c_{w}(x)` are the objective, dense constraints and sparse separable constraints, respectively, and :math:`z, z_{w}` are multipliers associated with the dense and sparse constraints.
-The Hessian-vector product is then computed as
-
-.. math::
-
-    h = \nabla^{2} \mathcal{L}(x, z, z_{w}) p_{x}
-
-The interface to the sparse separable constraint code consists of four functions.
-These functions consist of the following:
-
-.. code-block:: c++
-
-      void evalSparseCon( ParOptVec *x, ParOptVec *out );
-      void addSparseJacobian( ParOptScalar alpha, ParOptVec *x,
-                              ParOptVec *px, ParOptVec *out );
-      void addSparseJacobianTranspose( ParOptScalar alpha, ParOptVec *x,
-                                       ParOptVec *pzw, ParOptVec *out );
-      void addSparseInnerProduct( ParOptScalar alpha, ParOptVec *x,
-                                  ParOptVec *cvec, ParOptScalar *A );
-
-These member functions provide the following mathematical operations:
+In this example we consider a python implementation of the following optimization problem:
 
 .. math::
 
     \begin{align}
-        \mathrm{out} & \leftarrow c_{w} \leftarrow c_{w}(x) \\
-        \mathrm{out} & \leftarrow \alpha A_{w}(x) p_{x} \\
-        \mathrm{out} & \leftarrow \alpha A_{w}(x)^{T} p_{z_{w}} \\
-        \mathrm{out} & \leftarrow \alpha A_{w} C A_{w}(x)^{T}  \\
+        \text{min} \qquad & 100(x_2 - x_1^2)^2 + (1 - x_1)^2 \\
+        \text{with respect to} \qquad & -2 \le x_{i} \le 2 \qquad i = 1, 2\\
+        \text{subject to} \qquad & x_{1} + x_{2} + 5 \ge 0 \\
     \end{align}
 
-Here :math:`A_{w}(x) = \nabla c_{w}(x)$` and :math:`C` is a diagonal matrix.
+Python implementation
+---------------------
 
-.. code-block:: c++
+The python implementation of this problem is as follows
 
-    #include "ParOpt.h"
+.. code-block:: python
 
-    /*
-      The following is a simple implementation of a scalable Rosenbrock
-      function with constraints that can be used to test the parallel
-      optimizer. 
-    */
+  # Import some utilities
+  import numpy as np
+  import mpi4py.MPI as MPI
+  import matplotlib.pyplot as plt
 
-    ParOptScalar min2( ParOptScalar a, ParOptScalar b ){
-      if (a < b){
-        return a;
-      }
-      return b;
-    }
+  # Import ParOpt
+  from paropt import ParOpt
 
-    class Rosenbrock : public ParOptProblem {
-    public:
-      Rosenbrock( MPI_Comm comm, int _nvars,
-                  int _nwcon, int _nwstart, 
-                  int _nw, int _nwskip ): 
-      ParOptProblem(comm, _nvars, 2, _nwcon, 1){
-        nwcon = _nwcon;
-        nwstart = _nwstart;
-        nw = _nw;
-        nwskip = _nwskip;
-        scale = 1.0;
-      }
+  # Create the rosenbrock function class
+  class Rosenbrock(ParOpt.Problem):
+      def __init__(self):
+          # Set the communicator pointer
+          self.comm = MPI.COMM_WORLD
+          self.nvars = 2
+          self.ncon = 1
 
-      //! Get the variables/bounds
-      void getVarsAndBounds( ParOptVec *xvec,
-                             ParOptVec *lbvec, 
-                             ParOptVec *ubvec ){
-        ParOptScalar *x, *lb, *ub;
-        xvec->getArray(&x);
-        lbvec->getArray(&lb);
-        ubvec->getArray(&ub);
+          # The design history file
+          self.x_hist = []
 
-        // Set the design variable bounds
-        for ( int i = 0; i < nvars; i++ ){
-          x[i] = -1.0;
-          lb[i] = -2.0;
-          ub[i] = 1.0;
-        }
-      }
-      
-      //! Evaluate the objective and constraints
-      int evalObjCon( ParOptVec *xvec, 
-                      ParOptScalar *fobj, ParOptScalar *cons ){
-        ParOptScalar obj = 0.0;
-        ParOptScalar *x;
-        xvec->getArray(&x);
+          # Initialize the base class
+          super(Rosenbrock, self).__init__(self.comm, self.nvars, self.ncon)
 
-        for ( int i = 0; i < nvars-1; i++ ){
-          obj += ((1.0 - x[i])*(1.0 - x[i]) + 
-                  100*(x[i+1] - x[i]*x[i])*(x[i+1] - x[i]*x[i]));
-        }
+          return
 
-        ParOptScalar con[2];
-        con[0] = con[1] = 0.0;
-        for ( int i = 0; i < nvars; i++ ){
-          con[0] -= x[i]*x[i];
-        }
+      def getVarsAndBounds(self, x, lb, ub):
+          '''Set the values of the bounds'''
+          x[:] = -1.0
+          lb[:] = -2.0
+          ub[:] = 2.0
+          return
 
-        for ( int i = 0; i < nvars; i += 2 ){
-          con[1] += x[i];
-        }
+      def evalObjCon(self, x):
+          '''Evaluate the objective and constraint'''
+          # Append the point to the solution history
+          self.x_hist.append(np.array(x))
 
-        MPI_Allreduce(&obj, fobj, 1, PAROPT_MPI_TYPE, MPI_SUM, comm);
-        MPI_Allreduce(con, cons, 2, PAROPT_MPI_TYPE, MPI_SUM, comm);
+          # Evaluate the objective and constraints
+          fail = 0
+          con = np.zeros(1)
+          fobj = 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
+          con[0] = x[0] + x[1] + 5.0
+          return fail, fobj, con
 
-        cons[0] += 0.25;
-        cons[1] += 10.0;
-        cons[0] *= scale;
-        cons[1] *= scale;
+      def evalObjConGradient(self, x, g, A):
+          '''Evaluate the objective and constraint gradient'''
+          fail = 0
+          
+          # The objective gradient
+          g[0] = 200*(x[1]-x[0]**2)*(-2*x[0]) - 2*(1-x[0])
+          g[1] = 200*(x[1]-x[0]**2)
 
-        return 0;
-      }
-      
-      //! Evaluate the objective and constraint gradients
-      int evalObjConGradient( ParOptVec *xvec,
-                              ParOptVec *gvec, ParOptVec **Ac ){
-        ParOptScalar *x, *g, *c;
-        xvec->getArray(&x);
-        gvec->getArray(&g);
-        gvec->zeroEntries();
+          # The constraint gradient
+          A[0][0] = 1.0
+          A[0][1] = 1.0
+          return fail
 
-        for ( int i = 0; i < nvars-1; i++ ){
-          g[i] += (-2.0*(1.0 - x[i]) + 
-                  200*(x[i+1] - x[i]*x[i])*(-2.0*x[i]));
-          g[i+1] += 200*(x[i+1] - x[i]*x[i]);
-        }
+  problem = Rosenbrock()
+  max_lbfgs = 20
+  opt = ParOpt.InteriorPoint(problem, max_lbfgs, ParOpt.BFGS)
+  opt.optimize()
 
-        Ac[0]->getArray(&c);
-        for ( int i = 0; i < nvars; i++ ){
-          c[i] = -2.0*scale*x[i];
-        }
+This code produces the output:
 
-        Ac[1]->getArray(&c);
-        for ( int i = 0; i < nvars; i += 2 ){
-          c[i] = scale;
-        }
+::
 
-        return 0;
-      }
+  ParOpt: Parameter values
+  total variables                              2
+  constraints                                  1
+  max_qn_size                                 20
+  norm_type                           INFTY_NORM
+  penalty_gamma                             1000
+  max_major_iters                           1000
+  starting_point_strategy          LEAST_SQUARES
+  barrier_param                              0.1
+  abs_res_tol                              1e-05
+  rel_func_tol                                 0
+  use_line_search                              1
+  use_backtracking_alpha                       0
+  max_line_iters                              10
+  penalty_descent_fraction                   0.3
+  min_rho_penalty_search                       0
+  armijo_constant                          1e-05
+  monotone_barrier_fraction                 0.25
+  monotone_barrier_power                     1.1
+  rel_bound_barrier                            1
+  min_fraction_to_boundary                  0.95
+  major_iter_step_check                       -1
+  write_output_frequency                      10
+  gradient_check_frequency                    -1
+  gradient_check_step                      1e-06
+  sequential_linear_method                     0
+  hessian_reset_freq                   100000000
+  use_quasi_newton_update                      1
+  qn_sigma                                     0
+  use_hvec_product                             0
+  use_diag_hessian                             0
+  use_qn_gmres_precon                          1
+  nk_switch_tol                            0.001
+  eisenstat_walker_alpha                     1.5
+  eisenstat_walker_gamma                       1
+  gmres_subspace_size                          0
+  max_gmres_rtol                             0.1
+  gmres_atol                               1e-30
 
-      //! Evaluate the product of the Hessian with the given vector
-      int evalHvecProduct( ParOptVec *xvec,
-                           ParOptScalar *z, ParOptVec *zwvec,
-                           ParOptVec *pxvec, ParOptVec *hvec ){
-        ParOptScalar *hvals;
-        hvec->zeroEntries();
-        hvec->getArray(&hvals);
+  iter nobj ngrd nhvc   alpha   alphx   alphz         fobj   |opt| |infes|  |dual|      mu    comp   dmerit     rho info
+    0    1    1    0      --      --      --  4.04000e+02 1.0e+03 3.0e+00 2.9e+00 1.0e-01 1.7e+00       --      -- 
+    1    2    2    0 1.0e+00 1.1e-03 2.3e-03  1.01561e+02 1.0e+03 3.0e+00 3.2e+00 1.0e-01 1.4e+00 -1.4e+03 0.0e+00 
+    2    3    3    0 1.0e+00 2.8e-03 2.8e-01  1.01292e+02 7.2e+02 3.0e+00 5.7e+00 1.0e-01 2.0e+00 -4.8e+01 0.0e+00 
+    3    4    4    0 1.0e+00 2.6e-01 1.7e-01  7.03966e+01 6.0e+02 2.2e+00 2.0e+00 1.0e-01 8.7e-01 -3.7e+01 0.0e+00 
+    4    5    5    0 1.0e+00 1.0e+00 3.8e-01  3.81744e+00 3.7e+02 4.9e-17 1.2e+00 1.0e-01 4.9e-01 -1.2e+02 0.0e+00 
+    5    6    6    0 1.0e+00 1.0e+00 1.0e+00  1.66498e+00 3.9e+00 4.2e-16 5.7e-02 1.0e-01 1.1e-01 -4.0e+00 0.0e+00 
+    6    7    7    0 1.0e+00 1.0e+00 1.0e+00  1.63609e+00 2.4e+00 2.0e-16 3.0e-04 1.0e-01 1.0e-01 -5.2e-02 0.0e+00 
+    7    8    8    0 1.0e+00 1.0e+00 1.0e+00  1.62224e+00 2.0e+00 4.1e-17 1.5e-06 1.0e-01 1.0e-01 -1.6e-02 0.0e+00 
+    8    9    9    0 1.0e+00 1.0e+00 1.0e+00  1.49793e+00 3.5e+00 5.6e-16 1.2e-04 1.0e-01 1.0e-01 -1.4e-01 0.0e+00 
+    9   11   10    0 1.0e-02 1.0e+00 1.0e+00  1.46101e+00 3.6e+00 5.0e-16 1.3e-04 1.0e-01 1.0e-01 -3.7e+00 0.0e+00 skipH 
 
-        ParOptScalar *px, *x;
-        xvec->getArray(&x);
-        pxvec->getArray(&px);
+  iter nobj ngrd nhvc   alpha   alphx   alphz         fobj   |opt| |infes|  |dual|      mu    comp   dmerit     rho info
+    10   13   11    0 2.6e-02 1.0e+00 1.0e+00  1.41460e+00 2.5e+00 3.8e-16 1.3e-04 1.0e-01 1.0e-01 -3.1e+00 0.0e+00 
+    11   14   12    0 1.0e+00 1.0e+00 1.0e+00  1.36112e+00 2.7e+00 7.2e-17 1.5e-05 1.0e-01 1.0e-01 -5.6e-02 0.0e+00 
+    12   16   13    0 5.1e-02 1.0e+00 1.0e+00  1.29641e+00 2.7e+00 5.7e-17 4.0e-05 1.0e-01 1.0e-01 -1.3e+00 0.0e+00 
+    13   18   14    0 7.9e-02 1.0e+00 1.0e+00  1.21616e+00 2.6e+00 3.9e-16 7.8e-05 1.0e-01 1.0e-01 -1.1e+00 0.0e+00 
+    14   20   15    0 1.5e-01 1.0e+00 1.0e+00  1.11513e+00 3.1e+00 9.8e-17 1.5e-04 1.0e-01 1.0e-01 -7.6e-01 0.0e+00 
+    15   22   16    0 3.5e-01 1.0e+00 1.0e+00  1.00562e+00 5.3e+00 6.9e-16 2.5e-04 1.0e-01 1.0e-01 -4.3e-01 0.0e+00 
+    16   23   17    0 1.0e+00 1.0e+00 1.0e+00  8.97353e-01 7.3e+00 3.4e-16 2.3e-04 1.0e-01 1.0e-01 -1.7e-01 0.0e+00 
+    17   24   18    0 1.0e+00 1.0e+00 1.0e+00  7.14752e-01 4.2e+00 4.1e-17 9.6e-05 1.0e-01 1.0e-01 -2.3e-01 0.0e+00 
+    18   25   19    0 1.0e+00 1.0e+00 1.0e+00  5.43310e-01 4.3e+00 6.0e-17 4.0e-04 1.0e-01 1.0e-01 -2.4e-01 0.0e+00 
+    19   26   20    0 1.0e+00 1.0e+00 1.0e+00  3.85438e-01 2.5e+00 4.0e-16 3.0e-04 1.0e-01 1.0e-01 -2.9e-01 0.0e+00 
 
-        for ( int i = 0; i < nvars-1; i++ ){
-          hvals[i] += (2.0*px[i] + 
-                      200*(x[i+1] - x[i]*x[i])*(-2.0*px[i]) +
-                      200*(px[i+1] - 2.0*x[i]*px[i])*(-2.0*x[i]));
-          hvals[i+1] += 200*(px[i+1] - 2.0*x[i]*px[i]);
-        }
+  iter nobj ngrd nhvc   alpha   alphx   alphz         fobj   |opt| |infes|  |dual|      mu    comp   dmerit     rho info
+    20   28   21    0 7.7e-02 1.0e+00 1.0e+00  3.44610e-01 1.8e+00 1.4e-16 3.1e-04 1.0e-01 1.0e-01 -5.5e-01 0.0e+00 
+    21   30   22    0 2.1e-02 1.0e+00 1.0e+00  3.29234e-01 1.6e+00 4.0e-16 3.1e-04 1.0e-01 1.0e-01 -7.6e-01 0.0e+00 
+    22   32   23    0 5.3e-02 1.0e+00 1.0e+00  3.03766e-01 1.1e+00 3.4e-16 3.1e-04 1.0e-01 1.0e-01 -5.0e-01 0.0e+00 
+    23   34   24    0 1.0e-01 1.0e+00 1.0e+00  2.72543e-01 8.9e-01 3.8e-16 7.5e-02 2.5e-02 1.0e-01 -3.3e-01 0.0e+00 
+    24   36   25    0 3.9e-01 1.0e+00 1.0e+00  2.36299e-01 3.2e+00 2.9e-16 4.7e-02 2.5e-02 7.1e-02 -2.0e-01 0.0e+00 
+    25   37   26    0 1.0e+00 1.0e+00 1.0e+00  2.21830e-01 3.5e+00 2.9e-18 7.1e-04 2.5e-02 2.5e-02 -4.7e-02 0.0e+00 
+    26   38   27    0 1.0e+00 1.0e+00 1.0e+00  1.60158e-01 3.6e+00 8.6e-17 3.9e-05 2.5e-02 2.5e-02 -8.6e-02 0.0e+00 
+    27   39   28    0 1.0e+00 1.0e+00 1.0e+00  1.00878e-01 1.4e+00 8.0e-16 6.4e-05 2.5e-02 2.5e-02 -8.1e-02 0.0e+00 
+    28   40   29    0 1.0e+00 1.0e+00 1.0e+00  7.23458e-02 4.5e+00 1.1e-16 1.8e-04 2.5e-02 2.5e-02 -5.6e-02 0.0e+00 
+    29   41   30    0 1.0e+00 1.0e+00 1.0e+00  3.66023e-02 1.5e-01 5.6e-16 1.9e-02 6.3e-03 2.5e-02 -6.1e-02 0.0e+00 
 
-        for ( int i = 0; i < nvars; i++ ){
-          hvals[i] += 2.0*scale*z[0]*px[i];
-        }
+  iter nobj ngrd nhvc   alpha   alphx   alphz         fobj   |opt| |infes|  |dual|      mu    comp   dmerit     rho info
+    30   42   31    0 1.0e+00 1.0e+00 1.0e+00  2.07562e-02 3.1e+00 3.3e-16 1.6e-03 6.3e-03 6.3e-03 -4.4e-02 0.0e+00 
+    31   43   32    0 1.0e+00 1.0e+00 1.0e+00  1.21674e-02 7.5e-01 3.9e-16 1.5e-05 6.3e-03 6.3e-03 -1.3e-02 0.0e+00 
+    32   44   33    0 1.0e+00 1.0e+00 1.0e+00  4.01074e-03 8.8e-01 2.8e-16 3.4e-05 6.3e-03 6.2e-03 -1.2e-02 0.0e+00 
+    33   45   34    0 1.0e+00 1.0e+00 1.0e+00  1.24559e-03 5.8e-01 1.2e-15 1.5e-05 6.3e-03 6.2e-03 -3.7e-03 0.0e+00 
+    34   46   35    0 1.0e+00 1.0e+00 1.0e+00  3.12305e-04 1.2e-01 5.0e-16 4.9e-06 6.3e-03 6.2e-03 -1.4e-03 0.0e+00 
+    35   47   36    0 1.0e+00 1.0e+00 1.0e+00  1.25404e-04 4.5e-01 4.2e-16 6.9e-06 6.3e-03 6.2e-03 -5.1e-04 0.0e+00 
+    36   48   37    0 1.0e+00 1.0e+00 1.0e+00  4.48419e-05 4.1e-03 2.8e-16 4.7e-03 1.6e-03 6.2e-03 -3.3e-04 0.0e+00 
+    37   49   38    0 1.0e+00 1.0e+00 1.0e+00  7.00269e-06 1.5e-02 1.8e-15 1.2e-03 3.9e-04 1.6e-03 -3.6e-03 0.0e+00 
+    38   50   39    0 1.0e+00 1.0e+00 1.0e+00  1.69068e-07 8.0e-03 6.4e-16 5.4e-06 3.9e-04 3.9e-04 -8.9e-04 0.0e+00 
+    39   51   40    0 1.0e+00 1.0e+00 1.0e+00  9.65441e-08 5.6e-04 1.2e-15 2.9e-04 9.8e-05 3.9e-04 -8.0e-08 0.0e+00 
 
-        return 0;
-      }
+  iter nobj ngrd nhvc   alpha   alphx   alphz         fobj   |opt| |infes|  |dual|      mu    comp   dmerit     rho info
+    40   52   41    0 1.0e+00 1.0e+00 1.0e+00  6.07846e-09 1.9e-05 1.3e-15 7.3e-05 2.4e-05 9.8e-05 -2.2e-04 0.0e+00 
+    41   53   42    0 1.0e+00 1.0e+00 1.0e+00  3.69844e-10 6.8e-06 6.4e-17 1.8e-05 6.1e-06 2.4e-05 -5.5e-05 0.0e+00 
+    42   54   43    0 1.0e+00 1.0e+00 1.0e+00  2.30420e-11 4.2e-07 1.2e-15 4.6e-06 1.5e-06 6.1e-06 -1.4e-05 0.0e+00 
+    43   55   44    0 1.0e+00 1.0e+00 1.0e+00  1.43924e-12 2.7e-08 7.5e-17 5.3e-07 1.0e-06 1.5e-06 -3.4e-06 0.0e+00 
 
-      //! Evaluate the sparse constraints
-      void evalSparseCon( ParOptVec *x, ParOptVec *out ){
-        ParOptScalar *xvals, *outvals; 
-        x->getArray(&xvals);
-        out->getArray(&outvals);
-        
-        for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
-          outvals[i] = 1.0;
-          for ( int k = 0; k < nw; k++, j++ ){
-            outvals[i] -= xvals[j];
-          }
-        }
-      }
-      
-      //! Compute the Jacobian-vector product out = J(x)*px
-      void addSparseJacobian( ParOptScalar alpha, ParOptVec *x,
-                              ParOptVec *px, ParOptVec *out ){
-        ParOptScalar *pxvals, *outvals; 
-        px->getArray(&pxvals);
-        out->getArray(&outvals);
+The output from ParOptInteriorPoint consists of a summary of the parameter values.
+A brief description of each parameter is provided if the file is not stdout.
+Next, the output consists of a summary of the iteration history with the following columns:
 
-        for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
-          for ( int k = 0; k < nw; k++, j++ ){
-            outvals[i] -= alpha*pxvals[j];
-          }
-        }
-      }
+* ``iter`` the current iteration
+* ``nobj`` the number of objective and constraint evaluations
+* ``ngrd`` the number of objective and constraint gradient evaluations
+* ``nhvc`` the number of Hessian-vector products
+* ``alpha`` the step size
+* ``alphax`` the scaling factor applied to the primal components of the step
+* ``alphaz`` the scaling factor applied to the dual components of the step
+* ``fobj`` the objective value
+* ``|opt|`` the optimality error in the specified norm
+* ``|infeas|`` the infeasibility in the specified norm
+* ``|dual|`` the error in the complementarity equation
+* ``mu`` the barrier parameter
+* ``comp`` the complementarity
+* ``dmerit`` the derivative of the merit function
+* ``rho`` the value of the penalty parameter in the line search
+* ``info`` additional information, usually about the quasi-Newton Hessian update or line search
 
-      //! Compute the transpose Jacobian-vector product out = J(x)^{T}*pzw
-      void addSparseJacobianTranspose( ParOptScalar alpha, ParOptVec *x,
-                                       ParOptVec *pzw, ParOptVec *out ){
-        ParOptScalar *outvals, *pzwvals;
-        out->getArray(&outvals);
-        pzw->getArray(&pzwvals);
-        for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
-          for ( int k = 0; k < nw; k++, j++ ){
-            outvals[j] -= alpha*pzwvals[i];
-          }
-        }
-      }
+Note that this output can be directed to a file by adding the following line of code:
 
-      //! Add the inner product of the constraints to the matrix such 
-      //! that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix
-      void addSparseInnerProduct( ParOptScalar alpha, ParOptVec *x,
-                                  ParOptVec *cvec, ParOptScalar *A ){
-        ParOptScalar *cvals;
-        cvec->getArray(&cvals);
+.. code-block:: python
 
-        for ( int i = 0, j = nwstart; i < nwcon; i++, j += nwskip ){
-          for ( int k = 0; k < nw; k++, j++ ){
-            A[i] += alpha*cvals[j];
-          }
-        }
-      }
+  opt.setOutputFile('paropt.out')
 
-      int nwcon;
-      int nwstart;
-      int nw, nwskip;
-      ParOptScalar scale;
-    };
+The file can be visualized using the example in ``examples/plot_history/plot_history.py``.
+This output can be unpacked from the file using:
 
-    int main( int argc, char* argv[] ){
-      MPI_Init(&argc, &argv);
-
-      // Set the MPI communicator
-      MPI_Comm comm = MPI_COMM_WORLD;
-
-      // Get the rank
-      int mpi_rank = 0;
-      MPI_Comm_rank(comm, &mpi_rank);
-
-      // Get the prefix from the input arguments
-      int nvars = 100;
-      const char *prefix = NULL;
-      char buff[512];
-      for ( int k = 0; k < argc; k++ ){
-        if (sscanf(argv[k], "prefix=%s", buff) == 1){
-          prefix = buff;
-        }
-        if (sscanf(argv[k], "nvars=%d", &nvars) == 1){
-          if (nvars < 100){
-            nvars = 100;
-          }
-        }
-      }
-
-      if (mpi_rank == 0){
-        printf("prefix = %s\n", prefix);
-        fflush(stdout);
-      }
-
-      // Allocate the Rosenbrock function
-      int nwcon = 5, nw = 5;
-      int nwstart = 1, nwskip = 1;  
-      Rosenbrock *rosen = new Rosenbrock(comm, nvars-1,
-                                        nwcon, nwstart, nw, nwskip);
-      rosen->incref();
-
-      // Allocate the optimizer
-      int max_lbfgs = 20;
-      ParOpt *opt = new ParOpt(rosen, max_lbfgs);
-      opt->incref();
-
-      opt->setMaxMajorIterations(1500);
-      opt->setBarrierStrategy(PAROPT_MEHROTRA);
-      opt->setOutputFrequency(1);
-      opt->setOutputFile("paropt.out");
-      
-      // Set the checkpoint file
-      double start = MPI_Wtime();
-      if (prefix){
-        char output[512];
-        sprintf(output, "%s/rosenbrock_output.bin", prefix);
-        opt->optimize(output);
-      }
-      else {
-        opt->optimize();
-      }
-      double diff = MPI_Wtime() - start;
-
-      if (mpi_rank == 0){
-        printf("ParOpt time: %f seconds \n", diff);
-      }
-
-      opt->decref(); 
-      rosen->decref();
-
-      MPI_Finalize();
-      return (0);
-    }
+.. code-block:: python
+  
+  values = paropt.unpack_output('paropt.out')

@@ -1,118 +1,97 @@
+
 <!DOCTYPE html>
 
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="python">
   <head>
-    <meta charset="utf-8">
-    
-    <title>Sellar problem &mdash; paropt  documentation</title>
-    
-    <link rel="stylesheet" type="text/css" href="_static/css/spc-bootstrap.css">
-    <link rel="stylesheet" type="text/css" href="_static/css/spc-extend.css">
-    <link rel="stylesheet" href="_static/scipy.css" type="text/css" >
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" >
-    
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
-      };
-    </script>
+    <meta charset="utf-8" />
+    <title>Sellar problem &#8212; paropt  documentation</title>
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="_static/language_data.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <script type="text/javascript" src="_static/js/copybutton.js"></script>
-    <link rel="index" title="Index" href="genindex.html" >
-    <link rel="search" title="Search" href="search.html" >
-    <link rel="top" title="paropt  documentation" href="index.html" >
-    <link rel="next" title="Parallel Rosenbrock function" href="rosenbrock.html" >
-    <link rel="prev" title="ParOpt Overview" href="index.html" > 
-  </head>
-  <body>
-
-  <div class="container">
-    <div class="header">
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Parallel Rosenbrock" href="parallel_rosenbrock.html" />
+    <link rel="prev" title="Rosenbrock example" href="rosenbrock.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="parallel_rosenbrock.html" title="Parallel Rosenbrock"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="rosenbrock.html" title="Rosenbrock example"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li> 
+      </ul>
     </div>
-  </div>
-
-
-    <div class="container">
-      <div class="main">
-        
-	<div class="row-fluid">
-	  <div class="span12">
-	    <div class="spc-navbar">
-              
-    <ul class="nav nav-pills pull-left">
-        <li class="active"><a href="["></a></li>
-        <li class="active"><a href="]"></a></li>
-	
-        <li class="active"><a href="index.html">paropt  documentation</a></li>
-	 
-    </ul>
-              
-              
-    <ul class="nav nav-pills pull-right">
-      <li class="active">
-        <a href="genindex.html" title="General Index"
-           accesskey="I">index</a>
-      </li>
-      <li class="active">
-        <a href="rosenbrock.html" title="Parallel Rosenbrock function"
-           accesskey="N">next</a>
-      </li>
-      <li class="active">
-        <a href="index.html" title="ParOpt Overview"
-           accesskey="P">previous</a>
-      </li>
-    </ul>
-              
-	    </div>
-	  </div>
-	</div>
-        
-
-	<div class="row-fluid">
-      <div class="spc-rightsidebar span3">
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="index.html"
-                        title="previous chapter">ParOpt Overview</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="rosenbrock.html"
-                        title="next chapter">Parallel Rosenbrock function</a></p>
-  <h3>This Page</h3>
-  <div>
-    <a href="_sources/sellar.rst.txt"
-       rel="nofollow">Show Source</a>
-  </div>
-<div class="this-page-menu">
-  <a href="/scipy/docs/scipy-docs/sellar.rst.rst">Edit page</a>
-</div>
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Sellar problem</a><ul>
+<li><a class="reference internal" href="#c-implementation">C++ implementation</a></li>
+<li><a class="reference internal" href="#python-implementation">Python implementation</a></li>
+</ul>
+</li>
+</ul>
 
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="rosenbrock.html"
+                        title="previous chapter">Rosenbrock example</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="parallel_rosenbrock.html"
+                        title="next chapter">Parallel Rosenbrock</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/sellar.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
       </div>
-          <div class="span9">
-            
+
+    <div class="document">
+      <div class="documentwrapper">
         <div class="bodywrapper">
-          <div class="body" id="spc-section-body">
+          <div class="body" role="main">
             
   <div class="section" id="sellar-problem">
 <h1>Sellar problem<a class="headerlink" href="#sellar-problem" title="Permalink to this headline">¶</a></h1>
 <p>To illustrate the application of ParOpt, consider the following optimization problem with the Sellar objective function:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{align}
-    \text{min}: &amp; \ \ \ &amp; x_1 + x_2^2 + x_3 + e^{-x_4} \\
-    \text{w.r.t.}: &amp; \ \ \ &amp;  0 \le x_{1} \le 10 \\
-    &amp; \ \ \ &amp;  0 \le x_{2} \le 10 \\
-    &amp; \ \ \ &amp;  -1 \le x_{3} \le 3.16 \\
-    &amp; \ \ \ &amp;  -1 \le x_{4} \le 24 \\
-    \text{subject to}: &amp; \ \ \ &amp; x_{1} + x_{2} - 1 \ge 0 \\
+    \text{min} \qquad &amp; x_1 + x_2^2 + x_3 + e^{-x_4} \\
+    \text{with respect to} \qquad &amp; 0 \le x_{1} \le 10 \\
+    &amp;  0 \le x_{2} \le 10 \\
+    &amp; -1 \le x_{3} \le 3.16 \\
+    &amp; -1 \le x_{4} \le 24 \\
+    \text{subject to} \qquad &amp; x_{1} + x_{2} - 1 \ge 0 \\
 \end{align}\end{split}\]</div>
+<div class="section" id="c-implementation">
+<h2>C++ implementation<a class="headerlink" href="#c-implementation" title="Permalink to this headline">¶</a></h2>
 <p>The first step to use the ParOpt optimization library is to create a problem class which inherits from ParOptProblem.
 This class is used by ParOpt's interior-point or trust-region algorithms to get the function and gradient values from the problem.</p>
 <p>Key functions required for the implementation of a ParOptProblem class are described below.</p>
@@ -135,7 +114,9 @@ When the code is run in parallel, the same objective value and constraint values
 The function evalObjConGradient sets the values of the objective and constraint gradients into the vector gvec, and the array of vectors Ac, respectively.
 If an error is encountered during the evaluation of either the functions or gradients, a non-zero error code should be returned to terminate the optimization.</p>
 <p>When implemented in C++, the complete Sellar problem is:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cm">/*</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;ParOptInteriorPoint.h&quot;</span><span class="cp"></span>
+
+<span class="cm">/*</span>
 <span class="cm">  The following is a simple implementation of a Sellar function with</span>
 <span class="cm">  constraints that can be used to test the parallel optimizer.</span>
 <span class="cm">*/</span>
@@ -219,7 +200,8 @@ If an error is encountered during the evaluation of either the functions or grad
 
   <span class="c1">// Allocate the optimizer</span>
   <span class="kt">int</span> <span class="n">max_lbfgs</span> <span class="o">=</span> <span class="mi">20</span><span class="p">;</span>
-  <span class="n">ParOpt</span> <span class="o">*</span><span class="n">opt</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ParOpt</span><span class="p">(</span><span class="n">sellar</span><span class="p">,</span> <span class="n">max_lbfgs</span><span class="p">);</span>
+  <span class="n">ParOptInteriorPoint</span> <span class="o">*</span><span class="n">opt</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ParOptInteriorPoint</span><span class="p">(</span><span class="n">sellar</span><span class="p">,</span> <span class="n">max_lbfgs</span><span class="p">);</span>
+  <span class="n">opt</span><span class="o">-&gt;</span><span class="n">incref</span><span class="p">();</span>
 
   <span class="n">opt</span><span class="o">-&gt;</span><span class="n">setMaxMajorIterations</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span>
   <span class="n">opt</span><span class="o">-&gt;</span><span class="n">checkGradients</span><span class="p">(</span><span class="mf">1e-6</span><span class="p">);</span>
@@ -243,34 +225,114 @@ If an error is encountered during the evaluation of either the functions or grad
 </pre></div>
 </div>
 <p>In this case, the code can only be run in serial, so the design vector is not distributed.</p>
+<p>All objects in ParOpt are reference counted.
+Use incref() to increase the reference count after an object is allocated.
+When the object is no longer needed, call decref() to decrease the reference count and possibly delete the object.
+Direct calls to delete the object should not be used.</p>
+</div>
+<div class="section" id="python-implementation">
+<h2>Python implementation<a class="headerlink" href="#python-implementation" title="Permalink to this headline">¶</a></h2>
+<p>The python implementation of this problem is also straightforward.
+In an analogous manner, the python implemenation uses a class inherited from ParOpt.Problem, a python wrapper for the CyParOptProblem class.
+This inherited class must implement a getVarsAndBounds, evalObjCon and evalObjConGradient member functions.
+Note that in python, the function signature is slightly different for evalObjCon.
+Please note, the vectors returned to python access the underlying memory in ParOpt directly, therefore sometimes care must be taken to avoid expressions that do not assign values to the references returned from ParOpt.
+These vectors are of type ParOpt.PVec, but act in many ways like a numpy array.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">mpi4py</span> <span class="kn">import</span> <span class="n">MPI</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">paropt</span> <span class="kn">import</span> <span class="n">ParOpt</span>
+
+<span class="c1"># Create the rosenbrock function class</span>
+<span class="k">class</span> <span class="nc">Sellar</span><span class="p">(</span><span class="n">ParOpt</span><span class="o">.</span><span class="n">Problem</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Initialize the base class</span>
+        <span class="n">nvars</span> <span class="o">=</span> <span class="mi">4</span>
+        <span class="n">ncon</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Sellar</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">MPI</span><span class="o">.</span><span class="n">COMM_SELF</span><span class="p">,</span> <span class="n">nvars</span><span class="p">,</span> <span class="n">ncon</span><span class="p">)</span>
+
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">getVarsAndBounds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">lb</span><span class="p">,</span> <span class="n">ub</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Set the values of the bounds&#39;&#39;&#39;</span>
+
+        <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.0</span>
+        <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+        <span class="n">lb</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">lb</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">lb</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+        <span class="n">lb</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+
+        <span class="n">ub</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">10.0</span>
+        <span class="n">ub</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">10.0</span>
+        <span class="n">ub</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">3.16</span>
+        <span class="n">ub</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mf">24.0</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">evalObjCon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Evaluate the objective and constraint&#39;&#39;&#39;</span>
+        <span class="n">fail</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">fobj</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">cons</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">fail</span><span class="p">,</span> <span class="n">fobj</span><span class="p">,</span> <span class="n">cons</span>
+
+    <span class="k">def</span> <span class="nf">evalObjConGradient</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">A</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Evaluate the objective and constraint gradient&#39;&#39;&#39;</span>
+        <span class="n">fail</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="n">g</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.0</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">g</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="n">g</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+
+        <span class="n">A</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="n">A</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+        <span class="k">return</span> <span class="n">fail</span>
+
+<span class="c1"># Allocate the optimization problem</span>
+<span class="n">problem</span> <span class="o">=</span> <span class="n">Sellar</span><span class="p">()</span>
+
+<span class="c1"># Set up the optimization problem</span>
+<span class="n">max_lbfgs</span> <span class="o">=</span> <span class="mi">50</span>
+<span class="n">opt</span> <span class="o">=</span> <span class="n">ParOpt</span><span class="o">.</span><span class="n">InteriorPoint</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">max_lbfgs</span><span class="p">,</span> <span class="n">ParOpt</span><span class="o">.</span><span class="n">BFGS</span><span class="p">)</span>
+
+<span class="c1"># Optimize</span>
+<span class="n">opt</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
 </div>
 
 
           </div>
         </div>
-          </div>
-        </div>
       </div>
+      <div class="clearer"></div>
     </div>
-
-    <div class="container container-navbar-bottom">
-      <div class="spc-navbar">
-        
-      </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="parallel_rosenbrock.html" title="Parallel Rosenbrock"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="rosenbrock.html" title="Rosenbrock example"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li> 
+      </ul>
     </div>
-    <div class="container">
-    <div class="footer">
-    <div class="row-fluid">
-    <ul class="inline pull-left">
-      <li>
-        &copy; Copyright 2019, Graeme Kennedy.
-      </li>
-      <li>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 2.1.2.
-      </li>
-    </ul>
-    </div>
-    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Graeme Kennedy.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.
     </div>
   </body>
 </html>
