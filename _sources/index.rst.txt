@@ -68,6 +68,7 @@ Introduction and examples
     rosenbrock
     sellar
     parallel_rosenbrock
+    openmdao_example
     reference
 
 Indices and tables
