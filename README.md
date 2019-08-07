@@ -16,6 +16,7 @@ If you use ParOpt, please cite our paper:
 
 Ting Wei Chin, Mark K. Leader, Graeme J. Kennedy, A scalable framework for large-scale 3D multimaterial topology optimization with octree-based mesh adaptation, Advances in Engineering Software, Volume 135, 2019.
 
+```
 @article{Chin:2019,
          title = {A scalable framework for large-scale 3D multimaterial topology optimization with octree-based mesh adaptation},
          journal = {Advances in Engineering Software},
@@ -23,6 +24,7 @@ Ting Wei Chin, Mark K. Leader, Graeme J. Kennedy, A scalable framework for large
          year = {2019},
          doi = {10.1016/j.advengsoft.2019.05.004},
          author = {Ting Wei Chin and Mark K. Leader and Graeme J. Kennedy}}
+```
 
 ParOpt is released under the terms of the LGPLv3 license.
 
