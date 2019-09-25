@@ -1,3 +1,5 @@
+# distutils: language=c++
+
 # For MPI capabilities
 from mpi4py.MPI cimport *
 cimport mpi4py.MPI as MPI
