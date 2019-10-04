@@ -38,7 +38,7 @@ complex:
 	@echo "dtype = np.complex" >> paropt/ParOptDefs.pxi;
 
 interface:
-	python setup.py build_ext --inplace
+	${PYTHON} setup.py build_ext --inplace
 
 clean:
 	${RM} lib/libparopt.a lib/*.so
