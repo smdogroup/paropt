@@ -163,9 +163,8 @@ int ParOptLBFGS::update( ParOptVec *x, const ParOptScalar *z,
     // updating scheme
     ParOptScalar sTs = s->dot(s);
 
-    double epsilon = 1e-12;
-
     // Skip the update
+    double epsilon = 1e-12;
     if (RealPart(sTy) <= epsilon*sqrt(RealPart(sTs*yTy))){
       update_type = 2;
       reset();

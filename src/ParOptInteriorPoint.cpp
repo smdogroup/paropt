@@ -4036,9 +4036,8 @@ int ParOptInteriorPoint::lineSearch( double *_alpha,
     neval++;
 
     if (fail_obj){
-      fprintf(stderr,
-              "ParOpt: Evaluation failed during \
-line search, trying new point\n");
+      fprintf(stderr, "ParOpt: Evaluation failed during line search, "
+              "trying new point\n");
 
       // Multiply alpha by 1/10 like SNOPT
       alpha *= 0.1;
@@ -4668,23 +4667,23 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
     // Print all the information we can to the screen...
     if (outfp && rank == opt_root){
       if (k % 10 == 0 || output_level > 0){
-        fprintf(outfp, "\n%4s %4s %4s %4s %7s %7s %7s %12s \
-%7s %7s %7s %7s %7s %8s %7s info\n",
+        fprintf(outfp, "\n%4s %4s %4s %4s %7s %7s %7s %12s %7s %7s %7s "
+                "%7s %7s %8s %7s info\n",
                 "iter", "nobj", "ngrd", "nhvc", "alpha", "alphx", "alphz",
                 "fobj", "|opt|", "|infes|", "|dual|", "mu",
                 "comp", "dmerit", "rho");
       }
 
       if (k == 0){
-        fprintf(outfp, "%4d %4d %4d %4d %7s %7s %7s %12.5e \
-%7.1e %7.1e %7.1e %7.1e %7.1e %8s %7s %s\n",
+        fprintf(outfp, "%4d %4d %4d %4d %7s %7s %7s %12.5e %7.1e %7.1e "
+                "%7.1e %7.1e %7.1e %8s %7s %s\n",
                 k, neval, ngeval, nhvec, "--", "--", "--",
                 RealPart(fobj), max_prime, max_infeas, max_dual,
                 barrier_param, RealPart(comp), "--", "--", info);
       }
       else {
-        fprintf(outfp, "%4d %4d %4d %4d %7.1e %7.1e %7.1e %12.5e \
-%7.1e %7.1e %7.1e %7.1e %7.1e %8.1e %7.1e %s\n",
+        fprintf(outfp, "%4d %4d %4d %4d %7.1e %7.1e %7.1e %12.5e %7.1e "
+                "%7.1e %7.1e %7.1e %7.1e %8.1e %7.1e %s\n",
                 k, neval, ngeval, nhvec,
                 alpha_prev, alpha_xprev, alpha_zprev,
                 RealPart(fobj), max_prime, max_infeas, max_dual,
@@ -4932,15 +4931,6 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       }
     }
 
-    // Store the design variable locations for the Hessian update. The
-    // gradient difference update is done after the step has been
-    // selected, but before the new gradient is evaluated (so we have
-    // the new multipliers)
-    if (!sequential_linear_method){
-      s_qn->copyValues(x);
-      s_qn->scale(-1.0);
-    }
-
     // Keep track of the step length size
     double alpha = 1.0;
     int line_fail = 0;
@@ -4991,6 +4981,9 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
                  fabs(RealPart(fd - dm0)), fabs(RealPart((fd - dm0)/fd)));
         }
       }
+
+      // Zero the entries of the quasi
+      s_qn->zeroEntries();
 
       // If the directional derivative is negative, take the full
       // step, regardless. This can happen when an inexact Newton step
@@ -5044,6 +5037,13 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         // when computing Aw(x)^{T}*zw
         x->axpy(alpha, px);
 
+        // Store the step in the design variable values for updating the
+        // quasi-Newton Hessian
+        if (!sequential_linear_method){
+          s_qn->copyValues(px);
+          s_qn->scale(alpha);
+        }
+
         // Evaluate the objective, constraint and their gradients at
         // the current values of the design variables
         int fail_obj = prob->evalObjCon(x, &fobj, c);
@@ -5078,6 +5078,13 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       else {
         // Perform the line search
         line_fail = lineSearch(&alpha, m0, dm0);
+
+        // Store the step in the design variable values for updating the
+        // quasi-Newton Hessian
+        if (!line_fail && !sequential_linear_method){
+          s_qn->copyValues(px);
+          s_qn->scale(alpha);
+        }
       }
 
       // Store the previous merit function derivative
@@ -5130,6 +5137,13 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       // Jacobian to the BFGS update
       x->axpy(alpha, px);
 
+      // Store the step in the design variable values for updating the
+      // quasi-Newton Hessian
+      if (!sequential_linear_method){
+        s_qn->copyValues(px);
+        s_qn->scale(alpha);
+      }
+
       // Evaluate the objective, constraint and their gradients at the
       // current values of the design variables
       int fail_obj = prob->evalObjCon(x, &fobj, c);
@@ -5159,11 +5173,6 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
           prob->addSparseJacobianTranspose(-1.0, x, zw, y_qn);
         }
       }
-    }
-
-    // Complete the updated step
-    if (!sequential_linear_method){
-      s_qn->axpy(1.0, x);
     }
 
     // Store the steps in x/z for printing later
