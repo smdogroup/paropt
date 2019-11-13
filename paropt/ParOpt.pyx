@@ -455,7 +455,8 @@ cdef class ProblemBase:
             vec = x.ptr
         if check_hvec_product:
             check_hvec = 1
-        self.ptr.checkGradients(dh, vec, check_hvec)
+        if self.ptr != NULL:
+            self.ptr.checkGradients(dh, vec, check_hvec)
         return
 
 cdef class Problem(ProblemBase):

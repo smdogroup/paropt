@@ -10,16 +10,16 @@ import matplotlib.pyplot as plt
 from paropt import ParOpt
 
 class TopoAnalysis(ParOpt.Problem):
-    def __init__(self, nxelems, nyelems, Lx, Ly, r0=1.5, p=3.0, 
-                 E0=1.0, nu=0.3, default_bcs=True):
+    def __init__(self, nxelems, nyelems, Lx, Ly, r0=1.5, p=3.0,
+                 E0=1.0, nu=0.3):
         '''
-        The constructor for the topology optimization class. 
+        The constructor for the topology optimization class.
 
         This function sets up the data that is requried to perform a
         plane stress analysis of a square, plane stress structure.
         This is probably only useful for topology optimization.
         '''
-        super().__init__(MPI.COMM_SELF, nxelems*nyelems, 1)
+        super(TopoAnalysis, self).__init__(MPI.COMM_SELF, nxelems*nyelems, 1)
 
         self.nxelems = nxelems
         self.nyelems = nyelems
@@ -30,42 +30,29 @@ class TopoAnalysis(ParOpt.Problem):
         self.E0 = E0
         self.nu = 0.3
 
-        self.uvars = np.zeros((self.nxelems+1, self.nyelems+1), dtype=int)
-        self.vvars = np.zeros((self.nxelems+1, self.nyelems+1), dtype=int)
+        # Set the element variables and boundary conditions
+        self.nvars = 2*(self.nxelems+1)*(self.nyelems+1)
+        self.uvars = np.arange(0, self.nvars, 2, dtype=np.int).reshape(self.nyelems+1, -1)
+        self.vvars = np.arange(1, self.nvars, 2, dtype=np.int).reshape(self.nyelems+1, -1)
 
-        if default_bcs:
-            # Set the boundary conditions - these could be modified
-            for j in range(self.nyelems+1):
-                self.uvars[0, j] = -1
-                self.vvars[0, j] = -1
+        # Set the element variable values
+        self.nelems = self.nxelems*self.nyelems
+        self.elem_vars = np.zeros((self.nelems, 8), dtype=np.int)
 
-            self.initialize()
-        
-        return
+        for j in range(self.nyelems):
+            for i in range(self.nxelems):
+                elem = i + j*self.nxelems
+                self.elem_vars[elem, 0] = self.uvars[j,i]
+                self.elem_vars[elem, 1] = self.vvars[j,i]
+                self.elem_vars[elem, 2] = self.uvars[j,i+1]
+                self.elem_vars[elem, 3] = self.vvars[j,i+1]
+                self.elem_vars[elem, 4] = self.uvars[j+1,i]
+                self.elem_vars[elem, 5] = self.vvars[j+1,i]
+                self.elem_vars[elem, 6] = self.uvars[j+1,i+1]
+                self.elem_vars[elem, 7] = self.vvars[j+1,i+1]
 
-    def initialize(self):
-        '''
-        Initialize the finite-element problem set up for analys. 
-
-        This counts up the number of variables and applies the forces
-        to the problem. 
-        '''
-        
-        # Count up the number of variables in the problem
-        nvars = 0
-        for j in range(self.nyelems+1):
-            for i in range(self.nxelems+1):
-                # Set the state variable for x-displacement
-                if self.uvars[i, j] >= 0:
-                    self.uvars[i, j] = nvars
-                    nvars += 1
-
-                # Set the state variable for y-displacement 
-                if self.vvars[i, j] >= 0:
-                    self.vvars[i, j] = nvars
-                    nvars += 1
-
-        self.nvars = nvars
+        # Set the boundary conditions
+        self.bcs = np.hstack((self.uvars[:,0], self.vvars[:,0]))
 
         # Now, compute the filter weights and store them as a sparse
         # matrix
@@ -94,13 +81,14 @@ class TopoAnalysis(ParOpt.Problem):
 
                 # Set the weights into the filter matrix W
                 F[i + j*self.nxelems, wvars] = w
-                
+
         # Covert the matrix to a CSR data format
         self.F = F.tocsr()
 
         # Set the force vector
         self.f = np.zeros(self.nvars)
-        self.f[self.vvars[self.nxelems, 0]] = -1e3
+        self.f[self.vvars[0, self.nxelems]] = -1e3
+        self.f[self.bcs] = 0.0
 
         return
 
@@ -134,23 +122,76 @@ class TopoAnalysis(ParOpt.Problem):
 
         # Compute the Young's modulus in each element
         E = self.E0*xfilter**self.p
-            
+
         # Compute the stiffness
         self.analyze(E)
 
         # Return the compliance
         return 0.5*np.dot(self.f, self.u)
 
+
+    def analyze(self, E):
+        '''
+        Given the elastic modulus variable values, perform the
+        analysis and update the state variables.
+
+        This function sets up and solves the linear finite-element
+        problem with the given set of elastic moduli. Note that E > 0
+        (component wise).
+
+        Args:
+           E: An array of the elastic modulus for every element in the
+              plane stress domain
+        '''
+
+        # Compute the finite-element stiffness matrix
+        kelem = self.compute_kelem()
+
+        # Now, go through all the elements in the domain, add add the
+        # product of E times the element stiffness matrix to the
+        # global stiffness matrix
+
+        # Set all the values, (duplicate entries are added together)
+        data = np.zeros((self.nelems, 8, 8))
+        i = np.zeros((self.nelems, 8, 8), dtype=np.int)
+        j = np.zeros((self.nelems, 8, 8), dtype=np.int)
+        for k in range(self.nelems):
+            data[k] = E[k]*kelem
+            for kk in range(8):
+                i[k,:,kk] = self.elem_vars[k, :]
+                j[k,kk,:] = self.elem_vars[k, :]
+
+        # Assemble things as a COO format
+        K = sparse.coo_matrix((data.flatten(), (i.flatten(), j.flatten())),
+                              shape=(self.nvars, self.nvars))
+
+        # Convert to list-of-lists to apply BCS
+        K = K.tolil()
+        K[:, self.bcs] = 0.0
+        K[self.bcs, :] = 0.0
+        K[self.bcs, self.bcs] = 1.0
+
+        # Convert to csc format for factorization
+        self.K = K.tocsc()
+
+        # Solve the sparse linear system for the load vector
+        self.LU = linalg.dsolve.factorized(self.K)
+
+        # Compute the solution to the linear system K*u = f
+        self.u = self.LU(self.f)
+
+        return
+
     def compliance_grad(self, x):
         '''
         Compute the gradient of the compliance using the adjoint
-        method. 
+        method.
 
         Since the governing equations are self-adjoint, and the
-        function itself takes a special form: 
+        function itself takes a special form:
 
         K*psi = 0.5*f => psi = 0.5*u
-        
+
         So we can skip the adjoint computation itself since we have
         the displacement vector u from the solution.
 
@@ -167,27 +208,10 @@ class TopoAnalysis(ParOpt.Problem):
         # Sum up the contributions from each
         kelem = self.compute_kelem()
 
-        # Compute df/dE
-        for j in range(self.nyelems):
-            for i in range(self.nxelems):
-                # Retrieve the element variables from the
-                # finite-element solution vector
-                evars = np.zeros(8)
-
-                # Set up the element variables that are not on a
-                # Dirichlet boundary condition
-                gvars = [self.uvars[i, j], self.vvars[i, j],
-                         self.uvars[i+1, j], self.vvars[i+1, j],
-                         self.uvars[i, j+1], self.vvars[i, j+1],
-                         self.uvars[i+1, j+1], self.vvars[i+1, j+1]]
-                
-                # Add the values to the stiffness matrix
-                for ii in range(8):
-                    if gvars[ii] >= 0:
-                        evars[ii] = self.u[gvars[ii]]
-                        
-                dxfdE = self.E0*self.p*xfilter[i + j*self.nxelems]**(self.p - 1.0)
-                dcdxf[i + j*self.nxelems] = -0.5*np.dot(evars, np.dot(kelem, evars))*dxfdE
+        for i in range(self.nelems):
+            evars = self.u[self.elem_vars[i, :]]
+            dxfdE = self.E0*self.p*xfilter[i]**(self.p - 1.0)
+            dcdxf[i] = -0.5*np.dot(evars, np.dot(kelem, evars))*dxfdE
 
         # Now evaluate the effect of the filter
         dcdx = (self.F.transpose()).dot(dcdxf)
@@ -240,98 +264,6 @@ class TopoAnalysis(ParOpt.Problem):
 
         return kelem
 
-    def analyze(self, E):
-        '''
-        Given the elastic modulus variable values, perform the
-        analysis and update the state variables.
-
-        This function sets up and solves the linear finite-element
-        problem with the given set of elastic moduli. Note that E > 0
-        (component wise). 
-
-        Args:
-           E: An array of the elastic modulus for every element in the
-              plane stress domain
-        '''
-
-        # Compute the finite-element stiffness matrix
-        kelem = self.compute_kelem()
-
-        # Now, go through all the elements in the domain, add add the
-        # product of E times the element stiffness matrix to the
-        # global stiffness matrix        
-        K = sparse.lil_matrix((self.nvars, self.nvars))
-
-        for j in range(self.nyelems):
-            for i in range(self.nxelems):
-                # Set up the element variables that are not on a
-                # Dirichlet boundary condition
-                gvars = [self.uvars[i, j], self.vvars[i, j],
-                         self.uvars[i+1, j], self.vvars[i+1, j],
-                         self.uvars[i, j+1], self.vvars[i, j+1],
-                         self.uvars[i+1, j+1], self.vvars[i+1, j+1]]
-                
-                # Add the values to the stiffness matrix
-                for ii in range(8):
-                    if gvars[ii] >= 0:
-                        for jj in range(8):
-                            if gvars[jj] >= 0:
-                                K[gvars[ii], gvars[jj]] +=\
-                                             E[i + j*self.nxelems]*kelem[ii, jj]
-
-        # Convert to csc format
-        self.K = K.tocsc()
-
-        # Solve the sparse linear system for the load vector
-        self.LU = linalg.dsolve.factorized(self.K)
-        
-        # Compute the solution to the linear system K*u = f
-        self.u = self.LU(self.f)
-
-        return 
-
-    def eval_vm_stress(self, i, j):
-        '''
-        Evaluate the stress for the given element number
-        '''
-        
-        # Set up the element variables that are not on a
-        # Dirichlet boundary condition
-        gvars = [self.uvars[i, j], self.vvars[i, j],
-                 self.uvars[i+1, j], self.vvars[i+1, j],
-                 self.uvars[i, j+1], self.vvars[i, j+1],
-                 self.uvars[i+1, j+1], self.vvars[i+1, j+1]]
-                
-        # Add the values to the stiffness matrix
-        evars = np.zeros(8)
-        for ii in range(8):
-            if gvars[ii] >= 0:
-                evars[ii] = self.u[gvars[ii]]
-
-        # Compute the constitutivve matrix
-        C = np.array([[1.0, self.nu, 0.0],
-                      [self.nu, 1.0, 0.0],
-                      [0.0, 0.0, 0.5*(1.0 - self.nu)]])
-        C = 1.0/(1.0 - self.nu**2)*C
-
-        # Evaluate the derivative of the shape functions with
-        # respect to the x/y directions
-        Nx = 0.25*xi*np.array([-1.0, 1.0, -1.0, 1.0])
-        Ny = 0.25*eta*np.array([-1.0, -1.0, 1.0, 1.0])
-
-        # Evaluate the B matrix
-        xi = 2.0*self.nxelems/self.Lx
-        eta = 2.0*self.nyelems/self.Ly
-
-        B = np.array(
-            [[ Nx[0], 0.0, Nx[1], 0.0, Nx[2], 0.0, Nx[3], 0.0 ],
-             [ 0.0, Ny[0], 0.0, Ny[1], 0.0, Ny[2], 0.0, Ny[3] ],
-             [ Ny[0], Nx[0], Ny[1], Nx[1], Ny[2], Nx[2], Ny[3], Nx[3] ]])
-
-        s = self.E0*np.dot(C, np.dot(B, evars))
-
-        return np.sqrt(s[0]**2 + s[1]**2 - s[0]*s[1] + 3.0*s[2]**2)
-
     def getVarsAndBounds(self, x, lb, ub):
         '''Get the variable values and bounds'''
         lb[:] = 1e-3
@@ -346,8 +278,8 @@ class TopoAnalysis(ParOpt.Problem):
 
         fail = 0
         obj = self.compliance(x[:])
-        con = np.array([40.0 - self.mass(x[:])])
-        
+        con = np.array([0.4*self.Lx*self.Ly - self.mass(x[:])])
+
         return fail, obj, con
 
     def evalObjConGradient(self, x, g, A):
@@ -373,52 +305,60 @@ class TopoAnalysis(ParOpt.Problem):
             self.fig, self.ax = plt.subplots()
             plt.draw()
 
+        xfilter = self.F.dot(x)
+
         # Prepare a pixel visualization of the design vars
         image = np.zeros((self.nyelems, self.nxelems))
         for j in range(self.nyelems):
             for i in range(self.nxelems):
-                image[j, i] = x[i + j*self.nxelems]
+                image[j, i] = xfilter[i + j*self.nxelems]
 
         x = np.linspace(0, self.Lx, self.nxelems)
         y = np.linspace(0, self.Ly, self.nyelems)
 
         self.ax.contourf(x, y, image)
-        plt.axis('equal')
-        plt.savefig('topology.pdf')
+        self.ax.set_aspect('equal', 'box')
+        plt.draw()
+        plt.pause(0.001)
 
         return
 
 if __name__ == '__main__':
-    nxelems = 24
-    nyelems = 24
-    Lx = 5.0
+    nxelems = 3*48
+    nyelems = 48
+    Lx = 15.0
     Ly = 5.0
     problem = TopoAnalysis(nxelems, nyelems,
-                           Lx, Ly, E0=70e3)
+                           Lx, Ly, E0=70e3, r0=3)
     problem.checkGradients()
 
     # Create the quasi-Newton Hessian approximation
     qn = ParOpt.LBFGS(problem, subspace=10)
 
     # Create the trust region problem
-    tr_init_size = 0.05
+    tr_init_size = 0.02
     tr_min_size = 1e-6
-    tr_max_size = 10.0
-    tr_eta = 0.25
+    tr_max_size = 0.05
+    tr_eta = 0.2
     tr_penalty_gamma = 10.0
     tr = ParOpt.TrustRegion(problem, qn, tr_init_size,
                             tr_min_size, tr_max_size,
                             tr_eta, tr_penalty_gamma)
-    tr.setTrustRegionTolerances(0.0, 0.0, 0.0)
 
-    filename = 'topo_optimization.out'
+    # Set the tolerances
+    infeas_tol = 1e-4
+    l1_tol = 1e-3
+    linfty_tol = 1e-3
+    tr.setTrustRegionTolerances(infeas_tol, l1_tol, linfty_tol)
+
+    # Set the maximum number of iterations
+    tr.setMaxTrustRegionIterations(100)
 
     # Set up the optimization problem
     tr_opt = ParOpt.InteriorPoint(tr, 2, ParOpt.BFGS)
 
     # Set up the optimization problem
-    if filename is not None:
-        tr_opt.setOutputFile(filename)
+    tr_opt.setOutputFile('topo_optimization_paropt.out')
 
     # Set the tolerances
     tr_opt.setAbsOptimalityTol(1e-8)
@@ -432,6 +372,6 @@ if __name__ == '__main__':
     tr_opt.setBarrierFraction(0.1)
 
     # optimize
-    tr.setOutputFile(filename + '_tr')
+    tr.setOutputFile('topo_optimization_trust_region.out')
     tr.setPrintLevel(1)
     tr.optimize(tr_opt)
