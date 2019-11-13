@@ -5,7 +5,7 @@
 
 // Helper functions
 inline ParOptScalar min2( ParOptScalar a, ParOptScalar b ){
-  if (RealPart(a) < RealPart(b)){
+  if (ParOptRealPart(a) < ParOptRealPart(b)){
     return a;
   }
   else {
@@ -14,7 +14,7 @@ inline ParOptScalar min2( ParOptScalar a, ParOptScalar b ){
 }
 
 inline ParOptScalar max2( ParOptScalar a, ParOptScalar b ){
-  if (RealPart(a) > RealPart(b)){
+  if (ParOptRealPart(a) > ParOptRealPart(b)){
     return a;
   }
   else {
@@ -385,7 +385,7 @@ void ParOptMMA::computeKKTError( double *l1,
 
     for ( int j = 0; j < n; j++ ){
       // Find the contribution to the l1/infinity norms
-      double t = fabs(RealPart(r[j]));
+      double t = fabs(ParOptRealPart(r[j]));
       l1_norm += t;
       if (t >= infty_norm){
         infty_norm = t;
@@ -394,15 +394,15 @@ void ParOptMMA::computeKKTError( double *l1,
   }
   else {
     for ( int j = 0; j < n; j++ ){
-      double w = RealPart(r[j]);
+      double w = ParOptRealPart(r[j]);
 
       // Check if we're on the lower bound
-      if ((x[j] <= lb[j] + bound_relax) && w > 0.0){
+      if ((ParOptRealPart(x[j]) <= ParOptRealPart(lb[j]) + bound_relax) && w > 0.0){
         w = 0.0;
       }
 
       // Check if we're on the upper bound
-      if ((x[j] >= ub[j] - bound_relax) && w < 0.0){
+      if ((ParOptRealPart(x[j]) >= ParOptRealPart(ub[j]) - bound_relax) && w < 0.0){
         w = 0.0;
       }
 
@@ -418,7 +418,7 @@ void ParOptMMA::computeKKTError( double *l1,
   // Measure the infeasibility using the l1 norm
   *infeas = 0.0;
   for ( int i = 0; i < m; i++ ){
-    *infeas += fabs(RealPart(min2(0.0, cons[i])));
+    *infeas += fabs(ParOptRealPart(min2(0.0, cons[i])));
   }
 
   // All-reduce the norms across all processors
@@ -500,7 +500,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
     if (fp){
       double l1_lambda = 0.0;
       for ( int i = 0; i < m; i++ ){
-        l1_lambda += fabs(RealPart(z[i]));
+        l1_lambda += fabs(ParOptRealPart(z[i]));
       }
 
       if (first_print){
@@ -512,7 +512,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
                 "linft-opt", "l1-lambd", "infeas");
       }
       fprintf(fp, "%5d %8d %15.6e %9.3e %9.3e %9.3e %9.3e\n",
-              mma_iter, subproblem_iter, fobj, l1,
+              mma_iter, subproblem_iter, ParOptRealPart(fobj), l1,
               linfty, l1_lambda, infeas);
       fflush(fp);
 
@@ -560,7 +560,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
       ParOptScalar intrvl = max2(ub[j] - lb[j], 0.01);
       intrvl = min2(intrvl, 100.0);
 
-      if (RealPart(indc) < 0.0){
+      if (ParOptRealPart(indc) < 0.0){
         // oscillation -> contract the asymptotes
         L[j] = x[j] - asymptote_contract*(x1[j] - Lprev);
         U[j] = x[j] + asymptote_contract*(Uprev - x1[j]);
@@ -658,16 +658,16 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
 
   // Check that the asymptotes, limits and variables are well-defined
   for ( int j = 0; j < n; j++ ){
-    if (!(L[j] < alpha[j])){
+    if (!(ParOptRealPart(L[j]) < ParOptRealPart(alpha[j]))){
       fprintf(stderr, "ParOptMMA: Inconsistent lower asymptote\n");
     }
-    if (!(alpha[j] <= x[j])){
+    if (!(ParOptRealPart(alpha[j]) <= ParOptRealPart(x[j]))){
       fprintf(stderr, "ParOptMMA: Inconsistent lower limit\n");
     }
-    if (!(x[j] <= beta[j])){
+    if (!(ParOptRealPart(x[j]) <= ParOptRealPart(beta[j]))){
       fprintf(stderr, "ParOptMMA: Inconsistent upper limit\n");
     }
-    if (!(beta[j] < U[j])){
+    if (!(ParOptRealPart(beta[j]) < ParOptRealPart(U[j]))){
       fprintf(stderr, "ParOptMMA: Inconsistent upper assymptote\n");
     }
   }

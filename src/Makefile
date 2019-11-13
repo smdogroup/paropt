@@ -6,6 +6,7 @@ OBJS = ParOptInteriorPoint.o \
 	ParOptQuasiNewton.o \
 	ParOptMMA.o \
 	ParOptTrustRegion.o \
+	ParOptProblem.o \
 	CyParOptProblem.o
 
 default: ${OBJS}

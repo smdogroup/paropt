@@ -40,6 +40,9 @@ complex:
 interface:
 	${PYTHON} setup.py build_ext --inplace
 
+complex_interface:
+	${PYTHON} setup.py build_ext --inplace --define PAROPT_USE_COMPLEX
+
 clean:
 	${RM} lib/libparopt.a lib/*.so
 	${RM} paropt/*.so paropt/*.cpp

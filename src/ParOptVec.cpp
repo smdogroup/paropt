@@ -79,8 +79,8 @@ double ParOptBasicVec::norm(){
 double ParOptBasicVec::maxabs(){
   double res = 0.0;
   for ( int i = 0; i < size; i++ ){
-    if (fabs(RealPart(x[i])) > res){
-      res = fabs(RealPart(x[i]));
+    if (fabs(ParOptRealPart(x[i])) > res){
+      res = fabs(ParOptRealPart(x[i]));
     }
   }
 
@@ -98,7 +98,7 @@ double ParOptBasicVec::maxabs(){
 double ParOptBasicVec::l1norm(){
   double res = 0.0;
   for ( int i = 0; i < size; i++ ){
-    res += fabs(RealPart(x[i]));
+    res += fabs(ParOptRealPart(x[i]));
   }
 
   double l1_norm = 0.0;

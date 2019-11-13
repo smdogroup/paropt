@@ -447,6 +447,17 @@ cdef class ProblemBase:
         vec = self.ptr.createConstraintVec()
         return _init_PVec(vec)
 
+    def checkGradients(self, double dh=1e-6, PVec x=None,
+                       check_hvec_product=False):
+        cdef ParOptVec *vec = NULL
+        cdef int check_hvec = 0
+        if x is not None:
+            vec = x.ptr
+        if check_hvec_product:
+            check_hvec = 1
+        self.ptr.checkGradients(dh, vec, check_hvec)
+        return
+
 cdef class Problem(ProblemBase):
     cdef CyParOptProblem *me
     def __init__(self, MPI.Comm comm, int nvars, int ncon,
@@ -885,7 +896,6 @@ cdef class InteriorPoint:
         g = <double*>malloc(num_gam*sizeof(double));
         for i in range(num_gam):
             g[i] = <double>gamma[i];
-
 
         self.ptr.setPenaltyGamma(g)
         free(g)

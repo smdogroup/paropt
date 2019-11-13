@@ -38,7 +38,7 @@ static const char *trust_regions_parameter_help[][2] = {
 
 // Helper functions
 inline ParOptScalar min2( ParOptScalar a, ParOptScalar b ){
-  if (RealPart(a) < RealPart(b)){
+  if (ParOptRealPart(a) < ParOptRealPart(b)){
     return a;
   }
   else {
@@ -47,7 +47,7 @@ inline ParOptScalar min2( ParOptScalar a, ParOptScalar b ){
 }
 
 inline ParOptScalar max2( ParOptScalar a, ParOptScalar b ){
-  if (RealPart(a) > RealPart(b)){
+  if (ParOptRealPart(a) > ParOptRealPart(b)){
     return a;
   }
   else {
@@ -382,13 +382,15 @@ void ParOptTrustRegion::update( ParOptVec *xt,
             "Constraints", "i", "c(x)", "c(x+p)", "c+Ap", "gamma");
     for ( int i = 0; i < m; i++ ){
       fprintf(outfp, "%12s %2d %9.2e %9.2e %9.2e %9.2e\n",
-              " ", i, ck[i], ct[i], cvals[i], penalty_gamma[i]);
+              " ", i, ParOptRealPart(ck[i]), ParOptRealPart(ct[i]),
+              ParOptRealPart(cvals[i]), penalty_gamma[i]);
     }
     fprintf(outfp, "\n%-15s %9s %9s %9s %9s\n",
             "Model", "ared(f)", "pred(f)", "ared(c)", "pred(c)");
     fprintf(outfp, "%15s %9.2e %9.2e %9.2e %9.2e\n",
-            " ", fk - ft, obj_reduc,
-            infeas_k-infeas_t, infeas_k-infeas_model);
+            " ", ParOptRealPart(fk - ft), ParOptRealPart(obj_reduc),
+            ParOptRealPart(infeas_k - infeas_t),
+            ParOptRealPart(infeas_k - infeas_model));
   }
   delete [] cvals;
 
@@ -424,14 +426,14 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   for ( int i = 0; i < m; i++ ){
     infeas_new += max2(0.0, -ct[i]);
   }
-  *infeas = RealPart(infeas_new);
+  *infeas = ParOptRealPart(infeas_new);
 
   // Compute the max absolute value
-  double smax = RealPart(s->maxabs());
+  double smax = ParOptRealPart(s->maxabs());
 
   // Check whether to accept the new point or not. If the trust region
   // radius size is at the lower bound, the step is always accepted
-  if (RealPart(rho) >= eta || tr_size <= tr_min_size){
+  if (ParOptRealPart(rho) >= eta || tr_size <= tr_min_size){
     fk = ft;
     xk->copyValues(xt);
     gk->copyValues(gt);
@@ -446,12 +448,12 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   }
 
   // Set the new trust region radius
-  if (RealPart(rho) < 0.25){
-    tr_size = max2(0.25*tr_size, tr_min_size);
+  if (ParOptRealPart(rho) < 0.25){
+    tr_size = ParOptRealPart(max2(0.25*tr_size, tr_min_size));
   }
-  else if (RealPart(rho) > 0.75 &&
+  else if (ParOptRealPart(rho) > 0.75 &&
            smax >= 0.95*tr_size){
-    tr_size = min2(2.0*tr_size, tr_max_size);
+    tr_size = ParOptRealPart(min2(2.0*tr_size, tr_max_size));
   }
 
   // Reset the trust region radius bounds
@@ -460,10 +462,10 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   // Keep track of the max z/average z and max gamma/average gamma
   double zmax = 0.0, zav = 0.0, gmax = 0.0, gav = 0.0;
   for ( int i = 0; i < m; i++ ){
-    zav += RealPart(z[i]);
+    zav += ParOptRealPart(z[i]);
     gav += penalty_gamma[i];
-    if (RealPart(z[i]) > zmax){
-      zmax = RealPart(z[i]);
+    if (ParOptRealPart(z[i]) > zmax){
+      zmax = ParOptRealPart(z[i]);
     }
     if (penalty_gamma[i] > gmax){
       gmax = penalty_gamma[i];
@@ -487,8 +489,9 @@ void ParOptTrustRegion::update( ParOptVec *xt,
     fprintf(outfp,
             "%5d %12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e "
             "%9.2e %9.2e %9.2e %9.2e\n",
-            iter_count, fk, *infeas, *l1, *linfty, smax, tr_size, rho,
-            model_reduc, zav/m, zmax, gav/m, gmax);
+            iter_count, ParOptRealPart(fk), *infeas, *l1, *linfty, smax, tr_size,
+            ParOptRealPart(rho), ParOptRealPart(model_reduc),
+            zav/m, zmax, gav/m, gmax);
     fflush(outfp);
   }
 
@@ -569,7 +572,7 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
   optimizer->setUseQuasiNewtonUpdates(0); // Don't update the Hessian here
 
   // Set the initial values for gamma from the internal
-  const double *temp_gamma = new double[m];
+  const double *temp_gamma = new double[ m ];
   optimizer->getPenaltyGamma(&temp_gamma);
   for (int i = 0; i < m; i++){
     penalty_gamma[i] = temp_gamma[i];
@@ -679,8 +682,8 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
       for ( int i = 0; i < m; i++ ){
         // Compute the actual infeasibility reduction and the best
         // possible infeasibility reduction
-        double infeas_reduction = con_infeas[i] - model_con_infeas[i];
-        double best_reduction = con_infeas[i] - best_con_infeas[i];
+        double infeas_reduction = ParOptRealPart(con_infeas[i] - model_con_infeas[i]);
+        double best_reduction = ParOptRealPart(con_infeas[i] - best_con_infeas[i]);
 
         char info[8];
         if (print_level > 0){
@@ -691,20 +694,20 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
         // and the constraints are satisfied, decrease the penalty
         // parameter. Otherwise, if the best case infeasibility is
         // significantly better, increase the penalty parameter.
-        if (z[i] > infeas_tol &&
-            con_infeas[i] < infeas_tol &&
-            penalty_gamma[i] >= 2.0*z[i]){
+        if (ParOptRealPart(z[i]) > infeas_tol &&
+            ParOptRealPart(con_infeas[i]) < infeas_tol &&
+            penalty_gamma[i] >= 2.0*ParOptRealPart(z[i])){
           // Reduce gamma
-          penalty_gamma[i] = 0.5*(penalty_gamma[i] + z[i]);
+          penalty_gamma[i] = 0.5*(penalty_gamma[i] + ParOptRealPart(z[i]));
           if (print_level > 0){
             sprintf(info, "decr");
           }
         }
-        else if (con_infeas[i] > infeas_tol &&
+        else if (ParOptRealPart(con_infeas[i]) > infeas_tol &&
                  0.995*best_reduction > infeas_reduction){
           // Increase gamma
-          penalty_gamma[i] = min2(1.5*penalty_gamma[i],
-                                  penalty_gamma_max);
+          penalty_gamma[i] = ParOptRealPart(min2(1.5*penalty_gamma[i],
+                                                 penalty_gamma_max));
           if (print_level > 0){
             sprintf(info, "incr");
           }
@@ -712,7 +715,9 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
 
         if (mpi_rank == 0 && print_level > 0){
                 fprintf(outfp, "%12s %2d %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9s\n",
-                        " ", i, con_infeas[i], model_con_infeas[i], best_con_infeas[i],
+                        " ", i, ParOptRealPart(con_infeas[i]),
+                        ParOptRealPart(model_con_infeas[i]),
+                        ParOptRealPart(best_con_infeas[i]),
                         infeas_reduction, best_reduction, penalty_gamma[i], info);
         }
       }
@@ -773,15 +778,15 @@ void ParOptTrustRegion::computeKKTError( ParOptVec *xv,
   t->getArray(&r);
 
   for ( int j = 0; j < n; j++ ){
-    double w = RealPart(r[j]);
+    double w = ParOptRealPart(r[j]);
 
     // Check if we're on the lower bound
-    if ((x[j] <= l[j] + bound_relax) && w > 0.0){
+    if ((ParOptRealPart(x[j]) <= ParOptRealPart(l[j]) + bound_relax) && w > 0.0){
       w = 0.0;
     }
 
     // Check if we're on the upper bound
-    if ((x[j] >= u[j] - bound_relax) && w < 0.0){
+    if ((ParOptRealPart(x[j]) >= ParOptRealPart(u[j]) - bound_relax) && w < 0.0){
       w = 0.0;
     }
 

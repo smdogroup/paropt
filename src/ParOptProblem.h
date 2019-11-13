@@ -277,6 +277,15 @@ class ParOptProblem : public ParOptBase {
   virtual void addSparseInnerProduct( ParOptScalar alpha, ParOptVec *x,
                                       ParOptVec *cvec, ParOptScalar *A ){}
 
+  /**
+    Check the objective and constraint gradients for this problem instance
+
+    @param dh Finite difference step size used for verification
+    @param x The design vector at which point to check the gradient (can be NULL)
+  */
+  void checkGradients( double dh, ParOptVec *x=NULL,
+                       int check_hvec_product=0 );
+
   //! Implement this function if you'd like to print out
   //! something with the same frequency as the output files
   // ------------------------------------------------------

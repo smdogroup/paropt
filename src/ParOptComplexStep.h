@@ -8,17 +8,17 @@
 */
 
 // Define the real part function for the complex data type
-inline double RealPart( const std::complex<double>& c ){
+inline double ParOptRealPart( const std::complex<double>& c ){
   return real(c);
 }
 
 // Define the imaginary part function for the complex data type
-inline double ImagPart( const std::complex<double>& c ){
+inline double ParOptImagPart( const std::complex<double>& c ){
   return imag(c);
 }
 
 // Dummy function for real part
-inline double RealPart( const double& r ){
+inline double ParOptRealPart( const double& r ){
   return r;
 }
 
