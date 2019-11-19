@@ -285,7 +285,7 @@ void ParOptProblem::checkGradients( double dh, ParOptVec *xvec,
       cvals[i] = 0.05 + 0.25*(i % 37);
     }
 
-    // Check the inner product pzw^{T}*J(x)*cvec*J(x)^{T}*pzw against the
+    // Check the inner product zw^{T}*J(x)*cvec*J(x)^{T}*zw against the
     // matrix Cw
     ParOptScalar *Cw = new ParOptScalar[ nwcon*(nwblock+1)/2 ];
     memset(Cw, 0, nwcon*(nwblock+1)/2*sizeof(ParOptScalar));
@@ -301,7 +301,7 @@ void ParOptProblem::checkGradients( double dh, ParOptVec *xvec,
     }
     cw->zeroEntries();
     addSparseJacobian(1.0, x, px, cw);
-    d1 = px->dot(zw);
+    d1 = cw->dot(zw);
 
     // Set the pointer into the Cw
     d2 = 0.0;
