@@ -11,7 +11,7 @@ from paropt import ParOpt
 
 class TopoAnalysis(ParOpt.Problem):
     def __init__(self, nxelems, nyelems, Lx, Ly, r0=1.5, p=3.0,
-                 E0=1.0, nu=0.3):
+                 E0=1.0, nu=0.3, kappa=1.0, thermal_problem=False):
         '''
         The constructor for the topology optimization class.
 
@@ -28,31 +28,65 @@ class TopoAnalysis(ParOpt.Problem):
         self.r0 = r0
         self.p = p
         self.E0 = E0
-        self.nu = 0.3
+        self.nu = nu
+        self.kappa0 = kappa
+        self.thermal_problem = thermal_problem
 
-        # Set the element variables and boundary conditions
-        self.nvars = 2*(self.nxelems+1)*(self.nyelems+1)
-        self.uvars = np.arange(0, self.nvars, 2, dtype=np.int).reshape(self.nyelems+1, -1)
-        self.vvars = np.arange(1, self.nvars, 2, dtype=np.int).reshape(self.nyelems+1, -1)
-
-        # Set the element variable values
         self.nelems = self.nxelems*self.nyelems
-        self.elem_vars = np.zeros((self.nelems, 8), dtype=np.int)
 
-        for j in range(self.nyelems):
-            for i in range(self.nxelems):
-                elem = i + j*self.nxelems
-                self.elem_vars[elem, 0] = self.uvars[j,i]
-                self.elem_vars[elem, 1] = self.vvars[j,i]
-                self.elem_vars[elem, 2] = self.uvars[j,i+1]
-                self.elem_vars[elem, 3] = self.vvars[j,i+1]
-                self.elem_vars[elem, 4] = self.uvars[j+1,i]
-                self.elem_vars[elem, 5] = self.vvars[j+1,i]
-                self.elem_vars[elem, 6] = self.uvars[j+1,i+1]
-                self.elem_vars[elem, 7] = self.vvars[j+1,i+1]
+        if self.thermal_problem:
+            # Set the element variables and boundary conditions
+            self.nvars = (self.nxelems+1)*(self.nyelems+1)
+            self.tvars = np.arange(0, self.nvars, dtype=np.int).reshape(self.nyelems+1, -1)
 
-        # Set the boundary conditions
-        self.bcs = np.hstack((self.uvars[:,0], self.vvars[:,0]))
+            # Set the element variable values
+            self.elem_vars = np.zeros((self.nelems, 4), dtype=np.int)
+
+            for j in range(self.nyelems):
+                for i in range(self.nxelems):
+                    elem = i + j*self.nxelems
+                    self.elem_vars[elem, 0] = self.tvars[j,i]
+                    self.elem_vars[elem, 1] = self.tvars[j,i+1]
+                    self.elem_vars[elem, 2] = self.tvars[j+1,i]
+                    self.elem_vars[elem, 3] = self.tvars[j+1,i+1]
+
+            # Set the boundary conditions
+            self.bcs = np.hstack((self.tvars[:,0]))
+
+            # Set the thermal load - a constant source throughout the domain
+            self.f = np.zeros(self.nvars)
+            for elem in range(self.nelems):
+                self.f[self.elem_vars[elem, :]] += 1.0
+            self.f[self.tvars[0, self.nxelems]] = 0.0
+            self.f[self.bcs] = 0.0
+        else:
+            # Set the element variables and boundary conditions
+            self.nvars = 2*(self.nxelems+1)*(self.nyelems+1)
+            self.uvars = np.arange(0, self.nvars, 2, dtype=np.int).reshape(self.nyelems+1, -1)
+            self.vvars = np.arange(1, self.nvars, 2, dtype=np.int).reshape(self.nyelems+1, -1)
+
+            # Set the element variable values
+            self.elem_vars = np.zeros((self.nelems, 8), dtype=np.int)
+
+            for j in range(self.nyelems):
+                for i in range(self.nxelems):
+                    elem = i + j*self.nxelems
+                    self.elem_vars[elem, 0] = self.uvars[j,i]
+                    self.elem_vars[elem, 1] = self.vvars[j,i]
+                    self.elem_vars[elem, 2] = self.uvars[j,i+1]
+                    self.elem_vars[elem, 3] = self.vvars[j,i+1]
+                    self.elem_vars[elem, 4] = self.uvars[j+1,i]
+                    self.elem_vars[elem, 5] = self.vvars[j+1,i]
+                    self.elem_vars[elem, 6] = self.uvars[j+1,i+1]
+                    self.elem_vars[elem, 7] = self.vvars[j+1,i+1]
+
+            # Set the boundary conditions
+            self.bcs = np.hstack((self.uvars[:,0], self.vvars[:,0]))
+
+            # Set the force vector
+            self.f = np.zeros(self.nvars)
+            self.f[self.vvars[0, self.nxelems]] = -1e3
+            self.f[self.bcs] = 0.0
 
         # Now, compute the filter weights and store them as a sparse
         # matrix
@@ -85,11 +119,6 @@ class TopoAnalysis(ParOpt.Problem):
         # Covert the matrix to a CSR data format
         self.F = F.tocsr()
 
-        # Set the force vector
-        self.f = np.zeros(self.nvars)
-        self.f[self.vvars[0, self.nxelems]] = -1e3
-        self.f[self.bcs] = 0.0
-
         return
 
     def mass(self, x):
@@ -120,17 +149,18 @@ class TopoAnalysis(ParOpt.Problem):
         # matrix-vector multiplicataion
         xfilter = self.F.dot(x)
 
-        # Compute the Young's modulus in each element
-        E = self.E0*xfilter**self.p
-
-        # Compute the stiffness
-        self.analyze(E)
+        if self.thermal_problem:
+            kappa = self.kappa0*xfilter**self.p
+            self.analyze_thermal(kappa)
+        else:
+            # Compute the Young's modulus in each element
+            E = self.E0*xfilter**self.p
+            self.analyze_structure(E)
 
         # Return the compliance
         return 0.5*np.dot(self.f, self.u)
 
-
-    def analyze(self, E):
+    def analyze_structure(self, E):
         '''
         Given the elastic modulus variable values, perform the
         analysis and update the state variables.
@@ -145,11 +175,7 @@ class TopoAnalysis(ParOpt.Problem):
         '''
 
         # Compute the finite-element stiffness matrix
-        kelem = self.compute_kelem()
-
-        # Now, go through all the elements in the domain, add add the
-        # product of E times the element stiffness matrix to the
-        # global stiffness matrix
+        kelem = self.compute_element_stiffness()
 
         # Set all the values, (duplicate entries are added together)
         data = np.zeros((self.nelems, 8, 8))
@@ -182,43 +208,7 @@ class TopoAnalysis(ParOpt.Problem):
 
         return
 
-    def compliance_grad(self, x):
-        '''
-        Compute the gradient of the compliance using the adjoint
-        method.
-
-        Since the governing equations are self-adjoint, and the
-        function itself takes a special form:
-
-        K*psi = 0.5*f => psi = 0.5*u
-
-        So we can skip the adjoint computation itself since we have
-        the displacement vector u from the solution.
-
-        d(compliance)/dx = - 0.5*u^{T}*d(K*u - f)/dx = - 0.5*u^{T}*dK/dx*u
-        '''
-
-        # Compute the filtered variables
-        xfilter = self.F.dot(x)
-
-        # First compute the derivative with respect to the filtered
-        # variables
-        dcdxf = np.zeros(x.shape)
-
-        # Sum up the contributions from each
-        kelem = self.compute_kelem()
-
-        for i in range(self.nelems):
-            evars = self.u[self.elem_vars[i, :]]
-            dxfdE = self.E0*self.p*xfilter[i]**(self.p - 1.0)
-            dcdxf[i] = -0.5*np.dot(evars, np.dot(kelem, evars))*dxfdE
-
-        # Now evaluate the effect of the filter
-        dcdx = (self.F.transpose()).dot(dcdxf)
-
-        return dcdx
-
-    def compute_kelem(self):
+    def compute_element_stiffness(self):
         '''
         Compute the element stiffness matrix using a Gauss quadrature
         scheme.
@@ -263,6 +253,132 @@ class TopoAnalysis(ParOpt.Problem):
                 kelem += area*np.dot(B.transpose(), np.dot(C, B))
 
         return kelem
+
+    def analyze_thermal(self, kappa):
+        '''
+        Given the thermal conductivity, perform the analysis and update the state variables.
+
+        This function sets up and solves the linear finite-element
+        problem with the given set of thermal conductivities.
+
+        Args:
+           kappa: An array of the thermal conductivities for every element in the domain
+        '''
+
+        # Compute the finite-element stiffness matrix
+        kelem = self.compute_element_thermal()
+
+        # Set all the values, (duplicate entries are added together)
+        data = np.zeros((self.nelems, 4, 4))
+        i = np.zeros((self.nelems, 4, 4), dtype=np.int)
+        j = np.zeros((self.nelems, 4, 4), dtype=np.int)
+        for k in range(self.nelems):
+            data[k] = kappa[k]*kelem
+            for kk in range(4):
+                i[k,:,kk] = self.elem_vars[k, :]
+                j[k,kk,:] = self.elem_vars[k, :]
+
+        # Assemble things as a COO format
+        K = sparse.coo_matrix((data.flatten(), (i.flatten(), j.flatten())),
+                              shape=(self.nvars, self.nvars))
+
+        # Convert to list-of-lists to apply BCS
+        K = K.tolil()
+        K[:, self.bcs] = 0.0
+        K[self.bcs, :] = 0.0
+        K[self.bcs, self.bcs] = 1.0
+
+        # Convert to csc format for factorization
+        self.K = K.tocsc()
+
+        # Solve the sparse linear system for the load vector
+        self.LU = linalg.dsolve.factorized(self.K)
+
+        # Compute the solution to the linear system K*u = f
+        self.u = self.LU(self.f)
+
+        return
+
+    def compute_element_thermal(self):
+        '''
+        Compute the element stiffness matrix using a Gauss quadrature
+        scheme.
+
+        Note that this code assumes that all elements are uniformly
+        rectangular and so the same element stiffness matrix can be
+        used for every element.
+        '''
+
+        # Compute the element stiffness matrix
+        gauss_pts = [-1.0/np.sqrt(3.0), 1.0/np.sqrt(3.0)]
+
+        # Create the 8 x 8 element stiffness matrix
+        kelem = np.zeros((4, 4))
+        B = np.zeros((2, 4))
+
+        # Set the terms for the area-dependences
+        xi = 2.0*self.nxelems/self.Lx
+        eta = 2.0*self.nyelems/self.Ly
+        area = 1.0/(xi*eta)
+
+        for x in gauss_pts:
+            for y in gauss_pts:
+                # Evaluate the derivative of the shape functions with
+                # respect to the x/y directions
+                Nx = 0.25*xi*np.array([y - 1.0, 1.0 - y, -1.0 - y, 1.0 + y])
+                Ny = 0.25*eta*np.array([x - 1.0, -1.0 - x, 1.0 - x, 1.0 + x])
+
+                B = np.array([Nx, Ny])
+
+                # Add the contribution to the stiffness matrix
+                kelem += area*np.dot(B.transpose(), B)
+
+        return kelem
+
+    def compliance_grad(self, x):
+        '''
+        Compute the gradient of the compliance using the adjoint
+        method.
+
+        Since the governing equations are self-adjoint, and the
+        function itself takes a special form:
+
+        K*psi = 0.5*f => psi = 0.5*u
+
+        So we can skip the adjoint computation itself since we have
+        the displacement vector u from the solution.
+
+        d(compliance)/dx = - 0.5*u^{T}*d(K*u - f)/dx = - 0.5*u^{T}*dK/dx*u
+        '''
+
+        # Compute the filtered variables
+        xfilter = self.F.dot(x)
+
+        # First compute the derivative with respect to the filtered
+        # variables
+        dcdxf = np.zeros(x.shape)
+
+        if self.thermal_problem:
+            # Sum up the contributions from each
+            kelem = self.compute_element_thermal()
+
+            for i in range(self.nelems):
+                evars = self.u[self.elem_vars[i, :]]
+                dxfdE = self.kappa0*self.p*xfilter[i]**(self.p - 1.0)
+                dcdxf[i] = -0.5*np.dot(evars, np.dot(kelem, evars))*dxfdE
+        else:
+            # Sum up the contributions from each
+            kelem = self.compute_element_stiffness()
+
+            for i in range(self.nelems):
+                evars = self.u[self.elem_vars[i, :]]
+                dxfdE = self.E0*self.p*xfilter[i]**(self.p - 1.0)
+                dcdxf[i] = -0.5*np.dot(evars, np.dot(kelem, evars))*dxfdE
+
+        # Now evaluate the effect of the filter
+        dcdx = (self.F.transpose()).dot(dcdxf)
+
+        return dcdx
 
     def getVarsAndBounds(self, x, lb, ub):
         '''Get the variable values and bounds'''
@@ -324,12 +440,13 @@ class TopoAnalysis(ParOpt.Problem):
         return
 
 if __name__ == '__main__':
-    nxelems = 3*48
-    nyelems = 48
-    Lx = 15.0
-    Ly = 5.0
+    nxelems = 128
+    nyelems = 128
+    Lx = 8.0
+    Ly = 8.0
     problem = TopoAnalysis(nxelems, nyelems,
-                           Lx, Ly, E0=70e3, r0=3)
+                           Lx, Ly, E0=70e3, r0=3, kappa=70e3,
+                           thermal_problem=True)
     problem.checkGradients()
 
     # Create the quasi-Newton Hessian approximation
