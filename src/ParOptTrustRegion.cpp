@@ -571,12 +571,7 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
   optimizer->setQuasiNewton(qn);
   optimizer->setUseQuasiNewtonUpdates(0); // Don't update the Hessian here
 
-  // Set the initial values for gamma from the internal
-  const double *temp_gamma = new double[ m ];
-  optimizer->getPenaltyGamma(&temp_gamma);
-  for (int i = 0; i < m; i++){
-    penalty_gamma[i] = temp_gamma[i];
-  }
+  // Set the initial values for gamma
   optimizer->setPenaltyGamma(penalty_gamma);
 
   // Allocate arrays to store infeasibility information
