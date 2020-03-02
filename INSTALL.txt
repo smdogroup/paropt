@@ -1,0 +1,118 @@
+Installing ParOpt on MacOS
+--------------------------
+Prerequisites:
+- Assumes you already have python3. If not, you can install it with homebrew (or your preference)
+
+Notes:
+- This was done on Mac OS 10.13.6 but should work on most recently updated versions.
+- This assumes installation using python3 but it can be done with python2 as well
+
+
+0) Open a terminal window and go to the home directory. 
+$ cd ~
+
+1) Download Xcode
+
+2) Install homebrew if needed
+	- In a terminal window, run
+$ ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+
+	- Open your .bash_profile file under the home directory. At the bottom, add
+export PATH=/usr/local/bin:/usr/local/sbin:$PATH
+	- Then in the terminal, run
+$ source .bash_profile
+	- Note: from here, know that any time you add something to .bash_profile, you will have to run source .bash_profile afterwards each time
+
+3) Install openmpi
+$ brew install open-mpi
+
+4) Install python packages
+$ pip3 install numpy
+$ pip3 install Cython
+$ pip3 install mpi4py
+$ pip3 install matplotlib
+
+5) Modify .bash_profile again. Add:
+export PYTHONPATH=$PYTHONPATH:"Users/<your username>/git/"
+
+5) Set up the directory and clone ParOpt from GitHub:
+$ mkdir git
+$ git clone https://github.com/gjkennedy/paropt.git
+$ cd paropt
+$ cp Makefile.in.info Makefile.in
+
+6) Open Makefile.in. Uncomment the region where it says "For MAC OS X, use the following settings", and comment the similar statement above it about linux.
+
+7) Make it. Run:
+$ make
+
+8) Make the interface to python. Run:
+$ python3 setup.py install
+$ make interface
+
+9) Check that the python link is in place. Open a python terminal outside of the paropt 
+   directory:
+$ cd ..
+$ python3
+$ from paropt import ParOpt
+$ <exit> CTRL+D
+
+10) Done! Now try an example:
+$ cd paropt/examples/python/
+$ python3 toy.py
+
+Installing ParOpt on Linux
+--------------------------
+Prerequisites:
+- Assumes you already have python3 and git installed
+Notes:
+- This assumes installation using python3 but it can be done with python2 as well
+- Need root privileges to install some libraries
+
+0) Open a terminal window and go to the home directory.
+$ cd ~
+
+1) Install libraries
+$ sudo apt-get install libblas-dev
+$ sudo apt-get install liblapack-dev
+$ sudo apt-get install libopenmpi-dev
+$ sudo apt-get install openmpi-bin
+
+2) Install python packages
+$ pip3 install --upgrade pip
+$ pip3 install numpy
+$ pip3 install Cython
+$ pip3 install mpi4py
+$ pip3 install matplotlib
+
+3) Modify the .bashrc file by adding the following lines to the end of it:
+export PYTHONPATH=${PYTHONPATH}:${HOME}/git/paropt
+export PAROPT_DIR=/home/<username>/git/paropt
+PATH=$PATH:$PAROPT_DIR
+
+4) Apply the changes to the .bashrc file:
+$ source .bashrc
+
+5) Set up the directory and clone ParOpt from GitHub:
+$ mkdir git
+$ git clone https://github.com/gjkennedy/paropt.git
+$ cd paropt
+$ cp Makefile.in.info Makefile.in
+
+6) Make it. Run:
+$ make
+
+7) Make the interface to python. Run:
+$ python3 setup.py install
+$ make interface
+
+8) Check that the python link is in place. Open a python terminal outside of the paropt 
+   directory:
+$ cd ..
+$ python3
+$ from paropt import ParOpt
+$ <exit> CTRL+D
+
+9) Done! Now try an example:
+$ cd paropt/examples/python/
+$ python3 toy.py
