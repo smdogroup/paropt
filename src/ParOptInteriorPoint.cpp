@@ -10,7 +10,7 @@
   each parameter and how you should set it.
 */
 
-static const int NUM_PAROPT_PARAMETERS = 33;
+static const int NUM_PAROPT_PARAMETERS = 34;
 static const char *paropt_parameter_help[][2] = {
   {"max_qn_size",
    "Integer: The maximum dimension of the quasi-Newton approximation"},
@@ -32,6 +32,9 @@ static const char *paropt_parameter_help[][2] = {
 
   {"rel_func_tol",
    "Float: Relative function value stopping criterion"},
+
+  {"abs_step_tol",
+   "Float: Absolute stopping norm on the step size"},
 
   {"use_line_search",
    "Boolean: Perform or skip the line search"},
@@ -346,6 +349,7 @@ ParOptInteriorPoint::ParOptInteriorPoint( ParOptProblem *_prob,
   rel_bound_barrier = 1.0;
   abs_res_tol = 1e-5;
   rel_func_tol = 0.0;
+  abs_step_tol = 0.0;
   use_line_search = 1;
   use_backtracking_alpha = 0;
   max_line_iters = 10;
@@ -717,6 +721,7 @@ void ParOptInteriorPoint::printOptionSummary( FILE *fp ){
     fprintf(fp, "%-30s %15g\n", "barrier_param", barrier_param);
     fprintf(fp, "%-30s %15g\n", "abs_res_tol", abs_res_tol);
     fprintf(fp, "%-30s %15g\n", "rel_func_tol", rel_func_tol);
+    fprintf(fp, "%-30s %15g\n", "abs_step_tol", abs_step_tol);
     fprintf(fp, "%-30s %15d\n", "use_line_search", use_line_search);
     fprintf(fp, "%-30s %15d\n", "use_backtracking_alpha",
             use_backtracking_alpha);
@@ -1068,6 +1073,17 @@ void ParOptInteriorPoint::setAbsOptimalityTol( double tol ){
 void ParOptInteriorPoint::setRelFunctionTol( double tol ){
   if (tol < 1e-2 && tol >= 0.0){
     rel_func_tol = tol;
+  }
+}
+
+/**
+   Set the absolute step tolerance
+
+   @param tol is the absolute stopping tolerance
+*/
+void ParOptInteriorPoint::setAbsStepTol( double tol ){
+  if (tol < 1e-2 && tol >= 0.0){
+    abs_step_tol = tol;
   }
 }
 
@@ -1801,6 +1817,23 @@ void ParOptInteriorPoint::computeKKTRes( double barrier,
     *max_prime = sqrt(*max_prime);
     *max_infeas = sqrt(*max_infeas);
   }
+}
+
+/*
+  Compute the maximum norm of the step
+*/
+double ParOptInteriorPoint::computeStepNorm(){
+  double step_norm = 0.0;
+  if (norm_type == PAROPT_INFTY_NORM){
+    step_norm = px->maxabs();
+  }
+  else if (norm_type == PAROPT_L1_NORM){
+    step_norm = px->l1norm();
+  }
+  else { // if (norm_type == PAROPT_L2_NORM)
+    step_norm = px->norm();
+  }
+  return step_norm;
 }
 
 /*
@@ -4003,7 +4036,7 @@ int ParOptInteriorPoint::lineSearch( double *_alpha,
   int rank;
   MPI_Comm_rank(comm, &rank);
   if (output_level > 0){
-    double pxnorm = px->maxabs();
+    double pxnorm = computeStepNorm();
     if (outfp && rank == opt_root){
       fprintf(outfp, "%5s %7s %12s %8s %8s\n",
               "iter", "alpha", "merit", "dmerit", "||px||");
@@ -4508,6 +4541,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
   // Keep track of the projected merit function derivative
   ParOptScalar dm0_prev = 0.0;
   double res_norm_prev = 0.0;
+  double step_norm_prev = 0.0;
 
   // Keep track of how many GMRES iterations there were
   int gmres_iters = 0;
@@ -4574,7 +4608,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       computeKKTRes(barrier_param,
                     &max_prime, &max_dual, &max_infeas);
 
-      // Compute the norm of the residuals
+      // Compute the maximum of the norm of the residuals
       res_norm = max_prime;
       if (max_dual > res_norm){ res_norm = max_dual; }
       if (max_infeas > res_norm){ res_norm = max_infeas; }
@@ -4586,7 +4620,8 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       // converged
       int barrier_converged = 0;
       if (k > 0 && ((res_norm < 10.0*barrier_param) ||
-                    rel_function_test)){
+                    rel_function_test ||
+                    step_norm_prev < abs_step_tol)){
         barrier_converged = 1;
       }
 
@@ -4702,7 +4737,9 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
     // difference between subsequent calls.
     int converged = 0;
     if (k > 0 && (barrier_param <= 0.1*abs_res_tol) &&
-        (res_norm < abs_res_tol || rel_function_test)){
+        (res_norm < abs_res_tol ||
+         rel_function_test ||
+         step_norm_prev < abs_step_tol)){
       converged = 1;
     }
 
@@ -4759,6 +4796,10 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         computeKKTGMRESStep(ztemp, y_qn, s_qn, wtemp,
                             gmres_rtol, gmres_atol, use_qn);
 
+      if (abs_step_tol > 0.0){
+        step_norm_prev = computeStepNorm();
+      }
+
       if (gmres_iters < 0){
         // Print out an error code that we've failed
         if (rank == opt_root && output_level > 0){
@@ -4808,13 +4849,17 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       // Solve for the KKT step
       computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_qn);
 
+      if (abs_step_tol > 0.0){
+        step_norm_prev = computeStepNorm();
+      }
+
       if (barrier_strategy == PAROPT_MEHROTRA){
         // Compute the affine step to the boundary, allowing
         // the variables to go right to zero
         double max_x, max_z;
         computeMaxStep(1.0, &max_x, &max_z);
 
-        // Compute the compleme
+        // Compute the complementarity at the full step
         ParOptScalar comp_affine = computeCompStep(max_x, max_z);
 
         // Use the Mehrotra rule

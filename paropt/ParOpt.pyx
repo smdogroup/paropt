@@ -960,6 +960,9 @@ cdef class InteriorPoint:
     def setRelFunctionTol(self, double tol):
         self.ptr.setRelFunctionTol(tol)
 
+    def setAbsStepTol(self, double tol):
+        self.ptr.setAbsStepTol(tol)
+
     def setPenaltyGamma(self, double gamma):
         self.ptr.setPenaltyGamma(gamma)
 
@@ -1210,7 +1213,7 @@ cdef class TrustRegion(ProblemBase):
             tr_max_size: Maximum trust region size
             eta: Trust region update tolerance
             penalty: Initial l1 penalty parameter
-            bound_relax: Bound tolerance for the KKT error 
+            bound_relax: Bound tolerance for the KKT error
         '''
         if qn is None:
             self.tr = new ParOptTrustRegion(prob.ptr, NULL, tr_size,
@@ -1273,6 +1276,29 @@ cdef class TrustRegion(ProblemBase):
     def setTrustRegionTolerances(self, double infeas_tol,
                                  double l1_tol, double linfty_tol):
         self.tr.setTrustRegionTolerances(infeas_tol, l1_tol, linfty_tol)
+
+    def setPenaltyGamma(self, double gamma):
+        self.tr.setPenaltyGamma(gamma)
+
+    def setMultiplePenaltyGamma(self, list gamma):
+        cdef double *g = NULL
+        cdef int num_gam = 0
+        num_gam = len(gamma)
+        g = <double*>malloc(num_gam*sizeof(double));
+        for i in range(num_gam):
+            g[i] = <double>gamma[i];
+
+        self.tr.setPenaltyGamma(g)
+        free(g)
+
+    def getPenaltyGamma(self):
+        cdef const double *penalty_gamma
+        cdef int ncon
+        ncon = self.tr.getPenaltyGamma(&penalty_gamma)
+        gamma = np.zeros(ncon, dtype=np.double)
+        for i in range(ncon):
+            gamma[i] = penalty_gamma[i]
+        return gamma
 
     def setPenaltyGammaMax(self, double gamma_max):
         self.tr.setPenaltyGammaMax(gamma_max)

@@ -535,6 +535,42 @@ void ParOptTrustRegion::setTrustRegionTolerances( double _infeas_tol,
 }
 
 /**
+   Set the penalty parameter for the l1 penalty function.
+
+   @param gamma is the value of the penalty parameter
+*/
+void ParOptTrustRegion::setPenaltyGamma( double gamma ){
+  if (gamma >= 0.0){
+    for ( int i = 0; i < ncon; i++ ){
+      penalty_gamma[i] = gamma;
+    }
+  }
+}
+
+/**
+   Set the individual penalty parameters for the l1 penalty function.
+
+   @param gamma is the array of penalty parameter values.
+*/
+void ParOptTrustRegion::setPenaltyGamma( const double *gamma ){
+  for ( int i = 0; i < ncon; i++ ){
+    if (gamma[i] >= 0.0){
+      penalty_gamma[i] = gamma[i];
+    }
+  }
+}
+
+/**
+   Retrieve the penalty parameter values.
+
+   @param _penalty_gamma is the array of penalty parameter values.
+*/
+int ParOptTrustRegion::getPenaltyGamma( const double **_penalty_gamma ){
+  if (_penalty_gamma){ *_penalty_gamma = penalty_gamma;}
+  return ncon;
+}
+
+/**
   Set the maximum value of the penalty parameters
 
   @param _gamma_max the maximum penalty value
@@ -595,7 +631,7 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
   for ( int i = 0; i < max_tr_iterations; i++ ){
     if (adaptive_gamma_update){
       // Set the penalty parameter to a large value
-      optimizer->setPenaltyGamma(1e6);
+      optimizer->setPenaltyGamma(max2(1e7, 1e3*penalty_gamma_max));
 
       // Initialize the barrier parameter
       optimizer->setInitBarrierParameter(10.0);

@@ -27,6 +27,9 @@ class ParOptTrustRegion : public ParOptProblem {
   void setMaxTrustRegionIterations( int max_iters );
   void setTrustRegionTolerances( double _infeas_tol,
                                  double _l1_tol, double _linfty_tol );
+  void setPenaltyGamma( double gamma );
+  void setPenaltyGamma( const double *gamma );
+  int getPenaltyGamma( const double **gamma );
   void setPenaltyGammaMax( double _gamma_max );
   void setOutputFrequency( int _write_output_frequency );
 

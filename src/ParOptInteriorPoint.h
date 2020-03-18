@@ -182,6 +182,7 @@ class ParOptInteriorPoint : public ParOptBase {
   void setMaxMajorIterations( int iters );
   void setAbsOptimalityTol( double tol );
   void setRelFunctionTol( double tol );
+  void setAbsStepTol( double tol );
   void setPenaltyGamma( double gamma );
   void setPenaltyGamma( const double *gamma );
   int getPenaltyGamma( const double **gamma );
@@ -265,6 +266,9 @@ class ParOptInteriorPoint : public ParOptBase {
                       double *max_prime,
                       double *max_dual,
                       double *max_infeas );
+
+  // Compute the norm of the step
+  double computeStepNorm();
 
   // Set up the diagonal KKT system
   void setUpKKTDiagSystem( ParOptVec *xt, ParOptVec *wt, int use_qn );
@@ -464,6 +468,7 @@ class ParOptInteriorPoint : public ParOptBase {
   // Stopping criteria tolerances
   double abs_res_tol;
   double rel_func_tol;
+  double abs_step_tol;
 
   // Parameter for controlling the Hessian reset
   int hessian_reset_freq;
