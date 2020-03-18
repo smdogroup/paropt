@@ -228,6 +228,7 @@ int main( int argc, char* argv[] ){
   opt->setMaxMajorIterations(1500);
   opt->setBarrierStrategy(PAROPT_MEHROTRA);
   opt->setOutputFrequency(1);
+  opt->setOutputLevel(2);
   opt->setOutputFile("paropt.out");
 
   // Set the checkpoint file

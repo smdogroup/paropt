@@ -3533,6 +3533,99 @@ void ParOptInteriorPoint::computeMaxStep( double tau,
 }
 
 /*
+  Scale the KKT step by the maximum allowable step length
+*/
+int ParOptInteriorPoint::scaleKKTStep( double tau, ParOptScalar comp,
+                                       int inexact_newton_step,
+                                       double *_alpha_x, double *_alpha_z ){
+  double alpha_x = 1.0, alpha_z = 1.0;
+  computeMaxStep(tau, &alpha_x, &alpha_z);
+
+  // Keep track of whether we set both the design and Lagrange
+  // multiplier steps equal to one another
+  int ceq_step = 0;
+
+  // Check if we're using a Newton step or not
+  if (!inexact_newton_step){
+    // First, bound the difference between the step lengths. This
+    // code cuts off the difference between the step lengths if the
+    // difference is greater that 100.
+    double max_bnd = 100.0;
+    if (alpha_x > alpha_z){
+      if (alpha_x > max_bnd*alpha_z){
+        alpha_x = max_bnd*alpha_z;
+      }
+      else if (alpha_x < alpha_z/max_bnd){
+        alpha_x = alpha_z/max_bnd;
+      }
+    }
+    else {
+      if (alpha_z > max_bnd*alpha_x){
+        alpha_z = max_bnd*alpha_x;
+      }
+      else if (alpha_z < alpha_x/max_bnd){
+        alpha_z = alpha_x/max_bnd;
+      }
+    }
+
+    // As a last check, compute the average of the complementarity
+    // products at the full step length. If the complementarity
+    // increases, use equal step lengths.
+    ParOptScalar comp_new = computeCompStep(alpha_x, alpha_z);
+
+    if (ParOptRealPart(comp_new) > 10.0*ParOptRealPart(comp)){
+      ceq_step = 1;
+      if (alpha_x > alpha_z){
+        alpha_x = alpha_z;
+      }
+      else {
+        alpha_z = alpha_x;
+      }
+    }
+  }
+  else {
+    // If we're using a Newton method, use the same step
+    // size for both the multipliers and variables
+    if (alpha_x > alpha_z){
+      alpha_x = alpha_z;
+    }
+    else {
+      alpha_z = alpha_x;
+    }
+  }
+
+  // Scale the steps by the maximum permissible step lengths
+  px->scale(alpha_x);
+  if (nwcon > 0){
+    pzw->scale(alpha_z);
+    if (sparse_inequality){
+      psw->scale(alpha_x);
+    }
+  }
+  if (use_lower){
+    pzl->scale(alpha_z);
+  }
+  if (use_upper){
+    pzu->scale(alpha_z);
+  }
+
+  for ( int i = 0; i < ncon; i++ ){
+    pz[i] *= alpha_z;
+  }
+  if (dense_inequality){
+    for ( int i = 0; i < ncon; i++ ){
+      ps[i] *= alpha_x;
+      pt[i] *= alpha_x;
+      pzt[i] *= alpha_z;
+    }
+  }
+  *_alpha_x = alpha_x;
+  *_alpha_z = alpha_z;
+
+  return ceq_step;
+}
+
+/*
   Evaluate the merit function at the current point, assuming that the
   objective and constraint values are up to date.
 
@@ -4807,7 +4900,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         }
 
         // Recompute the residual of the KKT system - the residual
-        // was destroyed during the failed inexact line search
+        // was destroyed during the failed GMRES iteration
         computeKKTRes(barrier_param,
                       &max_prime, &max_dual, &max_infeas);
       }
@@ -4896,90 +4989,17 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
     }
 
     double alpha_x = 1.0, alpha_z = 1.0;
-    computeMaxStep(tau, &alpha_x, &alpha_z);
-
-    // Keep track of whether we set both the design and Lagrange
-    // multiplier steps equal to one another
-    int ceq_step = 0;
-
-    // Check if we're using a Newton step or not
-    if (!inexact_newton_step){
-      // First, bound the difference between the step lengths. This
-      // code cuts off the difference between the step lengths if the
-      // difference is greater that 100.
-      double max_bnd = 100.0;
-      if (alpha_x > alpha_z){
-        if (alpha_x > max_bnd*alpha_z){
-          alpha_x = max_bnd*alpha_z;
-        }
-        else if (alpha_x < alpha_z/max_bnd){
-          alpha_x = alpha_z/max_bnd;
-        }
-      }
-      else {
-        if (alpha_z > max_bnd*alpha_x){
-          alpha_z = max_bnd*alpha_x;
-        }
-        else if (alpha_z < alpha_x/max_bnd){
-          alpha_z = alpha_x/max_bnd;
-        }
-      }
-
-      // As a last check, compute the average of the complementarity
-      // products at the full step length. If the complementarity
-      // increases, use equal step lengths.
-      ParOptScalar comp_new = computeCompStep(alpha_x, alpha_z);
-
-      if (ParOptRealPart(comp_new) > 10.0*ParOptRealPart(comp)){
-        ceq_step = 1;
-        if (alpha_x > alpha_z){
-          alpha_x = alpha_z;
-        }
-        else {
-          alpha_z = alpha_x;
-        }
-      }
-    }
-    else {
-      // If we're using a Newton method, use the same step
-      // size for both the multipliers and variables
-      if (alpha_x > alpha_z){
-        alpha_x = alpha_z;
-      }
-      else {
-        alpha_z = alpha_x;
-      }
-    }
-
-    // Scale the steps by the maximum permissible step lengths
-    px->scale(alpha_x);
-    if (nwcon > 0){
-      pzw->scale(alpha_z);
-      if (sparse_inequality){
-        psw->scale(alpha_x);
-      }
-    }
-    if (use_lower){
-      pzl->scale(alpha_z);
-    }
-    if (use_upper){
-      pzu->scale(alpha_z);
-    }
-
-    for ( int i = 0; i < ncon; i++ ){
-      pz[i] *= alpha_z;
-    }
-    if (dense_inequality){
-      for ( int i = 0; i < ncon; i++ ){
-        ps[i] *= alpha_x;
-        pt[i] *= alpha_x;
-        pzt[i] *= alpha_z;
-      }
-    }
+    int ceq_step = scaleKKTStep(tau, comp, inexact_newton_step,
+                                &alpha_x, &alpha_z);
 
     // Keep track of the step length size
     double alpha = 1.0;
+
+    // Flag to indicate whether the line search failed
     int line_fail = 0;
+
+    // Is this a sequential linear step that discarded the quasi-Newton approx.
+    int seq_linear_step = 0;
 
     if (use_line_search){
       // Compute the initial value of the merit function and its
@@ -4987,6 +5007,34 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       ParOptScalar m0, dm0;
       evalMeritInitDeriv(alpha_x, &m0, &dm0, inexact_newton_step,
                          rx, wtemp, rcw);
+
+      if (ParOptRealPart(dm0) >= 0.0){
+        // Try again with a quasi-Newton step
+        seq_linear_step = 1;
+
+        // Try to take the the
+        int use_qn = 0;
+        inexact_newton_step = 0;
+
+        computeKKTRes(barrier_param, &max_prime, &max_dual, &max_infeas);
+
+        // Set up the KKT diagonal system
+        setUpKKTDiagSystem(s_qn, wtemp, use_qn);
+
+        // Set up the full KKT system
+        setUpKKTSystem(ztemp, s_qn, y_qn, wtemp, use_qn);
+
+        // Solve for the KKT step
+        computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_qn);
+
+        // Scale the step
+        ceq_step = scaleKKTStep(tau, comp, inexact_newton_step,
+                                &alpha_x, &alpha_z);
+
+        // Re-evaluate the merit function derivative
+        evalMeritInitDeriv(alpha_x, &m0, &dm0, inexact_newton_step,
+                           rx, wtemp, rcw);
+      }
 
       // Check that the merit function derivative is correct and print
       // the derivative to the screen on the optimization-root
@@ -5035,8 +5083,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       // step, regardless. This can happen when an inexact Newton step
       // is used. Also, if the directional derivative is too small we
       // also apply the full step.
-      if (ParOptRealPart(dm0) > 0.0 ||
-          ParOptRealPart(dm0) > -abs_res_tol*abs_res_tol){
+      if (ParOptRealPart(dm0) > -abs_res_tol*abs_res_tol){
         // Apply the full step to the Lagrange multipliers and
         // slack variables
         alpha = 1.0;
@@ -5261,6 +5308,10 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       if (line_fail){
         // Line search failure
         sprintf(&info[strlen(info)], "%s ", "LF");
+      }
+      if (seq_linear_step){
+        // Line search failure
+        sprintf(&info[strlen(info)], "%s ", "SLP");
       }
       if (ParOptRealPart(dm0_prev) > -abs_res_tol*abs_res_tol){
         // Skip the line search b/c descent direction is not

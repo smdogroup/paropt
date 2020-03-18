@@ -343,6 +343,10 @@ class ParOptInteriorPoint : public ParOptBase {
   int lineSearch( double *_alpha,
                   ParOptScalar m0, ParOptScalar dm0 );
 
+  // Scale the step by the distance-to-the-boundary rule
+  int scaleKKTStep( double tau, ParOptScalar comp, int inexact_newton_step,
+                    double *_alpha_x, double *_alpha_z );
+
   // Evaluate the merit function
   ParOptScalar evalMeritFunc( ParOptScalar fk,
                               const ParOptScalar *ck,
