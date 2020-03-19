@@ -128,7 +128,7 @@ def solve_problem(eigs, filename=None, data_type='orthogonal',
         tr_init_size = 0.05
         tr_min_size = 1e-6
         tr_max_size = 10.0
-        tr_eta = 0.25
+        tr_eta = 0.1
         tr_penalty_gamma = 10.0
 
         qn = ParOpt.LBFGS(problem, subspace=max_lbfgs)
@@ -136,7 +136,11 @@ def solve_problem(eigs, filename=None, data_type='orthogonal',
                                 tr_min_size, tr_max_size,
                                 tr_eta, tr_penalty_gamma)
         tr.setMaxTrustRegionIterations(500)
-        tr.setTrustRegionTolerances(1e-5, 1e-4, 0.0)
+
+        infeas_tol = 1e-6
+        l1_tol = 1e-3
+        linfty_tol = 1e-4
+        tr.setTrustRegionTolerances(infeas_tol, l1_tol, linfty_tol)
 
         # Set up the optimization problem
         tr_opt = ParOpt.InteriorPoint(tr, 10, ParOpt.BFGS)

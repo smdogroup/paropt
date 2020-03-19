@@ -3626,6 +3626,117 @@ int ParOptInteriorPoint::scaleKKTStep( double tau, ParOptScalar comp,
 }
 
 /*
+  Check the gradient of the merit function using finite-difference or complex-step
+*/
+void ParOptInteriorPoint::checkMeritFuncGradient( ParOptVec *xpt, double dh ){
+  if (xpt){
+    x->copyValues(xpt);
+  }
+
+  // Evaluate the objective and constraints and their gradients
+  int fail_obj = prob->evalObjCon(x, &fobj, c);
+  neval++;
+  if (fail_obj){
+    fprintf(stderr,
+            "ParOpt: Function and constraint evaluation failed\n");
+    return;
+  }
+
+  int fail_gobj = prob->evalObjConGradient(x, g, Ac);
+  ngeval++;
+  if (fail_gobj){
+    fprintf(stderr,
+            "ParOpt: Gradient evaluation failed\n");
+    return;
+  }
+
+  // Set a step in the design variables
+  px->copyValues(g);
+  px->scale(-1.0/px->norm());
+
+  // Zero all other components in the step computation
+  for ( int i = 0; i < ncon; i++ ){
+    ps[i] = 0.0; // -0.259*(1 + (i % 3));
+    pt[i] = 0.0; // -0.349*(4 - (i % 2));
+  }
+
+  if (nwcon > 0 && sparse_inequality){
+    psw->zeroEntries();
+    ParOptScalar *pswvals;
+    psw->getArray(&pswvals);
+
+    for ( int i = 0; i < nwcon; i++ ){
+      pswvals[i] = 0.0; // -0.419*(1 + (i % 5));
+    }
+  }
+
+  // Evaluate the merit function and its derivative
+  ParOptScalar m0 = 0.0, dm0 = 0.0;
+  double max_x = 1.0;
+  evalMeritInitDeriv(max_x, &m0, &dm0, rx, wtemp, rcw);
+
+#ifdef PAROPT_USE_COMPLEX
+  rx->copyValues(x);
+  rx->axpy(ParOptScalar(0.0, dh), px);
+
+  if (dense_inequality){
+    for ( int i = 0; i < ncon; i++ ){
+      rs[i] = s[i] + ParOptScalar(0.0, dh)*ps[i];
+      rt[i] = t[i] + ParOptScalar(0.0, dh)*pt[i];
+    }
+  }
+
+  if (nwcon > 0 && sparse_inequality){
+    rsw->copyValues(sw);
+    rsw->axpy(ParOptScalar(0.0, dh), psw);
+  }
+#else
+  rx->copyValues(x);
+  rx->axpy(dh, px);
+
+  if (dense_inequality){
+    for ( int i = 0; i < ncon; i++ ){
+      rs[i] = s[i] + dh*ps[i];
+      rt[i] = t[i] + dh*pt[i];
+    }
+  }
+
+  if (nwcon > 0 && sparse_inequality){
+    rsw->copyValues(sw);
+    rsw->axpy(dh, psw);
+  }
+#endif // PAROPT_USE_COMPLEX
+
+  // Evaluate the objective
+  ParOptScalar ftemp;
+  fail_obj = prob->evalObjCon(x, &ftemp, rc);
+  neval++;
+  if (fail_obj){
+    fprintf(stderr,
+            "ParOpt: Function and constraint evaluation failed\n");
+    return;
+  }
+  ParOptScalar m1 = evalMeritFunc(ftemp, rc, rx, rs, rt, rsw);
+
+  ParOptScalar fd = 0.0;
+#ifdef PAROPT_USE_COMPLEX
+  fd = ParOptImagPart(m1)/dh;
+#else
+  fd = (m1 - m0)/dh;
+#endif // PAROPT_USE_COMPLEX
+
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+
+  if (rank == opt_root){
+    fprintf(stdout, "Merit function test\n");
+    fprintf(stdout, "dm FD: %15.8e  Actual: %15.8e  Err: %8.2e  Rel err: %8.2e\n",
+            ParOptRealPart(fd), ParOptRealPart(dm0),
+            fabs(ParOptRealPart(fd - dm0)), fabs(ParOptRealPart((fd - dm0)/fd)));
+  }
+}
+
+/*
   Evaluate the merit function at the current point, assuming that the
   objective and constraint values are up to date.
 
@@ -3635,7 +3746,7 @@ int ParOptInteriorPoint::scaleKKTStep( double tau, ParOptScalar comp,
 
   f(x) +
   mu*(log(s) + log(x - xl) + log(xu - x)) +
-  rho*||c(x) - s||_{2}
+  rho*(||c(x) - s + t||_{2} + ||cw(x) - sw||_{2})
 
   output: The value of the merit function
 */
@@ -3661,10 +3772,10 @@ ParOptScalar ParOptInteriorPoint::evalMeritFunc( ParOptScalar fk,
     for ( int i = 0; i < nvars; i++ ){
       if (ParOptRealPart(lbvals[i]) > -max_bound_val){
         if (ParOptRealPart(xvals[i] - lbvals[i]) > 1.0){
-          pos_result += rel_bound_barrier*log(xvals[i] - lbvals[i]);
+          pos_result += log(xvals[i] - lbvals[i]);
         }
         else {
-          neg_result += rel_bound_barrier*log(xvals[i] - lbvals[i]);
+          neg_result += log(xvals[i] - lbvals[i]);
         }
       }
     }
@@ -3674,14 +3785,18 @@ ParOptScalar ParOptInteriorPoint::evalMeritFunc( ParOptScalar fk,
     for ( int i = 0; i < nvars; i++ ){
       if (ParOptRealPart(ubvals[i]) < max_bound_val){
         if (ParOptRealPart(ubvals[i] - xvals[i]) > 1.0){
-          pos_result += rel_bound_barrier*log(ubvals[i] - xvals[i]);
+          pos_result += log(ubvals[i] - xvals[i]);
         }
         else {
-          neg_result += rel_bound_barrier*log(ubvals[i] - xvals[i]);
+          neg_result += log(ubvals[i] - xvals[i]);
         }
       }
     }
   }
+
+  // Scale by the relative barrier contribution
+  pos_result *= rel_bound_barrier;
+  neg_result *= rel_bound_barrier;
 
   // Add the contributions to the log-barrier terms from
   // weighted-sum sparse constraints
@@ -3706,7 +3821,19 @@ ParOptScalar ParOptInteriorPoint::evalMeritFunc( ParOptScalar fk,
     if (sparse_inequality){
       wtemp->axpy(-1.0, swk);
     }
+#ifdef PAROPT_USE_COMPLEX
+    ParOptScalar *wvals;
+    int wsize = wtemp->getArray(&wvals);
+    for ( int i = 0; i < wsize; i++ ){
+      weight_infeas += wvals[i]*wvals[i];
+    }
+    ParOptScalar weight_infeas_temp = weight_infeas;
+    MPI_Allreduce(&weight_infeas_temp, &weight_infeas, 1,
+                  PAROPT_MPI_TYPE, MPI_SUM, comm);
+    weight_infeas = sqrt(weight_infeas);
+#else
     weight_infeas = wtemp->norm();
+#endif // PAROPT_USE_COMPLEX
   }
 
   // Sum up the result from all processors
@@ -3720,43 +3847,43 @@ ParOptScalar ParOptInteriorPoint::evalMeritFunc( ParOptScalar fk,
   pos_result = result[0];
   neg_result = result[1];
 
+  // Add the contribution from the slack variables
+  if (dense_inequality){
+    for ( int i = 0; i < ncon; i++ ){
+      if (ParOptRealPart(sk[i]) > 1.0){
+        pos_result += log(sk[i]);
+      }
+      else {
+        neg_result += log(sk[i]);
+      }
+      if (ParOptRealPart(tk[i]) > 1.0){
+        pos_result += log(tk[i]);
+      }
+      else {
+        neg_result += log(tk[i]);
+      }
+    }
+  }
+
   // Compute the full merit function only on the root processor
   int rank = 0;
   MPI_Comm_rank(comm, &rank);
 
   ParOptScalar merit = 0.0;
   if (rank == opt_root){
-    // Add the contribution from the slack variables
-    if (dense_inequality){
-      for ( int i = 0; i < ncon; i++ ){
-        if (ParOptRealPart(sk[i]) > 1.0){
-          pos_result += log(sk[i]);
-        }
-        else {
-          neg_result += log(sk[i]);
-        }
-        if (ParOptRealPart(tk[i]) > 1.0){
-          pos_result += log(tk[i]);
-        }
-        else {
-          neg_result += log(tk[i]);
-        }
-      }
-    }
-
     // Compute the infeasibility
-    ParOptScalar infeas = 0.0;
+    ParOptScalar dense_infeas = 0.0;
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
-        infeas += (ck[i] - sk[i] + tk[i])*(ck[i] - sk[i] + tk[i]);
+        dense_infeas += (ck[i] - sk[i] + tk[i])*(ck[i] - sk[i] + tk[i]);
       }
     }
     else {
       for ( int i = 0; i < ncon; i++ ){
-        infeas += ck[i]*ck[i];
+        dense_infeas += ck[i]*ck[i];
       }
     }
-    infeas = sqrt(infeas) + weight_infeas;
+    ParOptScalar infeas = sqrt(dense_infeas) + weight_infeas;
 
     // Add the contribution from the constraints
     merit = (fk - barrier_param*(pos_result + neg_result) +
@@ -3783,7 +3910,6 @@ ParOptScalar ParOptInteriorPoint::evalMeritFunc( ParOptScalar fk,
 
   input:
   max_x:         the maximum value of the x-scaling
-  inexact_step:  is this an inexact Newton step?
 
   output:
   merit:     the value of the merit function
@@ -3792,7 +3918,6 @@ ParOptScalar ParOptInteriorPoint::evalMeritFunc( ParOptScalar fk,
 void ParOptInteriorPoint::evalMeritInitDeriv( double max_x,
                                               ParOptScalar *_merit,
                                               ParOptScalar *_pmerit,
-                                              int inexact_step,
                                               ParOptVec *xtmp,
                                               ParOptVec *wtmp1,
                                               ParOptVec *wtmp2 ){
@@ -3815,17 +3940,17 @@ void ParOptInteriorPoint::evalMeritInitDeriv( double max_x,
     for ( int i = 0; i < nvars; i++ ){
       if (ParOptRealPart(lbvals[i]) > -max_bound_val){
         if (ParOptRealPart(xvals[i] - lbvals[i]) > 1.0){
-          pos_result += rel_bound_barrier*log(xvals[i] - lbvals[i]);
+          pos_result += log(xvals[i] - lbvals[i]);
         }
         else {
-          neg_result += rel_bound_barrier*log(xvals[i] - lbvals[i]);
+          neg_result += log(xvals[i] - lbvals[i]);
         }
 
         if (ParOptRealPart(pxvals[i]) > 0.0){
-          pos_presult += rel_bound_barrier*pxvals[i]/(xvals[i] - lbvals[i]);
+          pos_presult += pxvals[i]/(xvals[i] - lbvals[i]);
         }
         else {
-          neg_presult += rel_bound_barrier*pxvals[i]/(xvals[i] - lbvals[i]);
+          neg_presult += pxvals[i]/(xvals[i] - lbvals[i]);
         }
       }
     }
@@ -3835,21 +3960,27 @@ void ParOptInteriorPoint::evalMeritInitDeriv( double max_x,
     for ( int i = 0; i < nvars; i++ ){
       if (ParOptRealPart(ubvals[i]) < max_bound_val){
         if (ParOptRealPart(ubvals[i] - xvals[i]) > 1.0){
-          pos_result += rel_bound_barrier*log(ubvals[i] - xvals[i]);
+          pos_result += log(ubvals[i] - xvals[i]);
         }
         else {
-          neg_result += rel_bound_barrier*log(ubvals[i] - xvals[i]);
+          neg_result += log(ubvals[i] - xvals[i]);
         }
 
         if (ParOptRealPart(pxvals[i]) > 0.0){
-          neg_presult -= rel_bound_barrier*pxvals[i]/(ubvals[i] - xvals[i]);
+          neg_presult -= pxvals[i]/(ubvals[i] - xvals[i]);
         }
         else {
-          pos_presult -= rel_bound_barrier*pxvals[i]/(ubvals[i] - xvals[i]);
+          pos_presult -= pxvals[i]/(ubvals[i] - xvals[i]);
         }
       }
     }
   }
+
+  // Scale by the relative barrier contribution
+  pos_result *= rel_bound_barrier;
+  neg_result *= rel_bound_barrier;
+  pos_presult *= rel_bound_barrier;
+  neg_presult *= rel_bound_barrier;
 
   // Add the contributions to the log-barrier terms from
   // weighted-sum sparse constraints
@@ -3886,28 +4017,21 @@ void ParOptInteriorPoint::evalMeritInitDeriv( double max_x,
 
     // Compute the projection of the weight constraints
     // onto the descent direction
-    if (inexact_step){
-      // Compute (cw(x) - sw)^{T}*(Aw(x)*px - psw)
-      wtmp2->zeroEntries();
-      prob->addSparseJacobian(1.0, x, px, wtmp2);
 
-      if (sparse_inequality){
-        weight_proj = wtmp1->dot(wtmp2) - wtmp1->dot(psw);
-      }
-      else {
-        weight_proj = wtmp1->dot(wtmp2);
-      }
+    // Compute (cw(x) - sw)^{T}*(Aw(x)*px - psw)
+    wtmp2->zeroEntries();
+    prob->addSparseJacobian(1.0, x, px, wtmp2);
 
-      // Complete the weight projection computation
-      if (ParOptRealPart(weight_infeas) > 0.0){
-        weight_proj = weight_proj/weight_infeas;
-      }
-      else {
-        weight_proj = 0.0;
-      }
+    if (sparse_inequality){
+      weight_proj = wtmp1->dot(wtmp2) - wtmp1->dot(psw);
     }
     else {
-      weight_proj = -max_x*weight_infeas;
+      weight_proj = wtmp1->dot(wtmp2);
+    }
+
+    // Complete the weight projection computation
+    if (ParOptRealPart(weight_infeas) > 0.0){
+      weight_proj = weight_proj/weight_infeas;
     }
   }
 
@@ -3926,60 +4050,6 @@ void ParOptInteriorPoint::evalMeritInitDeriv( double max_x,
   neg_result = result[1];
   pos_presult = result[2];
   neg_presult = result[3];
-
-  // Compute the projected derivative
-  ParOptScalar proj = g->dot(px);
-  if (dense_inequality){
-    for ( int i = 0; i < ncon; i++ ){
-      proj += penalty_gamma[i]*pt[i];
-    }
-  }
-
-  // Perform the computations only on the root processor
-  int rank = 0;
-  MPI_Comm_rank(comm, &rank);
-
-  // The values of the merit function and its derivative
-  ParOptScalar merit = 0.0;
-  ParOptScalar pmerit = 0.0;
-
-  // Compute the infeasibility
-  ParOptScalar dense_infeas = 0.0, dense_proj = 0.0;
-  if (dense_inequality){
-    for ( int i = 0; i < ncon; i++ ){
-      dense_infeas += (c[i] - s[i] + t[i])*(c[i] - s[i] + t[i]);
-    }
-  }
-  else {
-    for ( int i = 0; i < ncon; i++ ){
-      dense_infeas += c[i]*c[i];
-    }
-  }
-  dense_infeas = sqrt(dense_infeas);
-
-  // Compute the projection depending on whether this is
-  // for an exact or inexact step
-  if (inexact_step){
-    if (dense_inequality){
-      for ( int i = 0; i < ncon; i++ ){
-        dense_proj += (c[i] - s[i] + t[i])*(Ac[i]->dot(px) - ps[i] + pt[i]);
-      }
-    }
-    else {
-      for ( int i = 0; i < ncon; i++ ){
-        dense_proj += c[i]*Ac[i]->dot(px);
-      }
-    }
-
-    // Complete the projected derivative computation for the dense
-    // constraints
-    if (ParOptRealPart(dense_infeas) > 0.0){
-      dense_proj = dense_proj/dense_infeas;
-    }
-  }
-  else {
-    dense_proj = -max_x*dense_infeas;
-  }
 
   // Add the contribution from the slack variables
   if (dense_inequality){
@@ -4013,6 +4083,55 @@ void ParOptInteriorPoint::evalMeritInitDeriv( double max_x,
         neg_presult += pt[i]/t[i];
       }
     }
+  }
+
+  // Compute the projected derivative
+  ParOptScalar proj = g->dot(px);
+  if (dense_inequality){
+    for ( int i = 0; i < ncon; i++ ){
+      proj += penalty_gamma[i]*pt[i];
+    }
+  }
+
+  // Perform the computations only on the root processor
+  int rank = 0;
+  MPI_Comm_rank(comm, &rank);
+
+  // The values of the merit function and its derivative
+  ParOptScalar merit = 0.0;
+  ParOptScalar pmerit = 0.0;
+
+  // Compute the infeasibility
+  ParOptScalar dense_infeas = 0.0, dense_proj = 0.0;
+  if (dense_inequality){
+    for ( int i = 0; i < ncon; i++ ){
+      dense_infeas += (c[i] - s[i] + t[i])*(c[i] - s[i] + t[i]);
+    }
+  }
+  else {
+    for ( int i = 0; i < ncon; i++ ){
+      dense_infeas += c[i]*c[i];
+    }
+  }
+  dense_infeas = sqrt(dense_infeas);
+
+  // Compute the projection depending on whether this is
+  // for an exact or inexact step
+  if (dense_inequality){
+    for ( int i = 0; i < ncon; i++ ){
+      dense_proj += (c[i] - s[i] + t[i])*(Ac[i]->dot(px) - ps[i] + pt[i]);
+    }
+  }
+  else {
+    for ( int i = 0; i < ncon; i++ ){
+      dense_proj += c[i]*Ac[i]->dot(px);
+    }
+  }
+
+  // Complete the projected derivative computation for the dense
+  // constraints
+  if (ParOptRealPart(dense_infeas) > 0.0){
+    dense_proj = dense_proj/dense_infeas;
   }
 
   // Compute the product px^{T}*B*px
@@ -4131,9 +4250,9 @@ int ParOptInteriorPoint::lineSearch( double *_alpha,
   if (output_level > 0){
     double pxnorm = computeStepNorm();
     if (outfp && rank == opt_root){
-      fprintf(outfp, "%5s %7s %12s %8s %8s\n",
+      fprintf(outfp, "%5s %7s %25s %12s %12s\n",
               "iter", "alpha", "merit", "dmerit", "||px||");
-      fprintf(outfp, "%5d %7s %12.5e %8.1e %8.1e\n",
+      fprintf(outfp, "%5d %7s %25.16e %12.5e %12.5e\n",
               0, " ", ParOptRealPart(m0), ParOptRealPart(dm0), pxnorm);
     }
   }
@@ -4175,8 +4294,8 @@ int ParOptInteriorPoint::lineSearch( double *_alpha,
 
     // Print out the merit function and step at the current iterate
     if (outfp && rank == opt_root && output_level > 0){
-      fprintf(outfp, "%5d %7.1e %12.5e\n", j+1, alpha,
-              ParOptRealPart(merit));
+      fprintf(outfp, "%5d %7.1e %25.16e %12.5e\n", j+1, alpha,
+              ParOptRealPart(merit), ParOptRealPart((merit - m0)/alpha));
     }
 
     // Check the sufficient decrease condition. Note that this is
@@ -4212,6 +4331,25 @@ int ParOptInteriorPoint::lineSearch( double *_alpha,
     }
   }
 
+  // Set the final value of alpha used in the line search
+  // iteration
+  *_alpha = alpha;
+
+  return fail;
+}
+
+/**
+  Compute the step, evaluate the objective and constraints and their gradients
+  at the new point and update the quasi-Newton approximation.
+
+  @param alpha The step length to take
+  @param eval_obj_con Flag indicating whether to evaluate the obj/cons
+  @param perform_qn_update Flag indicating whether to update the quasi-Newton method
+  @returns The type of quasi-Newton update performed
+*/
+int ParOptInteriorPoint::computeStepAndUpdate( double alpha,
+                                               int eval_obj_con,
+                                               int perform_qn_update ){
   // Set the new values of the variables
   if (nwcon > 0){
     zw->axpy(alpha, pzw);
@@ -4239,7 +4377,7 @@ int ParOptInteriorPoint::lineSearch( double *_alpha,
 
   // Compute the negative gradient of the Lagrangian using the
   // old gradient information with the new multiplier estimates
-  if (qn && !sequential_linear_method){
+  if (qn && perform_qn_update){
     y_qn->copyValues(g);
     y_qn->scale(-1.0);
     for ( int i = 0; i < ncon; i++ ){
@@ -4257,7 +4395,19 @@ int ParOptInteriorPoint::lineSearch( double *_alpha,
   // Jacobian to the BFGS update
   x->axpy(alpha, px);
 
-  // Evaluate the derivative
+  // Evaluate the objective if needed. This step is not required
+  // if a line search has just been performed.
+  if (eval_obj_con){
+    int fail_obj = prob->evalObjCon(x, &fobj, c);
+    neval++;
+    if (fail_obj){
+      fprintf(stderr,
+              "ParOpt: Function and constraint evaluation failed\n");
+      return fail_obj;
+    }
+  }
+
+  // Evaluate the derivative at the new point
   int fail_gobj = prob->evalObjConGradient(x, g, Ac);
   ngeval++;
   if (fail_gobj){
@@ -4267,7 +4417,12 @@ int ParOptInteriorPoint::lineSearch( double *_alpha,
 
   // Add the new gradient of the Lagrangian with the new
   // multiplier estimates
-  if (qn && !sequential_linear_method){
+  if (qn && perform_qn_update){
+    // Compute the step - scale by the step length
+    s_qn->copyValues(px);
+    s_qn->scale(alpha);
+
+    // Finish computing the difference in gradients
     y_qn->axpy(1.0, g);
     for ( int i = 0; i < ncon; i++ ){
       y_qn->axpy(-z[i], Ac[i]);
@@ -4279,11 +4434,18 @@ int ParOptInteriorPoint::lineSearch( double *_alpha,
     }
   }
 
-  // Set the final value of alpha used in the line search
-  // iteration
-  *_alpha = alpha;
+  // Compute the Quasi-Newton update
+  int update_type = 0;
+  if (qn && perform_qn_update){
+    if (use_quasi_newton_update){
+      update_type = qn->update(x, z, zw, s_qn, y_qn);
+    }
+    else {
+      update_type = qn->update(x, z, zw);
+    }
+  }
 
-  return fail;
+  return update_type;
 }
 
 /*
@@ -5001,288 +5163,88 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
     // Is this a sequential linear step that discarded the quasi-Newton approx.
     int seq_linear_step = 0;
 
+    // The type of quasi-Newton update performed
+    int update_type = 0;
+
     if (use_line_search){
-      // Compute the initial value of the merit function and its
-      // derivative and a new value for the penalty parameter
-      ParOptScalar m0, dm0;
-      evalMeritInitDeriv(alpha_x, &m0, &dm0, inexact_newton_step,
-                         rx, wtemp, rcw);
-
-      if (ParOptRealPart(dm0) >= 0.0){
-        // Try again with a quasi-Newton step
-        seq_linear_step = 1;
-
-        // Try to take the the
-        int use_qn = 0;
-        inexact_newton_step = 0;
-
-        computeKKTRes(barrier_param, &max_prime, &max_dual, &max_infeas);
-
-        // Set up the KKT diagonal system
-        setUpKKTDiagSystem(s_qn, wtemp, use_qn);
-
-        // Set up the full KKT system
-        setUpKKTSystem(ztemp, s_qn, y_qn, wtemp, use_qn);
-
-        // Solve for the KKT step
-        computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_qn);
-
-        // Scale the step
-        ceq_step = scaleKKTStep(tau, comp, inexact_newton_step,
-                                &alpha_x, &alpha_z);
-
-        // Re-evaluate the merit function derivative
-        evalMeritInitDeriv(alpha_x, &m0, &dm0, inexact_newton_step,
+      for ( int line_search_iter = 0; line_search_iter < 2; line_search_iter++ ){
+        // Compute the initial value of the merit function and its
+        // derivative and a new value for the penalty parameter
+        ParOptScalar m0, dm0;
+        evalMeritInitDeriv(alpha_x, &m0, &dm0,
                            rx, wtemp, rcw);
-      }
 
-      // Check that the merit function derivative is correct and print
-      // the derivative to the screen on the optimization-root
-      // processor
-      if (major_iter_step_check > 0 &&
-          ((k % major_iter_step_check) == 0)){
-        double dh = merit_func_check_epsilon;
-        rx->copyValues(x);
-        rx->axpy(dh, px);
+        if (line_fail || ParOptRealPart(dm0) >= 0.0){
+          // Try again with a quasi-Newton step
+          seq_linear_step = 1;
 
-        if (dense_inequality){
-          for ( int i = 0; i < ncon; i++ ){
-            rs[i] = s[i] + dh*ps[i];
-            rt[i] = t[i] + dh*pt[i];
-          }
+          // Try to take the the
+          int use_qn = 0;
+          inexact_newton_step = 0;
+
+          // Re-compute the KKT residuals since they may be over-written
+          // during the line search step
+          computeKKTRes(barrier_param, &max_prime, &max_dual, &max_infeas);
+
+          // Set up the KKT diagonal system
+          setUpKKTDiagSystem(s_qn, wtemp, use_qn);
+
+          // Set up the full KKT system
+          setUpKKTSystem(ztemp, s_qn, y_qn, wtemp, use_qn);
+
+          // Solve for the KKT step
+          computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_qn);
+
+          // Scale the step
+          ceq_step = scaleKKTStep(tau, comp, inexact_newton_step,
+                                  &alpha_x, &alpha_z);
+
+          // Re-evaluate the merit function derivative
+          evalMeritInitDeriv(alpha_x, &m0, &dm0,
+                             rx, wtemp, rcw);
         }
 
-        if (nwcon > 0 && sparse_inequality){
-          rsw->copyValues(sw);
-          rsw->axpy(dh, psw);
+        // Check that the merit function derivative is correct and print
+        // the derivative to the screen on the optimization-root processor
+        if (major_iter_step_check > 0 &&
+            ((k % major_iter_step_check) == 0)){
+          checkMeritFuncGradient(x, merit_func_check_epsilon);
         }
 
-        // Evaluate the objective
-        int fail_obj = prob->evalObjCon(rx, &fobj, c);
-        neval++;
-        if (fail_obj){
-          fprintf(stderr,
-                  "ParOpt: Function and constraint evaluation failed\n");
-          return fail_obj;
-        }
-        ParOptScalar m1 = evalMeritFunc(fobj, c, rx, rs, rt, rsw);
-
-        if (rank == opt_root){
-          ParOptScalar fd = (m1 - m0)/dh;
-          printf("Merit function test\n");
-          printf("dm FD: %15.8e  Actual: %15.8e  Err: %8.2e  Rel err: %8.2e\n",
-                 ParOptRealPart(fd), ParOptRealPart(dm0),
-                 fabs(ParOptRealPart(fd - dm0)), fabs(ParOptRealPart((fd - dm0)/fd)));
-        }
-      }
-
-      // Zero the entries of the quasi
-      s_qn->zeroEntries();
-
-      // If the directional derivative is negative, take the full
-      // step, regardless. This can happen when an inexact Newton step
-      // is used. Also, if the directional derivative is too small we
-      // also apply the full step.
-      if (ParOptRealPart(dm0) > -abs_res_tol*abs_res_tol){
-        // Apply the full step to the Lagrange multipliers and
-        // slack variables
-        alpha = 1.0;
-        if (nwcon > 0){
-          zw->axpy(alpha, pzw);
-          if (sparse_inequality){
-            sw->axpy(alpha, psw);
-          }
-        }
-        if (use_lower){
-          zl->axpy(alpha, pzl);
-        }
-        if (use_upper){
-          zu->axpy(alpha, pzu);
-        }
-
-        for ( int i = 0; i < ncon; i++ ){
-          z[i] += alpha*pz[i];
-        }
-        if (dense_inequality){
-          for ( int i = 0; i < ncon; i++ ){
-            s[i] += alpha*ps[i];
-            t[i] += alpha*pt[i];
-            zt[i] += alpha*pzt[i];
-          }
-        }
-
-        // Compute the negative gradient of the Lagrangian using the
-        // old gradient information with the new multiplier estimates
-        if (!sequential_linear_method){
-          y_qn->copyValues(g);
-          y_qn->scale(-1.0);
-          for ( int i = 0; i < ncon; i++ ){
-            y_qn->axpy(z[i], Ac[i]);
-          }
-
-          // Add the term: Aw^{T}*zw
-          if (nwcon > 0){
-            prob->addSparseJacobianTranspose(1.0, x, zw, y_qn);
-          }
-        }
-
-        // Update x here so that we don't impact the design variables
-        // when computing Aw(x)^{T}*zw
-        x->axpy(alpha, px);
-
-        // Store the step in the design variable values for updating the
-        // quasi-Newton Hessian
-        if (!sequential_linear_method){
-          s_qn->copyValues(px);
-          s_qn->scale(alpha);
-        }
-
-        // Evaluate the objective, constraint and their gradients at
-        // the current values of the design variables
-        int fail_obj = prob->evalObjCon(x, &fobj, c);
-        neval++;
-        if (fail_obj){
-          fprintf(stderr,
-                  "ParOpt: Function and constraint evaluation failed\n");
-          return fail_obj;
-        }
-        int fail_gobj = prob->evalObjConGradient(x, g, Ac);
-        ngeval++;
-        if (fail_gobj){
-          fprintf(stderr,
-                  "ParOpt: Gradient evaluation failed\n");
-          return fail_obj;
-        }
-
-        // Add the new gradient of the Lagrangian with the new
-        // multiplier estimates
-        if (!sequential_linear_method){
-          y_qn->axpy(1.0, g);
-          for ( int i = 0; i < ncon; i++ ){
-            y_qn->axpy(-z[i], Ac[i]);
-          }
-
-          // Add the term: -Aw^{T}*zw
-          if (nwcon > 0){
-            prob->addSparseJacobianTranspose(-1.0, x, zw, y_qn);
-          }
-        }
-      }
-      else {
         // Perform the line search
         line_fail = lineSearch(&alpha, m0, dm0);
 
-        // Store the step in the design variable values for updating the
-        // quasi-Newton Hessian
-        if (!line_fail && !sequential_linear_method){
-          s_qn->copyValues(px);
-          s_qn->scale(alpha);
+        // Store the previous merit function derivative
+        dm0_prev = dm0;
+
+        // If the line search was successful, quit
+        if (!line_fail){
+          // Do not evaluate the objective and constraints at the new point
+          // since we've just performed a successful line search and the
+          // last point was evaluated there. Perform a quasi-Newton update
+          // if required.
+          int eval_obj_con = 0;
+          int perform_qn_update = 1;
+          update_type = computeStepAndUpdate(alpha, eval_obj_con,
+                                             perform_qn_update);
+
+          break;
         }
       }
-
-      // Store the previous merit function derivative
-      dm0_prev = dm0;
     }
     else {
-      // Apply the full step to the Lagrange multipliers and
-      // slack varaibles
-      if (nwcon > 0){
-        zw->axpy(alpha, pzw);
-        if (sparse_inequality){
-          sw->axpy(alpha, psw);
-        }
-      }
-      if (use_lower){
-        zl->axpy(alpha, pzl);
-      }
-      if (use_upper){
-        zu->axpy(alpha, pzu);
-      }
-
-      for ( int i = 0; i < ncon; i++ ){
-        z[i] += alpha*pz[i];
-      }
-      if (dense_inequality){
-        for ( int i = 0; i < ncon; i++ ){
-          s[i] += alpha*ps[i];
-          t[i] += alpha*pt[i];
-          pzt[i] += alpha*pzt[i];
-        }
-      }
-
-      // Compute the negative gradient of the Lagrangian using the
-      // old gradient information with the new multiplier estimates
-      if (!sequential_linear_method){
-        y_qn->copyValues(g);
-        y_qn->scale(-1.0);
-        for ( int i = 0; i < ncon; i++ ){
-          y_qn->axpy(z[i], Ac[i]);
-        }
-
-        // Add the term: Aw^{T}*zw
-        if (nwcon > 0){
-          prob->addSparseJacobianTranspose(1.0, x, zw, y_qn);
-        }
-      }
-
-      // Apply the step to the design variables only
-      // after computing the contribution of the constraint
-      // Jacobian to the BFGS update
-      x->axpy(alpha, px);
-
-      // Store the step in the design variable values for updating the
-      // quasi-Newton Hessian
-      if (!sequential_linear_method){
-        s_qn->copyValues(px);
-        s_qn->scale(alpha);
-      }
-
-      // Evaluate the objective, constraint and their gradients at the
-      // current values of the design variables
-      int fail_obj = prob->evalObjCon(x, &fobj, c);
-      neval++;
-      if (fail_obj){
-        fprintf(stderr,
-                "ParOpt: Function and constraint evaluation failed\n");
-        return fail_obj;
-      }
-      int fail_gobj = prob->evalObjConGradient(x, g, Ac);
-      ngeval++;
-      if (fail_gobj){
-        fprintf(stderr, "ParOpt: Gradient evaluation failed\n");
-        return fail_obj;
-      }
-
-      // Add the new gradient of the Lagrangian with the new
-      // multiplier estimates to complete the y-update step
-      if (!sequential_linear_method){
-        y_qn->axpy(1.0, g);
-        for ( int i = 0; i < ncon; i++ ){
-          y_qn->axpy(-z[i], Ac[i]);
-        }
-
-        // Add the term: -Aw^{T}*zw
-        if (nwcon > 0){
-          prob->addSparseJacobianTranspose(-1.0, x, zw, y_qn);
-        }
-      }
+      // Evaluate the objective/constraints at the new point since we skipped
+      // the line search step here.
+      int eval_obj_con = 1;
+      int perform_qn_update = 1;
+      update_type = computeStepAndUpdate(alpha, eval_obj_con,
+                                         perform_qn_update);
     }
 
     // Store the steps in x/z for printing later
     alpha_prev = alpha;
     alpha_xprev = alpha_x;
     alpha_zprev = alpha_z;
-
-    // Compute the Quasi-Newton update
-    int up_type = 0;
-    if (qn && !sequential_linear_method && !line_fail){
-      if (use_quasi_newton_update){
-        up_type = qn->update(x, z, zw, s_qn, y_qn);
-      }
-      else {
-        up_type = qn->update(x, z, zw);
-      }
-    }
 
     // Reset the quasi-Newton Hessian if there is a line search failure
     if (qn && line_fail && use_quasi_newton_update){
@@ -5297,11 +5259,11 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         // Print how well GMRES is doing
         sprintf(&info[strlen(info)], "%s%d ", "iNK", gmres_iters);
       }
-      if (up_type == 1){
+      if (update_type == 1){
         // Damped BFGS update
         sprintf(&info[strlen(info)], "%s ", "dampH");
       }
-      else if (up_type == 2){
+      else if (update_type == 2){
         // Skipped update
         sprintf(&info[strlen(info)], "%s ", "skipH");
       }
@@ -5312,11 +5274,6 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       if (seq_linear_step){
         // Line search failure
         sprintf(&info[strlen(info)], "%s ", "SLP");
-      }
-      if (ParOptRealPart(dm0_prev) > -abs_res_tol*abs_res_tol){
-        // Skip the line search b/c descent direction is not
-        // sufficiently descent-y
-        sprintf(&info[strlen(info)], "%s ", "Lskp");
       }
       if (ceq_step){
         // The step lengths are equal due to an increase in the

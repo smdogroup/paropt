@@ -1,5 +1,5 @@
-#ifndef COMPLEX_STEP_H
-#define COMPLEX_STEP_H
+#ifndef PAROPT_COMPLEX_STEP_H
+#define PAROPT_COMPLEX_STEP_H
 
 #include <complex>
 
@@ -30,4 +30,4 @@ inline std::complex<double> fabs( const std::complex<double>& c ){
   return c;
 }
 
-#endif // COMPLEX_STEP_H
+#endif // PAROPT_COMPLEX_STEP_H

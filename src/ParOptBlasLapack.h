@@ -26,7 +26,7 @@
 
 extern "C" {
   extern ParOptScalar BLASddot( int *n, ParOptScalar *x, int *incx,
-                          ParOptScalar *y, int *incy );
+                                ParOptScalar *y, int *incy );
   extern double BLASdnrm2( int *n, ParOptScalar *x, int *incx );
   extern void BLASdaxpy( int *n, ParOptScalar *a, ParOptScalar *x, int *incx,
                          ParOptScalar *y, int *incy );

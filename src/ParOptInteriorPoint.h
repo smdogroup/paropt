@@ -249,6 +249,10 @@ class ParOptInteriorPoint : public ParOptBase {
   int writeSolutionFile( const char *filename );
   int readSolutionFile( const char *filename );
 
+  // Check the merit function derivative at the given point
+  // ------------------------------------------------------
+  void checkMeritFuncGradient( ParOptVec *xpt=NULL, double dh=1e-6 );
+
  private:
   // Print out the optimizer options to a file
   void printOptionSummary( FILE *fp );
@@ -347,6 +351,10 @@ class ParOptInteriorPoint : public ParOptBase {
   int scaleKKTStep( double tau, ParOptScalar comp, int inexact_newton_step,
                     double *_alpha_x, double *_alpha_z );
 
+  // Perform a primal/dual update and optionally upate the quasi-Newton Hessian
+  int computeStepAndUpdate( double alpha, int eval_obj_con,
+                            int perform_qn_update );
+
   // Evaluate the merit function
   ParOptScalar evalMeritFunc( ParOptScalar fk,
                               const ParOptScalar *ck,
@@ -362,8 +370,8 @@ class ParOptInteriorPoint : public ParOptBase {
   // parameter
   void evalMeritInitDeriv( double max_x,
                            ParOptScalar *_merit, ParOptScalar *_pmerit,
-                           int inexact_step, ParOptVec *xtmp,
-                           ParOptVec *wtmp1, ParOptVec *wtmp2 );
+                           ParOptVec *xtmp, ParOptVec *wtmp1,
+                           ParOptVec *wtmp2 );
 
   // Compute the average of the complementarity products at the
   // current point: Complementarity at (x + p)

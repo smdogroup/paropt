@@ -61,9 +61,17 @@ void ParOptBasicVec::copyValues( ParOptVec *pvec ){
   @return the l2 norm of the vector
 */
 double ParOptBasicVec::norm(){
+  double res = 0.0;
+#ifdef PAROPT_USE_COMPLEX
+  for ( int i = 0; i < size; i++ ){
+    res += (ParOptRealPart(x[i])*ParOptRealPart(x[i]) +
+            ParOptImagPart(x[i])*ParOptImagPart(x[i]));
+  }
+#else
   int one = 1;
-  double res = BLASdnrm2(&size, x, &one);
+  res = BLASdnrm2(&size, x, &one);
   res *= res;
+#endif
 
   double sum = 0.0;
   MPI_Allreduce(&res, &sum, 1, MPI_DOUBLE, MPI_SUM, comm);
@@ -118,8 +126,16 @@ ParOptScalar ParOptBasicVec::dot( ParOptVec *pvec ){
 
   ParOptScalar sum = 0.0;
   if (vec){
+    ParOptScalar res = 0.0;
+#ifdef PAROPT_USE_COMPLEX
+    for ( int i = 0; i < size; i++ ){
+      res += x[i]*vec->x[i];
+    }
+#else
     int one = 1;
-    ParOptScalar res = BLASddot(&size, x, &one, vec->x, &one);
+    res = BLASddot(&size, x, &one, vec->x, &one);
+#endif
+
     MPI_Allreduce(&res, &sum, 1, PAROPT_MPI_TYPE, MPI_SUM, comm);
   }
 
@@ -134,13 +150,19 @@ ParOptScalar ParOptBasicVec::dot( ParOptVec *pvec ){
   @param output an array of the dot product results
 */
 void ParOptBasicVec::mdot( ParOptVec **pvecs, int nvecs, ParOptScalar *output ){
-  int one = 1;
   for ( int i = 0; i < nvecs; i++ ){
     output[i] = 0.0;
     ParOptBasicVec *vec = dynamic_cast<ParOptBasicVec*>(pvecs[i]);
 
     if (vec){
+#ifdef PAROPT_USE_COMPLEX
+      for ( int j = 0; j < size; j++ ){
+        output[i] += x[j]*vec->x[j];
+      }
+#else
+      int one = 1;
       output[i] = BLASddot(&size, x, &one, vec->x, &one);
+#endif
     }
   }
 
@@ -153,8 +175,14 @@ void ParOptBasicVec::mdot( ParOptVec **pvecs, int nvecs, ParOptScalar *output ){
   @param alpha the scalar factor
 */
 void ParOptBasicVec::scale( ParOptScalar alpha ){
+#ifdef PAROPT_USE_COMPLEX
+  for ( int i = 0; i < size; i++ ){
+    x[i] *= alpha;
+  }
+#else
   int one = 1;
   BLASdscal(&size, &alpha, x, &one);
+#endif
 }
 
 /**
@@ -163,9 +191,15 @@ void ParOptBasicVec::scale( ParOptScalar alpha ){
 void ParOptBasicVec::axpy( ParOptScalar alpha, ParOptVec *pvec ){
   ParOptBasicVec *vec = dynamic_cast<ParOptBasicVec*>(pvec);
 
-  if (pvec){
+  if (vec){
+#ifdef PAROPT_USE_COMPLEX
+    for ( int i = 0; i < size; i++ ){
+      x[i] = x[i] + alpha*vec->x[i];
+    }
+#else
     int one = 1;
     BLASdaxpy(&size, &alpha, vec->x, &one, x, &one);
+#endif
   }
 }
 

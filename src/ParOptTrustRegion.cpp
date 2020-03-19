@@ -447,13 +447,19 @@ void ParOptTrustRegion::update( ParOptVec *xt,
     smax = 0.0;
   }
 
+  // Compute the traction of the trust region size
+  double tr_frac = 0.95;
+  if (tr_max_size > tr_min_size){
+    double t = (tr_size - tr_min_size)/(tr_max_size - tr_min_size);
+    tr_frac = 0.5 + 0.45*t;
+  }
+
   // Set the new trust region radius
   if (ParOptRealPart(rho) < 0.25){
     tr_size = ParOptRealPart(max2(0.25*tr_size, tr_min_size));
   }
-  else if (ParOptRealPart(rho) > 0.75 &&
-           smax >= 0.95*tr_size){
-    tr_size = ParOptRealPart(min2(2.0*tr_size, tr_max_size));
+  else if (ParOptRealPart(rho) > 0.75 && smax >= tr_frac*tr_size){
+    tr_size = ParOptRealPart(min2(1.5*tr_size, tr_max_size));
   }
 
   // Reset the trust region radius bounds
@@ -631,7 +637,11 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
   for ( int i = 0; i < max_tr_iterations; i++ ){
     if (adaptive_gamma_update){
       // Set the penalty parameter to a large value
-      optimizer->setPenaltyGamma(max2(1e7, 1e3*penalty_gamma_max));
+      double gamma = 1e6;
+      if (1e2*penalty_gamma_max > gamma){
+        gamma = 1e2*penalty_gamma_max;
+      }
+      optimizer->setPenaltyGamma(gamma);
 
       // Initialize the barrier parameter
       optimizer->setInitBarrierParameter(10.0);

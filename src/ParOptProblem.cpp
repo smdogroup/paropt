@@ -229,6 +229,18 @@ void ParOptProblem::checkGradients( double dh, ParOptVec *xvec,
     cwtemp = createConstraintVec();
     cwtemp->incref();
 
+#ifdef PAROPT_USE_COMPLEX
+    // Check that the Jacobian is the derivative of the constraints
+    xt->copyValues(x);
+    xt->axpy(ParOptScalar(0.0, dh), px);
+    evalSparseCon(xt, cwtemp);
+
+    ParOptScalar *cwcvals;
+    int cwsize = cwtemp->getArray(&cwcvals);
+    for ( int i = 0; i < cwsize; i++ ){
+      cwcvals[i] = ParOptImagPart(cwcvals[i])/dh;
+    }
+#else
     // Check that the Jacobian is the derivative of the constraints
     evalSparseCon(x, cw);
 
@@ -239,7 +251,7 @@ void ParOptProblem::checkGradients( double dh, ParOptVec *xvec,
     // Compute rcw = (cw(x + dh*px) - cw(x))/dh
     cwtemp->axpy(-1.0, cw);
     cwtemp->scale(1.0/dh);
-
+#endif
     // Compute the Jacobian-vector product
     cw->zeroEntries();
     addSparseJacobian(1.0, x, px, cw);

@@ -45,7 +45,7 @@ class Rosenbrock : public ParOptProblem {
 
     for ( int i = 0; i < nvars-1; i++ ){
       obj += ((1.0 - x[i])*(1.0 - x[i]) +
-              100*(x[i+1] - x[i]*x[i])*(x[i+1] - x[i]*x[i]));
+              100.0*(x[i+1] - x[i]*x[i])*(x[i+1] - x[i]*x[i]));
     }
 
     ParOptScalar con[2];
@@ -79,8 +79,8 @@ class Rosenbrock : public ParOptProblem {
 
     for ( int i = 0; i < nvars-1; i++ ){
       g[i] += (-2.0*(1.0 - x[i]) +
-               200*(x[i+1] - x[i]*x[i])*(-2.0*x[i]));
-      g[i+1] += 200*(x[i+1] - x[i]*x[i]);
+               200.0*(x[i+1] - x[i]*x[i])*(-2.0*x[i]));
+      g[i+1] += 200.0*(x[i+1] - x[i]*x[i]);
     }
 
     Ac[0]->getArray(&c);
@@ -110,9 +110,9 @@ class Rosenbrock : public ParOptProblem {
 
     for ( int i = 0; i < nvars-1; i++ ){
       hvals[i] += (2.0*px[i] +
-                   200*(x[i+1] - x[i]*x[i])*(-2.0*px[i]) +
-                   200*(px[i+1] - 2.0*x[i]*px[i])*(-2.0*x[i]));
-      hvals[i+1] += 200*(px[i+1] - 2.0*x[i]*px[i]);
+                   200.0*(x[i+1] - x[i]*x[i])*(-2.0*px[i]) +
+                   200.0*(px[i+1] - 2.0*x[i]*px[i])*(-2.0*x[i]));
+      hvals[i+1] += 200.0*(px[i+1] - 2.0*x[i]*px[i]);
     }
 
     for ( int i = 0; i < nvars; i++ ){
@@ -221,7 +221,7 @@ int main( int argc, char* argv[] ){
   rosen->incref();
 
   // Allocate the optimizer
-  int max_lbfgs = 20;
+  int max_lbfgs = 10;
   ParOptInteriorPoint *opt = new ParOptInteriorPoint(rosen, max_lbfgs);
   opt->incref();
 
@@ -229,6 +229,7 @@ int main( int argc, char* argv[] ){
   opt->setBarrierStrategy(PAROPT_MEHROTRA);
   opt->setOutputFrequency(1);
   opt->setOutputLevel(2);
+  opt->setAbsOptimalityTol(1e-9);
   opt->setOutputFile("paropt.out");
 
   // Set the checkpoint file

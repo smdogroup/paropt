@@ -21,5 +21,8 @@ debug: default
 complex: CCFLAGS+=-DPAROPT_USE_COMPLEX
 complex: default
 
+complex_debug: CCFLAGS=${CCFLAGS_DEBUG} -DPAROPT_USE_COMPLEX
+complex_debug: default
+
 clean:
 	rm -rf *.o

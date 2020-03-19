@@ -60,12 +60,12 @@ SKIP_NEGATIVE_CURVATURE = PAROPT_SKIP_NEGATIVE_CURVATURE
 DAMPED_UPDATE = PAROPT_DAMPED_UPDATE
 
 def unpack_output(filename):
-    '''
+    """
     Unpack the parameters from the paropt output file and return them
     in a list of numpy arrays. This also returns a small string
     description from the file itself. This code relies ont he
     fixed-width nature of the file, which is guaranteed.
-    '''
+    """
 
     # The arguments that we're looking for
     args = ['iter', 'nobj', 'ngrd', 'nhvc', 'alpha', 'alphx', 'alphz',
@@ -134,12 +134,12 @@ def unpack_output(filename):
     return args, objs
 
 def unpack_tr_output(filename):
-    '''
+    """
     Unpack the parameters from the paropt output file and return them
     in a list of numpy arrays. This also returns a small string
     description from the file itself. This code relies ont he
     fixed-width nature of the file, which is guaranteed.
-    '''
+    """
 
     # The arguments that we're looking for
     args = ['iter', 'fobj', 'infes', 'l1', 'linfty', '|x - xk|', 'tr',
@@ -207,9 +207,9 @@ def unpack_tr_output(filename):
     return args, objs
 
 def unpack_mma_output(filename):
-    '''
+    """
     Unpack the parameters from a file output from MMA
-    '''
+    """
 
     args = ['MMA', 'sub-iter', 'fobj', 'l1-opt',
               'linft-opt', 'l1-lambd', 'infeas']
@@ -277,7 +277,7 @@ def unpack_mma_output(filename):
 
 # Read in a ParOpt checkpoint file and produce python variables
 def unpack_checkpoint(filename):
-    '''Convert the checkpoint file to usable python objects'''
+    """Convert the checkpoint file to usable python objects"""
 
     # Open the file in read-only binary mode
     fp = open(filename, 'rb')
@@ -317,7 +317,7 @@ def unpack_checkpoint(filename):
 # This wraps a C++ array with a numpy array for later useage
 cdef inplace_array_1d(int nptype, int dim1, void *data_ptr,
                              object base=None):
-    '''Return a numpy version of the array'''
+    """Return a numpy version of the array"""
     # Set the shape of the array
     cdef int size = 1
     cdef np.npy_intp shape[1]
@@ -795,25 +795,25 @@ cdef class PVec:
         return
 
     def copyValues(self, PVec vec):
-        '''Copy values from the provided PVec'''
+        """Copy values from the provided PVec"""
         if self.ptr and vec.ptr:
             self.ptr.copyValues(vec.ptr)
         return
 
     def norm(self):
-        '''Compute the l2 norm of the vector'''
+        """Compute the l2 norm of the vector"""
         return self.ptr.norm()
 
     def l1norm(self):
-        '''Compute the l1 norm of the vector'''
+        """Compute the l1 norm of the vector"""
         return self.ptr.l1norm()
 
     def maxabs(self):
-        '''Compute the linfty norm of the vector'''
+        """Compute the linfty norm of the vector"""
         return self.ptr.maxabs()
 
     def dot(self, PVec vec):
-        '''Compute the dot product with the provided PVec'''
+        """Compute the dot product with the provided PVec"""
         return self.ptr.dot(vec.ptr)
 
 # Python classes for the ParOptCompactQuasiNewton methods
@@ -869,9 +869,9 @@ cdef class InteriorPoint:
             return self.ptr.optimize(checkpoint)
 
     def getOptimizedPoint(self):
-        '''
+        """
         Get the optimized solution in PVec form for interpolation purposes
-        '''
+        """
         cdef int ncon = 0
         cdef ParOptScalar *_z = NULL
         cdef ParOptVec *_x = NULL
@@ -910,9 +910,9 @@ cdef class InteriorPoint:
         return x, z, zw, zl, zu
 
     def getOptimizedSlacks(self):
-        '''
+        """
         Get the optimized slack variables from the problem
-        '''
+        """
         cdef int ncon = 0
         cdef ParOptScalar *_s = NULL
         cdef ParOptScalar *_t = NULL
@@ -1200,7 +1200,7 @@ cdef class TrustRegion(ProblemBase):
                   double tr_size=1.0, double tr_min_size=1e-4,
                   double tr_max_size=1.0, double eta=0.25,
                   double penalty=10.0, double bound_relax=1e-4):
-        '''
+        """
         Create a trust region optimization object
 
         Args:
@@ -1214,7 +1214,7 @@ cdef class TrustRegion(ProblemBase):
             eta: Trust region update tolerance
             penalty: Initial l1 penalty parameter
             bound_relax: Bound tolerance for the KKT error
-        '''
+        """
         if qn is None:
             self.tr = new ParOptTrustRegion(prob.ptr, NULL, tr_size,
                                             tr_min_size, tr_max_size,
