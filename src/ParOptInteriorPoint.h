@@ -254,6 +254,11 @@ class ParOptInteriorPoint : public ParOptBase {
   void checkMeritFuncGradient( ParOptVec *xpt=NULL, double dh=1e-6 );
 
  private:
+  static const int PAROPT_LINE_SEARCH_FAILURE = -1;
+  static const int PAROPT_LINE_SEARCH_SUCCESS = 0;
+  static const int PAROPT_LINE_SEARCH_MIN_STEP = 1;
+  static const int PAROPT_LINE_SEARCH_MAX_ITERS = 2;
+
   // Print out the optimizer options to a file
   void printOptionSummary( FILE *fp );
 
@@ -344,7 +349,7 @@ class ParOptInteriorPoint : public ParOptBase {
                        double *_max_x, double *_max_z );
 
   // Perform the line search
-  int lineSearch( double *_alpha,
+  int lineSearch( double alpha_min, double *_alpha,
                   ParOptScalar m0, ParOptScalar dm0 );
 
   // Scale the step by the distance-to-the-boundary rule

@@ -4223,41 +4223,46 @@ void ParOptInteriorPoint::evalMeritInitDeriv( double max_x,
   rho_penalty_search = ParOptRealPart(input[2]);
 }
 
-/*
+/**
   Perform a backtracking line search from the current point along the
   specified direction. Note that this is a very simple line search
   without a second-order correction which may be required to alleviate
   the Maratos effect. (This should work regardless for compliance
   problems when the problem should be nearly convex.)
 
-  input:
-  alpha:  (in/out) the initial line search step length
-  m0:     the merit function
-  dm0:    the projected derivative of the merit function along p
-
-  returns:
-  fail:   did the line search find an acceptable point
+  @param alpha_min Minimum allowable step length
+  @param alpha (in/out) Initial line search step length
+  @param m0 The merit function value at alpha = 0
+  @param dm0 Derivative of the merit function along p at alpha = 0
+  @return Failure flag value
 */
-int ParOptInteriorPoint::lineSearch( double *_alpha,
+int ParOptInteriorPoint::lineSearch( double alpha_min, double *_alpha,
                                      ParOptScalar m0, ParOptScalar dm0 ){
   // Perform a backtracking line search until the sufficient decrease
   // conditions are satisfied
   double alpha = *_alpha;
-  int fail = 1;
+  int fail = PAROPT_LINE_SEARCH_FAILURE;
+
+  // Keep track of the best alpha value thus far and the best
+  // merit function value
+  ParOptScalar best_merit = 0.0;
+  double best_alpha = -1.0;
 
   int rank;
   MPI_Comm_rank(comm, &rank);
   if (output_level > 0){
     double pxnorm = computeStepNorm();
     if (outfp && rank == opt_root){
-      fprintf(outfp, "%5s %7s %25s %12s %12s\n",
-              "iter", "alpha", "merit", "dmerit", "||px||");
-      fprintf(outfp, "%5d %7s %25.16e %12.5e %12.5e\n",
-              0, " ", ParOptRealPart(m0), ParOptRealPart(dm0), pxnorm);
+      fprintf(outfp, "%5s %7s %25s %12s %12s %12s\n",
+              "iter", "alpha", "merit", "dmerit", "||px||", "min(alpha)");
+      fprintf(outfp, "%5d %7s %25.16e %12.5e %12.5e %12.5e\n",
+              0, " ", ParOptRealPart(m0), ParOptRealPart(dm0),
+              pxnorm, alpha_min);
     }
   }
 
-  for ( int j = 0; j < max_line_iters; j++ ){
+  int j = 0;
+  for ( ; j < max_line_iters; j++ ){
     // Set rx = x + alpha*px
     rx->copyValues(x);
     rx->axpy(alpha, px);
@@ -4284,7 +4289,7 @@ int ParOptInteriorPoint::lineSearch( double *_alpha,
       fprintf(stderr, "ParOpt: Evaluation failed during line search, "
               "trying new point\n");
 
-      // Multiply alpha by 1/10 like SNOPT
+      // Multiply alpha by 1/10 to avoid the undefined region
       alpha *= 0.1;
       continue;
     }
@@ -4298,16 +4303,30 @@ int ParOptInteriorPoint::lineSearch( double *_alpha,
               ParOptRealPart(merit), ParOptRealPart((merit - m0)/alpha));
     }
 
+    // If this is the minimum alpha value, then quit the line search loop
+    if (fail == PAROPT_LINE_SEARCH_MIN_STEP){
+      break;
+    }
+
+    // If the best alpha value is negative, then this must be the
+    // first successful evaluation. Otherwise, if this merit value
+    // is better than previous merit function values, store the new
+    // best merit function value.
+    if (best_alpha < 0.0 ||
+        ParOptRealPart(merit) < ParOptRealPart(best_merit)){
+      best_alpha = alpha;
+      best_merit = merit;
+    }
+
     // Check the sufficient decrease condition. Note that this is
     // relaxed by the specified function precision. This allows
     // acceptance of steps that violate the sufficient decrease
     // condition within the precision limit of the objective/merit
     // function.
-    if (ParOptRealPart(merit) <
-        (ParOptRealPart(m0 + armijo_constant*alpha*dm0) +
-         function_precision)){
+    if (ParOptRealPart(merit) - armijo_constant*alpha*ParOptRealPart(dm0) <
+        (ParOptRealPart(m0) + function_precision)){
       // We have successfully found a point
-      fail = 0;
+      fail = PAROPT_LINE_SEARCH_SUCCESS;
       break;
     }
 
@@ -4315,19 +4334,81 @@ int ParOptInteriorPoint::lineSearch( double *_alpha,
     if (j < max_line_iters-1){
       if (use_backtracking_alpha){
         alpha = 0.5*alpha;
+        if (alpha <= alpha_min){
+          alpha = alpha_min;
+          fail = PAROPT_LINE_SEARCH_MIN_STEP;
+        }
       }
       else {
         double alpha_new = -0.5*ParOptRealPart(dm0)*(alpha*alpha)/
           ParOptRealPart(merit - m0 - dm0*alpha);
 
         // Bound the new step length from below by 0.01
-        if (alpha_new < 0.01*alpha){
+        if (alpha_new <= alpha_min){
+          alpha = alpha_min;
+          fail = PAROPT_LINE_SEARCH_MIN_STEP;
+        }
+        else if (alpha_new < 0.01*alpha){
           alpha = 0.01*alpha;
         }
         else {
           alpha = alpha_new;
         }
       }
+    }
+  }
+
+  if (j == max_line_iters){
+    fail = PAROPT_LINE_SEARCH_MAX_ITERS;
+  }
+
+  // Check the status and return.
+  if (fail != PAROPT_LINE_SEARCH_SUCCESS){
+    // Possible variation on this: Add a check for a simple decrease
+    // within the function precision, then this is sufficient to accept
+    // the step, otherwise indicate a failure, ie.
+    // if (ParOptRealPart(best_merit) <=
+    //     ParOptRealPart(m0) + function_precision){
+
+    // If we're about to accept the best alpha value, then we have
+    // to re-evaluate the function at this point since the gradient
+    // will be evaluated here next, and we always have to evaluate
+    // function then gradient.
+    if (alpha != best_alpha){
+      alpha = best_alpha;
+
+      // Set rx = x + alpha*px
+      rx->copyValues(x);
+      rx->axpy(alpha, px);
+
+      // Set rcw = sw + alpha*psw
+      if (nwcon > 0 && sparse_inequality){
+        rsw->copyValues(sw);
+        rsw->axpy(alpha, psw);
+      }
+
+      // Set rs = s + alpha*ps
+      if (dense_inequality){
+        for ( int i = 0; i < ncon; i++ ){
+          rs[i] = s[i] + alpha*ps[i];
+          rt[i] = t[i] + alpha*pt[i];
+        }
+      }
+
+      // Evaluate the objective and constraints at the new point
+      int fail_obj = prob->evalObjCon(rx, &fobj, c);
+      neval++;
+
+      // This should not happen, since we've already evaluated
+      // the function at this point at a previous line search
+      // iteration.
+      if (fail_obj){
+        fprintf(stderr, "ParOpt: Evaluation failed during line search\n");
+        fail = PAROPT_LINE_SEARCH_FAILURE;
+      }
+    }
+    else {
+      alpha = best_alpha;
     }
   }
 
@@ -5138,8 +5219,6 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
     // Check the KKT step
     if (major_iter_step_check > 0 &&
         ((k % major_iter_step_check) == 0)){
-      // If we took a quasi-Newton step, we did not take an
-      // inexact Newton step
       checkKKTStep(k, inexact_newton_step);
     }
 
@@ -5160,22 +5239,38 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
     // Flag to indicate whether the line search failed
     int line_fail = 0;
 
-    // Is this a sequential linear step that discarded the quasi-Newton approx.
-    int seq_linear_step = 0;
-
     // The type of quasi-Newton update performed
     int update_type = 0;
 
-    if (use_line_search){
-      for ( int line_search_iter = 0; line_search_iter < 2; line_search_iter++ ){
-        // Compute the initial value of the merit function and its
-        // derivative and a new value for the penalty parameter
-        ParOptScalar m0, dm0;
-        evalMeritInitDeriv(alpha_x, &m0, &dm0,
-                           rx, wtemp, rcw);
+    // Is this a sequential linear step that discarded the quasi-Newton approx.
+    int seq_linear_step = 0;
 
-        if (line_fail || ParOptRealPart(dm0) >= 0.0){
-          // Try again with a quasi-Newton step
+    // Keep track of whether the line search was skipped or not
+    int line_search_skipped = 0;
+
+    if (use_line_search){
+      // Compute the initial value of the merit function and its
+      // derivative and a new value for the penalty parameter
+      ParOptScalar m0, dm0;
+      evalMeritInitDeriv(alpha_x, &m0, &dm0, rx, wtemp, rcw);
+
+      // Store the merit function derivative
+      dm0_prev = dm0;
+
+      if (ParOptRealPart(dm0) >= 0.0 &&
+          ParOptRealPart(dm0) <= function_precision){
+        line_search_skipped = 1;
+
+        // Perform a step and update the quasi-Newton Hessian approximation
+        int eval_obj_con = 1;
+        int perform_qn_update = 1;
+        update_type = computeStepAndUpdate(alpha, eval_obj_con,
+                                           perform_qn_update);
+      }
+      else {
+        if (ParOptRealPart(dm0) >= 0.0){
+          // Try again by discarding the quasi-Newton approximation. This should
+          // always generate a descent direction..
           seq_linear_step = 1;
 
           // Try to take the the
@@ -5200,8 +5295,10 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
                                   &alpha_x, &alpha_z);
 
           // Re-evaluate the merit function derivative
-          evalMeritInitDeriv(alpha_x, &m0, &dm0,
-                             rx, wtemp, rcw);
+          evalMeritInitDeriv(alpha_x, &m0, &dm0, rx, wtemp, rcw);
+
+          // Store the merit function derivative
+          dm0_prev = dm0;
         }
 
         // Check that the merit function derivative is correct and print
@@ -5211,14 +5308,20 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
           checkMeritFuncGradient(x, merit_func_check_epsilon);
         }
 
-        // Perform the line search
-        line_fail = lineSearch(&alpha, m0, dm0);
-
-        // Store the previous merit function derivative
-        dm0_prev = dm0;
+        // Prepare to perform the line search. First, compute the minimum
+        // allowable line search step length
+        double px_norm = px->maxabs();
+        double alpha_min = 1.0;
+        if (px_norm != 0.0){
+          alpha_min = function_precision/px_norm;
+        }
+        if (alpha_min > 0.5){
+          alpha_min = 0.5;
+        }
+        line_fail = lineSearch(alpha_min, &alpha, m0, dm0);
 
         // If the line search was successful, quit
-        if (!line_fail){
+        if (line_fail != PAROPT_LINE_SEARCH_FAILURE){
           // Do not evaluate the objective and constraints at the new point
           // since we've just performed a successful line search and the
           // last point was evaluated there. Perform a quasi-Newton update
@@ -5227,8 +5330,6 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
           int perform_qn_update = 1;
           update_type = computeStepAndUpdate(alpha, eval_obj_con,
                                              perform_qn_update);
-
-          break;
         }
       }
     }
@@ -5267,13 +5368,25 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         // Skipped update
         sprintf(&info[strlen(info)], "%s ", "skipH");
       }
-      if (line_fail){
+      if (line_fail == PAROPT_LINE_SEARCH_FAILURE){
         // Line search failure
-        sprintf(&info[strlen(info)], "%s ", "LF");
+        sprintf(&info[strlen(info)], "%s ", "LFail");
+      }
+      else if (line_fail == PAROPT_LINE_SEARCH_MIN_STEP){
+        // Line search reached the minimum step length
+        sprintf(&info[strlen(info)], "%s ", "LMnStp");
+      }
+      else if (line_fail == PAROPT_LINE_SEARCH_MAX_ITERS){
+        // Line search reached the max. number of iterations
+        sprintf(&info[strlen(info)], "%s ", "LMxItr");
       }
       if (seq_linear_step){
         // Line search failure
         sprintf(&info[strlen(info)], "%s ", "SLP");
+      }
+      if (line_search_skipped){
+        // Line search reached the max. number of iterations
+        sprintf(&info[strlen(info)], "%s ", "LSkip");
       }
       if (ceq_step){
         // The step lengths are equal due to an increase in the
