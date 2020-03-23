@@ -254,10 +254,11 @@ class ParOptInteriorPoint : public ParOptBase {
   void checkMeritFuncGradient( ParOptVec *xpt=NULL, double dh=1e-6 );
 
  private:
-  static const int PAROPT_LINE_SEARCH_FAILURE = -1;
-  static const int PAROPT_LINE_SEARCH_SUCCESS = 0;
-  static const int PAROPT_LINE_SEARCH_MIN_STEP = 1;
-  static const int PAROPT_LINE_SEARCH_MAX_ITERS = 2;
+  static const int PAROPT_LINE_SEARCH_SUCCESS = 1;
+  static const int PAROPT_LINE_SEARCH_FAILURE = 2;
+  static const int PAROPT_LINE_SEARCH_MIN_STEP = 4;
+  static const int PAROPT_LINE_SEARCH_MAX_ITERS = 8;
+  static const int PAROPT_LINE_SEARCH_NO_IMPROVEMENT = 16;
 
   // Print out the optimizer options to a file
   void printOptionSummary( FILE *fp );
@@ -274,7 +275,8 @@ class ParOptInteriorPoint : public ParOptBase {
   void computeKKTRes( double barrier,
                       double *max_prime,
                       double *max_dual,
-                      double *max_infeas );
+                      double *max_infeas,
+                      double *res_norm=NULL );
 
   // Compute the norm of the step
   double computeStepNorm();

@@ -699,6 +699,15 @@ void ParOptInteriorPoint::printOptionSummary( FILE *fp ){
     else {
       fprintf(fp, "%-30s %15s\n", "norm_type", "L2_NORM");
     }
+    if (barrier_strategy == PAROPT_MONOTONE){
+      fprintf(fp, "%-30s %15s\n", "barrier_strategy", "MONOTONE");
+    }
+    else if (barrier_strategy == PAROPT_COMPLEMENTARITY_FRACTION){
+      fprintf(fp, "%-30s %15s\n", "barrier_strategy", "COMP. FRACTION");
+    }
+    else {
+      fprintf(fp, "%-30s %15s\n", "barrier_strategy", "MEHROTRA");
+    }
     // Compute the average penalty
     double penalty = 0.0;
     for ( int i = 0; i < ncon; i++ ){
@@ -1611,7 +1620,8 @@ void ParOptInteriorPoint::setOutputLevel( int level ){
 void ParOptInteriorPoint::computeKKTRes( double barrier,
                                          double *max_prime,
                                          double *max_dual,
-                                         double *max_infeas ){
+                                         double *max_infeas,
+                                         double *res_norm ){
   // Zero the values of the maximum residuals
   *max_prime = 0.0;
   *max_dual = 0.0;
@@ -1816,6 +1826,17 @@ void ParOptInteriorPoint::computeKKTRes( double barrier,
     *max_dual = sqrt(*max_dual);
     *max_prime = sqrt(*max_prime);
     *max_infeas = sqrt(*max_infeas);
+  }
+
+  // Compute the max norm
+  if (res_norm){
+    *res_norm = *max_prime;
+    if (*max_dual > *res_norm){
+      *res_norm = *max_dual;
+    }
+    if (*max_infeas > *res_norm){
+      *res_norm = *max_infeas;
+    }
   }
 }
 
@@ -4261,6 +4282,9 @@ int ParOptInteriorPoint::lineSearch( double alpha_min, double *_alpha,
     }
   }
 
+  // Set the merit function value
+  ParOptScalar merit = 0.0;
+
   int j = 0;
   for ( ; j < max_line_iters; j++ ){
     // Set rx = x + alpha*px
@@ -4295,7 +4319,7 @@ int ParOptInteriorPoint::lineSearch( double alpha_min, double *_alpha,
     }
 
     // Evaluate the merit function
-    ParOptScalar merit = evalMeritFunc(fobj, c, rx, rs, rt, rsw);
+    merit = evalMeritFunc(fobj, c, rx, rs, rt, rsw);
 
     // Print out the merit function and step at the current iterate
     if (outfp && rank == opt_root && output_level > 0){
@@ -4304,7 +4328,7 @@ int ParOptInteriorPoint::lineSearch( double alpha_min, double *_alpha,
     }
 
     // If this is the minimum alpha value, then quit the line search loop
-    if (fail == PAROPT_LINE_SEARCH_MIN_STEP){
+    if (fail & PAROPT_LINE_SEARCH_MIN_STEP){
       break;
     }
 
@@ -4358,17 +4382,26 @@ int ParOptInteriorPoint::lineSearch( double alpha_min, double *_alpha,
     }
   }
 
+  // The line search existed with the maximum number of line search
+  // iterations
   if (j == max_line_iters){
     fail = PAROPT_LINE_SEARCH_MAX_ITERS;
   }
 
   // Check the status and return.
-  if (fail != PAROPT_LINE_SEARCH_SUCCESS){
-    // Possible variation on this: Add a check for a simple decrease
-    // within the function precision, then this is sufficient to accept
-    // the step, otherwise indicate a failure, ie.
-    // if (ParOptRealPart(best_merit) <=
-    //     ParOptRealPart(m0) + function_precision){
+  if (!(fail & PAROPT_LINE_SEARCH_SUCCESS)){
+    // Add a check for a simple decrease within the function precision,
+    // then this is sufficient to accept the step.
+    if (ParOptRealPart(best_merit) <=
+        ParOptRealPart(m0) + function_precision){
+      fail |= PAROPT_LINE_SEARCH_SUCCESS;
+    }
+
+    // Check if there is no significant change in the function value
+    if ((ParOptRealPart(m0) + function_precision <= ParOptRealPart(merit)) &&
+        (ParOptRealPart(merit) + function_precision <= ParOptRealPart(m0))){
+      fail |= PAROPT_LINE_SEARCH_NO_IMPROVEMENT;
+    }
 
     // If we're about to accept the best alpha value, then we have
     // to re-evaluate the function at this point since the gradient
@@ -4879,8 +4912,12 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
   double res_norm_prev = 0.0;
   double step_norm_prev = 0.0;
 
-  // Keep track of how many GMRES iterations there were
-  int gmres_iters = 0;
+  // Keep track of whether the line search resulted in no difference
+  // to function precision between the previous and current
+  // iterates. If the infeasibility and duality measures are satisfied
+  // to sufficient accuracy, then the barrier problem will be declared
+  // converged, if the MONTONE strategy is used.
+  int no_merit_function_improvement = 0;
 
   // Information about what happened on the previous major iteration
   char info[64];
@@ -4929,6 +4966,9 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
        (fabs(ParOptRealPart(fobj - fobj_prev)) <
         rel_func_tol*fabs(ParOptRealPart(fobj_prev))));
 
+    // Line search check
+    int line_search_test = 0;
+
     // Compute the complementarity
     ParOptScalar comp = computeComp();
 
@@ -4936,28 +4976,33 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
     // KKT conditions
     double max_prime = 0.0, max_dual = 0.0, max_infeas = 0.0;
 
-    // Compute the overall norm
+    // Compute the overall norm of the KKT conditions
     double res_norm = 0.0;
 
     if (barrier_strategy == PAROPT_MONOTONE){
       // Compute the residual of the KKT system
       computeKKTRes(barrier_param,
-                    &max_prime, &max_dual, &max_infeas);
+                    &max_prime, &max_dual, &max_infeas, &res_norm);
 
       // Compute the maximum of the norm of the residuals
-      res_norm = max_prime;
-      if (max_dual > res_norm){ res_norm = max_dual; }
-      if (max_infeas > res_norm){ res_norm = max_infeas; }
       if (k == 0){
         res_norm_prev = res_norm;
       }
+
+      // Set the line search check. If there is no change in the merit
+      // function value, and we're feasible and the complementarity
+      // conditions are satisfied, then declare the test passed.
+      line_search_test =
+        (no_merit_function_improvement &&
+         (max_dual < 10.0*barrier_param &&
+          max_infeas < 10.0*barrier_param));
 
       // Set the flag to indicate whether the barrier problem has
       // converged
       int barrier_converged = 0;
       if (k > 0 && ((res_norm < 10.0*barrier_param) ||
                     rel_function_test ||
-                    step_norm_prev < abs_step_tol)){
+                    line_search_test)){
         barrier_converged = 1;
       }
 
@@ -4992,15 +5037,10 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
 
         // Compute the new barrier parameter value
         computeKKTRes(new_barrier_param,
-                      &max_prime, &max_dual, &max_infeas);
+                      &max_prime, &max_dual, &max_infeas, &res_norm);
 
         // Reset the penalty parameter to the min allowable value
         rho_penalty_search = min_rho_penalty_search;
-
-        // Recompute the maximum residual norm after the update
-        res_norm = max_prime;
-        if (max_dual > res_norm){ res_norm = max_dual; }
-        if (max_infeas > res_norm){ res_norm = max_infeas; }
 
         // Set the new barrier parameter
         barrier_param = new_barrier_param;
@@ -5009,11 +5049,8 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
     else if (barrier_strategy == PAROPT_MEHROTRA){
       // Compute the residual of the KKT system
       computeKKTRes(barrier_param,
-                    &max_prime, &max_dual, &max_infeas);
+                    &max_prime, &max_dual, &max_infeas, &res_norm);
 
-      res_norm = max_prime;
-      if (max_dual > res_norm){ res_norm = max_dual; }
-      if (max_infeas > res_norm){ res_norm = max_infeas; }
       if (k == 0){
         res_norm_prev = res_norm;
       }
@@ -5026,11 +5063,8 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
 
       // Compute the residual of the KKT system
       computeKKTRes(barrier_param,
-                    &max_prime, &max_dual, &max_infeas);
+                    &max_prime, &max_dual, &max_infeas, &res_norm);
 
-      res_norm = max_prime;
-      if (max_dual > res_norm){ res_norm = max_dual; }
-      if (max_infeas > res_norm){ res_norm = max_infeas; }
       if (k == 0){
         res_norm_prev = res_norm;
       }
@@ -5075,7 +5109,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
     if (k > 0 && (barrier_param <= 0.1*abs_res_tol) &&
         (res_norm < abs_res_tol ||
          rel_function_test ||
-         step_norm_prev < abs_step_tol)){
+         line_search_test)){
       converged = 1;
     }
 
@@ -5088,71 +5122,74 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       break;
     }
 
-    // Compute the relative GMRES tolerance given the residuals
-    double gmres_rtol =
-      eisenstat_walker_gamma*pow((res_norm/res_norm_prev),
-                                 eisenstat_walker_alpha);
-
-    // Assign the previous objective/norm for next time through
-    fobj_prev = fobj;
-    res_norm_prev = res_norm;
-
     // Check if we should compute a Newton step or a quasi-Newton
     // step. Note that at this stage, we use s_qn and y_qn as
     // temporary arrays to help compute the KKT step. After
     // the KKT step is computed, we use them to store the
     // change in variables/gradient for the BFGS update.
-    gmres_iters = 0;
+    int gmres_iters = 0;
 
     // Flag to indicate whether to use the quasi-Newton Hessian
     // approximation to compute the next step
     int inexact_newton_step = 0;
 
-    if (use_hvec_product &&
-        (max_prime < nk_switch_tol &&
-         max_dual < nk_switch_tol &&
-         max_infeas < nk_switch_tol) &&
-        gmres_rtol < max_gmres_rtol){
-      // Set the flag which determines whether or not to use
-      // the quasi-Newton method as a preconditioner
-      int use_qn = 1;
-      if (sequential_linear_method ||
-          !use_qn_gmres_precon){
-        use_qn = 0;
-      }
+    if (use_hvec_product){
+      // Compute the relative GMRES tolerance given the residuals
+      double gmres_rtol =
+        eisenstat_walker_gamma*pow((res_norm/res_norm_prev),
+                                   eisenstat_walker_alpha);
 
-      // Set up the KKT diagonal system
-      setUpKKTDiagSystem(s_qn, wtemp, use_qn);
-
-      // Set up the full KKT system
-      setUpKKTSystem(ztemp, s_qn, y_qn, wtemp, use_qn);
-
-      // Compute the inexact step using GMRES
-      gmres_iters =
-        computeKKTGMRESStep(ztemp, y_qn, s_qn, wtemp,
-                            gmres_rtol, gmres_atol, use_qn);
-
-      if (abs_step_tol > 0.0){
-        step_norm_prev = computeStepNorm();
-      }
-
-      if (gmres_iters < 0){
-        // Print out an error code that we've failed
-        if (rank == opt_root && output_level > 0){
-          fprintf(outfp, "      %9s\n", "step failed");
+      if (max_prime < nk_switch_tol &&
+          max_dual < nk_switch_tol &&
+          max_infeas < nk_switch_tol &&
+          gmres_rtol < max_gmres_rtol){
+        // Set the flag which determines whether or not to use
+        // the quasi-Newton method as a preconditioner
+        int use_qn = 1;
+        if (sequential_linear_method ||
+            !use_qn_gmres_precon){
+          use_qn = 0;
         }
 
-        // Recompute the residual of the KKT system - the residual
-        // was destroyed during the failed GMRES iteration
-        computeKKTRes(barrier_param,
-                      &max_prime, &max_dual, &max_infeas);
-      }
-      else {
-        // We've successfully computed a KKT step using
-        // exact Hessian-vector products
-        inexact_newton_step = 1;
+        // Set up the KKT diagonal system
+        setUpKKTDiagSystem(s_qn, wtemp, use_qn);
+
+        // Set up the full KKT system
+        setUpKKTSystem(ztemp, s_qn, y_qn, wtemp, use_qn);
+
+        // Compute the inexact step using GMRES
+        gmres_iters =
+          computeKKTGMRESStep(ztemp, y_qn, s_qn, wtemp,
+                              gmres_rtol, gmres_atol, use_qn);
+
+        if (abs_step_tol > 0.0){
+          step_norm_prev = computeStepNorm();
+        }
+
+        if (gmres_iters < 0){
+          // Print out an error code that we've failed
+          if (rank == opt_root && output_level > 0){
+            fprintf(outfp, "      %9s\n", "step failed");
+          }
+
+          // Recompute the residual of the KKT system - the residual
+          // was destroyed during the failed GMRES iteration
+          computeKKTRes(barrier_param,
+                        &max_prime, &max_dual, &max_infeas);
+        }
+        else {
+          // We've successfully computed a KKT step using
+          // exact Hessian-vector products
+          inexact_newton_step = 1;
+        }
       }
     }
+
+    // Store the objective/res_norm for next time through the loop.
+    // The assignment takes place here since the GMRES computation
+    // requires the use of the res_norm value.
+    fobj_prev = fobj;
+    res_norm_prev = res_norm;
 
     // Compute a step based on the quasi-Newton Hessian approximation
     if (!inexact_newton_step){
@@ -5248,6 +5285,9 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
     // Keep track of whether the line search was skipped or not
     int line_search_skipped = 0;
 
+    // By default, we assume that there is an improvement in the merit function
+    no_merit_function_improvement = 0;
+
     if (use_line_search){
       // Compute the initial value of the merit function and its
       // derivative and a new value for the penalty parameter
@@ -5320,8 +5360,13 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         }
         line_fail = lineSearch(alpha_min, &alpha, m0, dm0);
 
+        // Check whether there was a change in the merit function to
+        // machine precision
+        no_merit_function_improvement =
+          (line_fail & PAROPT_LINE_SEARCH_NO_IMPROVEMENT);
+
         // If the line search was successful, quit
-        if (line_fail != PAROPT_LINE_SEARCH_FAILURE){
+        if (!(line_fail & PAROPT_LINE_SEARCH_FAILURE)){
           // Do not evaluate the objective and constraints at the new point
           // since we've just performed a successful line search and the
           // last point was evaluated there. Perform a quasi-Newton update
@@ -5330,6 +5375,10 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
           int perform_qn_update = 1;
           update_type = computeStepAndUpdate(alpha, eval_obj_con,
                                              perform_qn_update);
+        }
+        else {
+          // Break and quit here..
+          break;
         }
       }
     }
@@ -5348,7 +5397,8 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
     alpha_zprev = alpha_z;
 
     // Reset the quasi-Newton Hessian if there is a line search failure
-    if (qn && line_fail && use_quasi_newton_update){
+    if (qn && use_quasi_newton_update &&
+        (line_fail & PAROPT_LINE_SEARCH_FAILURE)){
       qn->reset();
     }
 
@@ -5368,17 +5418,21 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         // Skipped update
         sprintf(&info[strlen(info)], "%s ", "skipH");
       }
-      if (line_fail == PAROPT_LINE_SEARCH_FAILURE){
+      if (line_fail & PAROPT_LINE_SEARCH_FAILURE){
         // Line search failure
         sprintf(&info[strlen(info)], "%s ", "LFail");
       }
-      else if (line_fail == PAROPT_LINE_SEARCH_MIN_STEP){
+      if (line_fail & PAROPT_LINE_SEARCH_MIN_STEP){
         // Line search reached the minimum step length
         sprintf(&info[strlen(info)], "%s ", "LMnStp");
       }
-      else if (line_fail == PAROPT_LINE_SEARCH_MAX_ITERS){
+      if (line_fail & PAROPT_LINE_SEARCH_MAX_ITERS){
         // Line search reached the max. number of iterations
         sprintf(&info[strlen(info)], "%s ", "LMxItr");
+      }
+      if (line_fail & PAROPT_LINE_SEARCH_NO_IMPROVEMENT){
+        // Line search did not improve merit function
+        sprintf(&info[strlen(info)], "%s ", "LNoImprv");
       }
       if (seq_linear_step){
         // Line search failure
