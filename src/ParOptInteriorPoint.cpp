@@ -4272,7 +4272,7 @@ int ParOptInteriorPoint::lineSearch( double alpha_min, double *_alpha,
   int rank;
   MPI_Comm_rank(comm, &rank);
   if (output_level > 0){
-    double pxnorm = computeStepNorm();
+    double pxnorm = px->maxabs();
     if (outfp && rank == opt_root){
       fprintf(outfp, "%5s %7s %25s %12s %12s %12s\n",
               "iter", "alpha", "merit", "dmerit", "||px||", "min(alpha)");
@@ -5306,6 +5306,12 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         int perform_qn_update = 1;
         update_type = computeStepAndUpdate(alpha, eval_obj_con,
                                            perform_qn_update);
+
+        // Check if there was no change in the objective function
+        if ((ParOptRealPart(fobj_prev) + function_precision <= ParOptRealPart(fobj)) &&
+            (ParOptRealPart(fobj) + function_precision <= ParOptRealPart(fobj_prev))){
+          line_fail |= PAROPT_LINE_SEARCH_NO_IMPROVEMENT;
+        }
       }
       else {
         if (ParOptRealPart(dm0) >= 0.0){
@@ -5360,11 +5366,6 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         }
         line_fail = lineSearch(alpha_min, &alpha, m0, dm0);
 
-        // Check whether there was a change in the merit function to
-        // machine precision
-        no_merit_function_improvement =
-          (line_fail & PAROPT_LINE_SEARCH_NO_IMPROVEMENT);
-
         // If the line search was successful, quit
         if (!(line_fail & PAROPT_LINE_SEARCH_FAILURE)){
           // Do not evaluate the objective and constraints at the new point
@@ -5390,6 +5391,11 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       update_type = computeStepAndUpdate(alpha, eval_obj_con,
                                          perform_qn_update);
     }
+
+    // Check whether there was a change in the merit function to
+    // machine precision
+    no_merit_function_improvement =
+      (line_fail & PAROPT_LINE_SEARCH_NO_IMPROVEMENT);
 
     // Store the steps in x/z for printing later
     alpha_prev = alpha;
