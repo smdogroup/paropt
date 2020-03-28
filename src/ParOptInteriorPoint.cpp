@@ -5297,6 +5297,11 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       // Store the merit function derivative
       dm0_prev = dm0;
 
+      // Compute the max absolute value of the step
+      if (fabs(ParOptRealPart(dm0)) <= function_precision){
+        line_fail |= PAROPT_LINE_SEARCH_NO_IMPROVEMENT;
+      }
+
       if (ParOptRealPart(dm0) >= 0.0 &&
           ParOptRealPart(dm0) <= function_precision){
         line_search_skipped = 1;
@@ -5364,7 +5369,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         if (alpha_min > 0.5){
           alpha_min = 0.5;
         }
-        line_fail = lineSearch(alpha_min, &alpha, m0, dm0);
+        line_fail |= lineSearch(alpha_min, &alpha, m0, dm0);
 
         // If the line search was successful, quit
         if (!(line_fail & PAROPT_LINE_SEARCH_FAILURE)){
