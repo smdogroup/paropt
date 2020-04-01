@@ -458,7 +458,8 @@ if __name__ == '__main__':
     tr_max_size = 0.05
     tr_eta = 0.2
     tr_penalty_gamma = 10.0
-    tr = ParOpt.TrustRegion(problem, qn, tr_init_size,
+    subproblem = ParOpt.QuadraticSubproblem(problem, qn)
+    tr = ParOpt.TrustRegion(subproblem, tr_init_size,
                             tr_min_size, tr_max_size,
                             tr_eta, tr_penalty_gamma)
 
@@ -469,10 +470,10 @@ if __name__ == '__main__':
     tr.setTrustRegionTolerances(infeas_tol, l1_tol, linfty_tol)
 
     # Set the maximum number of iterations
-    tr.setMaxTrustRegionIterations(100)
+    tr.setMaxTrustRegionIterations(200)
 
     # Set up the optimization problem
-    tr_opt = ParOpt.InteriorPoint(tr, 2, ParOpt.BFGS)
+    tr_opt = ParOpt.InteriorPoint(subproblem, 2, ParOpt.BFGS)
 
     # Set up the optimization problem
     tr_opt.setOutputFile('topo_optimization_paropt.out')

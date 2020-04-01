@@ -104,13 +104,14 @@ def solve_problem(eigs, filename=None, use_stdout=False, use_tr=False):
         tr_penalty_gamma = 10.0
 
         qn = ParOpt.LBFGS(problem, subspace=max_lbfgs)
-        tr = ParOpt.TrustRegion(problem, qn, tr_init_size,
+        subproblem = ParOpt.QuadraticSubproblem(problem, qn)
+        tr = ParOpt.TrustRegion(subproblem, tr_init_size,
                                 tr_min_size, tr_max_size,
                                 tr_eta, tr_penalty_gamma)
         tr.setMaxTrustRegionIterations(500)
 
         # Set up the optimization problem
-        tr_opt = ParOpt.InteriorPoint(tr, 10, ParOpt.BFGS)
+        tr_opt = ParOpt.InteriorPoint(subproblem, 10, ParOpt.BFGS)
         if filename is not None and use_stdout is False:
             tr_opt.setOutputFile(filename)
 

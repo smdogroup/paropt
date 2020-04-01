@@ -1194,9 +1194,18 @@ cdef class MMA(ProblemBase):
     def setRegularization(self, double eps, double delta):
         self.mma.setRegularization(eps, delta)
 
-cdef class TrustRegion(ProblemBase):
+cdef class QuadraticSubproblem(TrustRegionSubproblem):
+    def __cinit__(self, ProblemBase problem, CompactQuasiNewton qn=None):
+        cdef ParOptCompactQuasiNewton* qn_ptr = NULL
+        if qn is not None:
+            qn_ptr = qn.ptr
+        self.subproblem = new ParOptQuadraticSubproblem(problem.ptr, qn_ptr)
+        self.subproblem.incref()
+        self.ptr = self.subproblem
+
+cdef class TrustRegion:
     cdef ParOptTrustRegion *tr
-    def __cinit__(self, ProblemBase prob, CompactQuasiNewton qn=None,
+    def __cinit__(self, TrustRegionSubproblem prob,
                   double tr_size=1.0, double tr_min_size=1e-4,
                   double tr_max_size=1.0, double eta=0.25,
                   double penalty=10.0, double bound_relax=1e-4):
@@ -1204,10 +1213,9 @@ cdef class TrustRegion(ProblemBase):
         Create a trust region optimization object
 
         Args:
-            prob: ProblemBase type
+            prob: TrustRegionSubproblem type
 
         Kwargs:
-            qn: CompactQuasiNewton defaults to None
             tr_size: Initial trust region size
             tr_min_size: Minimum trust region size
             tr_max_size: Maximum trust region size
@@ -1215,17 +1223,15 @@ cdef class TrustRegion(ProblemBase):
             penalty: Initial l1 penalty parameter
             bound_relax: Bound tolerance for the KKT error
         """
-        if qn is None:
-            self.tr = new ParOptTrustRegion(prob.ptr, NULL, tr_size,
-                                            tr_min_size, tr_max_size,
-                                            eta, penalty, bound_relax)
-        else:
-            self.tr = new ParOptTrustRegion(prob.ptr, qn.ptr, tr_size,
-                                            tr_min_size, tr_max_size,
-                                            eta, penalty, bound_relax)
+        self.tr = new ParOptTrustRegion(prob.subproblem, tr_size,
+                                        tr_min_size, tr_max_size,
+                                        eta, penalty, bound_relax)
         self.tr.incref()
-        self.ptr = self.tr
         return
+
+    def __dealloc__(self):
+        if self.tr:
+            self.tr.decref()
 
     def initialize(self):
         self.tr.initialize()
@@ -1242,19 +1248,6 @@ cdef class TrustRegion(ProblemBase):
         self.tr.update(vec.ptr, <ParOptScalar*>z.data, v,
                        &infeas, &l1, &linfty)
         return infeas, l1, linfty
-
-    def getGradients(self):
-        cdef int m = 0
-        cdef ParOptVec *g = NULL
-        cdef ParOptVec **A = NULL
-        m = self.tr.getGradients(&g, &A)
-
-        # Create the list of gradients
-        Av = []
-        for i in range(m):
-            Av.append(_init_PVec(A[i]))
-
-        return _init_PVec(g), Av
 
     def setOutputFile(self, fname):
         cdef char *filename = convert_to_chars(fname)
