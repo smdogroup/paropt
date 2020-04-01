@@ -1,5 +1,6 @@
 #include "ParOptProblem.h"
 #include "ParOptComplexStep.h"
+#include <string.h>
 
 void ParOptProblem::checkGradients( double dh, ParOptVec *xvec,
                                     int check_hvec_product ){
