@@ -736,8 +736,6 @@ void ParOptTrustRegion::update( ParOptVec *xt,
             ParOptRealPart(infeas_k - infeas_t),
             ParOptRealPart(infeas_k - infeas_model));
   }
-  delete [] ck;
-  delete [] ct;
 
   // Compute the ratio
   ParOptScalar rho = actual_reduc/model_reduc;
@@ -748,6 +746,9 @@ void ParOptTrustRegion::update( ParOptVec *xt,
     infeas_new += max2(0.0, -ct[i]);
   }
   *infeas = ParOptRealPart(infeas_new);
+
+  delete [] ck;
+  delete [] ct;
 
   // Compute the max absolute value
   double smax = 0.0;

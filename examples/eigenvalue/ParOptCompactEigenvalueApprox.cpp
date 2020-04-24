@@ -233,11 +233,11 @@ int ParOptEigenQuasiNewton::getCompactMat( ParOptScalar *b0,
   eigh->getApproximation(NULL, NULL, &N, &M1, &Z1);
 
   for ( int i = 0; i < N; i++ ){
-    d[i + qn_size] = 1.0;
-    Z[i + qn_size] = Z1[i];
+    d[qn_size + i] = 1.0;
+    Z[qn_size + i] = Z1[i];
 
     for ( int j = 0; j < N; j++ ){
-      M[(i + qn_size)*mat_size + qn_size + j] = -z0*M1[i*N + j];
+      M[(qn_size + i)*mat_size + qn_size + j] = -z0*M1[i*N + j];
     }
   }
 
