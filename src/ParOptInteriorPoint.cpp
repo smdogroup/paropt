@@ -3671,23 +3671,27 @@ void ParOptInteriorPoint::checkMeritFuncGradient( ParOptVec *xpt, double dh ){
     return;
   }
 
-  // Set a step in the design variables
-  px->copyValues(g);
-  px->scale(-1.0/px->norm());
+  // If the point is specified, pick a direction and use it,
+  // otherwise use the existing step
+  if (xpt){
+    // Set a step in the design variables
+    px->copyValues(g);
+    px->scale(-1.0/px->norm());
 
-  // Zero all other components in the step computation
-  for ( int i = 0; i < ncon; i++ ){
-    ps[i] = 0.0; // -0.259*(1 + (i % 3));
-    pt[i] = 0.0; // -0.349*(4 - (i % 2));
-  }
+    // Zero all other components in the step computation
+    for ( int i = 0; i < ncon; i++ ){
+      ps[i] = -0.259*(1 + (i % 3));
+      pt[i] = -0.349*(4 - (i % 2));
+    }
 
-  if (nwcon > 0 && sparse_inequality){
-    psw->zeroEntries();
-    ParOptScalar *pswvals;
-    psw->getArray(&pswvals);
+    if (nwcon > 0 && sparse_inequality){
+      psw->zeroEntries();
+      ParOptScalar *pswvals;
+      psw->getArray(&pswvals);
 
-    for ( int i = 0; i < nwcon; i++ ){
-      pswvals[i] = 0.0; // -0.419*(1 + (i % 5));
+      for ( int i = 0; i < nwcon; i++ ){
+        pswvals[i] = -0.419*(1 + (i % 5));
+      }
     }
   }
 
@@ -5297,6 +5301,11 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       // Store the merit function derivative
       dm0_prev = dm0;
 
+      // Compute the max absolute value of the step
+      if (fabs(ParOptRealPart(dm0)) <= function_precision){
+        line_fail |= PAROPT_LINE_SEARCH_NO_IMPROVEMENT;
+      }
+
       if (ParOptRealPart(dm0) >= 0.0 &&
           ParOptRealPart(dm0) <= function_precision){
         line_search_skipped = 1;
@@ -5351,7 +5360,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         // the derivative to the screen on the optimization-root processor
         if (major_iter_step_check > 0 &&
             ((k % major_iter_step_check) == 0)){
-          checkMeritFuncGradient(x, merit_func_check_epsilon);
+          checkMeritFuncGradient(NULL, merit_func_check_epsilon);
         }
 
         // Prepare to perform the line search. First, compute the minimum
@@ -5364,7 +5373,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         if (alpha_min > 0.5){
           alpha_min = 0.5;
         }
-        line_fail = lineSearch(alpha_min, &alpha, m0, dm0);
+        line_fail |= lineSearch(alpha_min, &alpha, m0, dm0);
 
         // If the line search was successful, quit
         if (!(line_fail & PAROPT_LINE_SEARCH_FAILURE)){

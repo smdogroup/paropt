@@ -4,7 +4,7 @@ from __future__ import print_function
 import os
 
 # Import the greatest common divisor code
-from fractions import gcd
+from math import gcd
 
 # Import MPI
 import mpi4py.MPI as MPI

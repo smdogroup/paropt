@@ -1,5 +1,6 @@
 #include "ParOptProblem.h"
 #include "ParOptComplexStep.h"
+#include <string.h>
 
 void ParOptProblem::checkGradients( double dh, ParOptVec *xvec,
                                     int check_hvec_product ){
@@ -83,7 +84,9 @@ void ParOptProblem::checkGradients( double dh, ParOptVec *xvec,
 
     // Add the contribution to gradient of the Lagrangian
     // from the sparse constraints
-    addSparseJacobianTranspose(-1.0, x, zw, g);
+    if (nwcon > 0){
+      addSparseJacobianTranspose(-1.0, x, zw, g);
+    }
 
     for ( int i = 0; i < ncon; i++ ){
       g->axpy(-ztemp[i], Ac[i]);
@@ -175,7 +178,9 @@ void ParOptProblem::checkGradients( double dh, ParOptVec *xvec,
     // Evaluate the gradient at the perturbed point and add the
     // contribution from the sparse constraints to the Hessian
     evalObjConGradient(xt, g2, Ac2);
-    addSparseJacobianTranspose(-1.0, xt, zw, g2);
+    if (nwcon > 0){
+      addSparseJacobianTranspose(-1.0, xt, zw, g2);
+    }
 
     // Add the contribution from the dense constraints
     for ( int i = 0; i < ncon; i++ ){

@@ -246,13 +246,19 @@ cdef extern from "ParOptMMA.h":
         void setRegularization(double, double)
 
 cdef extern from "ParOptTrustRegion.h":
-    cdef cppclass ParOptTrustRegion(ParOptProblem):
-        ParOptTrustRegion(ParOptProblem*, ParOptCompactQuasiNewton*,
+    cdef cppclass ParOptTrustRegionSubproblem(ParOptProblem):
+        pass
+
+    cdef cppclass ParOptQuadraticSubproblem(ParOptTrustRegionSubproblem):
+        ParOptQuadraticSubproblem(ParOptProblem*,
+                                  ParOptCompactQuasiNewton*)
+
+    cdef cppclass ParOptTrustRegion(ParOptBase):
+        ParOptTrustRegion(ParOptTrustRegionSubproblem*,
                           double, double, double, double, double, double)
         void initialize()
         void update(ParOptVec*, const ParOptScalar*, ParOptVec*,
                     double*, double*, double*)
-        int getGradients(ParOptVec**, ParOptVec***)
         void setOutputFile(const char*)
         void setPrintLevel(int)
         void setAdaptiveGammaUpdate(int)
@@ -267,3 +273,6 @@ cdef extern from "ParOptTrustRegion.h":
 
 cdef class ProblemBase:
     cdef ParOptProblem *ptr
+
+cdef class TrustRegionSubproblem(ProblemBase):
+    cdef ParOptTrustRegionSubproblem *subproblem
