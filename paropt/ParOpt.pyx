@@ -1222,6 +1222,7 @@ cdef class TrustRegion:
             eta: Trust region update tolerance
             penalty: Initial l1 penalty parameter
             bound_relax: Bound tolerance for the KKT error
+            bound_relax: Bound tolerance for the KKT error
         """
         self.tr = new ParOptTrustRegion(prob.subproblem, tr_size,
                                         tr_min_size, tr_max_size,
