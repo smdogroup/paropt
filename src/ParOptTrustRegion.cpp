@@ -57,7 +57,7 @@ inline ParOptScalar max2( ParOptScalar a, ParOptScalar b ){
 
 ParOptQuadraticSubproblem::ParOptQuadraticSubproblem( ParOptProblem *_prob,
                                                       ParOptCompactQuasiNewton *_qn ):
-  ParOptTrustRegionSubproblem(_prob){
+  ParOptTrustRegionSubproblem(_prob->getMPIComm()){
 
   // Paropt problem instance
   prob = _prob;
@@ -230,8 +230,8 @@ int ParOptQuadraticSubproblem::acceptTrialPoint( ParOptVec *x,
   xk->copyValues(x);
   gk->copyValues(gt);
   for ( int i = 0; i < m; i++ ){
-   ck[i] = ct[i];
-   Ak[i]->copyValues(At[i]);
+    ck[i] = ct[i];
+    Ak[i]->copyValues(At[i]);
   }
 
   return fail;
@@ -240,7 +240,7 @@ int ParOptQuadraticSubproblem::acceptTrialPoint( ParOptVec *x,
 void ParOptQuadraticSubproblem::rejectTrialPoint(){
   ft = 0.0;
   for ( int i = 0; i < m; i++ ){
-   ct[i] = 0.0;
+    ct[i] = 0.0;
   }
 }
 

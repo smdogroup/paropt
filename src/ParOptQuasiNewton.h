@@ -20,29 +20,30 @@ class ParOptCompactQuasiNewton : public ParOptBase {
   virtual ~ParOptCompactQuasiNewton(){}
 
   // Reset the internal data
-  // -----------------------
   virtual void reset() = 0;
 
-  // Perform the BFGS update
-  // -----------------------
-  virtual int update( ParOptVec *x, const ParOptScalar *z, ParOptVec *zw ){
-    return 0;
-  }
+  // Perform the quasi-Newton update with the specified multipliers
   virtual int update( ParOptVec *x, const ParOptScalar *z, ParOptVec *zw,
                       ParOptVec *s, ParOptVec *y ) = 0;
 
+  // Update the approximation with only multiplier values - this is used
+  // only for certain classes of compact Hessian approximations and does
+  // not need to be implemented in general.
+  virtual int update( ParOptVec *x, const ParOptScalar *z, ParOptVec *zw ){
+    return 0;
+  }
+
   // Perform a matrix-vector multiplication
-  // --------------------------------------
   virtual void mult( ParOptVec *x, ParOptVec *y ) = 0;
+
+  // Perform a matrix-vector multiplication and add the result to y
   virtual void multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ) = 0;
 
-  // Get the information for the limited-memory BFGS update
-  // ------------------------------------------------------
+  // Get the compact representation for the limited-memory quasi-Newton method
   virtual int getCompactMat( ParOptScalar *_b0, const ParOptScalar **_d,
                              const ParOptScalar **_M, ParOptVec ***Z ) = 0;
 
-  // Get the maximum size of the limited-memory BFGS
-  // -----------------------------------------------
+  // Get the maximum size of the compact representation
   virtual int getMaxLimitedMemorySize() = 0;
 };
 
@@ -72,30 +73,24 @@ class ParOptLBFGS : public ParOptCompactQuasiNewton {
   ~ParOptLBFGS();
 
   // Set the curvature update type
-  // -----------------------------
   void setBFGSUpdateType( ParOptBFGSUpdateType _hessian_update_type );
 
   // Reset the internal data
-  // -----------------------
   void reset();
 
   // Perform the BFGS update
-  // -----------------------
   int update( ParOptVec *x, const ParOptScalar *z, ParOptVec *zw,
               ParOptVec *s, ParOptVec *y );
 
   // Perform a matrix-vector multiplication
-  // --------------------------------------
   void mult( ParOptVec *x, ParOptVec *y );
   void multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y);
 
   // Get the information for the limited-memory BFGS update
-  // ------------------------------------------------------
   int getCompactMat( ParOptScalar *_b0, const ParOptScalar **_d,
                      const ParOptScalar **_M, ParOptVec ***Z );
 
   // Get the maximum size of the limited-memory BFGS
-  // -----------------------------------------------
   int getMaxLimitedMemorySize();
 
  protected:
@@ -147,26 +142,21 @@ class ParOptLSR1 : public ParOptCompactQuasiNewton {
   ~ParOptLSR1();
 
   // Reset the internal data
-  // -----------------------
   void reset();
 
   // Perform the BFGS update
-  // -----------------------
   int update( ParOptVec *x, const ParOptScalar *z, ParOptVec *zw,
               ParOptVec *s, ParOptVec *y );
 
   // Perform a matrix-vector multiplication
-  // --------------------------------------
   void mult( ParOptVec *x, ParOptVec *y );
   void multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y);
 
   // Get the information for the limited-memory BFGS update
-  // ------------------------------------------------------
   int getCompactMat( ParOptScalar *_b0, const ParOptScalar **_d,
                      const ParOptScalar **_M, ParOptVec ***Z );
 
   // Get the maximum size of the limited-memory BFGS
-  // -----------------------------------------------
   int getMaxLimitedMemorySize();
 
  protected:

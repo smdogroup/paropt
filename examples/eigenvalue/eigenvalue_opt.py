@@ -1,9 +1,11 @@
 # Import numpy
+import os
 import numpy as np
 import mpi4py.MPI as MPI
 
 # Import ParOpt
 from paropt import ParOpt
+import ParOptEig
 
 # Import argparse
 import argparse
@@ -12,7 +14,7 @@ import argparse
 import matplotlib.pylab as plt
 
 class SpectralAggregate(ParOpt.Problem):
-    def __init__(self, n, ndv, rho=10.0):
+    def __init__(self, n, ndv, rho=10.0, approx=None):
         """
         This class creates a spectral aggregate for a randomly generated problem.
 
@@ -25,10 +27,6 @@ class SpectralAggregate(ParOpt.Problem):
 
         c(x) = -1/rho*log(trace(exp(-rho*A))) =
              = -1/rho*log(sum_{i} (exp(-rho*eigs[i])))
-
-        To create a convex optimization problem, we constrain the
-
-
         """
         # Set the communicator
         self.comm = MPI.COMM_WORLD
@@ -38,10 +36,14 @@ class SpectralAggregate(ParOpt.Problem):
         self.ndv = ndv # The number of design variables
         self.rho = rho # The KS parameter value
         self.ncon = 1
+        self.approx = approx
 
         # Generate a random
         self.Q = np.random.uniform(size=(self.n, self.ndv))
         self.A0 = 1e-6*np.dot(self.Q, self.Q.T)
+
+        # Set up a random vector
+        self.f = np.random.uniform(size=self.n, low=-1.0, high=1.0)
 
         # Initialize the base class
         super(SpectralAggregate, self).__init__(self.comm, self.ndv, self.ncon)
@@ -108,6 +110,29 @@ class SpectralAggregate(ParOpt.Problem):
         # Compute the Hessian
         ks_hessian = np.dot(self.W, np.dot(self.M, self.W.T)) + np.dot(self.V, np.dot(self.P, self.V.T))
 
+        if self.approx is not None:
+            g0, hvecs = self.approx.getApproximationVectors()
+
+            g0[:] = ks_gradient[:]
+
+            nhv = len(hvecs)
+            M = np.zeros((nhv, nhv))
+
+            nmv = nhv//2
+            npv = nhv - nmv
+            for i in range(nmv):
+                hvecs[i][:] = self.W[:,i]
+                M[i,:nmv] = self.M[i,:nmv]
+
+            diag = range(m)
+            indices = np.argsort(self.P[diag, diag])[:npv]
+
+            for i in range(npv):
+                hvecs[i+nmv][:] = self.V[:,indices[i]]
+                M[i+nmv,i+nmv] = self.P[indices[i], indices[i]]
+
+            self.approx.setApproximationValues(ks_value, M)
+
         return min_eig, ks_value, ks_gradient, ks_hessian
 
     def verify_derivatives(self, x0, dh=1e-6):
@@ -151,8 +176,10 @@ class SpectralAggregate(ParOpt.Problem):
         # Evaluate the objective and constraints
         fail = 0
 
-        # Evaluate the objective - the sum of the design variables
-        fobj = np.sum(x[:])
+        # Evaluate the objective - the approximate compliance
+        A = self.A0 + np.dot(self.Q, np.dot(np.diag(x[:]), self.Q.T))
+        self.u = np.linalg.solve(A, self.f)
+        fobj = np.dot(self.u, self.f)
 
         # Evaluate the model using the eigenvalue constraint
         self.lam, self.ks, self.grad, self.H = self.evalModel(x[:])
@@ -166,80 +193,79 @@ class SpectralAggregate(ParOpt.Problem):
         fail = 0
 
         # The objective gradient
-        g[:] = 1.0
+        g[:] = - np.dot(self.u, self.Q)**2
 
         # The constraint gradient
         A[0][:] = self.grad[:]
 
         return fail
 
-def solve_problem(n, ndv, rho, filename=None, use_tr=False):
+    def writeOutput(self, it):
+        pass
 
-    problem = SpectralAggregate(n, ndv, rho=rho)
+def solve_problem(n, ndv, rho, filename=None, use_quadratic_approx=True):
+    problem = SpectralAggregate(n, ndv, rho=rho, approx=None)
 
     x0 = np.random.uniform(size=ndv)
     problem.verify_derivatives(x0)
 
-    if use_tr:
-        # Create the trust region problem
-        max_lbfgs = 10
-        tr_init_size = 0.05
-        tr_min_size = 1e-6
-        tr_max_size = 10.0
-        tr_eta = 0.1
-        tr_penalty_gamma = 10.0
+    problem.checkGradients(1e-6)
 
+    # Create the trust region problem
+    max_lbfgs = 10
+    tr_init_size = 0.05
+    tr_min_size = 1e-6
+    tr_max_size = 10.0
+    tr_eta = 0.1
+    tr_penalty_gamma = 10.0
+
+    if use_quadratic_approx:
+        qn = ParOpt.LBFGS(problem, subspace=max_lbfgs)
+
+        # Number of approximation vectors
+        napprox = 10
+        approx = ParOptEig.CompactEigenApprox(problem, napprox)
+        problem.approx = approx
+
+        eig_qn = ParOptEig.EigenQuasiNewton(qn, approx)
+        subproblem = ParOptEig.EigenSubproblem(problem, eig_qn)
+    else:
         qn = ParOpt.LBFGS(problem, subspace=max_lbfgs)
         subproblem = ParOpt.QuadraticSubproblem(problem, qn)
-        tr = ParOpt.TrustRegion(subproblem, tr_init_size,
-                                tr_min_size, tr_max_size,
-                                tr_eta, tr_penalty_gamma)
-        tr.setMaxTrustRegionIterations(500)
 
-        infeas_tol = 1e-6
-        l1_tol = 1e-4
-        linfty_tol = 1e-4
-        tr.setTrustRegionTolerances(infeas_tol, l1_tol, linfty_tol)
+    tr = ParOpt.TrustRegion(subproblem, tr_init_size,
+                            tr_min_size, tr_max_size,
+                            tr_eta, tr_penalty_gamma)
+    tr.setMaxTrustRegionIterations(500)
 
-        # Set up the optimization problem
-        tr_opt = ParOpt.InteriorPoint(subproblem, max_lbfgs, ParOpt.BFGS)
-        if filename is not None:
-            tr_opt.setOutputFile(filename)
+    infeas_tol = 1e-6
+    l1_tol = 1e-4
+    linfty_tol = 1e-4
+    tr.setTrustRegionTolerances(infeas_tol, l1_tol, linfty_tol)
 
-        # Set the tolerances
-        tr_opt.setAbsOptimalityTol(1e-8)
-        tr_opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
-        tr_opt.setStartAffineStepMultiplierMin(0.01)
+    # Set up the optimization problem
+    tr_opt = ParOpt.InteriorPoint(subproblem, max_lbfgs, ParOpt.BFGS)
+    if filename is not None:
+        tr_opt.setOutputFile(filename)
 
-        # Set optimization parameters
-        tr_opt.setArmijoParam(1e-5)
-        tr_opt.setMaxMajorIterations(5000)
-        tr_opt.setBarrierPower(2.0)
-        tr_opt.setBarrierFraction(0.1)
+    # Set the tolerances
+    tr_opt.setAbsOptimalityTol(1e-8)
+    tr_opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
+    tr_opt.setStartAffineStepMultiplierMin(0.01)
 
-        # optimize
-        tr.setOutputFile(filename + '_tr')
-        tr.setPrintLevel(1)
-        tr.optimize(tr_opt)
+    # Set optimization parameters
+    tr_opt.setArmijoParam(1e-5)
+    tr_opt.setMaxMajorIterations(5000)
+    tr_opt.setBarrierPower(2.0)
+    tr_opt.setBarrierFraction(0.1)
 
-        # Get the optimized point from the trust-region subproblem
-        x, z, zw, zl, zu = tr_opt.getOptimizedPoint()
-    else:
-        # Set up the optimization problem
-        max_lbfgs = 50
-        opt = ParOpt.InteriorPoint(problem, max_lbfgs, ParOpt.BFGS)
-        if filename is not None:
-            opt.setOutputFile(filename)
+    # optimize
+    tr.setOutputFile(os.path.splitext(filename)[0] + '.tr')
+    # tr.setPrintLevel(1)
+    tr.optimize(tr_opt)
 
-        # Set optimization parameters
-        opt.setArmijoParam(1e-5)
-        opt.setMaxMajorIterations(5000)
-        opt.setBarrierPower(2.0)
-        opt.setBarrierFraction(0.1)
-        opt.optimize()
-
-        # Get the optimized point
-        x, z, zw, zl, zu = opt.getOptimizedPoint()
+    # Get the optimized point from the trust-region subproblem
+    x, z, zw, zl, zu = tr_opt.getOptimizedPoint()
 
     return x
 
@@ -251,12 +277,7 @@ parser.add_argument('--ndv', type=int, default=200,
                     help='Number of design variables')
 parser.add_argument('--rho', type=float, default=10.0,
                     help='KS aggregation parameter')
-parser.add_argument('--optimizer', type=str, default='ip')
 args = parser.parse_args()
-
-use_tr = False
-if args.optimizer != 'ip':
-    use_tr = True
 
 # Set the eigenvalues for the matrix
 n = args.n
@@ -264,4 +285,4 @@ ndv = args.ndv
 rho = args.rho
 
 # Solve the problem
-x = solve_problem(n, ndv, rho, filename='eig_problem.out', use_tr=use_tr)
+x = solve_problem(n, ndv, rho, filename='eig_problem.out')

@@ -12,8 +12,8 @@
 */
 class ParOptTrustRegionSubproblem : public ParOptProblem {
  public:
-  ParOptTrustRegionSubproblem( ParOptProblem *_problem ):
-    ParOptProblem(_problem->getMPIComm()){}
+  ParOptTrustRegionSubproblem( MPI_Comm comm ):
+    ParOptProblem(comm){}
 
   /**
     Return the compact quasi-Newton Hessian approximation
