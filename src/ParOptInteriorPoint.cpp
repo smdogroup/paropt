@@ -297,15 +297,15 @@ ParOptInteriorPoint::ParOptInteriorPoint( ParOptProblem *_prob,
 
   if (max_qn_size > 0){
     // Allocate storage for bfgs/constraint sized things
-    int zsize = 2*max_qn_size;
+    int zsize = max_qn_size;
     if (ncon > zsize){
       zsize = ncon;
     }
     ztemp = new ParOptScalar[ zsize ];
 
     // Allocate space for the Ce matrix
-    Ce = new ParOptScalar[ 4*max_qn_size*max_qn_size ];
-    cpiv = new int[ 2*max_qn_size ];
+    Ce = new ParOptScalar[ max_qn_size*max_qn_size ];
+    cpiv = new int[ max_qn_size ];
   }
   else {
     ztemp = NULL;
@@ -1474,15 +1474,15 @@ void ParOptInteriorPoint::setQuasiNewton( ParOptCompactQuasiNewton *_qn ){
 
   if (max_qn_subspace > 0){
     // Allocate storage for bfgs/constraint sized things
-    int zsize = 2*max_qn_subspace;
+    int zsize = max_qn_subspace;
     if (ncon > zsize){
       zsize = ncon;
     }
     ztemp = new ParOptScalar[ zsize ];
 
     // Allocate space for the Ce matrix
-    Ce = new ParOptScalar[ 4*max_qn_subspace*max_qn_subspace ];
-    cpiv = new int[ 2*max_qn_subspace ];
+    Ce = new ParOptScalar[ max_qn_subspace*max_qn_subspace ];
+    cpiv = new int[ max_qn_subspace ];
   }
   else {
     ztemp = NULL;

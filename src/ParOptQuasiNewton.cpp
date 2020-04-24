@@ -112,7 +112,7 @@ void ParOptLBFGS::setBFGSUpdateType( ParOptBFGSUpdateType _hessian_update_type )
   @return the maximum limited memory size
 */
 int ParOptLBFGS::getMaxLimitedMemorySize(){
-  return msub_max;
+  return 2*msub_max;
 }
 
 /**

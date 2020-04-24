@@ -226,6 +226,9 @@ int ParOptEigenQuasiNewton::getCompactMat( ParOptScalar *b0,
       }
     }
   }
+  else {
+    if (b0){ *b0 = 0.0; }
+  }
 
   // Get the Hessian approximation of the approximation
   ParOptVec **Z1;
