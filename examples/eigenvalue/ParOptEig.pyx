@@ -16,7 +16,7 @@ cdef extern from "ParOptCompactEigenvalueApprox.h":
     cppclass ParOptCompactEigenApprox(ParOptBase):
         ParOptCompactEigenApprox(ParOptProblem*, int)
         void getApproximation(ParOptScalar**, ParOptVec**,
-                              int*, ParOptScalar**, ParOptVec***)
+                              int*, ParOptScalar**, ParOptScalar**, ParOptVec***)
 
     cppclass ParOptEigenQuasiNewton(ParOptCompactQuasiNewton):
         ParOptEigenQuasiNewton(ParOptCompactQuasiNewton*, ParOptCompactEigenApprox*)
@@ -39,7 +39,7 @@ cdef class CompactEigenApprox:
         cdef ParOptVec *g0
         cdef ParOptVec **hvecs
 
-        self.ptr.getApproximation(NULL, &g0, &N, NULL, &hvecs)
+        self.ptr.getApproximation(NULL, &g0, &N, NULL, NULL, &hvecs)
 
         hlist = []
         for i in range(N):
@@ -47,17 +47,19 @@ cdef class CompactEigenApprox:
 
         return _init_PVec(g0), hlist
 
-    def setApproximationValues(self, ParOptScalar c, M):
+    def setApproximationValues(self, ParOptScalar c, M, Minv):
         cdef int N
         cdef ParOptScalar *c0
         cdef ParOptScalar *M0
+        cdef ParOptScalar *M0inv
 
-        self.ptr.getApproximation(&c0, NULL, &N, &M0, NULL)
+        self.ptr.getApproximation(&c0, NULL, &N, &M0, &M0inv, NULL)
 
         c0[0] = c
         for i in range(N):
             for j in range(N):
                 M0[N*i + j] = M[i][j]
+                M0inv[N*i + j] = Minv[i][j]
 
         return
 

@@ -29,7 +29,7 @@ debug: default
 	${CXX} -I${PAROPT_DIR}/paropt/ ${PAROPT_CC_FLAGS} ${PY_INCLUDE} -c $< -o $@
 
 ParOptEig.so: ParOptEig.o ParOptCompactEigenvalueApprox.o
-	${CXX} ${SO_LINK_FLAGS} ParOptEig.o ParOptCompactEigenvalueApprox.o ${TACS_LD_FLAGS} -o $@
+	${CXX} ${SO_LINK_FLAGS} ParOptEig.o ParOptCompactEigenvalueApprox.o ${PAROPT_LD_FLAGS} -o $@
 
 clean:
 	${RM} *.so *.o 

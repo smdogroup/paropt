@@ -118,7 +118,15 @@ class SpectralAggregate(ParOpt.Problem):
             nhv = len(hvecs)
             M = np.zeros((nhv, nhv))
 
-            nmv = nhv//2
+            # Find the number of diagonal entries in M exceeding the tolerance
+            # but not more than nhv/2. These will be included
+            nmv = 0
+            tol = 1e-3
+            for i in range(nhv//2):
+                if self.M[i,i] >= tol:
+                    nmv += 1
+
+            # Fill in the values of the approximation matrix from M
             npv = nhv - nmv
             for i in range(nmv):
                 hvecs[i][:] = self.W[:,i]
@@ -127,11 +135,15 @@ class SpectralAggregate(ParOpt.Problem):
             diag = range(m)
             indices = np.argsort(self.P[diag, diag])[:npv]
 
+            # Extract the values from the P matrix to fill in the remainder
+            # of the matrix approximation
             for i in range(npv):
                 hvecs[i+nmv][:] = self.V[:,indices[i]]
                 M[i+nmv,i+nmv] = self.P[indices[i], indices[i]]
 
-            self.approx.setApproximationValues(ks_value, M)
+            Minv = np.linalg.pinv(M)
+
+            self.approx.setApproximationValues(ks_value, M, Minv)
 
         return min_eig, ks_value, ks_gradient, ks_hessian
 
@@ -165,14 +177,14 @@ class SpectralAggregate(ParOpt.Problem):
         return
 
     def getVarsAndBounds(self, x, lb, ub):
-        '''Set the values of the bounds'''
+        """Set the values of the bounds"""
         x[:] = 1.0
         lb[:] = 0.0
         ub[:] = 5e20
         return
 
     def evalObjCon(self, x):
-        '''Evaluate the objective and constraint'''
+        """Evaluate the objective and constraint"""
         # Evaluate the objective and constraints
         fail = 0
 
@@ -189,7 +201,7 @@ class SpectralAggregate(ParOpt.Problem):
         return fail, fobj, con
 
     def evalObjConGradient(self, x, g, A):
-        '''Evaluate the objective and constraint gradient'''
+        """Evaluate the objective and constraint gradient"""
         fail = 0
 
         # The objective gradient
@@ -203,13 +215,13 @@ class SpectralAggregate(ParOpt.Problem):
     def writeOutput(self, it):
         pass
 
-def solve_problem(n, ndv, rho, filename=None, use_quadratic_approx=True):
+def solve_problem(n, ndv, rho, filename=None,
+                  use_quadratic_approx=True, verify=False):
     problem = SpectralAggregate(n, ndv, rho=rho, approx=None)
 
-    x0 = np.random.uniform(size=ndv)
-    problem.verify_derivatives(x0)
-
-    problem.checkGradients(1e-6)
+    if verify:
+        x0 = np.random.uniform(size=ndv)
+        problem.verify_derivatives(x0)
 
     # Create the trust region problem
     max_lbfgs = 10
@@ -219,9 +231,8 @@ def solve_problem(n, ndv, rho, filename=None, use_quadratic_approx=True):
     tr_eta = 0.1
     tr_penalty_gamma = 10.0
 
+    qn = ParOpt.LBFGS(problem, subspace=max_lbfgs)
     if use_quadratic_approx:
-        qn = ParOpt.LBFGS(problem, subspace=max_lbfgs)
-
         # Number of approximation vectors
         napprox = 10
         approx = ParOptEig.CompactEigenApprox(problem, napprox)
@@ -230,7 +241,6 @@ def solve_problem(n, ndv, rho, filename=None, use_quadratic_approx=True):
         eig_qn = ParOptEig.EigenQuasiNewton(qn, approx)
         subproblem = ParOptEig.EigenSubproblem(problem, eig_qn)
     else:
-        qn = ParOpt.LBFGS(problem, subspace=max_lbfgs)
         subproblem = ParOpt.QuadraticSubproblem(problem, qn)
 
     tr = ParOpt.TrustRegion(subproblem, tr_init_size,
@@ -252,6 +262,7 @@ def solve_problem(n, ndv, rho, filename=None, use_quadratic_approx=True):
     tr_opt.setAbsOptimalityTol(1e-8)
     tr_opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
     tr_opt.setStartAffineStepMultiplierMin(0.01)
+    tr_opt.setBarrierStrategy(ParOpt.MONOTONE)
 
     # Set optimization parameters
     tr_opt.setArmijoParam(1e-5)
@@ -277,6 +288,8 @@ parser.add_argument('--ndv', type=int, default=200,
                     help='Number of design variables')
 parser.add_argument('--rho', type=float, default=10.0,
                     help='KS aggregation parameter')
+parser.add_argument('--linearized', default=False, action='store_true',
+                    help='Use a linearized approximation')
 args = parser.parse_args()
 
 # Set the eigenvalues for the matrix
@@ -284,5 +297,10 @@ n = args.n
 ndv = args.ndv
 rho = args.rho
 
+use_quadratic_approx = True
+if args.linearized:
+    use_quadratic_approx = False
+
 # Solve the problem
-x = solve_problem(n, ndv, rho, filename='eig_problem.out')
+x = solve_problem(n, ndv, rho, filename='eig_problem.out',
+                  use_quadratic_approx=use_quadratic_approx)

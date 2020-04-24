@@ -12,7 +12,8 @@ class ParOptCompactEigenApprox : public ParOptBase {
 
   void multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y );
   void getApproximation( ParOptScalar **_c0, ParOptVec **_g0,
-                         int *_N, ParOptScalar **_M, ParOptVec ***_hvecs );
+                         int *_N, ParOptScalar **_M, ParOptScalar **_Minv,
+                         ParOptVec ***_hvecs );
   ParOptScalar evalApproximation( ParOptVec *s, ParOptVec *t );
   void evalApproximationGradient( ParOptVec *s, ParOptVec *grad );
 
@@ -24,6 +25,7 @@ class ParOptCompactEigenApprox : public ParOptBase {
   // The Hessian approximation of the constraint
   int N;
   ParOptScalar *M;
+  ParOptScalar *Minv;
   ParOptVec **hvecs;
 
   // Temporary vector for matrix-vector products

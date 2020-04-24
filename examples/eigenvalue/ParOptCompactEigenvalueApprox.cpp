@@ -29,7 +29,9 @@ ParOptCompactEigenApprox::ParOptCompactEigenApprox( ParOptProblem *problem,
   N = _N;
   tmp = new ParOptScalar[ N ];
   M = new ParOptScalar[ N*N ];
+  Minv = new ParOptScalar[ N*N ];
   memset(M, 0, N*N*sizeof(ParOptScalar));
+  memset(Minv, 0, N*N*sizeof(ParOptScalar));
   hvecs = new ParOptVec*[ N ];
   for ( int i = 0; i < N; i++ ){
     hvecs[i] = problem->createDesignVec();
@@ -40,6 +42,7 @@ ParOptCompactEigenApprox::ParOptCompactEigenApprox( ParOptProblem *problem,
 ParOptCompactEigenApprox::~ParOptCompactEigenApprox(){
   delete [] tmp;
   delete [] M;
+  delete [] Minv;
   g0->decref();
   for ( int i = 0; i < N; i++ ){
     hvecs[i]->decref();
@@ -65,6 +68,7 @@ void ParOptCompactEigenApprox::getApproximation( ParOptScalar **_c0,
                                                  ParOptVec **_g0,
                                                  int *_N,
                                                  ParOptScalar **_M,
+                                                 ParOptScalar **_Minv,
                                                  ParOptVec ***_hvecs ){
   if (_c0){
     *_c0 = &c0;
@@ -77,6 +81,9 @@ void ParOptCompactEigenApprox::getApproximation( ParOptScalar **_c0,
   }
   if (_M){
     *_M = M;
+  }
+  if (_Minv){
+    *_Minv = Minv;
   }
   if (_hvecs){
     *_hvecs = hvecs;
@@ -129,7 +136,7 @@ ParOptEigenQuasiNewton::ParOptEigenQuasiNewton( ParOptCompactQuasiNewton *_qn,
 
   // Set the max number of vectors used to approximate
   int N;
-  eigh->getApproximation(NULL, NULL, &N, NULL, NULL);
+  eigh->getApproximation(NULL, NULL, &N, NULL, NULL, NULL);
   max_vecs = N;
   if (qn){
     max_vecs = qn->getMaxLimitedMemorySize() + N;
@@ -201,7 +208,7 @@ int ParOptEigenQuasiNewton::getCompactMat( ParOptScalar *b0,
 
   // Get the size of the eigenvalue hessian approximation
   int N;
-  eigh->getApproximation(NULL, NULL, &N, NULL, NULL);
+  eigh->getApproximation(NULL, NULL, &N, NULL, NULL, NULL);
 
   // Set the matrix size, neglecting the quasi-Newton Hessian
   int mat_size = N;
@@ -232,15 +239,20 @@ int ParOptEigenQuasiNewton::getCompactMat( ParOptScalar *b0,
 
   // Get the Hessian approximation of the approximation
   ParOptVec **Z1;
-  ParOptScalar *M1;
-  eigh->getApproximation(NULL, NULL, &N, &M1, &Z1);
+  ParOptScalar *M1inv;
+  eigh->getApproximation(NULL, NULL, &N, NULL, &M1inv, &Z1);
+
+  ParOptScalar z0inv = 1.0;
+  if (z0 != 0.0){
+    z0inv = 1.0/z0;
+  }
 
   for ( int i = 0; i < N; i++ ){
     d[qn_size + i] = 1.0;
     Z[qn_size + i] = Z1[i];
 
     for ( int j = 0; j < N; j++ ){
-      M[(qn_size + i)*mat_size + qn_size + j] = -z0*M1[i*N + j];
+      M[(qn_size + i)*mat_size + qn_size + j] = -z0inv*M1inv[i*N + j];
     }
   }
 
