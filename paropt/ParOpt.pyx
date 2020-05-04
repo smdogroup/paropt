@@ -606,6 +606,15 @@ cdef class PVec:
     def __mul__(self, b):
         return self[:]*b
 
+    def __radd__(self, b):
+        return b + self[:]
+
+    def __rsub__(self, b):
+        return b - self[:]
+
+    def __rmul__(self, b):
+        return b * self[:]
+
     def __truediv__(self, b):
         return self[:]/b
 
