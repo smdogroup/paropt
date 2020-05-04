@@ -142,7 +142,7 @@ def paropt_truss(truss, use_hessian=False,
         opt.setUseHvecProduct(0)
 
     # Set optimization parameters
-    opt.setArmijioParam(1e-5)
+    opt.setArmijoParam(1e-5)
     opt.setMaxMajorIterations(2500)
 
     # Perform a quick check of the gradient (and Hessian)
