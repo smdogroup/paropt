@@ -242,8 +242,9 @@ class ParOptDriver(Driver):
             tr_init_size = self.options['tr_init_size']
 
             # Create the trust region sub-problem
+            subproblem = ParOpt.QuadraticSubproblem(self.paropt_problem, qn)
             tr_init_size = min(tr_max_size, max(tr_init_size, tr_min_size))
-            tr = ParOpt.TrustRegion(self.paropt_problem, qn, tr_init_size,
+            tr = ParOpt.TrustRegion(subproblem, tr_init_size,
                                     tr_min_size, tr_max_size,
                                     tr_eta, tr_penalty_gamma)
 
@@ -263,7 +264,7 @@ class ParOptDriver(Driver):
                 tr.setOutputFrequency(self.options['tr_write_output_freq'])
 
             # Create the interior-point optimizer for the trust region sub-problem
-            opt = ParOpt.InteriorPoint(tr, 0, ParOpt.NO_HESSIAN_APPROX)
+            opt = ParOpt.InteriorPoint(subproblem, 0, ParOpt.NO_HESSIAN_APPROX)
             self.tr = tr
         else:
             # Create the ParOpt object with the interior point method
