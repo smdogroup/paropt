@@ -47,6 +47,6 @@ install:
   - make interface
 
 script: 
-  - python examples/python/toy.py
+  - python examples/toy/toy.py
   - mpirun -np 2 python examples/toy/toy.py
   - cd $INSTALL_PREFIX/git/paropt/examples/rosenbrock/; make; mpirun -np 8 ./rosenbrock; cd -;
