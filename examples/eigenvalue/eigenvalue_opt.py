@@ -1,16 +1,9 @@
-# Import numpy
 import os
 import numpy as np
 import mpi4py.MPI as MPI
-
-# Import ParOpt
 from paropt import ParOpt
 import ParOptEig
-
-# Import argparse
 import argparse
-
-# Import matplotlib
 import matplotlib.pylab as plt
 
 class SpectralAggregate(ParOpt.Problem):
@@ -171,10 +164,6 @@ class SpectralAggregate(ParOpt.Problem):
         # Calculate the vectors with the largest contributions
         m = self.n*(self.n-1) >> 1
         diag = range(m)
-        print('self.lamb = ', self.eigs)
-        print('self.eta = ', self.eta)
-        print('self.M = ', self.M)
-        print(self.P[diag, diag])
         indices = np.argsort(self.P[diag, diag])[:npv]
 
         # Extract the values from the P matrix to fill in the remainder
@@ -184,9 +173,6 @@ class SpectralAggregate(ParOpt.Problem):
             M[i+nmv,i+nmv] = self.P[indices[i], indices[i]]
 
         Minv = np.linalg.pinv(M)
-
-        print('Minv = \n', Minv)
-        print('M =    \n', M)
 
         approx.setApproximationValues(self.ks, M, Minv)
         return
@@ -207,7 +193,7 @@ class SpectralAggregate(ParOpt.Problem):
         # A = np.dot(self.Q, np.dot(np.diag(1e-3 + x[:]), self.Q.T))
         # self.u = np.linalg.solve(A, self.f)
         # fobj = np.dot(self.u, self.f)
-        fobj = np.sum(x[:])
+        fobj = 0.5*np.sum(x[:]**2)
 
         # Evaluate the model using the eigenvalue constraint
         self.lam, self.ks, self.grad, self.H = self.evalModel(x[:])
@@ -222,7 +208,7 @@ class SpectralAggregate(ParOpt.Problem):
 
         # The objective gradient
         # g[:] = - np.dot(self.u, self.Q)**2
-        g[:] = 1.0
+        g[:] = x[:]
 
         # The constraint gradient
         A[0][:] = self.grad[:]
@@ -249,9 +235,7 @@ def solve_problem(n, ndv, rho, filename=None,
     tr_penalty_gamma = 10.0
 
     qn = ParOpt.LBFGS(problem, subspace=max_lbfgs)
-    # qn = ParOpt.LSR1(problem, subspace=max_lbfgs)
     if use_quadratic_approx:
-        qn = None
         # Create the quadratic eigenvalue approximation object
         napprox = min(10, n//2)
         approx = ParOptEig.CompactEigenApprox(problem, napprox)
