@@ -606,7 +606,16 @@ cdef class PVec:
     def __mul__(self, b):
         return self[:]*b
 
-    def __div__(self, b):
+    def __radd__(self, b):
+        return b + self[:]
+
+    def __rsub__(self, b):
+        return b - self[:]
+
+    def __rmul__(self, b):
+        return b * self[:]
+
+    def __truediv__(self, b):
         return self[:]/b
 
     def __iadd__(self, b):
@@ -702,7 +711,7 @@ cdef class PVec:
                 array[i] *= value
         return self
 
-    def __idiv__(self, b):
+    def __itruediv__(self, b):
         cdef int size = 0
         cdef int bsize = 0
         cdef ParOptScalar *array = NULL
