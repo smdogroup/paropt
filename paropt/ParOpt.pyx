@@ -638,7 +638,7 @@ cdef class PVec:
             value = b
             for i in range(size):
                 array[i] += value
-        return
+        return self
 
     def __isub__(self, b):
         cdef int size = 0
@@ -669,7 +669,7 @@ cdef class PVec:
             value = b
             for i in range(size):
                 array[i] -= value
-        return
+        return self
 
     def __imul__(self, b):
         cdef int size = 0
@@ -700,7 +700,7 @@ cdef class PVec:
             value = b
             for i in range(size):
                 array[i] *= value
-        return
+        return self
 
     def __idiv__(self, b):
         cdef int size = 0
@@ -731,7 +731,7 @@ cdef class PVec:
             value = b
             for i in range(size):
                 array[i] /= value
-        return
+        return self
 
     def __getitem__(self, k):
         cdef int size = 0

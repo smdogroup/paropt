@@ -97,6 +97,9 @@ class ParOptLBFGS : public ParOptCompactQuasiNewton {
   // Store the type of curvature handling update
   ParOptBFGSUpdateType hessian_update_type;
 
+  // Set the finite-precision tolerance
+  double epsilon_precision;
+
   // The size of the BFGS subspace
   int msub, msub_max;
 

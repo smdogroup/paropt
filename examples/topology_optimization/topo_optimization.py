@@ -490,6 +490,6 @@ if __name__ == '__main__':
     tr_opt.setBarrierFraction(0.1)
 
     # optimize
-    tr.setOutputFile('topo_optimization_trust_region.out')
+    tr.setOutputFile('topo_optimization_paropt.tr')
     tr.setPrintLevel(1)
     tr.optimize(tr_opt)

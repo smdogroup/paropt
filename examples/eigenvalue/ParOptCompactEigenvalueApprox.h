@@ -35,7 +35,8 @@ class ParOptCompactEigenApprox : public ParOptBase {
 class ParOptEigenQuasiNewton : public ParOptCompactQuasiNewton {
  public:
   ParOptEigenQuasiNewton( ParOptCompactQuasiNewton *_qn,
-                          ParOptCompactEigenApprox *_eigh );
+                          ParOptCompactEigenApprox *_eigh,
+                          int _index=0 );
   ~ParOptEigenQuasiNewton();
 
   // Reset the internal data
@@ -60,15 +61,13 @@ class ParOptEigenQuasiNewton : public ParOptCompactQuasiNewton {
   int getMaxLimitedMemorySize();
 
   // Get the compact eigenvalue approximation
-  ParOptCompactQuasiNewton *getCompactQuasiNewton(){
-    return qn;
-  }
-  ParOptCompactEigenApprox *getCompactEigenApprox(){
-    return eigh;
-  }
+  ParOptCompactQuasiNewton *getCompactQuasiNewton();
+  ParOptCompactEigenApprox *getCompactEigenApprox();
+  int getMultiplierIndex();
 
  private:
   // The two contributions to the Hessian of the Lagrangian
+  int index;
   ParOptScalar z0;
   ParOptCompactQuasiNewton *qn;
   ParOptCompactEigenApprox *eigh;
@@ -84,6 +83,11 @@ class ParOptEigenSubproblem : public ParOptTrustRegionSubproblem {
   ParOptEigenSubproblem( ParOptProblem *_problem,
                          ParOptEigenQuasiNewton *_qn );
   ~ParOptEigenSubproblem();
+
+  // Set the update function for the eigenvalue approximation
+  void setEigenModelUpdate( void *data,
+                            void (*update)(void*, ParOptVec*,
+                                           ParOptCompactEigenApprox*) );
 
   // Implementation for the trust-region specific functions
   ParOptCompactQuasiNewton* getQuasiNewton();
@@ -156,6 +160,9 @@ class ParOptEigenSubproblem : public ParOptTrustRegionSubproblem {
                       ParOptVec **_lb=NULL, ParOptVec **_ub=NULL );
 
  private:
+  void *data;
+  void (*updateEigenModel)( void*, ParOptVec*, ParOptCompactEigenApprox* );
+
   // Pointer to the optimization problem
   ParOptProblem *prob;
 

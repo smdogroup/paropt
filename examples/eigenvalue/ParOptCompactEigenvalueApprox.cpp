@@ -1,4 +1,3 @@
-
 #include "ParOptCompactEigenvalueApprox.h"
 #include "ParOptComplexStep.h"
 
@@ -122,7 +121,8 @@ void ParOptCompactEigenApprox::evalApproximationGradient( ParOptVec *s,
 }
 
 ParOptEigenQuasiNewton::ParOptEigenQuasiNewton( ParOptCompactQuasiNewton *_qn,
-                                                ParOptCompactEigenApprox *_eigh ){
+                                                ParOptCompactEigenApprox *_eigh,
+                                                int _index ){
   qn = _qn;
   if (qn){
     qn->incref();
@@ -131,7 +131,8 @@ ParOptEigenQuasiNewton::ParOptEigenQuasiNewton( ParOptCompactQuasiNewton *_qn,
   eigh = _eigh;
   eigh->incref();
 
-  // Set the initial multiplier
+  // Set the initial multiplier and index
+  index = _index;
   z0 = 0.0;
 
   // Set the max number of vectors used to approximate
@@ -175,7 +176,7 @@ int ParOptEigenQuasiNewton::update( ParOptVec *x,
 
 int ParOptEigenQuasiNewton::update( ParOptVec *x, const ParOptScalar *z, ParOptVec *zw ){
   // Set the multiplier
-  z0 = z[0];
+  z0 = z[index];
 
   return 0;
 }
@@ -268,6 +269,18 @@ int ParOptEigenQuasiNewton::getMaxLimitedMemorySize(){
   return max_vecs;
 }
 
+ParOptCompactQuasiNewton* ParOptEigenQuasiNewton::getCompactQuasiNewton(){
+  return qn;
+}
+
+ParOptCompactEigenApprox* ParOptEigenQuasiNewton::getCompactEigenApprox(){
+  return eigh;
+}
+
+int ParOptEigenQuasiNewton::getMultiplierIndex(){
+  return index;
+}
+
 ParOptEigenSubproblem::ParOptEigenSubproblem( ParOptProblem *_prob,
                                               ParOptEigenQuasiNewton *_approx ):
   ParOptTrustRegionSubproblem(_prob->getMPIComm()){
@@ -282,6 +295,10 @@ ParOptEigenSubproblem::ParOptEigenSubproblem( ParOptProblem *_prob,
   // Set the quasi-Newton method
   approx = _approx;
   approx->incref();
+
+  // Set the update to NULL
+  data = NULL;
+  updateEigenModel = NULL;
 
   // Create the vectors
   xk = prob->createDesignVec();  xk->incref();
@@ -345,6 +362,19 @@ ParOptEigenSubproblem::~ParOptEigenSubproblem(){
   t->decref();
 }
 
+void ParOptEigenSubproblem::setEigenModelUpdate( void *_data,
+                                                 void (*update)(void*, ParOptVec*,
+                                                                ParOptCompactEigenApprox*) ){
+  if (_data && update){
+    data = _data;
+    updateEigenModel = update;
+  }
+  else {
+    data = NULL;
+    updateEigenModel = NULL;
+  }
+}
+
 /*
   Return the quasi-Newton approximation of the objective
 */
@@ -365,6 +395,14 @@ void ParOptEigenSubproblem::initModelAndBounds( double tr_size ){
   // Evaluate objective constraints and gradients
   prob->evalObjCon(xk, &fk, ck);
   prob->evalObjConGradient(xk, gk, Ak);
+
+  // Callback to update the eigenvalue approximation
+  if (updateEigenModel){
+    ParOptCompactEigenApprox *eigh = approx->getCompactEigenApprox();
+    if (eigh){
+      updateEigenModel(data, xk, eigh);
+    }
+  }
 }
 
 /*
@@ -418,6 +456,14 @@ int ParOptEigenSubproblem::acceptTrialPoint( ParOptVec *x,
                                              const ParOptScalar *z,
                                              ParOptVec *zw ){
   int fail = 0;
+
+  // Callback to update the eigenvalue approximation
+  if (updateEigenModel){
+    ParOptCompactEigenApprox *eigh = approx->getCompactEigenApprox();
+    if (eigh){
+      updateEigenModel(data, x, eigh);
+    }
+  }
 
   fk = ft;
   xk->copyValues(x);
@@ -505,20 +551,26 @@ int ParOptEigenSubproblem::evalObjCon( ParOptVec *x,
     }
 
     // Compute the constraint functions
+    int index = approx->getMultiplierIndex();
     ParOptCompactEigenApprox *eigh = approx->getCompactEigenApprox();
-    cons[0] = eigh->evalApproximation(s, t);
-    for ( int i = 1; i < m; i++ ){
-      cons[i] = ck[i] + Ak[i]->dot(s);
+    cons[index] = eigh->evalApproximation(s, t);
+    for ( int i = 0; i < m; i++ ){
+      if (i != index){
+        cons[i] = ck[i] + Ak[i]->dot(s);
+      }
     }
   }
   else {
     // If x is NULL, assume x = xk
     *fobj = fk;
 
+    int index = approx->getMultiplierIndex();
     ParOptCompactEigenApprox *eigh = approx->getCompactEigenApprox();
-    cons[0] = eigh->evalApproximation(NULL, NULL);
-    for ( int i = 1; i < m; i++ ){
-      cons[i] = ck[i];
+    cons[index] = eigh->evalApproximation(NULL, NULL);
+    for ( int i = 0; i < m; i++ ){
+      if (i != index){
+        cons[i] = ck[i];
+      }
     }
   }
 
@@ -535,10 +587,13 @@ int ParOptEigenSubproblem::evalObjConGradient( ParOptVec *x,
   s->axpy(-1.0, xk);
 
   // Copy the values of constraint gradient
+  int index = approx->getMultiplierIndex();
   ParOptCompactEigenApprox *eigh = approx->getCompactEigenApprox();
-  eigh->evalApproximationGradient(s, Ac[0]);
-  for ( int i = 1; i < m; i++ ){
-    Ac[i]->copyValues(Ak[i]);
+  eigh->evalApproximationGradient(s, Ac[index]);
+  for ( int i = 0; i < m; i++ ){
+    if (i != index){
+      Ac[i]->copyValues(Ak[i]);
+    }
   }
 
   // Evaluate the gradient of the quadratic objective

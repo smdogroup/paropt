@@ -1,16 +1,10 @@
 from __future__ import print_function
 
-# Import numpy
 import numpy as np
 import mpi4py.MPI as MPI
-
-# Import ParOpt
 from paropt import ParOpt
-
-# Import argparse
 import argparse
-
-# Import matplotlib
+import os
 import matplotlib.pylab as plt
 
 # Create the rosenbrock function class
@@ -147,6 +141,7 @@ def solve_problem(eigs, filename=None, data_type='orthogonal',
         tr_opt = ParOpt.InteriorPoint(subproblem, 10, ParOpt.BFGS)
         if filename is not None:
             tr_opt.setOutputFile(filename)
+            tr.setOutputFile(os.path.splitext(filename)[0] + '.tr')
 
         # Set the tolerances
         tr_opt.setAbsOptimalityTol(1e-8)
@@ -160,7 +155,6 @@ def solve_problem(eigs, filename=None, data_type='orthogonal',
         tr_opt.setBarrierFraction(0.1)
 
         # optimize
-        tr.setOutputFile(filename + '_tr')
         tr.setPrintLevel(1)
         tr.optimize(tr_opt)
 

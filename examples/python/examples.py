@@ -4,6 +4,7 @@ import numpy as np
 from mpi4py import MPI
 import matplotlib.pyplot as plt
 import argparse
+import os
 
 # Import ParOpt
 from paropt import ParOpt
@@ -179,10 +180,8 @@ def plot_it_all(problem, use_tr=False):
     conjugate gradient and BFGS from the same starting point.
     '''
 
-    # Set up the optimization problem
-    max_lbfgs = 20
-    opt = ParOpt.InteriorPoint(problem, max_lbfgs, ParOpt.BFGS)
-    opt.checkGradients(1e-6)
+    # Check the problem gradients
+    problem.checkGradients(1e-6)
 
     # Create the data for the carpet plot
     n = 150
@@ -215,6 +214,7 @@ def plot_it_all(problem, use_tr=False):
         # Optimize the problem
         problem.x_hist = []
 
+        filename = 'paropt_output.out'
         if use_tr:
             # Create the quasi-Newton Hessian approximation
             qn = ParOpt.LBFGS(problem, subspace=10)
@@ -231,15 +231,34 @@ def plot_it_all(problem, use_tr=False):
                                     tr_eta, tr_penalty_gamma)
 
             # Set up the optimization problem
-            tr_opt = ParOpt.InteriorPoint(subproblem, 2, ParOpt.BFGS)
-            tr_opt.setOutputFile('paropt_output.out')
+            opt = ParOpt.InteriorPoint(subproblem, 2, ParOpt.BFGS)
+
+            # Set the paropt output file name
+            opt.setOutputFile(filename)
+
+            # Set the output file name for the trust region method
+            tr.setOutputFile(os.path.splitext(filename)[0] + '.tr')
+
+            # Set some optimization parameters for paropt
+            opt.setAbsOptimalityTol(1e-8)
+            opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
+            opt.setStartAffineStepMultiplierMin(0.01)
+            opt.setBarrierStrategy(ParOpt.MONOTONE)
 
             # Optimize
-            tr.optimize(tr_opt)
+            tr.optimize(opt)
 
             # Get the optimized point
-            x, z, zw, zl, zu = tr_opt.getOptimizedPoint()
+            x, z, zw, zl, zu = opt.getOptimizedPoint()
         else:
+            # Set up the optimization problem
+            max_lbfgs = 20
+            opt = ParOpt.InteriorPoint(problem, max_lbfgs, ParOpt.BFGS)
+
+            # Set the paropt output file name
+            opt.setOutputFile(filename)
+
+            # Set some optimization parameters
             opt.resetQuasiNewtonHessian()
             opt.setInitBarrierParameter(0.1)
             opt.setUseLineSearch(1)
@@ -271,8 +290,8 @@ def plot_it_all(problem, use_tr=False):
     ax = fig.axes[0]
     ax.set_aspect('equal', 'box')
     plt.legend()
-    plt.show()
 
+# Allocate the problems
 problems = [Problem1(), Problem2(), Problem3(), Problem4(), Problem5()]
 
 # Parse the arguments
@@ -281,9 +300,15 @@ parser.add_argument('--optimizer', type=str, default='ip',
                     help='optimizer type')
 args = parser.parse_args()
 
+# Use a consistent seed for consistent results
+np.random.seed(0)
+
 use_tr = False
 if args.optimizer != 'ip':
     use_tr = True
 
 for problem in problems:
     plot_it_all(problem, use_tr)
+
+# Show the results at the end
+plt.show()

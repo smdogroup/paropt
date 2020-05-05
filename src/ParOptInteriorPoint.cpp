@@ -378,7 +378,7 @@ ParOptInteriorPoint::ParOptInteriorPoint( ParOptProblem *_prob,
   }
 
   // Set the function precision; changes below this value are
-  // considered irrelevant
+  // considered below the function/design variable tolerance.
   function_precision = 1e-10;
 
   // Initialize the diagonal Hessian computation
@@ -4893,6 +4893,11 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
               z[i] = 1.0;
             }
           }
+        }
+      }
+      else {
+        for ( int i = 0; i < ncon; i++ ){
+          z[i] = 1.0;
         }
       }
     }

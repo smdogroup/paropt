@@ -261,6 +261,9 @@ class ParOptTrustRegion : public ParOptBase {
   double eta;
   double bound_relax;
 
+  // Store the function precision
+  double function_precision;
+
   // Control the adaptive penalty update
   int adaptive_gamma_update;
   double *penalty_gamma;

@@ -459,6 +459,10 @@ ParOptTrustRegion::ParOptTrustRegion( ParOptTrustRegionSubproblem *_subproblem,
   infeas_tol = 1e-5;
   penalty_gamma_max = 1e4;
 
+  // Set the function precision; changes below this value are
+  // considered below the function/design variable tolerance.
+  function_precision = 1e-10;
+
   // Set the penalty parameters
   penalty_gamma = new double[ m ];
   for ( int i = 0; i < m; i++ ){
@@ -737,8 +741,17 @@ void ParOptTrustRegion::update( ParOptVec *xt,
             ParOptRealPart(infeas_k - infeas_model));
   }
 
-  // Compute the ratio
-  ParOptScalar rho = actual_reduc/model_reduc;
+  // Compute the ratio of the actual reduction
+  ParOptScalar rho = 1.0;
+  if (fabs(model_reduc) >= function_precision){
+    rho = actual_reduc/model_reduc;
+  }
+  else if (fabs(actual_reduc) <= function_precision){
+    rho = 1.0;
+  }
+  else {
+    rho = actual_reduc/function_precision;
+  }
 
   // Compute the infeasibility
   ParOptScalar infeas_new = 0.0;
@@ -827,7 +840,7 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   Perform the optimization
 
   This performs all steps in the optimization: initialization, trust-region
-  updates and quasi-Newton updates. This should be called once In some cases, you 
+  updates and quasi-Newton updates. This should be called once In some cases, you
 
   @param optimizer the instance of the ParOptInteriorPoint optimizer
 */

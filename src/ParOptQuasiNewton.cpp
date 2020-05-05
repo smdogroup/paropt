@@ -22,6 +22,7 @@ ParOptLBFGS::ParOptLBFGS( ParOptProblem *prob,
 
   // Set the default Hessian update
   hessian_update_type = PAROPT_SKIP_NEGATIVE_CURVATURE;
+  epsilon_precision = 1e-12;
 
   // Allocate space for the vectors
   S = new ParOptVec*[ msub_max ];
@@ -155,19 +156,22 @@ int ParOptLBFGS::update( ParOptVec *x, const ParOptScalar *z,
 
   // Set the pointer for the new value of y
   ParOptVec *new_y = NULL;
+
+  // Compute dot products that are required for the matrix
+  // updating scheme
   ParOptScalar yTy = y->dot(y);
   ParOptScalar sTy = s->dot(y);
+  ParOptScalar sTs = s->dot(s);
 
   if (hessian_update_type == PAROPT_SKIP_NEGATIVE_CURVATURE){
-    // Compute dot products that are required for the matrix
-    // updating scheme
-    ParOptScalar sTs = s->dot(s);
-
     // Skip the update
-    double epsilon = 1e-12;
-    if (ParOptRealPart(sTy) <= epsilon*sqrt(ParOptRealPart(sTs*yTy))){
+    if (sTs <= epsilon_precision*epsilon_precision){
       update_type = 2;
       reset();
+      return update_type;
+    }
+    else if (ParOptRealPart(sTy) <= epsilon_precision*sqrt(ParOptRealPart(sTs*yTy))){
+      update_type = 2;
       b0 = fabs(ParOptRealPart(sTy))/ParOptRealPart(sTs);
       return update_type;
     }
@@ -562,7 +566,7 @@ int ParOptLSR1::update( ParOptVec *x, const ParOptScalar *z,
                         ParOptVec *zw,
                         ParOptVec *s, ParOptVec *y ){
   int update_type = 0;
-  
+
   // Set the diagonal components to the identity matrix
   b0 = 1.0;
 
