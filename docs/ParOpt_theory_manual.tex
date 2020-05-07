@@ -85,7 +85,7 @@ Introducing dual variables for the dense constraints $\mb{z}$, the sparse constr
 \begin{equation}
   \label{eqn:perturbed-kkt}
   \begin{aligned}
-    \mb{r}_{x} \triangleq    & \mb{g} - \mb{A}^{T}\mb{z} - \mb{A}_{w} \mb{z}_{w} - \mb{z}_{l} + \mb{z}_{u} = 0 \\
+    \mb{r}_{x} \triangleq    & \mb{g} - \mb{A}^{T}\mb{z} - \mb{A}^{T}_{w} \mb{z}_{w} - \mb{z}_{l} + \mb{z}_{u} = 0 \\
     \mb{r}_{t} \triangleq    & \gamma \mb{e} - \mb{z} - \mb{z}_{t} = 0 \\
     \mb{r}_{z} \triangleq    & \mb{c} - \mb{s} + \mb{t} = 0 \\
     \mb{r}_{z_{w}} \triangleq & \mb{c}_{w} - \mb{s}_{w} = 0 \\
@@ -113,7 +113,7 @@ The approximate KKT matrix is
   \label{eqn:kkt-update}
   \mb{K}_{B}\mb{p} =
   \begin{bmatrix}
-    \mb{B}    &      0 & -\mb{A}^{T} & \mb{A}_{w} &       0 &       0 &      0 & -\mb{I} & \mb{I} \\
+      \mb{B}    &      0 & -\mb{A}^{T} & -\mb{A}^{T}_{w} &       0 &       0 &      0 & -\mb{I} & \mb{I} \\
     0 &              0 &     -\mb{I} &          0 &       0 & -\mb{I} &      0 &      0 &  0 \\
     \mb{A}    & \mb{I} &           0 &         0 & -\mb{I} &       0 &      0 &       0 & 0 \\
     \mb{A}_{w} &      0 &           0 &         0 &      0 &        0 & -\mb{I} &       0 & 0 \\
@@ -178,7 +178,7 @@ At each step ParOpt uses a line search that seeks a point that satisfies the Arm
   \phi(\alpha) < \phi(0) + c_{1} \alpha \phi'(0),
 \end{equation*}
 where we typically choose $c_{1} = 10^{-3}$. If a step is unsuccessful, we select the next step using a quadratic interpolation based on the initial point and slope of the merit function along the search direction, as well as the most recent merit function value. 
-Since $\phi'(0)$ is negative, and $\phi(\alpha) \ge \phi(0) + c_{1} \phi'(0)$, this sequence of step lengths is decreasing.
+Since $\phi'(0)$ is negative, and $\phi(\alpha) \ge \phi(0) + c_{1} \alpha \phi'(0)$, this sequence of step lengths is decreasing.
 
 To ensure that the design variables remain within bounds and that the dual and slack variables remain sufficiently positive, ParOpt uses a fraction-to-the-boundary rule, such that
 %
