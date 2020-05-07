@@ -4903,6 +4903,12 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
     }
   }
 
+  // Some quasi-Newton methods can be updated with only the design variable
+  // values and the multiplier estimates
+  if (qn && !use_quasi_newton_update){
+    qn->update(x, z, zw);
+  }
+
   // Retrieve the rank of the processor
   int rank;
   MPI_Comm_rank(comm, &rank);
@@ -6518,8 +6524,8 @@ void ParOptInteriorPoint::checkKKTStep( int iteration, int is_newton ){
   double max_val = rx->maxabs();
 
   if (rank == opt_root){
-    printf("max |(H + sigma*I)*px - Ac^{T}*pz - Aw^{T}*pzw - pzl + pzu + \
-(g - Ac^{T}*z - Aw^{T}*zw - zl + zu)|: %10.4e\n", max_val);
+    printf("max |(H + sigma*I)*px - Ac^{T}*pz - Aw^{T}*pzw - pzl + pzu + "
+           "(g - Ac^{T}*z - Aw^{T}*zw - zl + zu)|: %10.4e\n", max_val);
   }
 
   // Compute the residuals from the weighting constraints

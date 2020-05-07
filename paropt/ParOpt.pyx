@@ -1203,6 +1203,26 @@ cdef class MMA(ProblemBase):
     def setRegularization(self, double eps, double delta):
         self.mma.setRegularization(eps, delta)
 
+cdef class TrustRegionSubproblem:
+    def __cinit__(self):
+        self.ptr = NULL
+
+    def __dealloc__(self):
+        if self.ptr != NULL:
+            self.ptr.decref()
+
+    def checkGradients(self, double dh=1e-6, PVec x=None,
+                       check_hvec_product=False):
+        cdef ParOptVec *vec = NULL
+        cdef int check_hvec = 0
+        if x is not None:
+            vec = x.ptr
+        if check_hvec_product:
+            check_hvec = 1
+        if self.ptr != NULL:
+            self.ptr.checkGradients(dh, vec, check_hvec)
+        return
+
 cdef class QuadraticSubproblem(TrustRegionSubproblem):
     def __cinit__(self, ProblemBase problem, CompactQuasiNewton qn=None):
         cdef ParOptCompactQuasiNewton* qn_ptr = NULL

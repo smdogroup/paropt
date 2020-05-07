@@ -227,7 +227,7 @@ int ParOptLBFGS::update( ParOptVec *x, const ParOptScalar *z,
     Y[msub]->copyValues(new_y);
     msub++;
   }
-  else { // msub == msub_max
+  else if (msub == msub_max && msub_max > 0){
     // Shift the pointers to the vectors so that everything
     // will work out
     S[0]->copyValues(s);
@@ -269,7 +269,9 @@ int ParOptLBFGS::update( ParOptVec *x, const ParOptScalar *z,
   }
 
   // Update the diagonal D-matrix
-  D[msub-1] = S[msub-1]->dot(Y[msub-1]);
+  if (msub > 0){
+    D[msub-1] = S[msub-1]->dot(Y[msub-1]);
+  }
 
   // By definition, we have the L matrix:
   // For j < i: L[i + j*msub_max] = S[i]->dot(Y[j]);
@@ -315,8 +317,10 @@ int ParOptLBFGS::update( ParOptVec *x, const ParOptScalar *z,
   memcpy(M_factor, M, 4*msub*msub*sizeof(ParOptScalar));
 
   // Factor the M matrix for later useage
-  int n = 2*msub, info = 0;
-  LAPACKdgetrf(&n, &n, M_factor, &n, mfpiv, &info);
+  if (msub > 0){
+    int n = 2*msub, info = 0;
+    LAPACKdgetrf(&n, &n, M_factor, &n, mfpiv, &info);
+  }
 
   return update_type;
 }
@@ -576,7 +580,7 @@ int ParOptLSR1::update( ParOptVec *x, const ParOptScalar *z,
     Y[msub]->copyValues(y);
     msub++;
   }
-  else { // msub == msub_max
+  else if (msub == msub_max && msub_max > 0){
     // Shift the pointers to the vectors so that everything
     // will work out
     S[0]->copyValues(s);
@@ -618,7 +622,9 @@ int ParOptLSR1::update( ParOptVec *x, const ParOptScalar *z,
   }
 
   // Update the diagonal D-matrix
-  D[msub-1] = S[msub-1]->dot(Y[msub-1]);
+  if (msub > 0){
+    D[msub-1] = S[msub-1]->dot(Y[msub-1]);
+  }
 
   // By definition, we have the L matrix:
   // For j < i: L[i + j*msub_max] = S[i]->dot(Y[j]);
@@ -659,8 +665,10 @@ int ParOptLSR1::update( ParOptVec *x, const ParOptScalar *z,
   memcpy(M_factor, M, msub*msub*sizeof(ParOptScalar));
 
   // Factor the M matrix for later useage
-  int n = msub, info = 0;
-  LAPACKdgetrf(&n, &n, M_factor, &n, mfpiv, &info);
+  if (msub > 0){
+    int n = msub, info = 0;
+    LAPACKdgetrf(&n, &n, M_factor, &n, mfpiv, &info);
+  }
 
   return update_type;
 }

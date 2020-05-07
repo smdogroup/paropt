@@ -133,7 +133,7 @@ ParOptEigenQuasiNewton::ParOptEigenQuasiNewton( ParOptCompactQuasiNewton *_qn,
 
   // Set the initial multiplier and index
   index = _index;
-  z0 = 0.0;
+  z0 = 1.0;
 
   // Set the max number of vectors used to approximate
   int N;
@@ -235,7 +235,9 @@ int ParOptEigenQuasiNewton::getCompactMat( ParOptScalar *b0,
     }
   }
   else {
-    if (b0){ *b0 = 0.0; }
+    if (b0){
+      *b0 = 0.0;
+    }
   }
 
   // Get the Hessian approximation of the approximation
@@ -253,7 +255,7 @@ int ParOptEigenQuasiNewton::getCompactMat( ParOptScalar *b0,
     Z[qn_size + i] = Z1[i];
 
     for ( int j = 0; j < N; j++ ){
-      M[(qn_size + i)*mat_size + qn_size + j] = -z0inv*M1inv[i*N + j];
+      M[(qn_size + i)*mat_size + qn_size + j] = z0inv*M1inv[i*N + j];
     }
   }
 
@@ -442,8 +444,22 @@ int ParOptEigenSubproblem::evalTrialPointAndUpdate( ParOptVec *x,
 
     // Compute the difference between the gradient of the
     // Lagrangian between the current point and the previous point
+    int index = approx->getMultiplierIndex();
     t->copyValues(gt);
+    for ( int i = 0; i < m; i++ ){
+      t->axpy(-z[i], At[i]);
+    }
+    if (nwcon > 0){
+      prob->addSparseJacobianTranspose(-1.0, x, zw, t);
+    }
+
     t->axpy(-1.0, gk);
+    for ( int i = 0; i < m; i++ ){
+      t->axpy(z[i], Ak[i]);
+    }
+    if (nwcon > 0){
+      prob->addSparseJacobianTranspose(1.0, xk, zw, t);
+    }
 
     // Perform an update of the quasi-Newton approximation
     qn->update(xk, z, zw, s, t);

@@ -1,4 +1,4 @@
-import os
+import os, sys
 import numpy as np
 import mpi4py.MPI as MPI
 from paropt import ParOpt
@@ -30,17 +30,16 @@ class SpectralAggregate(ParOpt.Problem):
         self.rho = rho # The KS parameter value
         self.ncon = 1
 
-        # Generate a random
+        # Create a random objective array
+        self.obj_array = np.random.uniform(size=self.ndv, low=1.0, high=10.0)
+
+        # Generate a random set of vectors
         self.Q = np.random.uniform(size=(self.n, self.ndv))
-        self.A0 = 1e-6*np.dot(self.Q, self.Q.T)
 
         # Create a positive definite B0 matrix
         Qb, Rb = np.linalg.qr(np.random.uniform(size=(self.n, self.n)))
-        lamb = np.linspace(0.1, 10, self.n)**2
+        lamb = np.linspace(1, 5, self.n)**2
         self.B0 = np.dot(Qb, np.dot(np.diag(lamb), Qb.T))
-
-        # Set up a random vector
-        self.f = np.random.uniform(size=self.n, low=-1.0, high=1.0)
 
         # Initialize the base class
         super(SpectralAggregate, self).__init__(self.comm, self.ndv, self.ncon)
@@ -61,8 +60,9 @@ class SpectralAggregate(ParOpt.Problem):
         Returns:
             The lowest eigenvalue, and three coefficients of the quadratic approximation.
         """
+
         # Compute the matrix A(x)
-        A = self.A0 + np.dot(self.Q, np.dot(np.diag(x), self.Q.T)) - self.B0
+        A = self.B0 - np.dot(self.Q, np.dot(np.diag(x), self.Q.T))
 
         # Compute the full eigen decomposition of the matrix A
         self.eigs, self.vecs = np.linalg.eigh(A)
@@ -87,11 +87,11 @@ class SpectralAggregate(ParOpt.Problem):
         self.P = np.zeros((m, m))
         index = 0
         for i in range(self.n):
-            # Compute the inner product of
-            self.W[:,i] = np.dot(self.Q.T, self.vecs[:,i])**2
+            # Compute the derivative
+            self.W[:,i] = -np.dot(self.Q.T, self.vecs[:,i])**2
 
             for j in range(i+1, self.n):
-                self.V[:,index] = np.dot(self.Q.T, self.vecs[:,i])*np.dot(self.Q.T, self.vecs[:,j])
+                self.V[:,index] = -np.dot(self.Q.T, self.vecs[:,i])*np.dot(self.Q.T, self.vecs[:,j])
                 self.P[index, index] = 0.0
                 if self.eigs[i] != self.eigs[j]:
                     self.P[index, index] = 2.0*(self.eta[i] - self.eta[j])/(self.eigs[i] - self.eigs[j])
@@ -140,17 +140,24 @@ class SpectralAggregate(ParOpt.Problem):
 
     def updateModel(self, x, approx):
         """Update the eigenvalue model"""
+
+        # Get the vectors from the approximation object
         g0, hvecs = approx.getApproximationVectors()
 
+        # Set the components of the gradient
         g0[:] = self.grad[:]
 
+        # Create the M-matrix in the approximation = V*M*V^{T}
         nhv = len(hvecs)
         M = np.zeros((nhv, nhv))
 
         # Find the number of diagonal entries in M exceeding the tolerance
         # but not more than nhv/2. These will be included
         nmv = 0
-        tol = 1e-3
+
+        # Include terms that exceed a specified tolerance. In practice,
+        # these are rarely included.
+        tol = 0.01
         for i in range(nhv//2):
             if self.M[i,i] >= tol:
                 nmv += 1
@@ -162,9 +169,7 @@ class SpectralAggregate(ParOpt.Problem):
             M[i,:nmv] = self.M[i,:nmv]
 
         # Calculate the vectors with the largest contributions
-        m = self.n*(self.n-1) >> 1
-        diag = range(m)
-        indices = np.argsort(self.P[diag, diag])[:npv]
+        indices = range(npv)
 
         # Extract the values from the P matrix to fill in the remainder
         # of the matrix approximation
@@ -172,6 +177,7 @@ class SpectralAggregate(ParOpt.Problem):
             hvecs[i+nmv][:] = self.V[:,indices[i]]
             M[i+nmv,i+nmv] = self.P[indices[i], indices[i]]
 
+        # Compute the Moore-Penrose inverse of the matrix
         Minv = np.linalg.pinv(M)
 
         approx.setApproximationValues(self.ks, M, Minv)
@@ -181,7 +187,7 @@ class SpectralAggregate(ParOpt.Problem):
         """Set the values of the bounds"""
         x[:] = 1.0
         lb[:] = 0.0
-        ub[:] = 5e20
+        ub[:] = 10.0
         return
 
     def evalObjCon(self, x):
@@ -190,13 +196,13 @@ class SpectralAggregate(ParOpt.Problem):
         fail = 0
 
         # Evaluate the objective - the approximate compliance
-        # A = np.dot(self.Q, np.dot(np.diag(1e-3 + x[:]), self.Q.T))
-        # self.u = np.linalg.solve(A, self.f)
-        # fobj = np.dot(self.u, self.f)
-        fobj = 0.5*np.sum(x[:]**2)
+        fobj = np.sum(self.obj_array/(1.0 + x[:]))
 
         # Evaluate the model using the eigenvalue constraint
         self.lam, self.ks, self.grad, self.H = self.evalModel(x[:])
+
+        # Print out the minimum eigenvalue
+        print('min(eigs) = %15.6e'%(np.min(self.eigs)) + ' fobj = %15.6e'%(fobj))
 
         con = [self.ks]
 
@@ -207,8 +213,7 @@ class SpectralAggregate(ParOpt.Problem):
         fail = 0
 
         # The objective gradient
-        # g[:] = - np.dot(self.u, self.Q)**2
-        g[:] = x[:]
+        g[:] = -self.obj_array/(1.0 + x[:])**2
 
         # The constraint gradient
         A[0][:] = self.grad[:]
@@ -218,7 +223,7 @@ class SpectralAggregate(ParOpt.Problem):
     def writeOutput(self, it):
         pass
 
-def solve_problem(n, ndv, rho, filename=None,
+def solve_problem(n, ndv, N, rho, filename=None,
                   use_quadratic_approx=True, verify=False):
     problem = SpectralAggregate(n, ndv, rho=rho)
 
@@ -227,7 +232,7 @@ def solve_problem(n, ndv, rho, filename=None,
         problem.verify_derivatives(x0)
 
     # Create the trust region problem
-    max_lbfgs = min(10, ndv)
+    max_lbfgs = 0
     tr_init_size = 0.05
     tr_min_size = 1e-6
     tr_max_size = 10.0
@@ -237,8 +242,7 @@ def solve_problem(n, ndv, rho, filename=None,
     qn = ParOpt.LBFGS(problem, subspace=max_lbfgs)
     if use_quadratic_approx:
         # Create the quadratic eigenvalue approximation object
-        napprox = min(10, n//2)
-        approx = ParOptEig.CompactEigenApprox(problem, napprox)
+        approx = ParOptEig.CompactEigenApprox(problem, N)
 
         # Set up the corresponding quadratic problem
         eig_qn = ParOptEig.EigenQuasiNewton(qn, approx)
@@ -250,38 +254,46 @@ def solve_problem(n, ndv, rho, filename=None,
     tr = ParOpt.TrustRegion(subproblem, tr_init_size,
                             tr_min_size, tr_max_size,
                             tr_eta, tr_penalty_gamma)
-    tr.setMaxTrustRegionIterations(500)
+    tr.setMaxTrustRegionIterations(25)
 
     infeas_tol = 1e-6
-    l1_tol = 1e-6
-    linfty_tol = 1e-6
+    l1_tol = 5e-4
+    linfty_tol = 5e-4
     tr.setTrustRegionTolerances(infeas_tol, l1_tol, linfty_tol)
 
     # Set up the optimization problem
-    tr_opt = ParOpt.InteriorPoint(subproblem, max_lbfgs, ParOpt.BFGS)
+    opt = ParOpt.InteriorPoint(subproblem, max_lbfgs, ParOpt.BFGS)
     if filename is not None:
-        tr_opt.setOutputFile(filename)
+        opt.setOutputFile(filename)
+        tr.setOutputFile(os.path.splitext(filename)[0] + '.tr')
 
     # Set the tolerances
-    tr_opt.setAbsOptimalityTol(1e-8)
-    tr_opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
-    tr_opt.setStartAffineStepMultiplierMin(0.01)
-    tr_opt.setBarrierStrategy(ParOpt.MONOTONE)
+    opt.setAbsOptimalityTol(1e-7)
+    opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
+    opt.setStartAffineStepMultiplierMin(0.01)
+    opt.setBarrierStrategy(ParOpt.MONOTONE)
+    opt.setOutputLevel(2)
 
     # Set optimization parameters
-    tr_opt.setArmijoParam(1e-5)
-    tr_opt.setMaxMajorIterations(5000)
-    tr_opt.setBarrierPower(2.0)
-    tr_opt.setBarrierFraction(0.1)
+    opt.setArmijoParam(1e-5)
+    opt.setMaxMajorIterations(5000)
+    opt.setBarrierPower(2.0)
+    opt.setBarrierFraction(0.1)
 
     # optimize
-    tr.setOutputFile(os.path.splitext(filename)[0] + '.tr')
     tr.setAdaptiveGammaUpdate(1)
     tr.setPrintLevel(1)
-    tr.optimize(tr_opt)
+    tr.optimize(opt)
 
     # Get the optimized point from the trust-region subproblem
-    x, z, zw, zl, zu = tr_opt.getOptimizedPoint()
+    x, z, zw, zl, zu = opt.getOptimizedPoint()
+
+    print('max(x) = %15.6e'%(np.max(x[:])))
+    print('avg(x) = %15.6e'%(np.average(x[:])))
+
+    if verify:
+        for h in [1e-6, 1e-7, 1e-8, 1e-9, 1e-10]:
+            problem.verify_derivatives(x[:], h)
 
     return x
 
@@ -291,21 +303,30 @@ parser.add_argument('--n', type=int, default=100,
                     help='Dimension of the proble matrix')
 parser.add_argument('--ndv', type=int, default=200,
                     help='Number of design variables')
+parser.add_argument('--N', type=int, default=10,
+                    help='Number of terms in the eigenvalue Hessian approx.')
 parser.add_argument('--rho', type=float, default=10.0,
                     help='KS aggregation parameter')
 parser.add_argument('--linearized', default=False, action='store_true',
                     help='Use a linearized approximation')
+parser.add_argument('--verify', default=False, action='store_true',
+                    help='Perform a finite-difference verification')
 args = parser.parse_args()
 
 # Set the eigenvalues for the matrix
 n = args.n
 ndv = args.ndv
 rho = args.rho
+N = args.N
 
 use_quadratic_approx = True
 if args.linearized:
     use_quadratic_approx = False
 
+# Set a consistent random seed to produce the same results.
+np.random.seed(0)
+
 # Solve the problem
-x = solve_problem(n, ndv, rho, filename='output.out',
-                  use_quadratic_approx=use_quadratic_approx)
+x = solve_problem(n, ndv, N, rho, filename='output.out',
+                  use_quadratic_approx=use_quadratic_approx,
+                  verify=args.verify)
