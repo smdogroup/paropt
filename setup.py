@@ -60,7 +60,11 @@ exts = []
 mod = 'ParOpt'
 exts.append(Ext('paropt.ParOpt', sources=['paropt/ParOpt.pyx'],
                 language='c++',
-                include_dirs=inc_dirs, libraries=libs, 
+                include_dirs=inc_dirs, libraries=libs,
+                library_dirs=lib_dirs, runtime_library_dirs=runtime_lib_dirs))
+exts.append(Ext('paropt.ParOptEig', sources=['paropt/ParOptEig.pyx'],
+                language='c++',
+                include_dirs=inc_dirs, libraries=libs,
                 library_dirs=lib_dirs, runtime_library_dirs=runtime_lib_dirs))
 
 for e in exts:
@@ -72,5 +76,5 @@ setup(name='paropt',
       description='Parallel interior-point optimizer',
       author='Graeme J. Kennedy',
       author_email='graeme.kennedy@ae.gatech.edu',
-      ext_modules=cythonize(exts, language='c++', 
+      ext_modules=cythonize(exts, language='c++',
         include_path=inc_dirs))

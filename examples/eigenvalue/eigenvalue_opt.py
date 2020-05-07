@@ -2,7 +2,7 @@ import os, sys
 import numpy as np
 import mpi4py.MPI as MPI
 from paropt import ParOpt
-import ParOptEig
+from paropt import ParOptEig
 import argparse
 import matplotlib.pylab as plt
 

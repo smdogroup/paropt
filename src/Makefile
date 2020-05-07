@@ -7,6 +7,7 @@ OBJS = ParOptInteriorPoint.o \
 	ParOptMMA.o \
 	ParOptTrustRegion.o \
 	ParOptProblem.o \
+	ParOptCompactEigenvalueApprox.o \
 	CyParOptProblem.o
 
 default: ${OBJS}
