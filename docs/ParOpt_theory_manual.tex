@@ -240,7 +240,7 @@ This formula leads to the following expression for the update $\mb{p}$:
 where the matrix $\mb{C} \in \mathbb{R}^{2m \times 2m}$ is given as
 follows:
 \begin{equation*}
-  \mb{C} = \mb{Y}^{T} \mb{K}_{0}^{-1}\mb{Y} - \mb{M}.
+  \mb{C} = \mb{Y}^{T} \mb{K}_{0}^{-1}\mb{Y} + \mb{M}^{-1}.
 \end{equation*}
 A solution of the linear system~\eqref{eqn:ip-newton-update} can be obtained from the solution of $2m+1$ linear systems of the form $\mb{K}_{0}\mb{y} = \mb{b}$.  
 Furthermore, if the matrix $\mb{Y}$ is stored as a series of column vectors, then the operations required to compute the solution consist of operations with small matrices of size $\mathcal{O}(m)$, parallel vector-vector products, and the application of $\mb{K}_{0}^{-1}$. 
