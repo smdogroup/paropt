@@ -57,7 +57,7 @@ cdef class CompactEigenApprox:
 
         return _init_PVec(g0), hlist
 
-    def setApproximationValues(self, ParOptScalar c, M, Minv):
+    def setApproximationValues(self, c=None, M=None, Minv=None):
         cdef int N = 0
         cdef ParOptScalar *c0 = NULL
         cdef ParOptScalar *M0 = NULL
@@ -66,12 +66,18 @@ cdef class CompactEigenApprox:
         if self.ptr is not NULL:
             self.ptr.getApproximation(&c0, NULL, &N, &M0, &M0inv, NULL)
 
-        if c0 is not NULL:
+        if c is not None and c0 is not NULL:
             c0[0] = c
-        for i in range(N):
-            for j in range(N):
-                M0[N*i + j] = M[i][j]
-                M0inv[N*i + j] = Minv[i][j]
+
+        if M is not None and M0 is not NULL:
+            for i in range(N):
+                for j in range(N):
+                    M0[N*i + j] = M[i][j]
+
+        if Minv is not None and M0inv is not NULL:
+            for i in range(N):
+                for j in range(N):
+                     M0inv[N*i + j] = Minv[i][j]
 
         return
 

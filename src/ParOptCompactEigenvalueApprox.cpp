@@ -400,8 +400,17 @@ void ParOptEigenSubproblem::initModelAndBounds( double tr_size ){
 
   // Callback to update the eigenvalue approximation
   if (updateEigenModel){
+    // Take the linear terms from the model by default (these can still be
+    // over-written in the callback)
+    int index = approx->getMultiplierIndex();
     ParOptCompactEigenApprox *eigh = approx->getCompactEigenApprox();
     if (eigh){
+      ParOptScalar *c0;
+      ParOptVec *g0;
+      eigh->getApproximation(&c0, &g0, NULL, NULL, NULL, NULL);
+      *c0 = ck[index];
+      g0->copyValues(Ak[index]);
+
       updateEigenModel(data, xk, eigh);
     }
   }
@@ -474,8 +483,17 @@ int ParOptEigenSubproblem::acceptTrialPoint( ParOptVec *x,
 
   // Callback to update the eigenvalue approximation
   if (updateEigenModel){
+    // Take the linear terms from the model by default (these can still be
+    // over-written in the callback)
+    int index = approx->getMultiplierIndex();
     ParOptCompactEigenApprox *eigh = approx->getCompactEigenApprox();
     if (eigh){
+      ParOptScalar *c0;
+      ParOptVec *g0;
+      eigh->getApproximation(&c0, &g0, NULL, NULL, NULL, NULL);
+      *c0 = ct[index];
+      g0->copyValues(At[index]);
+
       updateEigenModel(data, x, eigh);
     }
   }
@@ -680,4 +698,8 @@ int ParOptEigenSubproblem::getLinearModel( ParOptVec **_xk,
   if (_ub){ *_ub = ub; }
 
   return m;
+}
+
+void ParOptEigenSubproblem::writeOutput( int iter, ParOptVec *x ){
+  prob->writeOutput(iter, x);
 }

@@ -19,6 +19,7 @@ cdef extern from "ParOptVec.h":
     cppclass ParOptVec(ParOptBase):
         ParOptVec()
         ParOptVec(MPI_Comm, int)
+        void zeroEntries()
         int getArray(ParOptScalar**)
         void copyValues(ParOptVec*)
         ParOptScalar norm()

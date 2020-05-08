@@ -244,9 +244,12 @@ def solve_problem(n, ndv, N, rho, filename=None,
         # Create the quadratic eigenvalue approximation object
         approx = ParOptEig.CompactEigenApprox(problem, N)
 
-        # Set up the corresponding quadratic problem
-        eig_qn = ParOptEig.EigenQuasiNewton(qn, approx)
-        subproblem = ParOptEig.EigenSubproblem(problem, eig_qn)
+        # Set up the corresponding quadratic approximation, specifying the index
+        # of the eigenvalue constraint
+        eig_qn = ParOptEig.EigenQuasiNewton(qn, approx, index=0)
+
+        # Set up the eigenvalue optimization subproblem
+        subproblem = ParOptEig.EigenSubproblem(problem, eig_qn, index=0)
         subproblem.setUpdateEigenModel(problem.updateModel)
     else:
         subproblem = ParOpt.QuadraticSubproblem(problem, qn)

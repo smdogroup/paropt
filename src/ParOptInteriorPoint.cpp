@@ -1315,12 +1315,12 @@ void ParOptInteriorPoint::setStartAffineStepMultiplierMin( double value ){
 /**
    Set the frequency with which the output is written.
 
+   A frequency value <= 0 indicates that output should never be written.
+
    @param freq controls the output frequency
 */
 void ParOptInteriorPoint::setOutputFrequency( int freq ){
-  if (freq >= 1){
-    write_output_frequency = freq;
-  }
+  write_output_frequency = freq;
 }
 
 /**
@@ -4954,7 +4954,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
 
     // Print out the current solution progress using the
     // hook in the problem definition
-    if (k % write_output_frequency == 0){
+    if (write_output_frequency > 0 && k % write_output_frequency == 0){
       if (checkpoint){
         // Write the checkpoint file, if it fails once, set
         // the file pointer to null so it won't print again

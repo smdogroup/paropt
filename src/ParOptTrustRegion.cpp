@@ -859,7 +859,11 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
   // Do not update the Hessian within the interior-point method
   optimizer->setUseQuasiNewtonUpdates(0);
 
-  // Set the initial values for gamma
+  // Set the output frequency for the subproblem iterations to zero so we
+  // don't generate output files from subiterations.
+  optimizer->setOutputFrequency(0);
+
+  // Set the initial values for the penalty parameter
   optimizer->setPenaltyGamma(penalty_gamma);
 
   // Allocate arrays to store infeasibility information

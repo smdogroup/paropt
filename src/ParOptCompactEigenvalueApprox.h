@@ -151,9 +151,7 @@ class ParOptEigenSubproblem : public ParOptTrustRegionSubproblem {
 
   // Over-write this function if you'd like to print out
   // something with the same frequency as the output files
-  void writeOutput( int iter, ParOptVec *x ){
-    prob->writeOutput(iter, x);
-  }
+  void writeOutput( int iter, ParOptVec *x );
 
   int getLinearModel( ParOptVec **_xk=NULL, ParOptVec **_gk=NULL,
                       ParOptVec ***_Ak=NULL,

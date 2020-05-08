@@ -803,6 +803,12 @@ cdef class PVec:
             raise ValueError(errmsg)
         return
 
+    def zeroEntries(self):
+        """Zero the values"""
+        if self.ptr:
+            self.ptr.zeroEntries()
+        return
+
     def copyValues(self, PVec vec):
         """Copy values from the provided PVec"""
         if self.ptr and vec.ptr:
