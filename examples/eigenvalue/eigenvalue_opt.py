@@ -28,7 +28,8 @@ class SpectralAggregate(ParOpt.Problem):
         self.n = n # The dimension of the matrix
         self.ndv = ndv # The number of design variables
         self.rho = rho # The KS parameter value
-        self.ncon = 1
+        self.ncon = 1 # The number of constraints
+        self.itr = 0
 
         # Create a random objective array
         self.obj_array = np.random.uniform(size=self.ndv, low=1.0, high=10.0)
@@ -202,7 +203,8 @@ class SpectralAggregate(ParOpt.Problem):
         self.lam, self.ks, self.grad, self.H = self.evalModel(x[:])
 
         # Print out the minimum eigenvalue
-        print('min(eigs) = %15.6e'%(np.min(self.eigs)) + ' fobj = %15.6e'%(fobj))
+        print('[%2d] min(eigs) = %15.6e'%(self.itr, np.min(self.eigs)) + ' fobj = %15.6e'%(fobj))
+        self.itr += 1
 
         con = [self.ks]
 
@@ -232,14 +234,14 @@ def solve_problem(n, ndv, N, rho, filename=None,
         problem.verify_derivatives(x0)
 
     # Create the trust region problem
-    max_lbfgs = 0
+    max_lbfgs = 10
     tr_init_size = 0.05
     tr_min_size = 1e-6
     tr_max_size = 10.0
     tr_eta = 0.1
     tr_penalty_gamma = 10.0
 
-    qn = ParOpt.LBFGS(problem, subspace=max_lbfgs)
+    qn = ParOpt.LSR1(problem, subspace=max_lbfgs)
     if use_quadratic_approx:
         # Create the quadratic eigenvalue approximation object
         approx = ParOptEig.CompactEigenApprox(problem, N)
@@ -249,7 +251,7 @@ def solve_problem(n, ndv, N, rho, filename=None,
         eig_qn = ParOptEig.EigenQuasiNewton(qn, approx, index=0)
 
         # Set up the eigenvalue optimization subproblem
-        subproblem = ParOptEig.EigenSubproblem(problem, eig_qn, index=0)
+        subproblem = ParOptEig.EigenSubproblem(problem, eig_qn)
         subproblem.setUpdateEigenModel(problem.updateModel)
     else:
         subproblem = ParOpt.QuadraticSubproblem(problem, qn)
@@ -257,7 +259,7 @@ def solve_problem(n, ndv, N, rho, filename=None,
     tr = ParOpt.TrustRegion(subproblem, tr_init_size,
                             tr_min_size, tr_max_size,
                             tr_eta, tr_penalty_gamma)
-    tr.setMaxTrustRegionIterations(25)
+    tr.setMaxTrustRegionIterations(100)
 
     infeas_tol = 1e-6
     l1_tol = 5e-4

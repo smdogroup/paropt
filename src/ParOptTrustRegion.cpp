@@ -190,6 +190,12 @@ int ParOptQuadraticSubproblem::evalTrialPointAndUpdate( ParOptVec *x,
   int fail = prob->evalObjCon(x, &ft, ct);
   fail = fail || prob->evalObjConGradient(x, gt, At);
 
+  // Copy the values of the objective and constraints
+  *fobj = ft;
+  for ( int i = 0; i < m; i++ ){
+    cons[i] = ct[i];
+  }
+
   // If we're using a quasi-Newton Hessian approximation
   if (qn){
     // Compute the step s = x - xk
@@ -688,6 +694,12 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   ParOptScalar *ck = new ParOptScalar[ m ];
   subproblem->evalObjCon(NULL, &fk, ck);
 
+  // Compute the model infeasibility at x = xk
+  ParOptScalar infeas_k = 0.0;
+  for ( int i = 0; i < m; i++ ){
+    infeas_k += penalty_gamma[i]*max2(0.0, -ck[i]);
+  }
+
   // Compute the value of the objective model and model
   // constraints at x = xt (The trial point)
   ParOptScalar ft;
@@ -697,11 +709,9 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   // Compute the reduction in the objective value
   ParOptScalar obj_reduc = fk - ft;
 
-  // Compute the model infeasibility
-  ParOptScalar infeas_k = 0.0;
+  // Compute the model infeasibility at the new point
   ParOptScalar infeas_model = 0.0;
   for ( int i = 0; i < m; i++ ){
-    infeas_k += penalty_gamma[i]*max2(0.0, -ck[i]);
     infeas_model += penalty_gamma[i]*max2(0.0, -ct[i]);
   }
 
@@ -726,16 +736,16 @@ void ParOptTrustRegion::update( ParOptVec *xt,
     if (fp){
       outfp = fp;
     }
-    fprintf(outfp, "%-12s %2s %9s %9s %9s\n",
+    fprintf(outfp, "%-12s %2s %12s %12s %12s\n",
             "Constraints", "i", "c(x)", "c(x+p)", "gamma");
     for ( int i = 0; i < m; i++ ){
-      fprintf(outfp, "%12s %2d %9.2e %9.2e %9.2e\n",
+      fprintf(outfp, "%12s %2d %12.5e %12.5e %12.5e\n",
               " ", i, ParOptRealPart(ck[i]), ParOptRealPart(ct[i]),
               penalty_gamma[i]);
     }
-    fprintf(outfp, "\n%-15s %9s %9s %9s %9s\n",
+    fprintf(outfp, "\n%-15s %12s %12s %12s %12s\n",
             "Model", "ared(f)", "pred(f)", "ared(c)", "pred(c)");
-    fprintf(outfp, "%15s %9.2e %9.2e %9.2e %9.2e\n",
+    fprintf(outfp, "%15s %12.5e %12.5e %12.5e %12.5e\n",
             " ", ParOptRealPart(fk - ft), ParOptRealPart(obj_reduc),
             ParOptRealPart(infeas_k - infeas_t),
             ParOptRealPart(infeas_k - infeas_model));
@@ -974,7 +984,7 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
         outfp = fp;
       }
       if (mpi_rank == 0 && print_level > 0){
-        fprintf(outfp, "%-12s %2s %9s %9s %9s %9s %9s %9s %9s\n",
+        fprintf(outfp, "%-12s %2s %12s %12s %12s %12s %12s %12s %9s\n",
                 "Penalty", "i", "|c(x)|", "|c+Ap|", "min|c+Ap|",
                 "pred", "min. pred", "gamma", "update");
       }
@@ -1014,11 +1024,11 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
         }
 
         if (mpi_rank == 0 && print_level > 0){
-                fprintf(outfp, "%12s %2d %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9s\n",
-                        " ", i, ParOptRealPart(con_infeas[i]),
-                        ParOptRealPart(model_con_infeas[i]),
-                        ParOptRealPart(best_con_infeas[i]),
-                        infeas_reduction, best_reduction, penalty_gamma[i], info);
+          fprintf(outfp, "%12s %2d %12.5e %12.5e %12.5e %12.5e %12.5e %12.5e %9s\n",
+                  " ", i, ParOptRealPart(con_infeas[i]),
+                  ParOptRealPart(model_con_infeas[i]),
+                  ParOptRealPart(best_con_infeas[i]),
+                  infeas_reduction, best_reduction, penalty_gamma[i], info);
         }
       }
 

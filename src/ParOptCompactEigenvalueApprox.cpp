@@ -444,33 +444,10 @@ int ParOptEigenSubproblem::evalTrialPointAndUpdate( ParOptVec *x,
   int fail = prob->evalObjCon(x, &ft, ct);
   fail = fail || prob->evalObjConGradient(x, gt, At);
 
-  // If we're using a quasi-Newton Hessian approximation
-  ParOptCompactQuasiNewton *qn = approx->getCompactQuasiNewton();
-  if (qn){
-    // Compute the step s = x - xk
-    s->copyValues(x);
-    s->axpy(-1.0, xk);
-
-    // Compute the difference between the gradient of the
-    // Lagrangian between the current point and the previous point
-    t->copyValues(gt);
-    for ( int i = 0; i < m; i++ ){
-      t->axpy(-z[i], At[i]);
-    }
-    if (nwcon > 0){
-      prob->addSparseJacobianTranspose(-1.0, x, zw, t);
-    }
-
-    t->axpy(-1.0, gk);
-    for ( int i = 0; i < m; i++ ){
-      t->axpy(z[i], Ak[i]);
-    }
-    if (nwcon > 0){
-      prob->addSparseJacobianTranspose(1.0, xk, zw, t);
-    }
-
-    // Perform an update of the quasi-Newton approximation
-    qn->update(xk, z, zw, s, t);
+  // Copy the values of the objective and constraints
+  *fobj = ft;
+  for ( int i = 0; i < m; i++ ){
+    cons[i] = ct[i];
   }
 
   return fail;
@@ -496,6 +473,42 @@ int ParOptEigenSubproblem::acceptTrialPoint( ParOptVec *x,
 
       updateEigenModel(data, x, eigh);
     }
+  }
+
+  // If we're using a quasi-Newton Hessian approximation
+  ParOptCompactQuasiNewton *qn = approx->getCompactQuasiNewton();
+  if (qn){
+    // Compute the step s = x - xk
+    s->copyValues(x);
+    s->axpy(-1.0, xk);
+
+    // Compute the difference between the gradient of the
+    // Lagrangian between the current point and the previous point
+    t->copyValues(gt);
+    for ( int i = 0; i < m; i++ ){
+      t->axpy(-z[i], At[i]);
+    }
+    if (nwcon > 0){
+      prob->addSparseJacobianTranspose(-1.0, x, zw, t);
+    }
+
+    t->axpy(-1.0, gk);
+    for ( int i = 0; i < m; i++ ){
+      t->axpy(z[i], Ak[i]);
+    }
+    if (nwcon > 0){
+      prob->addSparseJacobianTranspose(1.0, xk, zw, t);
+    }
+
+    // Now add the contribution t = y + z*H*s
+    int index = approx->getMultiplierIndex();
+    ParOptCompactEigenApprox *eigh = approx->getCompactEigenApprox();
+    if (eigh){
+      eigh->multAdd(z[index], s, t);
+    }
+
+    // Perform an update of the quasi-Newton approximation
+    qn->update(xk, z, zw, s, t);
   }
 
   fk = ft;
