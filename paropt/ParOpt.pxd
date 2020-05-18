@@ -46,6 +46,10 @@ cdef extern from "ParOptProblem.h":
         void checkGradients(double, ParOptVec*, int)
 
 cdef extern from "ParOptQuasiNewton.h":
+    enum ParOptBFGSUpdateType:
+        PAROPT_SKIP_NEGATIVE_CURVATURE
+        PAROPT_DAMPED_UPDATE
+
     cdef cppclass ParOptCompactQuasiNewton(ParOptBase):
         ParOptCompactQuasiNewton()
         void reset()
@@ -56,6 +60,7 @@ cdef extern from "ParOptQuasiNewton.h":
 
     cdef cppclass ParOptLBFGS(ParOptCompactQuasiNewton):
         ParOptLBFGS(ParOptProblem*, int)
+        void setBFGSUpdateType(ParOptBFGSUpdateType)
 
     cdef cppclass ParOptLSR1(ParOptCompactQuasiNewton):
         ParOptLSR1(ParOptProblem*, int)
@@ -116,11 +121,6 @@ cdef extern from "CyParOptProblem.h":
         void setAddSparseJacobian(addsparsejacobian usr_func)
         void setAddSparseJacobianTranspose(addsparsejacobiantranspose usr_func)
         void setAddSparseInnerProduct(addsparseinnerproduct usr_func)
-
-cdef extern from "ParOptQuasiNewton.h":
-    enum ParOptBFGSUpdateType:
-        PAROPT_SKIP_NEGATIVE_CURVATURE
-        PAROPT_DAMPED_UPDATE
 
 cdef extern from "ParOptInteriorPoint.h":
     # Set the quasi-Newton type to use

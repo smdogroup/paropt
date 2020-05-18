@@ -853,8 +853,13 @@ cdef class CompactQuasiNewton:
             self.ptr.multAdd(alpha, x.ptr, y.ptr)
 
 cdef class LBFGS(CompactQuasiNewton):
-    def __cinit__(self, ProblemBase prob, int subspace=10):
-        self.ptr = new ParOptLBFGS(prob.ptr, subspace)
+
+    def __cinit__(self, ProblemBase prob, int subspace=10,
+                  ParOptBFGSUpdateType update_type=SKIP_NEGATIVE_CURVATURE):
+        cdef ParOptLBFGS *lbfgs = NULL
+        lbfgs = new ParOptLBFGS(prob.ptr, subspace)
+        lbfgs.setBFGSUpdateType(update_type)
+        self.ptr = lbfgs
         self.ptr.incref()
 
 cdef class LSR1(CompactQuasiNewton):

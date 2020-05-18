@@ -450,7 +450,7 @@ if __name__ == '__main__':
     problem.checkGradients()
 
     # Create the quasi-Newton Hessian approximation
-    qn = ParOpt.LBFGS(problem, subspace=10)
+    qn = ParOpt.LBFGS(problem, subspace=5, update_type=ParOpt.DAMPED_UPDATE)
 
     # Create the trust region problem
     tr_init_size = 0.02
@@ -470,7 +470,7 @@ if __name__ == '__main__':
     tr.setTrustRegionTolerances(infeas_tol, l1_tol, linfty_tol)
 
     # Set the maximum number of iterations
-    tr.setMaxTrustRegionIterations(200)
+    tr.setMaxTrustRegionIterations(1000)
 
     # Set up the optimization problem
     tr_opt = ParOpt.InteriorPoint(subproblem, 2, ParOpt.BFGS)
