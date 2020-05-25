@@ -37,7 +37,7 @@ ax1.set_ylabel('Function value')
 
 ax2 = ax1.twinx()
 l2 = ax2.semilogy(iteration, opt_l1, '-r', linewidth=2, label='opt-l1')
-l3 = ax2.semilogy(iteration, opt_linfty, '-r', linewidth=2, label='opt-linfty')
+l3 = ax2.semilogy(iteration, opt_linfty, '-k', linewidth=2, label='opt-linfty')
 l4 = ax2.semilogy(iteration, infeas, '-m', linewidth=2, label='infeas')
 l5 = ax2.semilogy(iteration, tr, '-g', linewidth=2, label='tr')
 ax2.set_ylabel('Optimality and Feasibility')

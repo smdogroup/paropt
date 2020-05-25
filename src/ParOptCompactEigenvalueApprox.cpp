@@ -590,11 +590,8 @@ int ParOptEigenSubproblem::evalObjCon( ParOptVec *x,
 
     // Compute the objective function
     *fobj = fk + gk->dot(s);
-    ParOptCompactQuasiNewton *qn = approx->getCompactQuasiNewton();
-    if (qn){
-      qn->mult(s, t);
-      *fobj += 0.5*s->dot(t);
-    }
+    approx->mult(s, t);
+    *fobj += 0.5*s->dot(t);
 
     // Compute the constraint functions
     int index = approx->getMultiplierIndex();
@@ -642,15 +639,8 @@ int ParOptEigenSubproblem::evalObjConGradient( ParOptVec *x,
     }
   }
 
-  // Evaluate the gradient of the quadratic objective
-  ParOptCompactQuasiNewton *qn = approx->getCompactQuasiNewton();
-  if (qn){
-    qn->mult(s, g);
-    g->axpy(1.0, gk);
-  }
-  else {
-    g->copyValues(gk);
-  }
+  approx->mult(s, g);
+  g->axpy(1.0, gk);
 
   return 0;
 }
