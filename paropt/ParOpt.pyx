@@ -441,6 +441,21 @@ cdef int _evalhessiandiag(void *_self, int nvars, int ncon, int nwcon,
 
     return fail
 
+cdef void _computequasinewtonupdatecorrection(void *_self, int nvars,
+                                              ParOptVec *_s, ParOptVec *_y):
+    try:
+        # Call the objective function
+        if hasattr(<object>_self, 'computeQuasiNewtonUpdateCorrection'):
+            s = _init_PVec(_s)
+            y = _init_PVec(_y)
+            (<object>_self).computeQuasiNewtonUpdateCorrection(s, y)
+    except:
+        tb = traceback.format_exc()
+        print(tb)
+        exit(0)
+
+    return
+
 cdef void _evalsparsecon(void *_self, int nvars, int nwcon,
                          ParOptVec *_x, ParOptVec *_con):
     try:
@@ -547,6 +562,7 @@ cdef class Problem(ProblemBase):
         self.me.setEvalObjConGradient(_evalobjcongradient)
         self.me.setEvalHvecProduct(_evalhvecproduct)
         self.me.setEvalHessianDiag(_evalhessiandiag)
+        self.me.setComputeQuasiNewtonUpdateCorrection(_computequasinewtonupdatecorrection)
         self.me.setEvalSparseCon(_evalsparsecon)
         self.me.setAddSparseJacobian(_addsparsejacobian)
         self.me.setAddSparseJacobianTranspose(_addsparsejacobiantranspose)

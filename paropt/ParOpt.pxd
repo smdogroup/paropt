@@ -85,6 +85,8 @@ cdef extern from "CyParOptProblem.h":
     ctypedef int (*evalhessiandiag)(void *_self, int nvars, int ncon, int nwcon,
                                     ParOptVec *x, ParOptScalar *z,
                                     ParOptVec *zw, ParOptVec *hdiag)
+    ctypedef void (*computequasinewtonupdatecorrection)(void *_self, int nvars,
+                                                        ParOptVec *s, ParOptVec *y)
     ctypedef void (*evalsparsecon)(void *_self, int nvars, int nwcon,
                                    ParOptVec *x, ParOptVec *out)
     ctypedef void (*addsparsejacobian)(void *_self, int nvars, int nwcon,
@@ -117,6 +119,7 @@ cdef extern from "CyParOptProblem.h":
         void setEvalObjConGradient(evalobjcongradient usr_func)
         void setEvalHvecProduct(evalhvecproduct usr_func)
         void setEvalHessianDiag(evalhessiandiag usr_func)
+        void setComputeQuasiNewtonUpdateCorrection(computequasinewtonupdatecorrection usr_func)
         void setEvalSparseCon(evalsparsecon usr_func)
         void setAddSparseJacobian(addsparsejacobian usr_func)
         void setAddSparseJacobianTranspose(addsparsejacobiantranspose usr_func)

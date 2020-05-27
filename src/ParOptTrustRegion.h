@@ -67,6 +67,15 @@ class ParOptTrustRegionSubproblem : public ParOptProblem {
                                 ParOptVec *zw ) = 0;
 
   /**
+    Get the Hessian update type from the most recent update
+
+    @return The quasi-Newton update type
+  */
+  virtual int getQuasiNewtonUpdateType(){
+    return 0;
+  }
+
+  /**
     The trial step is rejected.
   */
   virtual void rejectTrialPoint() = 0;
@@ -102,6 +111,7 @@ class ParOptQuadraticSubproblem : public ParOptTrustRegionSubproblem {
                                ParOptScalar *fobj, ParOptScalar *cons );
   int acceptTrialPoint( ParOptVec *xt, const ParOptScalar *z, ParOptVec *zw );
   void rejectTrialPoint();
+  int getQuasiNewtonUpdateType();
 
   // Create the design vectors
   ParOptVec *createDesignVec();
@@ -169,6 +179,7 @@ class ParOptQuadraticSubproblem : public ParOptTrustRegionSubproblem {
 
   // Set the quadratic model parameters for this problem
   ParOptCompactQuasiNewton *qn;
+  int qn_update_type;
 
   int n; // The number of design variables (local)
   int m; // The number of dense constraints (global)

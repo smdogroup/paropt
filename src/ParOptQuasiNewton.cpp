@@ -164,20 +164,20 @@ int ParOptLBFGS::update( ParOptVec *x, const ParOptScalar *z,
   ParOptScalar sTs = s->dot(s);
 
   if (hessian_update_type == PAROPT_SKIP_NEGATIVE_CURVATURE){
-    // Skip the update
+    // Check if we should skip the update
     if (sTs <= epsilon_precision*epsilon_precision){
       update_type = 2;
       reset();
       return update_type;
     }
-    else if (ParOptRealPart(sTy) <= epsilon_precision*sqrt(ParOptRealPart(sTs*yTy))){
+    else if (ParOptRealPart(sTy) <= epsilon_precision*sqrt(ParOptRealPart(yTy*yTy))){
       update_type = 2;
       b0 = fabs(ParOptRealPart(sTy))/ParOptRealPart(sTs);
       return update_type;
     }
 
     // Compute the scalar parameter
-    b0 = sTy/sTs;
+    b0 = yTy/sTy;
 
     // Set the pointer to the new y value
     new_y = y;

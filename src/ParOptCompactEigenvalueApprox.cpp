@@ -297,6 +297,7 @@ ParOptEigenSubproblem::ParOptEigenSubproblem( ParOptProblem *_prob,
   // Set the quasi-Newton method
   approx = _approx;
   approx->incref();
+  qn_update_type = 0;
 
   // Set the update to NULL
   data = NULL;
@@ -508,6 +509,7 @@ int ParOptEigenSubproblem::acceptTrialPoint( ParOptVec *x,
     }
 
     // Perform an update of the quasi-Newton approximation
+    prob->computeQuasiNewtonUpdateCorrection(s, t);
     qn->update(xk, z, zw, s, t);
   }
 
@@ -527,6 +529,10 @@ void ParOptEigenSubproblem::rejectTrialPoint(){
   for ( int i = 0; i < m; i++ ){
     ct[i] = 0.0;
   }
+}
+
+int ParOptEigenSubproblem::getQuasiNewtonUpdateType(){
+  return qn_update_type;
 }
 
 /*
