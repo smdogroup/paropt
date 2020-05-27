@@ -1,6 +1,6 @@
-'''
+"""
 Perform a 2D plane stress analysis for topology optimization
-'''
+"""
 
 import numpy as np
 from mpi4py import MPI
@@ -11,14 +11,15 @@ from paropt import ParOpt
 
 class TopoAnalysis(ParOpt.Problem):
     def __init__(self, nxelems, nyelems, Lx, Ly, r0=1.5, p=3.0,
-                 E0=1.0, nu=0.3, kappa=1.0, thermal_problem=False):
-        '''
+                 E0=1.0, nu=0.3, kappa=1.0, thermal_problem=False,
+                 draw_figure=False):
+        """
         The constructor for the topology optimization class.
 
         This function sets up the data that is requried to perform a
         plane stress analysis of a square, plane stress structure.
         This is probably only useful for topology optimization.
-        '''
+        """
         super(TopoAnalysis, self).__init__(MPI.COMM_SELF, nxelems*nyelems, 1)
 
         self.nxelems = nxelems
@@ -31,8 +32,9 @@ class TopoAnalysis(ParOpt.Problem):
         self.nu = nu
         self.kappa0 = kappa
         self.thermal_problem = thermal_problem
-
         self.nelems = self.nxelems*self.nyelems
+        self.xfilter = None
+        self.draw_figure = draw_figure
 
         if self.thermal_problem:
             # Set the element variables and boundary conditions
@@ -122,18 +124,18 @@ class TopoAnalysis(ParOpt.Problem):
         return
 
     def mass(self, x):
-        '''
+        """
         Compute the mass of the structure
-        '''
+        """
 
         area = (self.Lx/self.nxelems)*(self.Ly/self.nyelems)
 
         return area*np.sum(x)
 
     def mass_grad(self, x):
-        '''
+        """
         Compute the derivative of the mass
-        '''
+        """
 
         area = (self.Lx/self.nxelems)*(self.Ly/self.nyelems)
         dmdx = area*np.ones(x.shape)
@@ -141,9 +143,9 @@ class TopoAnalysis(ParOpt.Problem):
         return dmdx
 
     def compliance(self, x):
-        '''
+        """
         Compute the structural compliance
-        '''
+        """
 
         # Compute the filtered compliance. Note that 'dot' is scipy
         # matrix-vector multiplicataion
@@ -161,7 +163,7 @@ class TopoAnalysis(ParOpt.Problem):
         return 0.5*np.dot(self.f, self.u)
 
     def analyze_structure(self, E):
-        '''
+        """
         Given the elastic modulus variable values, perform the
         analysis and update the state variables.
 
@@ -172,7 +174,7 @@ class TopoAnalysis(ParOpt.Problem):
         Args:
            E: An array of the elastic modulus for every element in the
               plane stress domain
-        '''
+        """
 
         # Compute the finite-element stiffness matrix
         kelem = self.compute_element_stiffness()
@@ -209,14 +211,14 @@ class TopoAnalysis(ParOpt.Problem):
         return
 
     def compute_element_stiffness(self):
-        '''
+        """
         Compute the element stiffness matrix using a Gauss quadrature
         scheme.
 
         Note that this code assumes that all elements are uniformly
         rectangular and so the same element stiffness matrix can be
         used for every element.
-        '''
+        """
 
         # Compute the element stiffness matrix
         gauss_pts = [-1.0/np.sqrt(3.0), 1.0/np.sqrt(3.0)]
@@ -255,7 +257,7 @@ class TopoAnalysis(ParOpt.Problem):
         return kelem
 
     def analyze_thermal(self, kappa):
-        '''
+        """
         Given the thermal conductivity, perform the analysis and update the state variables.
 
         This function sets up and solves the linear finite-element
@@ -263,7 +265,7 @@ class TopoAnalysis(ParOpt.Problem):
 
         Args:
            kappa: An array of the thermal conductivities for every element in the domain
-        '''
+        """
 
         # Compute the finite-element stiffness matrix
         kelem = self.compute_element_thermal()
@@ -300,14 +302,14 @@ class TopoAnalysis(ParOpt.Problem):
         return
 
     def compute_element_thermal(self):
-        '''
+        """
         Compute the element stiffness matrix using a Gauss quadrature
         scheme.
 
         Note that this code assumes that all elements are uniformly
         rectangular and so the same element stiffness matrix can be
         used for every element.
-        '''
+        """
 
         # Compute the element stiffness matrix
         gauss_pts = [-1.0/np.sqrt(3.0), 1.0/np.sqrt(3.0)]
@@ -336,7 +338,7 @@ class TopoAnalysis(ParOpt.Problem):
         return kelem
 
     def compliance_grad(self, x):
-        '''
+        """
         Compute the gradient of the compliance using the adjoint
         method.
 
@@ -349,10 +351,10 @@ class TopoAnalysis(ParOpt.Problem):
         the displacement vector u from the solution.
 
         d(compliance)/dx = - 0.5*u^{T}*d(K*u - f)/dx = - 0.5*u^{T}*dK/dx*u
-        '''
+        """
 
         # Compute the filtered variables
-        xfilter = self.F.dot(x)
+        self.xfilter = self.F.dot(x)
 
         # First compute the derivative with respect to the filtered
         # variables
@@ -364,7 +366,7 @@ class TopoAnalysis(ParOpt.Problem):
 
             for i in range(self.nelems):
                 evars = self.u[self.elem_vars[i, :]]
-                dxfdE = self.kappa0*self.p*xfilter[i]**(self.p - 1.0)
+                dxfdE = self.kappa0*self.p*self.xfilter[i]**(self.p - 1.0)
                 dcdxf[i] = -0.5*np.dot(evars, np.dot(kelem, evars))*dxfdE
         else:
             # Sum up the contributions from each
@@ -372,7 +374,7 @@ class TopoAnalysis(ParOpt.Problem):
 
             for i in range(self.nelems):
                 evars = self.u[self.elem_vars[i, :]]
-                dxfdE = self.E0*self.p*xfilter[i]**(self.p - 1.0)
+                dxfdE = self.E0*self.p*self.xfilter[i]**(self.p - 1.0)
                 dcdxf[i] = -0.5*np.dot(evars, np.dot(kelem, evars))*dxfdE
 
         # Now evaluate the effect of the filter
@@ -380,17 +382,75 @@ class TopoAnalysis(ParOpt.Problem):
 
         return dcdx
 
+    def compliance_negative_hessian(self, s):
+        """
+        Compute the product of the negative
+        """
+
+        # Compute the filtered variables
+        sfilter = self.F.dot(s)
+
+        # First compute the derivative with respect to the filtered
+        # variables
+        Hsf = np.zeros(s.shape)
+
+        if self.thermal_problem:
+            # Sum up the contributions from each
+            kelem = self.compute_element_thermal()
+
+            scale = self.kappa0*self.p*(self.p - 1.0)
+            for i in range(self.nelems):
+                evars = self.u[self.elem_vars[i, :]]
+                dxfdE = scale*sfilter[i]*self.xfilter[i]**(self.p - 2.0)
+                Hsf[i] = 0.5*np.dot(evars, np.dot(kelem, evars))*dxfdE
+        else:
+            # Sum up the contributions from each
+            kelem = self.compute_element_stiffness()
+
+            scale = self.E0*self.p*(self.p - 1.0)
+            for i in range(self.nelems):
+                evars = self.u[self.elem_vars[i, :]]
+                dxfdE = scale*sfilter[i]*self.xfilter[i]**(self.p - 2.0)
+                Hsf[i] = -0.5*np.dot(evars, np.dot(kelem, evars))*dxfdE
+
+        # Now evaluate the effect of the filter
+        Hs = (self.F.transpose()).dot(Hsf)
+
+        return Hs
+
+    def computeQuasiNewtonUpdateCorrection(self, s, y):
+        """
+        The exact Hessian of the compliance is composed of the difference
+        between two contributions:
+
+        H = P - N
+
+        Here P is a positive-definite term while N is positive semi-definite.
+        Since the true Hessian is a difference between the two, the quasi-Newton
+        Hessian update can be written as:
+
+        H*s = y = P*s - N*s
+
+        This often leads to damped update steps as the optimization converges.
+        Instead, we want to approximate just P, so  we modify y so that
+
+        ymod ~ P*s = (H + N)*s ~ y + N*s
+        """
+        Ns = self.compliance_negative_hessian(s[:])
+        y[:] += Ns[:]
+        return
+
     def getVarsAndBounds(self, x, lb, ub):
-        '''Get the variable values and bounds'''
+        """Get the variable values and bounds"""
         lb[:] = 1e-3
         ub[:] = 1.0
         x[:] = 0.95
         return
 
     def evalObjCon(self, x):
-        '''
+        """
         Return the objective, constraint and fail flag
-        '''
+        """
 
         fail = 0
         obj = self.compliance(x[:])
@@ -399,9 +459,9 @@ class TopoAnalysis(ParOpt.Problem):
         return fail, obj, con
 
     def evalObjConGradient(self, x, g, A):
-        '''
+        """
         Return the objective, constraint and fail flag
-        '''
+        """
 
         fail = 0
         g[:] = self.compliance_grad(x[:])
@@ -412,30 +472,31 @@ class TopoAnalysis(ParOpt.Problem):
         return fail
 
     def write_output(self, x):
-        '''
+        """
         Write out something to the screen
-        '''
+        """
 
-        if not hasattr(self, 'fig'):
-            plt.ion()
-            self.fig, self.ax = plt.subplots()
+        if self.draw_figure:
+            if not hasattr(self, 'fig'):
+                plt.ion()
+                self.fig, self.ax = plt.subplots()
+                plt.draw()
+
+            xfilter = self.F.dot(x)
+
+            # Prepare a pixel visualization of the design vars
+            image = np.zeros((self.nyelems, self.nxelems))
+            for j in range(self.nyelems):
+                for i in range(self.nxelems):
+                    image[j, i] = xfilter[i + j*self.nxelems]
+
+            x = np.linspace(0, self.Lx, self.nxelems)
+            y = np.linspace(0, self.Ly, self.nyelems)
+
+            self.ax.contourf(x, y, image)
+            self.ax.set_aspect('equal', 'box')
             plt.draw()
-
-        xfilter = self.F.dot(x)
-
-        # Prepare a pixel visualization of the design vars
-        image = np.zeros((self.nyelems, self.nxelems))
-        for j in range(self.nyelems):
-            for i in range(self.nxelems):
-                image[j, i] = xfilter[i + j*self.nxelems]
-
-        x = np.linspace(0, self.Lx, self.nxelems)
-        y = np.linspace(0, self.Ly, self.nyelems)
-
-        self.ax.contourf(x, y, image)
-        self.ax.set_aspect('equal', 'box')
-        plt.draw()
-        plt.pause(0.001)
+            plt.pause(0.001)
 
         return
 
@@ -450,12 +511,14 @@ if __name__ == '__main__':
     problem.checkGradients()
 
     # Create the quasi-Newton Hessian approximation
-    qn = ParOpt.LBFGS(problem, subspace=5, update_type=ParOpt.DAMPED_UPDATE)
+    # qn = ParOpt.LBFGS(problem, subspace=10, update_type=ParOpt.DAMPED_UPDATE)
+    qn = ParOpt.LBFGS(problem, subspace=10)
+    # qn = ParOpt.LSR1(problem, subspace=10)
 
     # Create the trust region problem
     tr_init_size = 0.02
     tr_min_size = 1e-6
-    tr_max_size = 0.05
+    tr_max_size = 10.0
     tr_eta = 0.2
     tr_penalty_gamma = 10.0
     subproblem = ParOpt.QuadraticSubproblem(problem, qn)
@@ -470,16 +533,16 @@ if __name__ == '__main__':
     tr.setTrustRegionTolerances(infeas_tol, l1_tol, linfty_tol)
 
     # Set the maximum number of iterations
-    tr.setMaxTrustRegionIterations(1000)
+    tr.setMaxTrustRegionIterations(500)
 
     # Set up the optimization problem
     tr_opt = ParOpt.InteriorPoint(subproblem, 2, ParOpt.BFGS)
 
     # Set up the optimization problem
-    tr_opt.setOutputFile('topo_optimization_paropt.out')
+    tr_opt.setOutputFile('topo_optimization_paropt.out-bfgs-skip')
 
     # Set the tolerances
-    tr_opt.setAbsOptimalityTol(1e-8)
+    tr_opt.setAbsOptimalityTol(1e-7)
     tr_opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
     tr_opt.setStartAffineStepMultiplierMin(0.01)
 
@@ -490,6 +553,6 @@ if __name__ == '__main__':
     tr_opt.setBarrierFraction(0.1)
 
     # optimize
-    tr.setOutputFile('topo_optimization_paropt.tr')
-    tr.setPrintLevel(1)
+    tr.setOutputFile('topo_optimization_paropt.tr-bfgs-skip')
+    tr.setPrintLevel(0)
     tr.optimize(tr_opt)

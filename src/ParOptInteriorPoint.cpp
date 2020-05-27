@@ -4556,6 +4556,7 @@ int ParOptInteriorPoint::computeStepAndUpdate( double alpha,
   int update_type = 0;
   if (qn && perform_qn_update){
     if (use_quasi_newton_update){
+      prob->computeQuasiNewtonUpdateCorrection(s_qn, y_qn);
       update_type = qn->update(x, z, zw, s_qn, y_qn);
     }
     else {

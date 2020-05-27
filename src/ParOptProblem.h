@@ -227,6 +227,20 @@ class ParOptProblem : public ParOptBase {
   }
 
   /**
+    Compute a correction or modification of the quasi-Newton update.
+
+    The vectors s and y represent the step and gradient difference,
+    respectively between iterations. By default, no correction or
+    modification is performed. However, some problems may benefit by
+    modifying the gradient difference term.
+
+    @param s The step in the quasi-Newton update
+    @param y The gradient difference in the quasi-Newton update
+  */
+  virtual void computeQuasiNewtonUpdateCorrection( ParOptVec *s,
+                                                   ParOptVec *y ){}
+
+  /**
     Evaluate the sparse constraints.
 
     Give the design variable vector x, compute the sparse constraints.

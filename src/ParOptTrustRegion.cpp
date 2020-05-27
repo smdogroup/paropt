@@ -75,6 +75,7 @@ ParOptQuadraticSubproblem::ParOptQuadraticSubproblem( ParOptProblem *_prob,
   else {
     qn = NULL;
   }
+  qn_update_type = 0;
 
   // Create the vectors
   xk = prob->createDesignVec();  xk->incref();
@@ -221,7 +222,8 @@ int ParOptQuadraticSubproblem::evalTrialPointAndUpdate( ParOptVec *x,
     }
 
     // Perform an update of the quasi-Newton approximation
-    qn->update(xk, z, zw, s, t);
+    prob->computeQuasiNewtonUpdateCorrection(s, t);
+    qn_update_type = qn->update(xk, z, zw, s, t);
   }
 
   return fail;
@@ -248,6 +250,10 @@ void ParOptQuadraticSubproblem::rejectTrialPoint(){
   for ( int i = 0; i < m; i++ ){
     ct[i] = 0.0;
   }
+}
+
+int ParOptQuadraticSubproblem::getQuasiNewtonUpdateType(){
+  return qn_update_type;
 }
 
 /*
@@ -821,6 +827,19 @@ void ParOptTrustRegion::update( ParOptVec *xt,
     }
   }
 
+  // Create an info string for the update type
+  int update_type = subproblem->getQuasiNewtonUpdateType();
+  char info[64];
+  info[0] = '\0';
+  if (update_type == 1){
+    // Damped BFGS update
+    sprintf(&info[strlen(info)], "%s ", "dampH");
+  }
+  else if (update_type == 2){
+    // Skipped update
+    sprintf(&info[strlen(info)], "%s ", "skipH");
+  }
+
   if (mpi_rank == 0){
     FILE *outfp = stdout;
     if (fp){
@@ -828,17 +847,17 @@ void ParOptTrustRegion::update( ParOptVec *xt,
     }
     if (iter_count % 10 == 0 || print_level > 0){
       fprintf(outfp,
-              "\n%5s %12s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s\n",
+              "\n%5s %12s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s\n",
               "iter", "fobj", "infeas", "l1", "linfty", "|x - xk|", "tr",
-              "rho", "mod red.", "avg z", "max z", "avg pen.", "max pen.");
+              "rho", "mod red.", "avg z", "max z", "avg pen.", "max pen.", "info");
       fflush(outfp);
     }
     fprintf(outfp,
             "%5d %12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e "
-            "%9.2e %9.2e %9.2e %9.2e\n",
+            "%9.2e %9.2e %9.2e %9.2e %9s\n",
             iter_count, ParOptRealPart(fk), *infeas, *l1, *linfty, smax, tr_size,
             ParOptRealPart(rho), ParOptRealPart(model_reduc),
-            zav/m, zmax, gav/m, gmax);
+            zav/m, zmax, gav/m, gmax, info);
     fflush(outfp);
   }
 
