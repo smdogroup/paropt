@@ -15,6 +15,13 @@ from paropt.ParOpt cimport *
 # Import tracebacks for callbacks
 import traceback
 
+# Include the definitions
+include "ParOptDefs.pxi"
+
+# Include the mpi4py header
+cdef extern from "mpi-compat.h":
+    pass
+
 cdef extern from "ParOptCompactEigenvalueApprox.h":
     cppclass ParOptCompactEigenApprox(ParOptBase):
         ParOptCompactEigenApprox(ParOptProblem*, int)
