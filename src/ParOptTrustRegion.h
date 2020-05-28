@@ -258,8 +258,10 @@ class ParOptTrustRegion : public ParOptBase {
 
   // File pointer for the summary file - depending on the settings
   FILE *fp;
-  int iter_count;
-  int print_level;
+  int iter_count; // Iteration counter
+  int subproblem_iters; // Subproblem iteration counter
+  int adaptive_subprolem_iters; // Subproblem iteration counter
+  int print_level; // Print level for the file
 
   int n; // The number of design variables (local)
   int m; // The number of dense constraints (global)

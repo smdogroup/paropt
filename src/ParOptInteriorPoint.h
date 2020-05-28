@@ -253,6 +253,16 @@ class ParOptInteriorPoint : public ParOptBase {
   // ------------------------------------------------------
   void checkMeritFuncGradient( ParOptVec *xpt=NULL, double dh=1e-6 );
 
+  // Get the iteration counts
+  // ------------------------
+  void getIterationCounters( int *_niter=NULL, int *_neval=NULL,
+                             int *_ngeval=NULL, int *_nhvec=NULL ){
+    if (_niter){ *_niter = niter; }
+    if (_neval){ *_neval = neval; }
+    if (_ngeval){ *_ngeval = ngeval; }
+    if (_nhvec){ *_nhvec = nhvec; }
+  }
+
  private:
   static const int PAROPT_LINE_SEARCH_SUCCESS = 1;
   static const int PAROPT_LINE_SEARCH_FAILURE = 2;
@@ -351,13 +361,14 @@ class ParOptInteriorPoint : public ParOptBase {
                        double *_max_x, double *_max_z );
 
   // Compute the step so that it satisfies the required bounds
-  void scaleStepVec( ParOptVec *xvec, ParOptScalar alpha, ParOptVec *pvec,
-                     ParOptVec *lower, ParOptScalar *lower_value,
-                     ParOptVec *upper, ParOptScalar *upper_value );
-  void scaleStep( int nvals, ParOptScalar *xvals,
-                  ParOptScalar alpha, ParOptScalar *pvals,
-                  ParOptScalar *lbvals, ParOptScalar *lower_value,
-                  ParOptScalar *ubvals, ParOptScalar *upper_value );
+  void scaleStep( ParOptScalar alpha, int nvals, ParOptScalar* );
+  void computeStepVec( ParOptVec *xvec, ParOptScalar alpha, ParOptVec *pvec,
+                       ParOptVec *lower, ParOptScalar *lower_value,
+                       ParOptVec *upper, ParOptScalar *upper_value );
+  void computeStep( int nvals, ParOptScalar *xvals,
+                    ParOptScalar alpha, const ParOptScalar *pvals,
+                    const ParOptScalar *lbvals, const ParOptScalar *lower_value,
+                    const ParOptScalar *ubvals, const ParOptScalar *upper_value );
 
   // Perform the line search
   int lineSearch( double alpha_min, double *_alpha,
@@ -467,7 +478,7 @@ class ParOptInteriorPoint : public ParOptBase {
   double qn_sigma;
 
   // Keep track of the number of objective and gradient evaluations
-  int neval, ngeval, nhvec;
+  int niter, neval, ngeval, nhvec;
 
   // Sparse equalities or inequalities?
   int sparse_inequality;

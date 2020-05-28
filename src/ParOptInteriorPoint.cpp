@@ -3559,18 +3559,29 @@ void ParOptInteriorPoint::computeMaxStep( double tau,
 }
 
 /*
+  Scale the step by the specified alpha value
+*/
+void ParOptInteriorPoint::scaleStep( ParOptScalar alpha,
+                                     int nvals,
+                                     ParOptScalar *pvals ){
+  for ( int i = 0; i < nvals; i++ ){
+    pvals[i] *= alpha;
+  }
+}
+
+/*
   Make sure that the step x + alpha*p lies strictly within the
   bounds l + design_precision <= x + alpha*p <= u - design_precision.
 
   If the bounds are violated, adjust the step so that they will be
   satisfied.
 */
-void ParOptInteriorPoint::scaleStepVec( ParOptVec *xvec, ParOptScalar alpha,
-                                        ParOptVec *pvec,
-                                        ParOptVec *lower,
-                                        ParOptScalar *lower_value,
-                                        ParOptVec *upper,
-                                        ParOptScalar *upper_value ){
+void ParOptInteriorPoint::computeStepVec( ParOptVec *xvec, ParOptScalar alpha,
+                                          ParOptVec *pvec,
+                                          ParOptVec *lower,
+                                          ParOptScalar *lower_value,
+                                          ParOptVec *upper,
+                                          ParOptScalar *upper_value ){
   ParOptScalar *xvals = NULL;
   ParOptScalar *pvals = NULL;
   ParOptScalar *ubvals = NULL;
@@ -3585,54 +3596,53 @@ void ParOptInteriorPoint::scaleStepVec( ParOptVec *xvec, ParOptScalar alpha,
     upper->getArray(&ubvals);
   }
 
-  scaleStep(size, xvals, alpha, pvals, lbvals, lower_value, ubvals, upper_value);
+  computeStep(size, xvals, alpha, pvals, lbvals, lower_value, ubvals, upper_value);
 }
 
 /*
-  Make sure that the scaled step is within the prescribed bounds
+  Make sure that the step is within the prescribed bounds
 */
-void ParOptInteriorPoint::scaleStep( int nvals,
-                                     ParOptScalar *xvals,
-                                     ParOptScalar alpha,
-                                     ParOptScalar *pvals,
-                                     ParOptScalar *lbvals,
-                                     ParOptScalar *lower_value,
-                                     ParOptScalar *ubvals,
-                                     ParOptScalar *upper_value ){
+void ParOptInteriorPoint::computeStep( int nvals,
+                                       ParOptScalar *xvals,
+                                       ParOptScalar alpha,
+                                       const ParOptScalar *pvals,
+                                       const ParOptScalar *lbvals,
+                                       const ParOptScalar *lower_value,
+                                       const ParOptScalar *ubvals,
+                                       const ParOptScalar *upper_value ){
   for ( int i = 0; i < nvals; i++ ){
-    pvals[i] *= alpha;
+    xvals[i] = xvals[i] + alpha*pvals[i];
   }
-
   if (lbvals){
     for ( int i = 0; i < nvals; i++ ){
-      if (ParOptRealPart(xvals[i] + pvals[i]) <=
+      if (ParOptRealPart(xvals[i]) <=
           ParOptRealPart(lbvals[i]) + design_precision){
-        pvals[i] = (lbvals[i] + design_precision - xvals[i]);
+        xvals[i] = lbvals[i] + design_precision;
       }
     }
   }
   else if (lower_value){
     double lbval = ParOptRealPart(*lower_value);
     for ( int i = 0; i < nvals; i++ ){
-      if (ParOptRealPart(xvals[i] + pvals[i]) <= lbval + design_precision){
-        pvals[i] = (lbval + design_precision - xvals[i]);
+      if (ParOptRealPart(xvals[i]) <= lbval + design_precision){
+        xvals[i] = lbval + design_precision;
       }
     }
   }
 
   if (ubvals){
     for ( int i = 0; i < nvals; i++ ){
-      if (ParOptRealPart(xvals[i] + pvals[i]) + design_precision >=
+      if (ParOptRealPart(xvals[i]) + design_precision >=
           ParOptRealPart(ubvals[i])){
-        pvals[i] = (ubvals[i] - design_precision - xvals[i]);
+        xvals[i] = ubvals[i] - design_precision;
       }
     }
   }
   else if (upper_value){
     double ubval = ParOptRealPart(*upper_value);
     for ( int i = 0; i < nvals; i++ ){
-      if (ParOptRealPart(xvals[i] + pvals[i]) + design_precision >= ubval){
-        pvals[i] = (ubval - design_precision - xvals[i]);
+      if (ParOptRealPart(xvals[i]) + design_precision >= ubval){
+        xvals[i] = ubval - design_precision;
       }
     }
   }
@@ -3701,26 +3711,25 @@ int ParOptInteriorPoint::scaleKKTStep( double tau, ParOptScalar comp,
   }
 
   // Scale the steps by the maximum permissible step lengths
-  ParOptScalar zero = 0.0;
-  scaleStepVec(x, alpha_x, px, lb, NULL, ub, NULL);
+  px->scale(alpha_x);
   if (nwcon > 0){
-    scaleStepVec(zw, alpha_z, pzw, NULL, &zero, NULL, NULL);
+    pzw->scale(alpha_z);
     if (sparse_inequality){
-      scaleStepVec(sw, alpha_x, psw, NULL, &zero, NULL, NULL);
+      psw->scale(alpha_x);
     }
   }
   if (use_lower){
-    scaleStepVec(zl, alpha_z, pzl, NULL, &zero, NULL, NULL);
+    pzl->scale(alpha_z);
   }
   if (use_upper){
-    scaleStepVec(zu, alpha_z, pzu, NULL, &zero, NULL, NULL);
+    pzu->scale(alpha_z);
   }
 
-  scaleStep(ncon, z, alpha_z, pz, NULL, &zero, NULL, NULL);
+  scaleStep(alpha_z, ncon, pz);
   if (dense_inequality){
-    scaleStep(ncon, s, alpha_x, ps, NULL, &zero, NULL, NULL);
-    scaleStep(ncon, t, alpha_x, pt, NULL, &zero, NULL, NULL);
-    scaleStep(ncon, zt, alpha_z, pzt, NULL, &zero, NULL, NULL);
+    scaleStep(alpha_x, ncon, ps);
+    scaleStep(alpha_x, ncon, pt);
+    scaleStep(alpha_z, ncon, pzt);
   }
 
   *_alpha_x = alpha_x;
@@ -4376,20 +4385,21 @@ int ParOptInteriorPoint::lineSearch( double alpha_min, double *_alpha,
   for ( ; j < max_line_iters; j++ ){
     // Set rx = x + alpha*px
     rx->copyValues(x);
-    rx->axpy(alpha, px);
+    computeStepVec(rx, alpha, px, lb, NULL, ub, NULL);
 
     // Set rcw = sw + alpha*psw
+    ParOptScalar zero = 0.0;
     if (nwcon > 0 && sparse_inequality){
       rsw->copyValues(sw);
-      rsw->axpy(alpha, psw);
+      computeStepVec(rsw, alpha, psw, NULL, &zero, NULL, NULL);
     }
 
-    // Set rs = s + alpha*ps
+    // Set rs = s + alpha*ps and rt = t + alpha*pt
     if (dense_inequality){
-      for ( int i = 0; i < ncon; i++ ){
-        rs[i] = s[i] + alpha*ps[i];
-        rt[i] = t[i] + alpha*pt[i];
-      }
+      memcpy(rs, s, ncon*sizeof(ParOptScalar));
+      computeStep(ncon, rs, alpha, ps, NULL, &zero, NULL, NULL);
+      memcpy(rt, t, ncon*sizeof(ParOptScalar));
+      computeStep(ncon, rt, alpha, pt, NULL, &zero, NULL, NULL);
     }
 
     // Evaluate the objective and constraints at the new point
@@ -4499,20 +4509,21 @@ int ParOptInteriorPoint::lineSearch( double alpha_min, double *_alpha,
 
       // Set rx = x + alpha*px
       rx->copyValues(x);
-      rx->axpy(alpha, px);
+      computeStepVec(rx, alpha, px, lb, NULL, ub, NULL);
 
       // Set rcw = sw + alpha*psw
+      ParOptScalar zero = 0.0;
       if (nwcon > 0 && sparse_inequality){
         rsw->copyValues(sw);
-        rsw->axpy(alpha, psw);
+        computeStepVec(rsw, alpha, psw, NULL, &zero, NULL, NULL);
       }
 
-      // Set rs = s + alpha*ps
+      // Set rs = s + alpha*ps and rt = t + alpha*pt
       if (dense_inequality){
-        for ( int i = 0; i < ncon; i++ ){
-          rs[i] = s[i] + alpha*ps[i];
-          rt[i] = t[i] + alpha*pt[i];
-        }
+        memcpy(rs, s, ncon*sizeof(ParOptScalar));
+        computeStep(ncon, rs, alpha, ps, NULL, &zero, NULL, NULL);
+        memcpy(rt, t, ncon*sizeof(ParOptScalar));
+        computeStep(ncon, rt, alpha, pt, NULL, &zero, NULL, NULL);
       }
 
       // Evaluate the objective and constraints at the new point
@@ -4552,28 +4563,25 @@ int ParOptInteriorPoint::computeStepAndUpdate( double alpha,
                                                int eval_obj_con,
                                                int perform_qn_update ){
   // Set the new values of the variables
+  ParOptScalar zero = 0.0;
   if (nwcon > 0){
-    zw->axpy(alpha, pzw);
+    computeStepVec(zw, alpha, pzw, NULL, &zero, NULL, NULL);
     if (sparse_inequality){
-      sw->axpy(alpha, psw);
+      computeStepVec(sw, alpha, psw, NULL, &zero, NULL, NULL);
     }
   }
   if (use_lower){
-    zl->axpy(alpha, pzl);
+    computeStepVec(zl, alpha, pzl, NULL, &zero, NULL, NULL);
   }
   if (use_upper){
-    zu->axpy(alpha, pzu);
+    computeStepVec(zu, alpha, pzu, NULL, &zero, NULL, NULL);
   }
 
-  for ( int i = 0; i < ncon; i++ ){
-    z[i] += alpha*pz[i];
-  }
+  computeStep(ncon, z, alpha, pz, NULL, &zero, NULL, NULL);
   if (dense_inequality){
-    for ( int i = 0; i < ncon; i++ ){
-      s[i] += alpha*ps[i];
-      t[i] += alpha*pt[i];
-      zt[i] += alpha*pzt[i];
-    }
+    computeStep(ncon, s, alpha, ps, NULL, &zero, NULL, NULL);
+    computeStep(ncon, t, alpha, pt, NULL, &zero, NULL, NULL);
+    computeStep(ncon, zt, alpha, pzt, NULL, &zero, NULL, NULL);
   }
 
   // Compute the negative gradient of the Lagrangian using the
@@ -4594,7 +4602,7 @@ int ParOptInteriorPoint::computeStepAndUpdate( double alpha,
   // Apply the step to the design variables only
   // after computing the contribution of the constraint
   // Jacobian to the BFGS update
-  x->axpy(alpha, px);
+  computeStepVec(x, alpha, px, lb, NULL, ub, NULL);
 
   // Evaluate the objective if needed. This step is not required
   // if a line search has just been performed.
@@ -4768,7 +4776,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
   }
 
   // Zero out the number of function/gradient evaluations
-  neval = ngeval = nhvec = 0;
+  niter = neval = ngeval = nhvec = 0;
 
   // If no quasi-Newton method is defined, use a sequential linear method instead
   if (!qn){
@@ -5022,7 +5030,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
   char info[64];
   info[0] = '\0';
 
-  for ( int k = 0; k < max_major_iters; k++ ){
+  for ( int k = 0; k < max_major_iters; k++, niter++ ){
     if (qn && !sequential_linear_method){
       if (k > 0 && k % hessian_reset_freq == 0 &&
           use_quasi_newton_update){

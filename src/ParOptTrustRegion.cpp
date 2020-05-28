@@ -484,6 +484,10 @@ ParOptTrustRegion::ParOptTrustRegion( ParOptTrustRegionSubproblem *_subproblem,
   // Set the iteration count to zero
   iter_count = 0;
 
+  // Set the subproblem iteration counter
+  subproblem_iters = 0;
+  adaptive_subprolem_iters = 0;
+
   // Set the file pointer to NULL
   fp = NULL;
   print_level = 0;
@@ -837,6 +841,14 @@ void ParOptTrustRegion::update( ParOptVec *xt,
     // Skipped update
     sprintf(&info[strlen(info)], "%s ", "skipH");
   }
+  // Write out the number of subproblem iterations
+  if (adaptive_gamma_update){
+    sprintf(&info[strlen(info)], "%d/%d", subproblem_iters,
+            adaptive_subprolem_iters);
+  }
+  else {
+    sprintf(&info[strlen(info)], "%d", subproblem_iters);
+  }
 
   if (mpi_rank == 0){
     FILE *outfp = stdout;
@@ -845,14 +857,14 @@ void ParOptTrustRegion::update( ParOptVec *xt,
     }
     if (iter_count % 10 == 0 || print_level > 0){
       fprintf(outfp,
-              "\n%5s %12s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s\n",
+              "\n%5s %12s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %12s\n",
               "iter", "fobj", "infeas", "l1", "linfty", "|x - xk|", "tr",
               "rho", "mod red.", "avg z", "max z", "avg pen.", "max pen.", "info");
       fflush(outfp);
     }
     fprintf(outfp,
             "%5d %12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e "
-            "%9.2e %9.2e %9.2e %9.2e %9s\n",
+            "%9.2e %9.2e %9.2e %9.2e %12s\n",
             iter_count, ParOptRealPart(fk), *infeas, *l1, *linfty, smax, tr_size,
             ParOptRealPart(rho), ParOptRealPart(model_reduc),
             zav/m, zmax, gav/m, gmax, info);
@@ -932,6 +944,9 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
       ParOptScalar *z;
       optimizer->getOptimizedPoint(&x, &z, &zw, NULL, NULL);
 
+      // Get the number of subproblem iterations
+      optimizer->getIterationCounters(&adaptive_subprolem_iters);
+
       // Evaluate the model at the best point to obtain the infeasibility
       ParOptScalar fbest;
       subproblem->evalObjCon(x, &fbest, best_con_infeas);
@@ -965,6 +980,9 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
     ParOptVec *x, *zw;
     ParOptScalar *z;
     optimizer->getOptimizedPoint(&x, &z, &zw, NULL, NULL);
+
+    // Get the number of subproblem iterations
+    optimizer->getIterationCounters(&subproblem_iters);
 
     if (adaptive_gamma_update){
       // Find the infeasibility at the origin x = xk
