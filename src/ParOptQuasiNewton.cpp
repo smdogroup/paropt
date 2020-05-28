@@ -165,7 +165,7 @@ int ParOptLBFGS::update( ParOptVec *x, const ParOptScalar *z,
 
   if (hessian_update_type == PAROPT_SKIP_NEGATIVE_CURVATURE){
     // Check if we should skip the update
-    if (sTs <= epsilon_precision*epsilon_precision){
+    if (ParOptRealPart(sTs) <= epsilon_precision*epsilon_precision){
       update_type = 2;
       reset();
       return update_type;

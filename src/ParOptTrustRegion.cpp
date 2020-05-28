@@ -759,14 +759,12 @@ void ParOptTrustRegion::update( ParOptVec *xt,
 
   // Compute the ratio of the actual reduction
   ParOptScalar rho = 1.0;
-  if (fabs(model_reduc) >= function_precision){
-    rho = actual_reduc/model_reduc;
-  }
-  else if (fabs(actual_reduc) <= function_precision){
+  if (fabs(ParOptRealPart(model_reduc)) <= function_precision &&
+      fabs(ParOptRealPart(actual_reduc)) <= function_precision){
     rho = 1.0;
   }
   else {
-    rho = actual_reduc/function_precision;
+    rho = actual_reduc/model_reduc;
   }
 
   // Compute the infeasibility

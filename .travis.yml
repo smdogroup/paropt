@@ -37,16 +37,21 @@ before_install:
   - mkdir -p $INSTALL_PREFIX/git
   - cd $INSTALL_PREFIX/git
 
-install: 
+install:
   - git clone https://github.com/gjkennedy/paropt.git
   - cd paropt
   - cp Makefile.in.info Makefile.in
+
+  # Test to make sure that the complex version works
+  - make complex
+  - make complex_interface
+
+  # Make the real version of the code
+  - make clean
   - make
-  
-  # Currently assume inplace installation and setting python path
   - make interface
 
-script: 
+script:
   - python examples/toy/toy.py
   - mpirun -np 2 python examples/toy/toy.py
   - cd $INSTALL_PREFIX/git/paropt/examples/rosenbrock/; make; mpirun -np 8 ./rosenbrock; cd -;
