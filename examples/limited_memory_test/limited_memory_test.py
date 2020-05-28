@@ -114,7 +114,7 @@ s0 = S[:,-1]
 if qn_type == 'sr1':
     B = np.eye(n)
 else:
-    B = (np.dot(s0, y0)/np.dot(s0, s0))*np.eye(n)
+    B = (np.dot(y0, y0)/np.dot(s0, y0))*np.eye(n)
 
 for i in range(n):
     s = S[:,i]
@@ -145,4 +145,4 @@ for i in range(n):
     r = py[:] - np.dot(B, s)
 
     # Compute the relative error
-    print('relative err = ', np.sqrt(np.dot(r, r)/np.dot(s, np.dot(B, s))))
+    print('relative err[%2d]: %25.10e'%(i, np.sqrt(np.dot(r, r)/np.dot(s, np.dot(B, s)))))

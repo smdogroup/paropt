@@ -350,6 +350,15 @@ class ParOptInteriorPoint : public ParOptBase {
   void computeMaxStep( double tau,
                        double *_max_x, double *_max_z );
 
+  // Compute the step so that it satisfies the required bounds
+  void scaleStepVec( ParOptVec *xvec, ParOptScalar alpha, ParOptVec *pvec,
+                     ParOptVec *lower, ParOptScalar *lower_value,
+                     ParOptVec *upper, ParOptScalar *upper_value );
+  void scaleStep( int nvals, ParOptScalar *xvals,
+                  ParOptScalar alpha, ParOptScalar *pvals,
+                  ParOptScalar *lbvals, ParOptScalar *lower_value,
+                  ParOptScalar *ubvals, ParOptScalar *upper_value );
+
   // Perform the line search
   int lineSearch( double alpha_min, double *_alpha,
                   ParOptScalar m0, ParOptScalar dm0 );
@@ -502,8 +511,9 @@ class ParOptInteriorPoint : public ParOptBase {
   double min_rho_penalty_search;
   double penalty_descent_fraction, armijo_constant;
 
-  // Function precision
+  // Function precision and design variable precision
   double function_precision;
+  double design_precision;
 
   // Parameters for controling the barrier update
   double monotone_barrier_fraction, monotone_barrier_power;

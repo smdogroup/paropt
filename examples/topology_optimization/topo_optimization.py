@@ -507,13 +507,11 @@ if __name__ == '__main__':
     Ly = 8.0
     problem = TopoAnalysis(nxelems, nyelems,
                            Lx, Ly, E0=70e3, r0=3, kappa=70e3,
-                           thermal_problem=True)
+                           thermal_problem=True, draw_figure=False)
     problem.checkGradients()
 
     # Create the quasi-Newton Hessian approximation
-    # qn = ParOpt.LBFGS(problem, subspace=10, update_type=ParOpt.DAMPED_UPDATE)
     qn = ParOpt.LBFGS(problem, subspace=10)
-    # qn = ParOpt.LSR1(problem, subspace=10)
 
     # Create the trust region problem
     tr_init_size = 0.02
@@ -532,6 +530,9 @@ if __name__ == '__main__':
     linfty_tol = 1e-3
     tr.setTrustRegionTolerances(infeas_tol, l1_tol, linfty_tol)
 
+    # Use the adaptive penalty update
+    tr.setAdaptiveGammaUpdate(1)
+
     # Set the maximum number of iterations
     tr.setMaxTrustRegionIterations(500)
 
@@ -539,7 +540,7 @@ if __name__ == '__main__':
     tr_opt = ParOpt.InteriorPoint(subproblem, 2, ParOpt.BFGS)
 
     # Set up the optimization problem
-    tr_opt.setOutputFile('topo_optimization_paropt.out-bfgs-skip')
+    tr_opt.setOutputFile('topo_optimization_paropt.out')
 
     # Set the tolerances
     tr_opt.setAbsOptimalityTol(1e-7)
@@ -553,6 +554,6 @@ if __name__ == '__main__':
     tr_opt.setBarrierFraction(0.1)
 
     # optimize
-    tr.setOutputFile('topo_optimization_paropt.tr-bfgs-skip')
+    tr.setOutputFile('topo_optimization_paropt.tr')
     tr.setPrintLevel(0)
     tr.optimize(tr_opt)
