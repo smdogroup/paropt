@@ -269,6 +269,7 @@ class ParOptInteriorPoint : public ParOptBase {
   static const int PAROPT_LINE_SEARCH_MIN_STEP = 4;
   static const int PAROPT_LINE_SEARCH_MAX_ITERS = 8;
   static const int PAROPT_LINE_SEARCH_NO_IMPROVEMENT = 16;
+  static const int PAROPT_LINE_SEARCH_SHORT_STEP = 32;
 
   // Print out the optimizer options to a file
   void printOptionSummary( FILE *fp );

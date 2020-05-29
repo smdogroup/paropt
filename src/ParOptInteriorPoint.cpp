@@ -4450,6 +4450,13 @@ int ParOptInteriorPoint::lineSearch( double alpha_min, double *_alpha,
         // We have successfully found a point
         fail = PAROPT_LINE_SEARCH_SUCCESS;
       }
+
+      // The line search may be successful but the merit function value may
+      // not have resulted in no improvement.
+      if ((ParOptRealPart(m0) + function_precision <= ParOptRealPart(merit)) &&
+          (ParOptRealPart(merit) + function_precision <= ParOptRealPart(m0))){
+        fail |= PAROPT_LINE_SEARCH_NO_IMPROVEMENT;
+      }
       break;
     }
     else if (fail & PAROPT_LINE_SEARCH_MIN_STEP){
@@ -5511,6 +5518,11 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
           }
           line_fail = lineSearch(alpha_min, &alpha, m0, dm0);
 
+          // If the step length is less than the design precision
+          if (px_norm < design_precision){
+            line_fail |= PAROPT_LINE_SEARCH_SHORT_STEP;
+          }
+
           // If the line search was successful, quit
           if (!(line_fail & PAROPT_LINE_SEARCH_FAILURE)){
             // Do not evaluate the objective and constraints at the new point
@@ -5520,7 +5532,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
             int eval_obj_con = 0;
             int perform_qn_update = 1;
             update_type = computeStepAndUpdate(alpha, eval_obj_con,
-                                              perform_qn_update);
+                                               perform_qn_update);
           }
         }
       }
@@ -5539,6 +5551,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
     no_merit_function_improvement =
       ((line_fail & PAROPT_LINE_SEARCH_NO_IMPROVEMENT) ||
        (line_fail & PAROPT_LINE_SEARCH_MIN_STEP) ||
+       (line_fail & PAROPT_LINE_SEARCH_SHORT_STEP) ||
        (line_fail & PAROPT_LINE_SEARCH_FAILURE));
 
     // Keep track of whether the last step failed
