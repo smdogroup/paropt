@@ -43,7 +43,7 @@ class ConvexProblem(ParOpt.Problem):
         '''Evaluate the objective and constraint'''
         # Evaluate the objective and constraints
         fail = 0
-        con = np.zeros(1)
+        con = np.zeros(1, dtype=ParOpt.dtype)
 
         # Compute the artificial stiffness matrix
         self.K = self.Affine + np.dot(self.Q, np.dot(np.diag(x), self.Q.T))
@@ -159,7 +159,7 @@ def solve_problem(eigs, filename=None, data_type='orthogonal',
         tr.optimize(tr_opt)
 
         # Get the optimized point from the trust-region subproblem
-        x, z, zw, zl, zu = tr_opt.getOptimizedPoint()
+        x = tr.getOptimizedPoint()
     else:
         # Set up the optimization problem
         max_lbfgs = 50

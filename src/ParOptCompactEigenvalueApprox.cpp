@@ -338,8 +338,10 @@ ParOptEigenSubproblem::ParOptEigenSubproblem( ParOptProblem *_prob,
   }
 
   // Create the temporary vector
-  s = prob->createDesignVec();  s->incref();
-  t = prob->createDesignVec();  t->incref();
+  t = prob->createDesignVec();
+  t->incref();
+  xtemp = prob->createDesignVec();
+  xtemp->incref();
 }
 
 ParOptEigenSubproblem::~ParOptEigenSubproblem(){
@@ -361,8 +363,8 @@ ParOptEigenSubproblem::~ParOptEigenSubproblem(){
   }
   delete [] At;
 
-  s->decref();
   t->decref();
+  xtemp->decref();
 }
 
 void ParOptEigenSubproblem::setEigenModelUpdate( void *_data,
@@ -432,18 +434,20 @@ void ParOptEigenSubproblem::setTrustRegionBounds( double tr_size ){
   uk->getArray(&utrvals);
 
   for ( int i = 0; i < size; i++ ){
-    ltrvals[i] = max2(xvals[i] - tr_size, lvals[i]);
-    utrvals[i] = min2(xvals[i] + tr_size, uvals[i]);
+    ltrvals[i] = max2(-tr_size, lvals[i] - xvals[i]);
+    utrvals[i] = min2( tr_size, uvals[i] - xvals[i]);
   }
 }
 
-int ParOptEigenSubproblem::evalTrialPointAndUpdate( ParOptVec *x,
-                                                    const ParOptScalar *z,
-                                                    ParOptVec *zw,
-                                                    ParOptScalar *fobj,
-                                                    ParOptScalar *cons ){
-  int fail = prob->evalObjCon(x, &ft, ct);
-  fail = fail || prob->evalObjConGradient(x, gt, At);
+int ParOptEigenSubproblem::evalTrialStepAndUpdate( ParOptVec *step,
+                                                   const ParOptScalar *z,
+                                                   ParOptVec *zw,
+                                                   ParOptScalar *fobj,
+                                                   ParOptScalar *cons ){
+  xtemp->copyValues(xk);
+  xtemp->axpy(1.0, step);
+  int fail = prob->evalObjCon(xtemp, &ft, ct);
+  fail = fail || prob->evalObjConGradient(xtemp, gt, At);
 
   // Copy the values of the objective and constraints
   *fobj = ft;
@@ -454,10 +458,13 @@ int ParOptEigenSubproblem::evalTrialPointAndUpdate( ParOptVec *x,
   return fail;
 }
 
-int ParOptEigenSubproblem::acceptTrialPoint( ParOptVec *x,
-                                             const ParOptScalar *z,
-                                             ParOptVec *zw ){
+int ParOptEigenSubproblem::acceptTrialStep( ParOptVec *step,
+                                            const ParOptScalar *z,
+                                            ParOptVec *zw ){
   int fail = 0;
+
+  xtemp->copyValues(xk);
+  xtemp->axpy(1.0, step);
 
   // Callback to update the eigenvalue approximation
   if (updateEigenModel){
@@ -472,17 +479,13 @@ int ParOptEigenSubproblem::acceptTrialPoint( ParOptVec *x,
       *c0 = ct[index];
       g0->copyValues(At[index]);
 
-      updateEigenModel(data, x, eigh);
+      updateEigenModel(data, xtemp, eigh);
     }
   }
 
   // If we're using a quasi-Newton Hessian approximation
   ParOptCompactQuasiNewton *qn = approx->getCompactQuasiNewton();
   if (qn){
-    // Compute the step s = x - xk
-    s->copyValues(x);
-    s->axpy(-1.0, xk);
-
     // Compute the difference between the gradient of the
     // Lagrangian between the current point and the previous point
     t->copyValues(gt);
@@ -490,7 +493,7 @@ int ParOptEigenSubproblem::acceptTrialPoint( ParOptVec *x,
       t->axpy(-z[i], At[i]);
     }
     if (nwcon > 0){
-      prob->addSparseJacobianTranspose(-1.0, x, zw, t);
+      prob->addSparseJacobianTranspose(-1.0, xtemp, zw, t);
     }
 
     t->axpy(-1.0, gk);
@@ -505,16 +508,16 @@ int ParOptEigenSubproblem::acceptTrialPoint( ParOptVec *x,
     int index = approx->getMultiplierIndex();
     ParOptCompactEigenApprox *eigh = approx->getCompactEigenApprox();
     if (eigh){
-      eigh->multAdd(z[index], s, t);
+      eigh->multAdd(z[index], step, t);
     }
 
     // Perform an update of the quasi-Newton approximation
-    prob->computeQuasiNewtonUpdateCorrection(s, t);
-    qn->update(xk, z, zw, s, t);
+    prob->computeQuasiNewtonUpdateCorrection(step, t);
+    qn->update(xtemp, z, zw, step, t);
   }
 
   fk = ft;
-  xk->copyValues(x);
+  xk->copyValues(xtemp);
   gk->copyValues(gt);
   for ( int i = 0; i < m; i++ ){
     ck[i] = ct[i];
@@ -524,7 +527,7 @@ int ParOptEigenSubproblem::acceptTrialPoint( ParOptVec *x,
   return fail;
 }
 
-void ParOptEigenSubproblem::rejectTrialPoint(){
+void ParOptEigenSubproblem::rejectTrialStep(){
   ft = 0.0;
   for ( int i = 0; i < m; i++ ){
     ct[i] = 0.0;
@@ -576,10 +579,10 @@ int ParOptEigenSubproblem::useUpperBounds(){
 }
 
 // Get the variables and bounds from the problem
-void ParOptEigenSubproblem::getVarsAndBounds( ParOptVec *x,
+void ParOptEigenSubproblem::getVarsAndBounds( ParOptVec *step,
                                               ParOptVec *l,
                                               ParOptVec *u ){
-  x->copyValues(xk);
+  step->zeroEntries();
   l->copyValues(lk);
   u->copyValues(uk);
 }
@@ -587,25 +590,22 @@ void ParOptEigenSubproblem::getVarsAndBounds( ParOptVec *x,
 /*
   Evaluate the objective and constraint functions
 */
-int ParOptEigenSubproblem::evalObjCon( ParOptVec *x,
+int ParOptEigenSubproblem::evalObjCon( ParOptVec *step,
                                        ParOptScalar *fobj,
                                        ParOptScalar *cons ){
-  if (x){
-    s->copyValues(x);
-    s->axpy(-1.0, xk);
-
+  if (step){
     // Compute the objective function
-    *fobj = fk + gk->dot(s);
-    approx->mult(s, t);
-    *fobj += 0.5*s->dot(t);
+    *fobj = fk + gk->dot(step);
+    approx->mult(step, t);
+    *fobj += 0.5*step->dot(t);
 
     // Compute the constraint functions
     int index = approx->getMultiplierIndex();
     ParOptCompactEigenApprox *eigh = approx->getCompactEigenApprox();
-    cons[index] = eigh->evalApproximation(s, t);
+    cons[index] = eigh->evalApproximation(step, t);
     for ( int i = 0; i < m; i++ ){
       if (i != index){
-        cons[i] = ck[i] + Ak[i]->dot(s);
+        cons[i] = ck[i] + Ak[i]->dot(step);
       }
     }
   }
@@ -629,23 +629,20 @@ int ParOptEigenSubproblem::evalObjCon( ParOptVec *x,
 /*
   Evaluate the objective and constraint gradients
 */
-int ParOptEigenSubproblem::evalObjConGradient( ParOptVec *x,
+int ParOptEigenSubproblem::evalObjConGradient( ParOptVec *step,
                                                ParOptVec *g,
                                                ParOptVec **Ac ){
-  s->copyValues(x);
-  s->axpy(-1.0, xk);
-
   // Copy the values of constraint gradient
   int index = approx->getMultiplierIndex();
   ParOptCompactEigenApprox *eigh = approx->getCompactEigenApprox();
-  eigh->evalApproximationGradient(s, Ac[index]);
+  eigh->evalApproximationGradient(step, Ac[index]);
   for ( int i = 0; i < m; i++ ){
     if (i != index){
       Ac[i]->copyValues(Ak[i]);
     }
   }
 
-  approx->mult(s, g);
+  approx->mult(step, g);
   g->axpy(1.0, gk);
 
   return 0;
@@ -654,11 +651,10 @@ int ParOptEigenSubproblem::evalObjConGradient( ParOptVec *x,
 /*
   Evaluate the constraints
 */
-void ParOptEigenSubproblem::evalSparseCon( ParOptVec *x,
+void ParOptEigenSubproblem::evalSparseCon( ParOptVec *step,
                                            ParOptVec *out ){
   prob->evalSparseCon(xk, out);
-  prob->addSparseJacobian(1.0, xk, x, out);
-  prob->addSparseJacobian(-1.0, xk, xk, out);
+  prob->addSparseJacobian(1.0, xk, step, out);
 }
 
 /*

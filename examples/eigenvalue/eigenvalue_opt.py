@@ -241,7 +241,7 @@ def solve_problem(n, ndv, N, rho, filename=None,
     tr_eta = 0.1
     tr_penalty_gamma = 10.0
 
-    qn = ParOpt.LSR1(problem, subspace=max_lbfgs)
+    qn = ParOpt.LBFGS(problem, subspace=max_lbfgs)
     if use_quadratic_approx:
         # Create the quadratic eigenvalue approximation object
         approx = ParOptEig.CompactEigenApprox(problem, N)
@@ -281,9 +281,9 @@ def solve_problem(n, ndv, N, rho, filename=None,
 
     # Set optimization parameters
     opt.setArmijoParam(1e-5)
-    opt.setMaxMajorIterations(5000)
-    opt.setBarrierPower(2.0)
-    opt.setBarrierFraction(0.1)
+    opt.setMaxMajorIterations(200)
+    opt.setBarrierPower(1.25)
+    opt.setBarrierFraction(0.25)
 
     # optimize
     tr.setAdaptiveGammaUpdate(1)

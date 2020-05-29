@@ -40,31 +40,36 @@ class ParOptTrustRegionSubproblem : public ParOptProblem {
     Evaluate the objective and constraints (and often their gradients)
     at the specified trial point and update the model.
 
-    @param xt The trial point location
+    @param step The trial step
     @param z The multipliers for the dense constraints
     @param zw The multipliers for the sparse constraints
     @param fobj The objective value at the trial point
     @param cons The dense constraint values at the trial point
     @return Flag indicating whether the objective evaluation failed
   */
-  virtual int evalTrialPointAndUpdate( ParOptVec *xt,
-                                       const ParOptScalar *z,
-                                       ParOptVec *zw,
-                                       ParOptScalar *fobj,
-                                       ParOptScalar *cons ) = 0;
+  virtual int evalTrialStepAndUpdate( ParOptVec *step,
+                                      const ParOptScalar *z,
+                                      ParOptVec *zw,
+                                      ParOptScalar *fobj,
+                                      ParOptScalar *cons ) = 0;
 
   /**
     Accept the trial point and use this point as the base point
     for the next model step
 
-    @param xt The trial point location
+    @param step The trial step
     @param z The multipliers for the dense constraints
     @param zw The multipliers for the sparse constraints
     @return Flag indicating whether the objective evaluation failed
   */
-  virtual int acceptTrialPoint( ParOptVec *xt,
-                                const ParOptScalar *z,
-                                ParOptVec *zw ) = 0;
+  virtual int acceptTrialStep( ParOptVec *xt,
+                               const ParOptScalar *z,
+                               ParOptVec *zw ) = 0;
+
+  /**
+    The trial step is rejected.
+  */
+  virtual void rejectTrialStep() = 0;
 
   /**
     Get the Hessian update type from the most recent update
@@ -74,11 +79,6 @@ class ParOptTrustRegionSubproblem : public ParOptProblem {
   virtual int getQuasiNewtonUpdateType(){
     return 0;
   }
-
-  /**
-    The trial step is rejected.
-  */
-  virtual void rejectTrialPoint() = 0;
 
   /**
     Get access to a linearization of the model
@@ -106,11 +106,11 @@ class ParOptQuadraticSubproblem : public ParOptTrustRegionSubproblem {
   ParOptCompactQuasiNewton* getQuasiNewton();
   void initModelAndBounds( double tr_size );
   void setTrustRegionBounds( double tr_size );
-  int evalTrialPointAndUpdate( ParOptVec *xt, const ParOptScalar *z,
-                               ParOptVec *zw,
-                               ParOptScalar *fobj, ParOptScalar *cons );
-  int acceptTrialPoint( ParOptVec *xt, const ParOptScalar *z, ParOptVec *zw );
-  void rejectTrialPoint();
+  int evalTrialStepAndUpdate( ParOptVec *step, const ParOptScalar *z,
+                              ParOptVec *zw,
+                              ParOptScalar *fobj, ParOptScalar *cons );
+  int acceptTrialStep( ParOptVec *xt, const ParOptScalar *z, ParOptVec *zw );
+  void rejectTrialStep();
   int getQuasiNewtonUpdateType();
 
   // Create the design vectors
@@ -205,7 +205,7 @@ class ParOptQuadraticSubproblem : public ParOptTrustRegionSubproblem {
   ParOptVec **At;
 
   // Temporary vectors
-  ParOptVec *s, *t;
+  ParOptVec *t, *xtemp;
 };
 
 /*
@@ -224,7 +224,7 @@ class ParOptTrustRegion : public ParOptBase {
   void initialize();
 
   // Update the problem
-  void update( ParOptVec *xt, const ParOptScalar *z, ParOptVec *zw,
+  void update( ParOptVec *step, const ParOptScalar *z, ParOptVec *zw,
                double *infeas, double *l1, double *linfty );
 
   // Set parameters for the trust region method
@@ -244,6 +244,9 @@ class ParOptTrustRegion : public ParOptBase {
   // Set the output file (only on the root proc)
   void setOutputFile( const char *filename );
   void setPrintLevel( int _print_level );
+
+  // Get the optimized point
+  void getOptimizedPoint( ParOptVec **_x );
 
  protected:
   ParOptTrustRegionSubproblem *subproblem;

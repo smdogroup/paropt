@@ -1358,3 +1358,16 @@ cdef class TrustRegion:
 
     def optimize(self, InteriorPoint optimizer):
         self.tr.optimize(optimizer.ptr)
+
+    def getOptimizedPoint(self):
+        """
+        Get the optimized solution in PVec form for interpolation purposes
+        """
+        cdef ParOptVec *_x = NULL
+        self.tr.getOptimizedPoint(&_x)
+
+        x = None
+        if _x != NULL:
+            x = _init_PVec(_x)
+
+        return x

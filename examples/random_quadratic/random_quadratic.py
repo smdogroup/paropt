@@ -39,7 +39,7 @@ class Quadratic(ParOpt.Problem):
 
         # Evaluate the objective and constraints
         fail = 0
-        con = np.zeros(1)
+        con = np.zeros(1, dtype=ParOpt.dtype)
 
         fobj = 0.5*np.dot(x, np.dot(self.A, x)) + np.dot(self.b, x)
         con[0] = np.dot(x, self.Acon) + self.bcon

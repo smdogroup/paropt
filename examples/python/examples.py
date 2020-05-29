@@ -249,7 +249,8 @@ def plot_it_all(problem, use_tr=False):
             tr.optimize(opt)
 
             # Get the optimized point
-            x, z, zw, zl, zu = opt.getOptimizedPoint()
+            step, z, zw, zl, zu = opt.getOptimizedPoint()
+            x = tr.getOptimizedPoint()
         else:
             # Set up the optimization problem
             max_lbfgs = 20

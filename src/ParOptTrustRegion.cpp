@@ -112,8 +112,10 @@ ParOptQuadraticSubproblem::ParOptQuadraticSubproblem( ParOptProblem *_prob,
   }
 
   // Create the temporary vector
-  s = prob->createDesignVec();  s->incref();
-  t = prob->createDesignVec();  t->incref();
+  t = prob->createDesignVec();
+  t->incref();
+  xtemp = prob->createDesignVec();
+  xtemp->incref();
 }
 
 ParOptQuadraticSubproblem::~ParOptQuadraticSubproblem(){
@@ -137,8 +139,8 @@ ParOptQuadraticSubproblem::~ParOptQuadraticSubproblem(){
   }
   delete [] At;
 
-  s->decref();
   t->decref();
+  xtemp->decref();
 }
 
 /*
@@ -178,18 +180,20 @@ void ParOptQuadraticSubproblem::setTrustRegionBounds( double tr_size ){
   uk->getArray(&utrvals);
 
   for ( int i = 0; i < size; i++ ){
-    ltrvals[i] = max2(xvals[i] - tr_size, lvals[i]);
-    utrvals[i] = min2(xvals[i] + tr_size, uvals[i]);
+    ltrvals[i] = max2(-tr_size, lvals[i] - xvals[i]);
+    utrvals[i] = min2( tr_size, uvals[i] - xvals[i]);
   }
 }
 
-int ParOptQuadraticSubproblem::evalTrialPointAndUpdate( ParOptVec *x,
-                                                        const ParOptScalar *z,
-                                                        ParOptVec *zw,
-                                                        ParOptScalar *fobj,
-                                                        ParOptScalar *cons ){
-  int fail = prob->evalObjCon(x, &ft, ct);
-  fail = fail || prob->evalObjConGradient(x, gt, At);
+int ParOptQuadraticSubproblem::evalTrialStepAndUpdate( ParOptVec *step,
+                                                       const ParOptScalar *z,
+                                                       ParOptVec *zw,
+                                                       ParOptScalar *fobj,
+                                                       ParOptScalar *cons ){
+  xtemp->copyValues(xk);
+  xtemp->axpy(1.0, step);
+  int fail = prob->evalObjCon(xtemp, &ft, ct);
+  fail = fail || prob->evalObjConGradient(xtemp, gt, At);
 
   // Copy the values of the objective and constraints
   *fobj = ft;
@@ -199,10 +203,6 @@ int ParOptQuadraticSubproblem::evalTrialPointAndUpdate( ParOptVec *x,
 
   // If we're using a quasi-Newton Hessian approximation
   if (qn){
-    // Compute the step s = x - xk
-    s->copyValues(x);
-    s->axpy(-1.0, xk);
-
     // Compute the difference between the gradient of the
     // Lagrangian between the current point and the previous point
     t->copyValues(gt);
@@ -210,7 +210,7 @@ int ParOptQuadraticSubproblem::evalTrialPointAndUpdate( ParOptVec *x,
       t->axpy(-z[i], At[i]);
     }
     if (nwcon > 0){
-      prob->addSparseJacobianTranspose(-1.0, x, zw, t);
+      prob->addSparseJacobianTranspose(-1.0, xtemp, zw, t);
     }
 
     t->axpy(-1.0, gk);
@@ -222,20 +222,20 @@ int ParOptQuadraticSubproblem::evalTrialPointAndUpdate( ParOptVec *x,
     }
 
     // Perform an update of the quasi-Newton approximation
-    prob->computeQuasiNewtonUpdateCorrection(s, t);
-    qn_update_type = qn->update(xk, z, zw, s, t);
+    prob->computeQuasiNewtonUpdateCorrection(step, t);
+    qn_update_type = qn->update(xk, z, zw, step, t);
   }
 
   return fail;
 }
 
-int ParOptQuadraticSubproblem::acceptTrialPoint( ParOptVec *x,
-                                                 const ParOptScalar *z,
-                                                 ParOptVec *zw ){
+int ParOptQuadraticSubproblem::acceptTrialStep( ParOptVec *step,
+                                                const ParOptScalar *z,
+                                                ParOptVec *zw ){
   int fail = 0;
 
   fk = ft;
-  xk->copyValues(x);
+  xk->axpy(1.0, step);
   gk->copyValues(gt);
   for ( int i = 0; i < m; i++ ){
     ck[i] = ct[i];
@@ -245,7 +245,7 @@ int ParOptQuadraticSubproblem::acceptTrialPoint( ParOptVec *x,
   return fail;
 }
 
-void ParOptQuadraticSubproblem::rejectTrialPoint(){
+void ParOptQuadraticSubproblem::rejectTrialStep(){
   ft = 0.0;
   for ( int i = 0; i < m; i++ ){
     ct[i] = 0.0;
@@ -297,10 +297,10 @@ int ParOptQuadraticSubproblem::useUpperBounds(){
 }
 
 // Get the variables and bounds from the problem
-void ParOptQuadraticSubproblem::getVarsAndBounds( ParOptVec *x,
+void ParOptQuadraticSubproblem::getVarsAndBounds( ParOptVec *step,
                                                   ParOptVec *l,
                                                   ParOptVec *u ){
-  x->copyValues(xk);
+  step->zeroEntries();
   l->copyValues(lk);
   u->copyValues(uk);
 }
@@ -308,23 +308,20 @@ void ParOptQuadraticSubproblem::getVarsAndBounds( ParOptVec *x,
 /*
   Evaluate the objective and constraint functions
 */
-int ParOptQuadraticSubproblem::evalObjCon( ParOptVec *x,
+int ParOptQuadraticSubproblem::evalObjCon( ParOptVec *step,
                                            ParOptScalar *fobj,
                                            ParOptScalar *cons ){
-  if (x){
-    s->copyValues(x);
-    s->axpy(-1.0, xk);
-
+  if (step){
     // Compute the objective function
-    *fobj = fk + gk->dot(s);
+    *fobj = fk + gk->dot(step);
     if (qn){
-      qn->mult(s, t);
-      *fobj += 0.5*s->dot(t);
+      qn->mult(step, t);
+      *fobj += 0.5*step->dot(t);
     }
 
     // Compute the constraint functions
     for ( int i = 0; i < m; i++ ){
-      cons[i] = ck[i] + Ak[i]->dot(s);
+      cons[i] = ck[i] + Ak[i]->dot(step);
     }
   }
   else {
@@ -342,7 +339,7 @@ int ParOptQuadraticSubproblem::evalObjCon( ParOptVec *x,
 /*
   Evaluate the objective and constraint gradients
 */
-int ParOptQuadraticSubproblem::evalObjConGradient( ParOptVec *x,
+int ParOptQuadraticSubproblem::evalObjConGradient( ParOptVec *step,
                                                    ParOptVec *g,
                                                    ParOptVec **Ac ){
   // Copy the values of constraint gradient
@@ -350,12 +347,9 @@ int ParOptQuadraticSubproblem::evalObjConGradient( ParOptVec *x,
     Ac[i]->copyValues(Ak[i]);
   }
 
-  s->copyValues(x);
-  s->axpy(-1.0, xk);
-
   // Evaluate the gradient of the quadratic objective
   if (qn){
-    qn->mult(s, g);
+    qn->mult(step, g);
     g->axpy(1.0, gk);
   }
   else {
@@ -368,11 +362,10 @@ int ParOptQuadraticSubproblem::evalObjConGradient( ParOptVec *x,
 /*
   Evaluate the constraints
 */
-void ParOptQuadraticSubproblem::evalSparseCon( ParOptVec *x,
+void ParOptQuadraticSubproblem::evalSparseCon( ParOptVec *step,
                                                ParOptVec *out ){
   prob->evalSparseCon(xk, out);
-  prob->addSparseJacobian(1.0, xk, x, out);
-  prob->addSparseJacobian(-1.0, xk, xk, out);
+  prob->addSparseJacobian(1.0, xk, step, out);
 }
 
 /*
@@ -547,6 +540,17 @@ void ParOptTrustRegion::setPrintLevel( int _print_level ){
 }
 
 /**
+  Get the optimized point from the subproblem class
+
+  @param x The values of the design variables at the optimized point
+*/
+void ParOptTrustRegion::getOptimizedPoint( ParOptVec **_x ){
+  if (_x && subproblem){
+    subproblem->getLinearModel(_x);
+  }
+}
+
+/**
   Write the parameters to the output file
 
   @param fp an open file handle
@@ -688,7 +692,7 @@ void ParOptTrustRegion::initialize(){
 /**
   Update the trust region problem
 */
-void ParOptTrustRegion::update( ParOptVec *xt,
+void ParOptTrustRegion::update( ParOptVec *step,
                                 const ParOptScalar *z,
                                 ParOptVec *zw,
                                 double *infeas,
@@ -699,7 +703,7 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   MPI_Comm_rank(subproblem->getMPIComm(), &mpi_rank);
 
   // Compute the value of the objective model and model
-  // constraints at x = xk (The current iterate)
+  // constraints at the current iterate
   ParOptScalar fk;
   ParOptScalar *ck = new ParOptScalar[ m ];
   subproblem->evalObjCon(NULL, &fk, ck);
@@ -711,10 +715,10 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   }
 
   // Compute the value of the objective model and model
-  // constraints at x = xt (The trial point)
+  // constraints at the trial step location
   ParOptScalar ft;
   ParOptScalar *ct = new ParOptScalar[ m ];
-  subproblem->evalObjCon(xt, &ft, ct);
+  subproblem->evalObjCon(step, &ft, ct);
 
   // Compute the reduction in the objective value
   ParOptScalar obj_reduc = fk - ft;
@@ -727,7 +731,7 @@ void ParOptTrustRegion::update( ParOptVec *xt,
 
   // Evaluate the model at the trial point and update the trust region model
   // Hessian and bounds. Note that here, we're re-using the ft/ct memory.
-  subproblem->evalTrialPointAndUpdate(xt, z, zw, &ft, ct);
+  subproblem->evalTrialStepAndUpdate(step, z, zw, &ft, ct);
 
   // Compute the infeasibilities of the last two iterations
   ParOptScalar infeas_t = 0.0;
@@ -788,17 +792,12 @@ void ParOptTrustRegion::update( ParOptVec *xt,
   // radius size is at the lower bound, the step is always accepted
   if (ParOptRealPart(rho) >= eta || tr_size <= tr_min_size){
     // Compute the length of the step for log entry purposes
-    ParOptVec *xk;
-    subproblem->getLinearModel(&xk);
-    t->copyValues(xt);
-    t->axpy(-1.0, xk);
-    smax = ParOptRealPart(t->maxabs());
-
-    subproblem->acceptTrialPoint(xt, z, zw);
+    smax = ParOptRealPart(step->maxabs());
+    subproblem->acceptTrialStep(step, z, zw);
   }
   else {
     // Set the step size to zero (rejected step)
-    subproblem->rejectTrialPoint();
+    subproblem->rejectTrialStep();
     smax = 0.0;
   }
 
@@ -940,16 +939,16 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
       optimizer->optimize();
 
       // Get the design variables
-      ParOptVec *x, *zw;
+      ParOptVec *step, *zw;
       ParOptScalar *z;
-      optimizer->getOptimizedPoint(&x, &z, &zw, NULL, NULL);
+      optimizer->getOptimizedPoint(&step, &z, &zw, NULL, NULL);
 
       // Get the number of subproblem iterations
       optimizer->getIterationCounters(&adaptive_subprolem_iters);
 
       // Evaluate the model at the best point to obtain the infeasibility
       ParOptScalar fbest;
-      subproblem->evalObjCon(x, &fbest, best_con_infeas);
+      subproblem->evalObjCon(step, &fbest, best_con_infeas);
 
       // Compute the best-case infeasibility achieved by setting the
       // penalty parameters to a large value
@@ -977,9 +976,9 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
     optimizer->optimize();
 
     // Get the design variables
-    ParOptVec *x, *zw;
+    ParOptVec *step, *zw;
     ParOptScalar *z;
-    optimizer->getOptimizedPoint(&x, &z, &zw, NULL, NULL);
+    optimizer->getOptimizedPoint(&step, &z, &zw, NULL, NULL);
 
     // Get the number of subproblem iterations
     optimizer->getIterationCounters(&subproblem_iters);
@@ -991,7 +990,7 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
 
       // Find the actual infeasibility reduction
       ParOptScalar fmodel;
-      subproblem->evalObjCon(x, &fmodel, model_con_infeas);
+      subproblem->evalObjCon(step, &fmodel, model_con_infeas);
       for ( int j = 0; j < m; j++ ){
         con_infeas[j] = max2(0.0, -con_infeas[j]);
         model_con_infeas[j] = max2(0.0, -model_con_infeas[j]);
@@ -1001,7 +1000,7 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
     // Update the trust region based on the performance at the new
     // point.
     double infeas, l1, linfty;
-    update(x, z, zw, &infeas, &l1, &linfty);
+    update(step, z, zw, &infeas, &l1, &linfty);
 
     // Check for convergence of the trust region problem
     if (infeas < infeas_tol){
