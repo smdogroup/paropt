@@ -1,3 +1,4 @@
+#include <cstring>
 #include "ParOptTrustRegion.h"
 #include "ParOptComplexStep.h"
 
