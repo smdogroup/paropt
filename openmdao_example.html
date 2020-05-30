@@ -1,18 +1,18 @@
 
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml" lang="python">
+<html lang="python">
   <head>
     <meta charset="utf-8" />
     <title>OpenMDAO example &#8212; paropt  documentation</title>
     <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Class reference" href="reference.html" />
@@ -68,7 +68,7 @@
     </form>
     </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
 
@@ -137,10 +137,10 @@
 <span class="n">prob</span><span class="o">.</span><span class="n">run_driver</span><span class="p">()</span>
 
 <span class="c1"># Print the minimum value</span>
-<span class="k">print</span><span class="p">(</span><span class="s2">&quot;Minimum value = {fmin:.2f}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fmin</span><span class="o">=</span><span class="n">prob</span><span class="p">[</span><span class="s1">&#39;paraboloid.f&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Minimum value = </span><span class="si">{fmin:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fmin</span><span class="o">=</span><span class="n">prob</span><span class="p">[</span><span class="s1">&#39;paraboloid.f&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
 
 <span class="c1"># Print the x/y location of the minimum</span>
-<span class="k">print</span><span class="p">(</span><span class="s2">&quot;(x, y) = ({x:.2f}, {y:.2f})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">prob</span><span class="p">[</span><span class="s1">&#39;indeps.x&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">y</span><span class="o">=</span><span class="n">prob</span><span class="p">[</span><span class="s1">&#39;indeps.y&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;(x, y) = (</span><span class="si">{x:.2f}</span><span class="s2">, </span><span class="si">{y:.2f}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">prob</span><span class="p">[</span><span class="s1">&#39;indeps.x&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">y</span><span class="o">=</span><span class="n">prob</span><span class="p">[</span><span class="s1">&#39;indeps.y&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
 </pre></div>
 </div>
 <p>This code results in the output:</p>
@@ -177,7 +177,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2019, Graeme Kennedy.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.0.3.
     </div>
   </body>
 </html>
