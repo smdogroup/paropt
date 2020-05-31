@@ -1,3 +1,4 @@
+#include <string.h>
 #include "ParOptTrustRegion.h"
 #include "ParOptComplexStep.h"
 
@@ -463,6 +464,7 @@ ParOptTrustRegion::ParOptTrustRegion( ParOptTrustRegionSubproblem *_subproblem,
   linfty_tol = 1e-6;
   infeas_tol = 1e-5;
   penalty_gamma_max = 1e4;
+  penalty_gamma_min = 0.0;
 
   // Set the function precision; changes below this value are
   // considered below the function/design variable tolerance.
@@ -575,7 +577,8 @@ void ParOptTrustRegion::printOptionSummary( FILE *fp ){
     fprintf(fp, "%-30s %15g\n", "l1_tol", l1_tol);
     fprintf(fp, "%-30s %15g\n", "linfty_tol", linfty_tol);
     fprintf(fp, "%-30s %15g\n", "infeas_tol", infeas_tol);
-    fprintf(fp, "%-30s %15g\n", "gamma_max", penalty_gamma_max);
+    fprintf(fp, "%-30s %15g\n", "penalty_gamma_max", penalty_gamma_max);
+    fprintf(fp, "%-30s %15g\n", "penalty_gamma_min", penalty_gamma_min);
   }
 }
 
@@ -657,6 +660,15 @@ int ParOptTrustRegion::getPenaltyGamma( const double **_penalty_gamma ){
 */
 void ParOptTrustRegion::setPenaltyGammaMax( double _gamma_max ){
   penalty_gamma_max = _gamma_max;
+}
+
+/**
+  Set the minimum value of the penalty parameters
+
+  @param _gamma_min the maximum penalty value
+*/
+void ParOptTrustRegion::setPenaltyGammaMin( double _gamma_min ){
+  penalty_gamma_min = _gamma_min;
 }
 
 /**
@@ -1042,7 +1054,9 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
             ParOptRealPart(con_infeas[i]) < infeas_tol &&
             penalty_gamma[i] >= 2.0*ParOptRealPart(z[i])){
           // Reduce gamma
-          penalty_gamma[i] = 0.5*(penalty_gamma[i] + ParOptRealPart(z[i]));
+          penalty_gamma[i] =
+            0.5*(penalty_gamma[i] + ParOptRealPart(z[i])) +
+            penalty_gamma_min;
           if (print_level > 0){
             sprintf(info, "decr");
           }

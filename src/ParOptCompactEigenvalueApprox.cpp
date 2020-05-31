@@ -1,3 +1,4 @@
+#include <string.h>
 #include "ParOptCompactEigenvalueApprox.h"
 #include "ParOptComplexStep.h"
 

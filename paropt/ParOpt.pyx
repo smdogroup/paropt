@@ -1353,6 +1353,9 @@ cdef class TrustRegion:
     def setPenaltyGammaMax(self, double gamma_max):
         self.tr.setPenaltyGammaMax(gamma_max)
 
+    def setPenaltyGammaMin(self, double gamma_min):
+        self.tr.setPenaltyGammaMin(gamma_min)
+
     def setOutputFrequency(self, int output_frequency):
         self.tr.setOutputFrequency(output_frequency)
 

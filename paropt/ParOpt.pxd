@@ -272,6 +272,7 @@ cdef extern from "ParOptTrustRegion.h":
         void setPenaltyGamma(double*)
         int getPenaltyGamma(double**)
         void setPenaltyGammaMax(double)
+        void setPenaltyGammaMin(double)
         void setOutputFrequency(int)
         void optimize(ParOptInteriorPoint*)
         void getOptimizedPoint(ParOptVec**)
