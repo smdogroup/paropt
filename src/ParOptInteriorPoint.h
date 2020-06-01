@@ -193,6 +193,8 @@ class ParOptInteriorPoint : public ParOptBase {
   void setBFGSUpdateType( ParOptBFGSUpdateType bfgs_update );
   void setSequentialLinearMethod( int truth );
   void setStartAffineStepMultiplierMin( double value );
+  void setFunctionPrecision( double tol );
+  void setDesignPrecision( double tol );
 
   // Set/get the barrier parameter
   // -----------------------------

@@ -868,14 +868,14 @@ void ParOptTrustRegion::update( ParOptVec *step,
     }
     if (iter_count % 10 == 0 || print_level > 0){
       fprintf(outfp,
-              "\n%5s %12s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %12s\n",
+              "\n%5s %12s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %-12s\n",
               "iter", "fobj", "infeas", "l1", "linfty", "|x - xk|", "tr",
               "rho", "mod red.", "avg z", "max z", "avg pen.", "max pen.", "info");
       fflush(outfp);
     }
     fprintf(outfp,
             "%5d %12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e "
-            "%9.2e %9.2e %9.2e %9.2e %12s\n",
+            "%9.2e %9.2e %9.2e %9.2e %-12s\n",
             iter_count, ParOptRealPart(fk), *infeas, *l1, *linfty, smax, tr_size,
             ParOptRealPart(rho), ParOptRealPart(model_reduc),
             zav/m, zmax, gav/m, gmax, info);
@@ -938,8 +938,8 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
     if (adaptive_gamma_update){
       // Set the penalty parameter to a large value
       double gamma = 1e6;
-      if (1e2*penalty_gamma_max > gamma){
-        gamma = 1e2*penalty_gamma_max;
+      if (penalty_gamma_max > gamma){
+        gamma = penalty_gamma_max;
       }
       optimizer->setPenaltyGamma(gamma);
 

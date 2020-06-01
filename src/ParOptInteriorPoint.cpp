@@ -377,10 +377,11 @@ ParOptInteriorPoint::ParOptInteriorPoint( ParOptProblem *_prob,
     penalty_gamma[i] = 1000.0;
   }
 
-  // Set the function precision; changes below this value are
-  // considered below the function/design variable tolerance.
+  // Set the function and design variable precision; changes below
+  // these values are considered below the function/design
+  // variable tolerance.
   function_precision = 1e-10;
-  design_precision = 1e-15;
+  design_precision = 1e-14;
 
   // Initialize the diagonal Hessian computation
   use_diag_hessian = 0;
@@ -1314,6 +1315,36 @@ void ParOptInteriorPoint::setStartAffineStepMultiplierMin( double value ){
 }
 
 /**
+  Set the function precision.
+
+  Note that this is considered the absolute tolerance on the function
+  precision for both objective and constraints. This is used to test
+  whether no improvement is detected, or when to terminate the line search.
+
+  @param tol The function tolerance
+*/
+void ParOptInteriorPoint::setFunctionPrecision( double tol ){
+  if (tol > 0.0){
+    function_precision = tol;
+  }
+}
+
+/**
+  Set the design precision.
+
+  This is an absolute tolerance for the design variable values.
+  Changes below this value are considered below precision. This
+  tolerance is used to decide when a step produces no progress.
+
+  @param tol The design variable precision
+*/
+void ParOptInteriorPoint::setDesignPrecision( double tol ){
+  if (tol > 0.0){
+    design_precision = tol;
+  }
+}
+
+/**
    Set the frequency with which the output is written.
 
    A frequency value <= 0 indicates that output should never be written.
@@ -1346,6 +1377,8 @@ void ParOptInteriorPoint::setGradientCheckFrequency( int freq, double step_size 
 
 /**
    Set the flag to use a diagonal hessian.
+
+   @param truth The truth flag for whether or not to use a diagonal Hessian
 */
 void ParOptInteriorPoint::setUseDiagHessian( int truth ){
   if (truth){
@@ -5142,6 +5175,12 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       MPI_Bcast(&barrier_converged, 1, MPI_INT, opt_root, comm);
 
       if (barrier_converged){
+        // If the barrier problem converged, we need a new convergence
+        // test, but if the barrier parameter is  converged
+        if (barrier_param > 0.1*abs_res_tol){
+          line_search_test = 0;
+        }
+
         // Compute the new barrier parameter: It is either:
         // 1. A fixed fraction of the old value
         // 2. A function mu**exp for some exp > 1.0
@@ -5332,16 +5371,31 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
     // Is this a sequential linear step that did not use the quasi-Newton approx.
     int seq_linear_step = 0;
 
+    // This is a step that uses only the diagonal contribution from the quasi-Newton
+    // approximation
+    int diagonal_quasi_newton_step = 0;
+
     // Compute a step based on the quasi-Newton Hessian approximation
     if (!inexact_newton_step){
       int use_qn = 1;
 
       // If we're using a sequential linear method, set use_qn = 0. If
       // the previous line search failed, try using an SLP method here.
-      if (sequential_linear_method ||
-          (line_search_failed && !use_quasi_newton_update)){
+      if (sequential_linear_method){
+        use_qn = 0;
+      }
+      else if (line_search_failed && !use_quasi_newton_update){
+        // Check if the coefficient b0 is positive
         use_qn = 0;
         seq_linear_step = 1;
+        if (qn){
+          ParOptScalar b0;
+          qn->getCompactMat(&b0, NULL, NULL, NULL);
+          if (ParOptRealPart(b0) > 0.0){
+            seq_linear_step = 0;
+            diagonal_quasi_newton_step = 1;
+          }
+        }
       }
       else if (use_diag_hessian){
         use_qn = 0;
@@ -5359,13 +5413,22 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         computeKKTRes(0.0, &max_prime, &max_dual, &max_infeas);
       }
 
-      // Set up the KKT diagonal system
+      // Set up the KKT diagonal system. If we're using only the
+      // diagonal entries from a quasi-Newton approximation, turn those
+      // on here..
+      if (diagonal_quasi_newton_step){
+        use_qn = 1;
+      }
       setUpKKTDiagSystem(s_qn, wtemp, use_qn);
 
       // Set up the full KKT system
       setUpKKTSystem(ztemp, s_qn, y_qn, wtemp, use_qn);
 
-      // Solve for the KKT step
+      // Solve for the KKT step. If we're using only the diagonal entries,
+      // turn off the off-diagonal entries to compute the step.
+      if (diagonal_quasi_newton_step){
+        use_qn = 0;
+      }
       computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_qn);
 
       if (abs_step_tol > 0.0){
@@ -5460,31 +5523,34 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         }
       }
       else {
-        // The derivative of the merit function is positive. Revert to an
-        // SLP step and re-compute the step.
+        // The derivative of the merit function is positive. We revert to one of two
+        // approaches. If the quasi-Newton method is defined and the diagonal contribution
+        // b0 is positive, then we use only this diagonal contribution to compute the
+        // KKT step, otherwise, we use an SLP step.
         if (ParOptRealPart(dm0) >= 0.0){
           // Try again by disbcarding the quasi-Newton approximation. This should
           // always generate a descent direction..
           seq_linear_step = 1;
-
-          // Try to take the the
-          int use_qn = 0;
-          inexact_newton_step = 0;
+          diagonal_quasi_newton_step = 0;
 
           // Re-compute the KKT residuals since they may be over-written
           // during the line search step
           computeKKTRes(barrier_param, &max_prime, &max_dual, &max_infeas);
 
           // Set up the KKT diagonal system
+          int use_qn = 0;
+          if (diagonal_quasi_newton_step){
+            use_qn = 1;
+          }
           setUpKKTDiagSystem(s_qn, wtemp, use_qn);
 
-          // Set up the full KKT system
-          setUpKKTSystem(ztemp, s_qn, y_qn, wtemp, use_qn);
-
-          // Solve for the KKT step
+          // Solve for the KKT step. Both modifications do not use the
+          // quasi-Newton method at this point
+          use_qn = 0;
           computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_qn);
 
           // Scale the step
+          int inexact_newton_step = 0;
           ceq_step = scaleKKTStep(tau, comp, inexact_newton_step,
                                   &alpha_x, &alpha_z);
 
@@ -5601,8 +5667,12 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         sprintf(&info[strlen(info)], "%s ", "LNoImprv");
       }
       if (seq_linear_step){
-        // Line search failure
+        // Sequential linear step (even though we're using a QN approx.)
         sprintf(&info[strlen(info)], "%s ", "SLP");
+      }
+      if (diagonal_quasi_newton_step){
+        // Step generated using only the diagonal from a quasi-Newton approx.
+        sprintf(&info[strlen(info)], "%s ", "DQN");
       }
       if (line_search_skipped){
         // Line search reached the max. number of iterations
