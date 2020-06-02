@@ -404,17 +404,204 @@ void ParOptQuadraticSubproblem::addSparseInnerProduct( ParOptScalar alpha,
   Get the model at the current point
 */
 int ParOptQuadraticSubproblem::getLinearModel( ParOptVec **_xk,
+                                               ParOptScalar *_fk,
                                                ParOptVec **_gk,
+                                               const ParOptScalar **_ck,
                                                ParOptVec ***_Ak,
                                                ParOptVec **_lb,
                                                ParOptVec **_ub ){
   if (_xk){ *_xk = xk; }
+  if (_fk){ *_fk = fk; }
   if (_gk){ *_gk = gk; }
+  if (_ck){ *_ck = ck; }
   if (_Ak){ *_Ak = Ak; }
   if (_lb){ *_lb = lb; }
   if (_ub){ *_ub = ub; }
 
   return m;
+}
+
+
+ParOptInfeasSubproblem::ParOptInfeasSubproblem( ParOptTrustRegionSubproblem *_prob,
+                                                int _subproblem_objective,
+                                                int _subproblem_constraint ):
+  ParOptProblem(_prob->getMPIComm()){
+
+  // Paropt problem instance
+  prob = _prob;
+  prob->incref();
+
+  // Set the objective and constraint types
+  subproblem_objective = _subproblem_objective;
+  subproblem_constraint = _subproblem_constraint;
+
+  // Get the problem sizes
+  prob->getProblemSizes(&n, &m, &nwcon, &nwblock);
+  setProblemSizes(n, m, nwcon, nwblock);
+}
+
+ParOptInfeasSubproblem::~ParOptInfeasSubproblem(){
+  prob->decref();
+}
+
+/*
+  Create a design vector
+*/
+ParOptVec *ParOptInfeasSubproblem::createDesignVec(){
+  return prob->createDesignVec();
+}
+
+/*
+  Create the sparse constraint vector
+*/
+ParOptVec *ParOptInfeasSubproblem::createConstraintVec(){
+  return prob->createConstraintVec();
+}
+
+/*
+  Get the communicator for the problem
+*/
+MPI_Comm ParOptInfeasSubproblem::getMPIComm(){
+  return prob->getMPIComm();
+}
+
+/*
+  Functions to indicate the type of sparse constraints
+*/
+int ParOptInfeasSubproblem::isDenseInequality(){
+  return prob->isDenseInequality();
+}
+
+int ParOptInfeasSubproblem::isSparseInequality(){
+  return prob->isSparseInequality();
+}
+
+int ParOptInfeasSubproblem::useLowerBounds(){
+  return 1;
+}
+
+int ParOptInfeasSubproblem::useUpperBounds(){
+  return 1;
+}
+
+// Get the variables and bounds from the problem
+void ParOptInfeasSubproblem::getVarsAndBounds( ParOptVec *step,
+                                               ParOptVec *l,
+                                               ParOptVec *u ){
+  prob->getVarsAndBounds(step, l, u);
+}
+
+/*
+  Evaluate the objective and constraint functions
+*/
+int ParOptInfeasSubproblem::evalObjCon( ParOptVec *step,
+                                        ParOptScalar *fobj,
+                                        ParOptScalar *cons ){
+  // Get the components of the linearization
+  ParOptScalar fk;
+  const ParOptScalar *ck;
+  ParOptVec *gk, **Ak;
+  prob->getLinearModel(NULL, &fk, &gk, &ck, &Ak);
+
+  if (step){
+    if (subproblem_objective == PAROPT_SUBPROBLEM_OBJECTIVE ||
+        subproblem_constraint == PAROPT_SUBPROBLEM_CONSTRAINT){
+      prob->evalObjCon(step, fobj, cons);
+    }
+
+    if (subproblem_objective == PAROPT_LINEAR_OBJECTIVE){
+      *fobj = fk + gk->dot(step);
+    }
+    else if (subproblem_objective == PAROPT_CONSTANT_OBJECTIVE){
+      *fobj = fk;
+    }
+
+    if (subproblem_constraint == PAROPT_LINEAR_CONSTRAINT){
+      for ( int i = 0; i < m; i++ ){
+        cons[i] = ck[i] + Ak[i]->dot(step);
+      }
+    }
+  }
+  else {
+    // If x is NULL, assume x = xk
+    *fobj = fk;
+
+    for ( int i = 0; i < m; i++ ){
+      cons[i] = ck[i];
+    }
+  }
+
+  return 0;
+}
+
+/*
+  Evaluate the objective and constraint gradients
+*/
+int ParOptInfeasSubproblem::evalObjConGradient( ParOptVec *step,
+                                                ParOptVec *g,
+                                                ParOptVec **Ac ){
+  // Get the components needed in the linearization;
+  ParOptVec *gk, **Ak;
+  prob->getLinearModel(NULL, NULL, &gk, NULL, &Ak);
+
+  if (subproblem_objective == PAROPT_SUBPROBLEM_OBJECTIVE ||
+      subproblem_constraint == PAROPT_SUBPROBLEM_CONSTRAINT){
+    prob->evalObjConGradient(step, g, Ac);
+  }
+
+  if (subproblem_objective == PAROPT_LINEAR_OBJECTIVE){
+    g->copyValues(gk);
+  }
+  else if (subproblem_objective == PAROPT_CONSTANT_OBJECTIVE){
+    g->zeroEntries();
+  }
+
+  if (subproblem_constraint == PAROPT_LINEAR_CONSTRAINT){
+    for ( int i = 0; i < m; i++ ){
+      Ac[i]->copyValues(Ak[i]);
+    }
+  }
+
+  return 0;
+}
+
+/*
+  Evaluate the constraints
+*/
+void ParOptInfeasSubproblem::evalSparseCon( ParOptVec *step,
+                                            ParOptVec *out ){
+  prob->evalSparseCon(step, out);
+}
+
+/*
+  Compute the Jacobian-vector product out = J(x)*px
+*/
+void ParOptInfeasSubproblem::addSparseJacobian( ParOptScalar alpha,
+                                                ParOptVec *x,
+                                                ParOptVec *px,
+                                                ParOptVec *out ){
+  prob->addSparseJacobian(alpha, x, px, out);
+}
+
+/*
+  Compute the transpose Jacobian-vector product out = J(x)^{T}*pzw
+*/
+void ParOptInfeasSubproblem::addSparseJacobianTranspose( ParOptScalar alpha,
+                                                         ParOptVec *x,
+                                                         ParOptVec *pzw,
+                                                         ParOptVec *out ){
+  prob->addSparseJacobianTranspose(alpha, x, pzw, out);
+}
+
+/*
+  Add the inner product of the constraints to the matrix such
+  that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix
+*/
+void ParOptInfeasSubproblem::addSparseInnerProduct( ParOptScalar alpha,
+                                                    ParOptVec *x,
+                                                    ParOptVec *cvec,
+                                                    ParOptScalar *A ){
+  prob->addSparseInnerProduct(alpha, x, cvec, A);
 }
 
 /**
@@ -482,6 +669,8 @@ ParOptTrustRegion::ParOptTrustRegion( ParOptTrustRegionSubproblem *_subproblem,
   // Set the subproblem iteration counter
   subproblem_iters = 0;
   adaptive_subprolem_iters = 0;
+  adaptive_objective_flag = ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE;
+  adaptive_constraint_flag = ParOptInfeasSubproblem::PAROPT_SUBPROBLEM_CONSTRAINT;
 
   // Set the file pointer to NULL
   fp = NULL;
@@ -589,6 +778,31 @@ void ParOptTrustRegion::printOptionSummary( FILE *fp ){
 */
 void ParOptTrustRegion::setAdaptiveGammaUpdate( int truth ){
   adaptive_gamma_update = truth;
+}
+
+/*
+  Set the flag for the objective in the adaptive penalty update
+
+  @param flag Flag indicating the type of objective
+*/
+void ParOptTrustRegion::setAdaptiveObjectiveType( int flag ){
+  if (flag == ParOptInfeasSubproblem::PAROPT_SUBPROBLEM_OBJECTIVE ||
+      flag ==  ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE ||
+      flag == ParOptInfeasSubproblem::PAROPT_CONSTANT_OBJECTIVE){
+    adaptive_objective_flag = flag;
+  }
+}
+
+/*
+  Set the flag for the constraint in the adaptive penalty update
+
+  @param flag Flag indicating the type of constraint
+*/
+void ParOptTrustRegion::setAdaptiveConstraintType( int flag ){
+  if (flag == ParOptInfeasSubproblem::PAROPT_SUBPROBLEM_CONSTRAINT ||
+      flag ==  ParOptInfeasSubproblem::PAROPT_LINEAR_CONSTRAINT){
+    adaptive_constraint_flag = flag;
+  }
 }
 
 /**
@@ -916,6 +1130,15 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
   // Set the initial values for the penalty parameter
   optimizer->setPenaltyGamma(penalty_gamma);
 
+  // If needed, allocate a subproblem instance
+  ParOptInfeasSubproblem *infeas_problem = NULL;
+  if (adaptive_gamma_update){
+    infeas_problem = new ParOptInfeasSubproblem(subproblem,
+                                                adaptive_objective_flag,
+                                                adaptive_constraint_flag);
+    infeas_problem->incref();
+  }
+
   // Allocate arrays to store infeasibility information
   ParOptScalar *con_infeas = NULL;
   ParOptScalar *model_con_infeas = NULL;
@@ -936,10 +1159,14 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
   // Iterate over the trust region subproblem until convergence
   for ( int i = 0; i < max_tr_iterations; i++ ){
     if (adaptive_gamma_update){
+      // Reset the problem instance and reset the problem instance
+      // optimizer->resetProblemInstance(infeas_problem);
+      // optimizer->setSequentialLinearMethod(1);
+
       // Set the penalty parameter to a large value
       double gamma = 1e6;
-      if (penalty_gamma_max > gamma){
-        gamma = penalty_gamma_max;
+      if (1e2*penalty_gamma_max > gamma){
+        gamma = 1e2*penalty_gamma_max;
       }
       optimizer->setPenaltyGamma(gamma);
 
@@ -970,6 +1197,10 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
 
       // Set the penalty parameters
       optimizer->setPenaltyGamma(penalty_gamma);
+
+      // Reset the problem instance and turn off the sequential linear method
+      // optimizer->resetProblemInstance(subproblem);
+      // optimizer->setSequentialLinearMethod(0);
     }
 
     // Print out the current solution progress using the
@@ -1092,6 +1323,10 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
     delete [] con_infeas;
     delete [] model_con_infeas;
     delete [] best_con_infeas;
+
+    if (infeas_problem){
+      infeas_problem->decref();
+    }
   }
 }
 
@@ -1107,7 +1342,7 @@ void ParOptTrustRegion::computeKKTError( const ParOptScalar *z,
   // Extract the point, objective/constraint gradients, and
   // lower and upper bounds
   ParOptVec *xk, *gk, **Ak, *lb, *ub;
-  subproblem->getLinearModel(&xk, &gk, &Ak, &lb, &ub);
+  subproblem->getLinearModel(&xk, NULL, &gk, NULL, &Ak, &lb, &ub);
 
   // Get the lower/upper bounds for the variables
   ParOptScalar *l, *u;

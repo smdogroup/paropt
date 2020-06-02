@@ -31,15 +31,21 @@ class SpectralAggregate(ParOpt.Problem):
         self.ncon = 1 # The number of constraints
         self.itr = 0
 
-        # Create a random objective array
-        self.obj_array = np.random.uniform(size=self.ndv, low=1.0, high=10.0)
-
         # Generate a random set of vectors
-        self.Q = np.random.uniform(size=(self.n, self.ndv))
+        self.Q1 = np.random.uniform(size=(self.n, self.ndv), low=-1.0, high=1.0)
+        self.Q2 = np.random.uniform(size=(self.n, self.ndv), low=-1.0, high=1.0)
+
+        # Pick a B0 such that we know a feasible point exists
+        self.x0 = np.ones(self.ndv)/self.ndv
+
+        A = (np.dot(self.Q1, np.dot(np.diag(self.x0), self.Q1.T)) +
+             np.dot(self.Q2, np.dot(np.diag(self.x0), self.Q2.T)))
+
+        fact = 0.1*np.trace(A)/self.ndv
 
         # Create a positive definite B0 matrix
         Qb, Rb = np.linalg.qr(np.random.uniform(size=(self.n, self.n)))
-        lamb = np.linspace(1, 5, self.n)**2
+        lamb = fact*np.ones(self.n)
         self.B0 = np.dot(Qb, np.dot(np.diag(lamb), Qb.T))
 
         # Initialize the base class
@@ -63,7 +69,8 @@ class SpectralAggregate(ParOpt.Problem):
         """
 
         # Compute the matrix A(x)
-        A = self.B0 - np.dot(self.Q, np.dot(np.diag(x), self.Q.T))
+        A = (np.dot(self.Q1, np.dot(np.diag(x), self.Q1.T)) +
+             np.dot(self.Q2, np.dot(np.diag(x), self.Q2.T))) - self.B0
 
         # Compute the full eigen decomposition of the matrix A
         self.eigs, self.vecs = np.linalg.eigh(A)
@@ -89,10 +96,12 @@ class SpectralAggregate(ParOpt.Problem):
         index = 0
         for i in range(self.n):
             # Compute the derivative
-            self.W[:,i] = -np.dot(self.Q.T, self.vecs[:,i])**2
+            self.W[:,i] = (np.dot(self.Q1.T, self.vecs[:,i])**2 +
+                           np.dot(self.Q2.T, self.vecs[:,i])**2)
 
             for j in range(i+1, self.n):
-                self.V[:,index] = -np.dot(self.Q.T, self.vecs[:,i])*np.dot(self.Q.T, self.vecs[:,j])
+                self.V[:,index] = (np.dot(self.Q1.T, self.vecs[:,i])*np.dot(self.Q1.T, self.vecs[:,j]) +
+                                   np.dot(self.Q2.T, self.vecs[:,i])*np.dot(self.Q2.T, self.vecs[:,j]))
                 self.P[index, index] = 0.0
                 if self.eigs[i] != self.eigs[j]:
                     self.P[index, index] = 2.0*(self.eta[i] - self.eta[j])/(self.eigs[i] - self.eigs[j])
@@ -186,9 +195,9 @@ class SpectralAggregate(ParOpt.Problem):
 
     def getVarsAndBounds(self, x, lb, ub):
         """Set the values of the bounds"""
-        x[:] = 1.0
+        x[:] = self.x0[:]
         lb[:] = 0.0
-        ub[:] = 10.0
+        ub[:] = 1.0
         return
 
     def evalObjCon(self, x):
@@ -197,13 +206,15 @@ class SpectralAggregate(ParOpt.Problem):
         fail = 0
 
         # Evaluate the objective - the approximate compliance
-        fobj = np.sum(self.obj_array/(1.0 + x[:]))
+        fobj = 0.5*np.sum(x[:]**2)
 
         # Evaluate the model using the eigenvalue constraint
         self.lam, self.ks, self.grad, self.H = self.evalModel(x[:])
 
         # Print out the minimum eigenvalue
-        print('[%2d] min(eigs) = %15.6e'%(self.itr, np.min(self.eigs)) + ' fobj = %15.6e'%(fobj))
+        print('[%3d] min(eigs) = %15.6e'%(self.itr, np.min(self.eigs)) +
+              ' ks = %15.6e'%(self.ks) +
+              ' fobj = %15.6e'%(fobj) + ' sum(x) = %15.6e'%(np.sum(x[:])))
         self.itr += 1
 
         con = [self.ks]
@@ -215,7 +226,7 @@ class SpectralAggregate(ParOpt.Problem):
         fail = 0
 
         # The objective gradient
-        g[:] = -self.obj_array/(1.0 + x[:])**2
+        g[:] = x[:]
 
         # The constraint gradient
         A[0][:] = self.grad[:]
@@ -259,7 +270,8 @@ def solve_problem(n, ndv, N, rho, filename=None,
     tr = ParOpt.TrustRegion(subproblem, tr_init_size,
                             tr_min_size, tr_max_size,
                             tr_eta, tr_penalty_gamma)
-    tr.setMaxTrustRegionIterations(100)
+    tr.setMaxTrustRegionIterations(200)
+    tr.setPenaltyGammaMax(1e6)
 
     infeas_tol = 1e-6
     l1_tol = 5e-4
@@ -273,7 +285,7 @@ def solve_problem(n, ndv, N, rho, filename=None,
         tr.setOutputFile(os.path.splitext(filename)[0] + '.tr')
 
     # Set the tolerances
-    opt.setAbsOptimalityTol(1e-7)
+    opt.setAbsOptimalityTol(1e-8)
     opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
     opt.setStartAffineStepMultiplierMin(0.01)
     opt.setBarrierStrategy(ParOpt.MONOTONE)
@@ -291,13 +303,15 @@ def solve_problem(n, ndv, N, rho, filename=None,
     tr.optimize(opt)
 
     # Get the optimized point from the trust-region subproblem
-    x, z, zw, zl, zu = opt.getOptimizedPoint()
+    x = tr.getOptimizedPoint()
 
     print('max(x) = %15.6e'%(np.max(x[:])))
     print('avg(x) = %15.6e'%(np.average(x[:])))
+    print('sum(x) = %15.6e'%(np.sum(x[:])))
 
     if verify:
         for h in [1e-6, 1e-7, 1e-8, 1e-9, 1e-10]:
+            problem.checkGradients(h)
             problem.verify_derivatives(x[:], h)
 
     return x
@@ -305,7 +319,7 @@ def solve_problem(n, ndv, N, rho, filename=None,
 # Parse the arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--n', type=int, default=100,
-                    help='Dimension of the proble matrix')
+                    help='Dimension of the problem matrix')
 parser.add_argument('--ndv', type=int, default=200,
                     help='Number of design variables')
 parser.add_argument('--N', type=int, default=10,

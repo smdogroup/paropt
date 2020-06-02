@@ -693,12 +693,16 @@ void ParOptEigenSubproblem::addSparseInnerProduct( ParOptScalar alpha,
   Get the model at the current point
 */
 int ParOptEigenSubproblem::getLinearModel( ParOptVec **_xk,
+                                           ParOptScalar *_fk,
                                            ParOptVec **_gk,
+                                           const ParOptScalar **_ck,
                                            ParOptVec ***_Ak,
                                            ParOptVec **_lb,
                                            ParOptVec **_ub ){
   if (_xk){ *_xk = xk; }
+  if (_fk){ *_fk = fk; }
   if (_gk){ *_gk = gk; }
+  if (_ck){ *_ck = ck; }
   if (_Ak){ *_Ak = Ak; }
   if (_lb){ *_lb = lb; }
   if (_ub){ *_ub = ub; }

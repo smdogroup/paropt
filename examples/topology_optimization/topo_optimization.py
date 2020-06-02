@@ -537,23 +537,24 @@ if __name__ == '__main__':
     tr.setMaxTrustRegionIterations(500)
 
     # Set up the optimization problem
-    tr_opt = ParOpt.InteriorPoint(subproblem, 2, ParOpt.BFGS)
+    opt = ParOpt.InteriorPoint(subproblem, 2, ParOpt.BFGS)
 
     # Set up the optimization problem
-    tr_opt.setOutputFile('topo_optimization_paropt.out')
+    opt.setOutputFile('topo_optimization_paropt.out')
 
     # Set the tolerances
-    tr_opt.setAbsOptimalityTol(1e-7)
-    tr_opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
-    tr_opt.setStartAffineStepMultiplierMin(0.01)
+    opt.setAbsOptimalityTol(1e-8)
+    opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
+    opt.setStartAffineStepMultiplierMin(0.01)
 
     # Set optimization parameters
-    tr_opt.setArmijoParam(1e-5)
-    tr_opt.setMaxMajorIterations(5000)
-    tr_opt.setBarrierPower(2.0)
-    tr_opt.setBarrierFraction(0.1)
+    opt.setArmijoParam(1e-5)
+    opt.setMaxMajorIterations(5000)
+    opt.setBarrierPower(1.15)
+    opt.setBarrierFraction(0.1)
+    opt.setOutputLevel(2)
 
     # optimize
     tr.setOutputFile('topo_optimization_paropt.tr')
     tr.setPrintLevel(0)
-    tr.optimize(tr_opt)
+    tr.optimize(opt)

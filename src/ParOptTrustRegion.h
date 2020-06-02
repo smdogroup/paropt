@@ -83,14 +83,19 @@ class ParOptTrustRegionSubproblem : public ParOptProblem {
   /**
     Get access to a linearization of the model
 
-    @param _xk The base point
-    @param _gk The gradient of the objective
-    @param _Ak The gradient of the constraints
+    @param xk The base point
+    @param fk The objective function value
+    @param gk The gradient of the objective
+    @param ck The constraint values
+    @param Ak The gradient of the constraints
+    @param lb The lower bounds
+    @param ub The upper bounds
     @return The number of constraints
   */
-  virtual int getLinearModel( ParOptVec **_xk=NULL, ParOptVec **_gk=NULL,
-                              ParOptVec ***_Ak=NULL,
-                              ParOptVec **_lb=NULL, ParOptVec **_ub=NULL ) = 0;
+  virtual int getLinearModel( ParOptVec **_xk=NULL,
+                              ParOptScalar *fk=NULL, ParOptVec **gk=NULL,
+                              const ParOptScalar **ck=NULL, ParOptVec ***Ak=NULL,
+                              ParOptVec **lb=NULL, ParOptVec **ub=NULL ) = 0;
 };
 
 /*
@@ -169,8 +174,9 @@ class ParOptQuadraticSubproblem : public ParOptTrustRegionSubproblem {
     prob->writeOutput(iter, x);
   }
 
-  int getLinearModel( ParOptVec **_xk=NULL, ParOptVec **_gk=NULL,
-                      ParOptVec ***_Ak=NULL,
+  int getLinearModel( ParOptVec **_xk=NULL,
+                      ParOptScalar *_fk=NULL, ParOptVec **_gk=NULL,
+                      const ParOptScalar **_ck=NULL, ParOptVec ***_Ak=NULL,
                       ParOptVec **_lb=NULL, ParOptVec **_ub=NULL );
 
  private:
@@ -209,6 +215,84 @@ class ParOptQuadraticSubproblem : public ParOptTrustRegionSubproblem {
 };
 
 /*
+  Infeasible subproblem class
+*/
+class ParOptInfeasSubproblem : public ParOptProblem {
+ public:
+  // Set the objective type
+  static const int PAROPT_SUBPROBLEM_OBJECTIVE = 1;
+  static const int PAROPT_LINEAR_OBJECTIVE = 2;
+  static const int PAROPT_CONSTANT_OBJECTIVE = 3;
+
+  // Set the constraint type
+  static const int PAROPT_SUBPROBLEM_CONSTRAINT = 1;
+  static const int PAROPT_LINEAR_CONSTRAINT = 2;
+
+  ParOptInfeasSubproblem( ParOptTrustRegionSubproblem *_prob,
+                          int subproblem_objective,
+                          int subproblem_constraint );
+  ~ParOptInfeasSubproblem();
+
+  // Create the design vectors
+  ParOptVec *createDesignVec();
+  ParOptVec *createConstraintVec();
+
+  // Get the communicator for the problem
+  MPI_Comm getMPIComm();
+
+  // Function to indicate the type of sparse constraints
+  int isDenseInequality();
+  int isSparseInequality();
+  int useLowerBounds();
+  int useUpperBounds();
+
+  // Get the variables and bounds from the problem
+  void getVarsAndBounds( ParOptVec *x, ParOptVec *lb, ParOptVec *ub );
+
+  // Evaluate the objective and constraints
+  int evalObjCon( ParOptVec *x, ParOptScalar *fobj, ParOptScalar *cons );
+
+  // Evaluate the objective and constraint gradients
+  int evalObjConGradient( ParOptVec *x, ParOptVec *g, ParOptVec **Ac );
+
+  // Evaluate the product of the Hessian with a given vector
+  int evalHvecProduct( ParOptVec *x, ParOptScalar *z, ParOptVec *zw,
+                       ParOptVec *px, ParOptVec *hvec ){
+    return 0;
+  }
+
+  // Evaluate the diagonal Hessian
+  int evalHessianDiag( ParOptVec *x, ParOptScalar *z, ParOptVec *zw,
+                       ParOptVec *hdiag ){
+    return 0;
+  }
+
+  // Evaluate the constraints
+  void evalSparseCon( ParOptVec *x, ParOptVec *out );
+
+  // Compute the Jacobian-vector product out = J(x)*px
+  void addSparseJacobian( ParOptScalar alpha, ParOptVec *x,
+                          ParOptVec *px, ParOptVec *out );
+
+  // Compute the transpose Jacobian-vector product out = J(x)^{T}*pzw
+  void addSparseJacobianTranspose( ParOptScalar alpha, ParOptVec *x,
+                                   ParOptVec *pzw, ParOptVec *out );
+
+  // Add the inner product of the constraints to the matrix such
+  // that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix
+  void addSparseInnerProduct( ParOptScalar alpha, ParOptVec *x,
+                              ParOptVec *cvec, ParOptScalar *A );
+ private:
+  int n; // The number of design variables (local)
+  int m; // The number of dense constraints (global)
+  ParOptTrustRegionSubproblem *prob;
+
+  // Set the type of subproblem to solve
+  int subproblem_objective; // The subproblem objective type
+  int subproblem_constraint; // The constraint type
+};
+
+/*
   ParOptTrustRegion implements a trust-region method
 */
 class ParOptTrustRegion : public ParOptBase {
@@ -229,6 +313,8 @@ class ParOptTrustRegion : public ParOptBase {
 
   // Set parameters for the trust region method
   void setAdaptiveGammaUpdate( int truth );
+  void setAdaptiveObjectiveType( int flag );
+  void setAdaptiveConstraintType( int flag );
   void setMaxTrustRegionIterations( int max_iters );
   void setTrustRegionTolerances( double _infeas_tol,
                                  double _l1_tol, double _linfty_tol );
@@ -283,6 +369,8 @@ class ParOptTrustRegion : public ParOptBase {
 
   // Control the adaptive penalty update
   int adaptive_gamma_update;
+  int adaptive_objective_flag; // The subproblem objective type
+  int adaptive_constraint_flag; // The constraint type
   double *penalty_gamma;
   double penalty_gamma_max;
   double penalty_gamma_min;

@@ -10,7 +10,7 @@
   each parameter and how you should set it.
 */
 
-static const int NUM_PAROPT_PARAMETERS = 34;
+static const int NUM_PAROPT_PARAMETERS = 36;
 static const char *paropt_parameter_help[][2] = {
   {"max_qn_size",
    "Integer: The maximum dimension of the quasi-Newton approximation"},
@@ -117,7 +117,13 @@ iteration frequency"},
 the quasi-Newton approximation is used"},
 
   {"gmres_atol",
-   "Float: The absolute GMRES tolerance (almost never relevant)"}};
+   "Float: The absolute GMRES tolerance (almost never relevant)"},
+
+  {"function_precision",
+   "Float: The absolute precision of the function and constraints"},
+
+  {"design_precision",
+   "Float: The absolute precision of the design variables"}};
 
 /*
   Static helper functions
@@ -780,6 +786,8 @@ void ParOptInteriorPoint::printOptionSummary( FILE *fp ){
             gmres_subspace_size);
     fprintf(fp, "%-30s %15g\n", "max_gmres_rtol", max_gmres_rtol);
     fprintf(fp, "%-30s %15g\n", "gmres_atol", gmres_atol);
+    fprintf(fp, "%-30s %15g\n", "function_precision", function_precision);
+    fprintf(fp, "%-30s %15g\n", "design_precision", design_precision);
   }
 }
 
@@ -5379,13 +5387,18 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
     if (!inexact_newton_step){
       int use_qn = 1;
 
-      // If we're using a sequential linear method, set use_qn = 0. If
-      // the previous line search failed, try using an SLP method here.
       if (sequential_linear_method){
+        // If we're using a sequential linear method, set use_qn = 0.
         use_qn = 0;
       }
       else if (line_search_failed && !use_quasi_newton_update){
-        // Check if the coefficient b0 is positive
+        // In this case, the line search failed, and we are using a fixed
+        // quasi-Newton method which was therefore not reset when the
+        // line search failed. As a result, we try either a sequential linear
+        // step or discard the vectors in the quasi-Newton Hessian approx.
+        // leaving only the diagonal contributions, which will only work if
+        // b0 is positive.
+        // Check if the coefficient b0 is positive.
         use_qn = 0;
         seq_linear_step = 1;
         if (qn){
@@ -5398,6 +5411,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         }
       }
       else if (use_diag_hessian){
+        // If we're using a diagonal Hessian approximation, compute it here
         use_qn = 0;
         int fail = prob->evalHessianDiag(x, z, zw, hdiag);
         if (fail){
@@ -5415,7 +5429,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
 
       // Set up the KKT diagonal system. If we're using only the
       // diagonal entries from a quasi-Newton approximation, turn those
-      // on here..
+      // on here.
       if (diagonal_quasi_newton_step){
         use_qn = 1;
       }
@@ -5431,6 +5445,8 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       }
       computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_qn);
 
+      // Compute the norm of the step length. This is only used if the
+      // abs_step_tol is set. It defaults to zero.
       if (abs_step_tol > 0.0){
         step_norm_prev = computeStepNorm();
       }
