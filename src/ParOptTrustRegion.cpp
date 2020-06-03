@@ -668,7 +668,7 @@ ParOptTrustRegion::ParOptTrustRegion( ParOptTrustRegionSubproblem *_subproblem,
 
   // Set the subproblem iteration counter
   subproblem_iters = 0;
-  adaptive_subprolem_iters = 0;
+  adaptive_subproblem_iters = 0;
   adaptive_objective_flag = ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE;
   adaptive_constraint_flag = ParOptInfeasSubproblem::PAROPT_SUBPROBLEM_CONSTRAINT;
 
@@ -1069,7 +1069,7 @@ void ParOptTrustRegion::update( ParOptVec *step,
   // Write out the number of subproblem iterations
   if (adaptive_gamma_update){
     sprintf(&info[strlen(info)], "%d/%d", subproblem_iters,
-            adaptive_subprolem_iters);
+            adaptive_subproblem_iters);
   }
   else {
     sprintf(&info[strlen(info)], "%d", subproblem_iters);
@@ -1183,7 +1183,7 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
       optimizer->getOptimizedPoint(&step, &z, &zw, NULL, NULL);
 
       // Get the number of subproblem iterations
-      optimizer->getIterationCounters(&adaptive_subprolem_iters);
+      optimizer->getIterationCounters(&adaptive_subproblem_iters);
 
       // Evaluate the model at the best point to obtain the infeasibility
       ParOptScalar fbest;
