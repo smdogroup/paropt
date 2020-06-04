@@ -1160,8 +1160,9 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
   for ( int i = 0; i < max_tr_iterations; i++ ){
     if (adaptive_gamma_update){
       // Reset the problem instance and reset the problem instance
-      // optimizer->resetProblemInstance(infeas_problem);
-      // optimizer->setSequentialLinearMethod(1);
+      optimizer->setStartingPointStrategy(PAROPT_LEAST_SQUARES_MULTIPLIERS);
+      optimizer->resetProblemInstance(infeas_problem);
+      optimizer->setSequentialLinearMethod(1);
 
       // Set the penalty parameter to a large value
       double gamma = 1e6;
@@ -1199,8 +1200,9 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
       optimizer->setPenaltyGamma(penalty_gamma);
 
       // Reset the problem instance and turn off the sequential linear method
-      // optimizer->resetProblemInstance(subproblem);
-      // optimizer->setSequentialLinearMethod(0);
+      optimizer->setStartingPointStrategy(PAROPT_AFFINE_STEP);
+      optimizer->resetProblemInstance(subproblem);
+      optimizer->setSequentialLinearMethod(0);
     }
 
     // Print out the current solution progress using the
