@@ -53,7 +53,7 @@ class SpectralAggregate(ParOpt.Problem):
 
         # Set the inequality options for this problem
         self.setInequalityOptions(dense_ineq=True, sparse_ineq=True,
-                                  use_lower=True, use_upper=False)
+                                  use_lower=True, use_upper=True)
 
         return
 

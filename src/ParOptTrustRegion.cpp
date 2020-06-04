@@ -670,7 +670,7 @@ ParOptTrustRegion::ParOptTrustRegion( ParOptTrustRegionSubproblem *_subproblem,
   subproblem_iters = 0;
   adaptive_subproblem_iters = 0;
   adaptive_objective_flag = ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE;
-  adaptive_constraint_flag = ParOptInfeasSubproblem::PAROPT_SUBPROBLEM_CONSTRAINT;
+  adaptive_constraint_flag = ParOptInfeasSubproblem::PAROPT_LINEAR_CONSTRAINT;
 
   // Set the file pointer to NULL
   fp = NULL;
@@ -1159,10 +1159,23 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
   // Iterate over the trust region subproblem until convergence
   for ( int i = 0; i < max_tr_iterations; i++ ){
     if (adaptive_gamma_update){
-      // Reset the problem instance and reset the problem instance
-      optimizer->setStartingPointStrategy(PAROPT_LEAST_SQUARES_MULTIPLIERS);
+      // Reset the problem instance
       optimizer->resetProblemInstance(infeas_problem);
-      optimizer->setSequentialLinearMethod(1);
+
+      // Store the starting point and barrier strategies to be reset later
+      ParOptBarrierStrategy barrier_strategy = optimizer->getBarrierStrategy();
+      ParOptStartingPointStrategy start_strategy = optimizer->getStartingPointStrategy();
+
+      // Set the starting point strategy
+      optimizer->setStartingPointStrategy(PAROPT_AFFINE_STEP);
+
+      // Set whether or not to use a sequential linear method or not
+      if ((adaptive_objective_flag == ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE ||
+           adaptive_objective_flag == ParOptInfeasSubproblem::PAROPT_CONSTANT_OBJECTIVE) &&
+          (adaptive_constraint_flag == ParOptInfeasSubproblem::PAROPT_LINEAR_CONSTRAINT)){
+        optimizer->setBarrierStrategy(PAROPT_MEHROTRA);
+        optimizer->setSequentialLinearMethod(1);
+      }
 
       // Set the penalty parameter to a large value
       double gamma = 1e6;
@@ -1179,9 +1192,8 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
       optimizer->optimize();
 
       // Get the design variables
-      ParOptVec *step, *zw;
-      ParOptScalar *z;
-      optimizer->getOptimizedPoint(&step, &z, &zw, NULL, NULL);
+      ParOptVec *step;
+      optimizer->getOptimizedPoint(&step, NULL, NULL, NULL, NULL);
 
       // Get the number of subproblem iterations
       optimizer->getIterationCounters(&adaptive_subproblem_iters);
@@ -1200,7 +1212,8 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
       optimizer->setPenaltyGamma(penalty_gamma);
 
       // Reset the problem instance and turn off the sequential linear method
-      optimizer->setStartingPointStrategy(PAROPT_AFFINE_STEP);
+      optimizer->setBarrierStrategy(barrier_strategy);
+      optimizer->setStartingPointStrategy(start_strategy);
       optimizer->resetProblemInstance(subproblem);
       optimizer->setSequentialLinearMethod(0);
     }

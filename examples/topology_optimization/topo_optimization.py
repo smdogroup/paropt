@@ -545,7 +545,7 @@ if __name__ == '__main__':
     # Set the tolerances
     opt.setAbsOptimalityTol(1e-8)
     opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
-    opt.setStartAffineStepMultiplierMin(0.01)
+    opt.setStartAffineStepMultiplierMin(1.0)
 
     # Set optimization parameters
     opt.setArmijoParam(1e-5)

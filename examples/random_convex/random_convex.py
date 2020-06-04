@@ -138,25 +138,25 @@ def solve_problem(eigs, filename=None, data_type='orthogonal',
         tr.setTrustRegionTolerances(infeas_tol, l1_tol, linfty_tol)
 
         # Set up the optimization problem
-        tr_opt = ParOpt.InteriorPoint(subproblem, 10, ParOpt.BFGS)
+        opt = ParOpt.InteriorPoint(subproblem, 10, ParOpt.BFGS)
         if filename is not None:
-            tr_opt.setOutputFile(filename)
+            opt.setOutputFile(filename)
             tr.setOutputFile(os.path.splitext(filename)[0] + '.tr')
 
         # Set the tolerances
-        tr_opt.setAbsOptimalityTol(1e-8)
-        tr_opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
-        tr_opt.setStartAffineStepMultiplierMin(0.01)
+        opt.setAbsOptimalityTol(1e-8)
+        opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
+        opt.setStartAffineStepMultiplierMin(0.01)
 
         # Set optimization parameters
-        tr_opt.setArmijoParam(1e-5)
-        tr_opt.setMaxMajorIterations(5000)
-        tr_opt.setBarrierPower(2.0)
-        tr_opt.setBarrierFraction(0.1)
+        opt.setArmijoParam(1e-5)
+        opt.setMaxMajorIterations(5000)
+        opt.setBarrierPower(2.0)
+        opt.setBarrierFraction(0.1)
 
         # optimize
         tr.setPrintLevel(1)
-        tr.optimize(tr_opt)
+        tr.optimize(opt)
 
         # Get the optimized point from the trust-region subproblem
         x = tr.getOptimizedPoint()
@@ -193,6 +193,8 @@ if args.optimizer != 'ip':
 # Set the eigenvalues for the matrix
 n = args.n
 print('n = ', n)
+
+np.random.seed(0)
 
 # Solve the problem
 x = solve_problem(n, filename='opt_convex.out', use_tr=use_tr)

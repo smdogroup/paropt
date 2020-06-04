@@ -1054,12 +1054,30 @@ void ParOptInteriorPoint::setBarrierStrategy( ParOptBarrierStrategy strategy ){
 }
 
 /**
+   Get the type of barrier strategy
+
+   @return The type of barrier update strategy
+*/
+ParOptBarrierStrategy ParOptInteriorPoint::getBarrierStrategy(){
+  return barrier_strategy;
+}
+
+/**
    Set the starting point strategy to use.
 
    @param strategy is the type of strategy used to initialize the multipliers
 */
 void ParOptInteriorPoint::setStartingPointStrategy( ParOptStartingPointStrategy strategy ){
   starting_point_strategy = strategy;
+}
+
+/**
+   Get the starting point strategy
+
+   @return The type of strategy used to initialize the multipliers
+*/
+ParOptStartingPointStrategy ParOptInteriorPoint::getStartingPointStrategy(){
+  return starting_point_strategy;
 }
 
 /**
@@ -4401,6 +4419,9 @@ int ParOptInteriorPoint::lineSearch( double alpha_min, double *_alpha,
   double alpha = *_alpha;
   int fail = PAROPT_LINE_SEARCH_FAILURE;
 
+  // Keep track of the merit function value
+  ParOptScalar merit = 0.0;
+
   // Keep track of the best alpha value thus far and the best
   // merit function value
   ParOptScalar best_merit = 0.0;
@@ -4418,9 +4439,6 @@ int ParOptInteriorPoint::lineSearch( double alpha_min, double *_alpha,
               pxnorm, alpha_min);
     }
   }
-
-  // Set the merit function value
-  ParOptScalar merit = 0.0;
 
   int j = 0;
   for ( ; j < max_line_iters; j++ ){
@@ -4494,8 +4512,8 @@ int ParOptInteriorPoint::lineSearch( double alpha_min, double *_alpha,
 
       // The line search may be successful but the merit function value may
       // not have resulted in no improvement.
-      if ((ParOptRealPart(m0) + function_precision <= ParOptRealPart(merit)) &&
-          (ParOptRealPart(merit) + function_precision <= ParOptRealPart(m0))){
+      if ((ParOptScalar(merit) <= ParOptScalar(m0) + function_precision) &&
+          (ParOptScalar(merit) + function_precision >= ParOptScalar(m0))){
         fail |= PAROPT_LINE_SEARCH_NO_IMPROVEMENT;
       }
       break;
@@ -4550,8 +4568,8 @@ int ParOptInteriorPoint::lineSearch( double alpha_min, double *_alpha,
       // Turn off the fail flag
       fail &= ~PAROPT_LINE_SEARCH_FAILURE;
     }
-    else if ((ParOptRealPart(m0) + function_precision <= ParOptRealPart(merit)) &&
-             (ParOptRealPart(merit) + function_precision <= ParOptRealPart(m0))){
+    else if ((ParOptScalar(merit) <= ParOptScalar(m0) + function_precision) &&
+             (ParOptScalar(merit) + function_precision >= ParOptScalar(m0))){
       // Check if there is no significant change in the function value
       fail |= PAROPT_LINE_SEARCH_NO_IMPROVEMENT;
     }
@@ -5463,6 +5481,14 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         // Use the Mehrotra rule
         double s1 = ParOptRealPart(comp_affine/comp);
         double sigma = s1*s1*s1;
+
+        // Set the bounds on sigma between [0.01, 1.0]
+        if (sigma < 0.01){
+          sigma = 0.01;
+        }
+        else if (sigma > 1.0){
+          sigma = 1.0;
+        }
 
         // Compute the new adaptive barrier parameter
         barrier_param = sigma*ParOptRealPart(comp);

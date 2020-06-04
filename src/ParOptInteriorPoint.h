@@ -177,7 +177,9 @@ class ParOptInteriorPoint : public ParOptBase {
   // ------------------------
   void setNormType( ParOptNormType _norm_type );
   void setBarrierStrategy( ParOptBarrierStrategy strategy );
+  ParOptBarrierStrategy getBarrierStrategy();
   void setStartingPointStrategy( ParOptStartingPointStrategy strategy );
+  ParOptStartingPointStrategy getStartingPointStrategy();
   void setInitStartingPoint( int init );
   void setMaxMajorIterations( int iters );
   void setAbsOptimalityTol( double tol );
