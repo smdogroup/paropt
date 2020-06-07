@@ -82,12 +82,10 @@ int main( int argc, char* argv[] ){
   Sellar *sellar = new Sellar(MPI_COMM_SELF);
   sellar->incref();
   
-  // Allocate the optimizer
-  int max_lbfgs = 20;
-  ParOptInteriorPoint *opt = new ParOptInteriorPoint(sellar, max_lbfgs);
+  // Allocate the optimizer with default options
+  ParOptInteriorPoint *opt = new ParOptInteriorPoint(sellar);
   opt->incref();
 
-  opt->setMaxMajorIterations(100);
   opt->checkGradients(1e-6);
   
   double start = MPI_Wtime();

@@ -56,8 +56,9 @@ class Sellar(ParOpt.Problem):
 problem = Sellar()
 
 # Set up the optimization problem
-max_lbfgs = 50
-opt = ParOpt.InteriorPoint(problem, max_lbfgs, ParOpt.BFGS)
+options = {}
+opt = ParOpt.Optimizer(problem, options)
+opt.optimize()
 
 # Optimize
 opt.optimize()

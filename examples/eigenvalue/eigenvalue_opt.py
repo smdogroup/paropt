@@ -244,16 +244,40 @@ def solve_problem(n, ndv, N, rho, filename=None,
         x0 = np.random.uniform(size=ndv)
         problem.verify_derivatives(x0)
 
-    # Create the trust region problem
-    max_lbfgs = 10
-    tr_init_size = 0.05
-    tr_min_size = 1e-6
-    tr_max_size = 10.0
-    tr_eta = 0.1
-    tr_penalty_gamma = 10.0
+    options = {
+        'algorithm': 'tr',
+        'tr_init_size': 0.05,
+        'tr_min_size': 1e-6,
+        'tr_max_size': 10.0,
+        'tr_eta': 0.1,
+        'tr_output_file': os.path.splitext(filename)[0] + '.tr',
+        'tr_penalty_gamma_max': 1e6,
+        'tr_adaptive_gamma_update': True,
+        'tr_infeas_tol': 1e-6,
+        'tr_l1_tol': 5e-4,
+        'tr_linfty_tol': 5e-4,
+        'tr_max_iterations': 200,
 
-    qn = ParOpt.LBFGS(problem, subspace=max_lbfgs)
+        'output_level': 2,
+        'penalty_gamma': 10.0,
+        'qn_subspace_size': 10,
+        'qn_type': 'bfgs',
+        'abs_res_tol': 1e-8,
+        'output_file': filename,
+        'starting_point_strategy': 'affine_step',
+        'barrier_strategy': 'monotone',
+        'start_affine_multiplier_min': 0.01}
+
     if use_quadratic_approx:
+        options['qn_subspace_size'] = 0
+        options['qn_type'] = 'none'
+
+    opt = ParOpt.Optimizer(problem, options)
+
+    if use_quadratic_approx:
+        # Create the BFGS approximation
+        qn = ParOpt.LBFGS(problem, subspace=10)
+
         # Create the quadratic eigenvalue approximation object
         approx = ParOptEig.CompactEigenApprox(problem, N)
 
@@ -264,46 +288,13 @@ def solve_problem(n, ndv, N, rho, filename=None,
         # Set up the eigenvalue optimization subproblem
         subproblem = ParOptEig.EigenSubproblem(problem, eig_qn)
         subproblem.setUpdateEigenModel(problem.updateModel)
-    else:
-        subproblem = ParOpt.QuadraticSubproblem(problem, qn)
 
-    tr = ParOpt.TrustRegion(subproblem, tr_init_size,
-                            tr_min_size, tr_max_size,
-                            tr_eta, tr_penalty_gamma)
-    tr.setMaxTrustRegionIterations(200)
-    tr.setPenaltyGammaMax(1e6)
+        opt.setTrustRegionSubproblem(subproblem)
 
-    infeas_tol = 1e-6
-    l1_tol = 5e-4
-    linfty_tol = 5e-4
-    tr.setTrustRegionTolerances(infeas_tol, l1_tol, linfty_tol)
-
-    # Set up the optimization problem
-    opt = ParOpt.InteriorPoint(subproblem, max_lbfgs, ParOpt.BFGS)
-    if filename is not None:
-        opt.setOutputFile(filename)
-        tr.setOutputFile(os.path.splitext(filename)[0] + '.tr')
-
-    # Set the tolerances
-    opt.setAbsOptimalityTol(1e-8)
-    opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
-    opt.setStartAffineStepMultiplierMin(0.01)
-    opt.setBarrierStrategy(ParOpt.MONOTONE)
-    opt.setOutputLevel(2)
-
-    # Set optimization parameters
-    opt.setArmijoParam(1e-5)
-    opt.setMaxMajorIterations(200)
-    opt.setBarrierPower(1.25)
-    opt.setBarrierFraction(0.25)
-
-    # optimize
-    tr.setAdaptiveGammaUpdate(1)
-    tr.setPrintLevel(1)
-    tr.optimize(opt)
+    opt.optimize()
 
     # Get the optimized point from the trust-region subproblem
-    x = tr.getOptimizedPoint()
+    x, z, zw, zl, zu = opt.getOptimizedPoint()
 
     print('max(x) = %15.6e'%(np.max(x[:])))
     print('avg(x) = %15.6e'%(np.average(x[:])))

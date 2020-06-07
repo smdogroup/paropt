@@ -2,6 +2,8 @@
 #define PAR_OPT_QUASI_SEPARABLE_H
 
 #include "ParOptProblem.h"
+#include "ParOptOptions.h"
+#include "ParOptInteriorPoint.h"
 #include <stdio.h>
 
 /*
@@ -24,8 +26,16 @@
 
 class ParOptMMA : public ParOptProblem {
  public:
-  ParOptMMA( ParOptProblem *_prob, int _use_true_mma=1 );
+  ParOptMMA( ParOptProblem *_prob,
+             ParOptOptions *_options );
   ~ParOptMMA();
+
+  // Get the default option values
+  static void addDefaultOptions( ParOptOptions *options );
+  ParOptOptions* getOptions();
+
+  // Optimize using MMA
+  void optimize( ParOptInteriorPoint *optimizer );
 
   // Set the MMA iteration
   void setIteration( int _mma_iter );
@@ -60,9 +70,6 @@ class ParOptMMA : public ParOptProblem {
   void setMaxAsymptoteOffset( double val );
   void setBoundRelax( double val );
   void setRegularization( double eps, double delta );
-
-  // Set the output file (only on the root proc)
-  void setOutputFile( const char *filename );
 
   // Create the design vectors
   ParOptVec *createDesignVec();
@@ -120,6 +127,9 @@ class ParOptMMA : public ParOptProblem {
   // Initialize the data
   void initialize();
 
+  // Set the output file (only on the root proc)
+  void setOutputFile( const char *filename );
+
   // Print the options summary
   void printOptionsSummary( FILE *fp );
 
@@ -127,27 +137,17 @@ class ParOptMMA : public ParOptProblem {
   FILE *fp;
   int first_print;
 
-  // Settings for what to write out to a file or not...
-  int print_level; // == 0 => no print, 1 MMA iters, 2 MMA+subproblem
+  // Pointer to the optimization problem
+  ParOptProblem *prob;
+
+  // Options
+  ParOptOptions *options;
+
+  // Flag which controls the constraint approximation
+  int use_true_mma;
 
   // Communicator for this problem
   MPI_Comm comm;
-
-  // What is your intention here?? - to use full MMA or the linearized
-  // version of MMA.
-  int use_true_mma;
-
-  // Parameters used in the problem
-  double asymptote_contract; // Contract the asymptotes
-  double asymptote_relax; // Relax the coefficient
-  double init_asymptote_offset; // The initial asymptote offset
-  double min_asymptote_offset; // Enforce a minimum fraction offset
-  double max_asymptote_offset; // Enforce a minimum fraction offset
-  double bound_relax; // Relax the bounds when computing the KKT error
-
-  // Set the regularization parameters for the convexification
-  double eps_regularization;
-  double delta_regularization;
 
   // Keep track of the number of iterations
   int mma_iter;
@@ -155,9 +155,6 @@ class ParOptMMA : public ParOptProblem {
 
   int m; // The number of constraints (global)
   int n; // The number of design variables (local)
-
-  // Pointer to the optimization problem
-  ParOptProblem *prob;
 
   // The design variables, and the previous two vectors
   ParOptVec *xvec, *x1vec, *x2vec;

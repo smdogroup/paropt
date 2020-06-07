@@ -6,6 +6,8 @@ from __future__ import print_function, division
 from mpi4py.MPI cimport *
 cimport mpi4py.MPI as MPI
 
+from libcpp.string cimport string
+
 # Import the declarations required from the pxd file
 from ParOpt cimport *
 
@@ -34,26 +36,6 @@ cdef char* convert_to_chars(s):
     if isinstance(s, unicode):
         s = (<unicode>s).encode('utf8')
     return s
-
-# The quasi-Newton hessian approximation
-BFGS = PAROPT_BFGS
-SR1 = PAROPT_SR1
-NO_HESSIAN_APPROX = PAROPT_NO_HESSIAN_APPROX
-
-# The ParOpt norm type
-INFTY_NORM = PAROPT_INFTY_NORM
-L1_NORM = PAROPT_L1_NORM
-L2_NORM = PAROPT_L2_NORM
-
-# The ParOpt barrier strategies
-MONOTONE = PAROPT_MONOTONE
-MEHROTRA = PAROPT_MEHROTRA
-COMPLEMENTARITY_FRACTION = PAROPT_COMPLEMENTARITY_FRACTION
-
-# The ParOpt starting point strategies
-NO_START_STRATEGY = PAROPT_NO_START_STRATEGY
-LEAST_SQUARES_MULTIPLIERS = PAROPT_LEAST_SQUARES_MULTIPLIERS
-AFFINE_STEP = PAROPT_AFFINE_STEP
 
 # Set the update type
 SKIP_NEGATIVE_CURVATURE = PAROPT_SKIP_NEGATIVE_CURVATURE
@@ -337,6 +319,40 @@ cdef inplace_array_1d(int nptype, int dim1, void *data_ptr,
 
     return ndarray
 
+cdef void addDictionaryToOptions(dict options,
+                                 ParOptOptions *opts):
+    cdef int int_value = 0
+    cdef double float_value = 0
+    cdef string str_value
+    cdef string key_value
+
+    # Set the options from the dictionary
+    for key in options:
+        value = options[key]
+        if isinstance(value, bool):
+            key_value = convert_to_chars(key)
+            int_value = 0
+            if value:
+                int_value = 1
+            opts.setOption(key_value.c_str(), int_value)
+        elif isinstance(value, int):
+            key_value = convert_to_chars(key)
+            int_value = value
+            opts.setOption(key_value.c_str(), int_value)
+        elif isinstance(value, float):
+            key_value = convert_to_chars(key)
+            float_value = value
+            opts.setOption(key_value.c_str(), float_value)
+        elif isinstance(value, str):
+            key_value = convert_to_chars(key)
+            str_value = convert_to_chars(value)
+            opts.setOption(key_value.c_str(), str_value.c_str())
+        else:
+            errmsg = 'ParOpt Error: Cannot convert dictionary to ParOptOptions type'
+            raise ValueError(errmsg)
+
+    return
+
 cdef void _getvarsandbounds(void *_self, int nvars,
                             ParOptVec *_x, ParOptVec *_lb,
                             ParOptVec *_ub):
@@ -594,10 +610,6 @@ cdef class Problem(ProblemBase):
         self.me.setInequalityOptions(dense, sparse, lower, upper)
 
         return
-
-# Constants that define what Quasi-Newton method to use
-BFGS = PAROPT_BFGS
-SR1 = PAROPT_SR1
 
 cdef class PVec:
     def __cinit__(self):
@@ -869,7 +881,6 @@ cdef class CompactQuasiNewton:
             self.ptr.multAdd(alpha, x.ptr, y.ptr)
 
 cdef class LBFGS(CompactQuasiNewton):
-
     def __cinit__(self, ProblemBase prob, int subspace=10,
                   ParOptBFGSUpdateType update_type=SKIP_NEGATIVE_CURVATURE):
         cdef ParOptLBFGS *lbfgs = NULL
@@ -886,10 +897,11 @@ cdef class LSR1(CompactQuasiNewton):
 # Python class for corresponding instance ParOpt
 cdef class InteriorPoint:
     cdef ParOptInteriorPoint *ptr
-    def __cinit__(self, ProblemBase _prob,
-                  int max_qn_subspace,
-                  ParOptQuasiNewtonType qn_type):
-        self.ptr = new ParOptInteriorPoint(_prob.ptr, max_qn_subspace, qn_type)
+    def __cinit__(self, ProblemBase _prob, dict options):
+        cdef ParOptOptions *opts = new ParOptOptions()
+        ParOptInteriorPointAddDefaultOptions(opts)
+        addDictionaryToOptions(options, opts)
+        self.ptr = new ParOptInteriorPoint(_prob.ptr, opts)
         self.ptr.incref()
         return
 
@@ -977,28 +989,6 @@ cdef class InteriorPoint:
     def checkGradients(self, double dh):
         self.ptr.checkGradients(dh)
 
-    # Set optimizer parameters
-    def setNormType(self, ParOptNormType norm_typ):
-        self.ptr.setNormType(norm_typ)
-
-    def setBarrierStrategy(self, ParOptBarrierStrategy strategy):
-        self.ptr.setBarrierStrategy(strategy)
-
-    def setStartingPointStrategy(self, ParOptStartingPointStrategy strategy):
-        self.ptr.setStartingPointStrategy(strategy)
-
-    def setMaxMajorIterations(self, int iters):
-        self.ptr.setMaxMajorIterations(iters)
-
-    def setAbsOptimalityTol(self, double tol):
-        self.ptr.setAbsOptimalityTol(tol)
-
-    def setRelFunctionTol(self, double tol):
-        self.ptr.setRelFunctionTol(tol)
-
-    def setAbsStepTol(self, double tol):
-        self.ptr.setAbsStepTol(tol)
-
     def setPenaltyGamma(self, double gamma):
         self.ptr.setPenaltyGamma(gamma)
 
@@ -1022,116 +1012,20 @@ cdef class InteriorPoint:
             gamma[i] = penalty_gamma[i]
         return gamma
 
-    def setBarrierFraction(self, double frac):
-        self.ptr.setBarrierFraction(frac)
-
-    def setBarrierPower(self, double power):
-        self.ptr.setBarrierPower(power)
-
-    def setHessianResetFreq(self, int freq):
-        self.ptr.setHessianResetFreq(freq)
-
-    def setQNDiagonalFactor(self, double sigma):
-        self.ptr.setQNDiagonalFactor(sigma)
-
-    def setBFGSUpdateType(self, ParOptBFGSUpdateType update):
-        self.ptr.setBFGSUpdateType(update)
-
-    def setSequentialLinearMethod(self, int truth):
-        self.ptr.setSequentialLinearMethod(truth)
-
-    def setStartAffineStepMultiplierMin(self, double value):
-        self.ptr.setStartAffineStepMultiplierMin(value)
-
-    # Set/obtain the barrier parameter
-    def setInitBarrierParameter(self, double mu):
-        self.ptr.setInitBarrierParameter(mu)
-
-    def getBarrierParameter(self):
-        return self.ptr.getBarrierParameter()
-
-    def setRelativeBarrier(self, double rel):
-        self.ptr.setRelativeBarrier(rel)
-
     def getComplementarity(self):
         return self.ptr.getComplementarity()
 
-    # Reset the quasi-Newton Hessian
     def resetQuasiNewtonHessian(self):
         self.ptr.resetQuasiNewtonHessian()
 
-    # Reset the design variables and bounds
     def setQuasiNewton(self, CompactQuasiNewton qn):
         if qn is not None:
             self.ptr.setQuasiNewton(qn.ptr)
         else:
             self.ptr.setQuasiNewton(NULL)
 
-    def setUseQuasiNewtonUpdates(self, int truth):
-        self.ptr.setUseQuasiNewtonUpdates(truth)
-
     def resetDesignAndBounds(self):
         self.ptr.resetDesignAndBounds()
-
-    # Set parameters associated with the linesearch
-    def setUseLineSearch(self, int truth):
-        self.ptr.setUseLineSearch(truth)
-
-    def setMaxLineSearchIters(self, int iters):
-        self.ptr.setMaxLineSearchIters(iters)
-
-    def setBacktrackingLineSearch(self, int truth):
-        self.ptr.setBacktrackingLineSearch(truth)
-
-    def setArmijoParam(self, double c1):
-        self.ptr.setArmijoParam(c1)
-
-    def setPenaltyDescentFraction(self, double frac):
-        self.ptr.setPenaltyDescentFraction(frac)
-
-    def setMinPenaltyParameter(self, double rho_min):
-        self.ptr.setMinPenaltyParameter(rho_min)
-
-    # Set parameters for the interal GMRES algorithm
-    def setUseHvecProduct(self, int truth):
-        self.ptr.setUseHvecProduct(truth)
-
-    # Set the use of an exact diagonal hessian
-    def setUseDiagHessian(self, int truth):
-        self.ptr.setUseDiagHessian(truth)
-
-    def setUseQNGMRESPreCon(self, int truth):
-        self.ptr.setUseQNGMRESPreCon(truth)
-
-    def setNKSwitchTolerance(self, double tol):
-        self.ptr.setNKSwitchTolerance(tol)
-
-    def setEisenstatWalkerParameters(self, double gamma, double alpha):
-        self.ptr.setEisenstatWalkerParameters(gamma, alpha)
-
-    def setGMRESTolerances(self, double rtol, double atol):
-        self.ptr.setGMRESTolerances(rtol, atol)
-
-    def setGMRESSubspaceSize(self, int _gmres_subspace_size):
-        self.ptr.setGMRESSubspaceSize(_gmres_subspace_size)
-
-    # Set other parameters
-    def setOutputFrequency(self, int freq):
-        self.ptr.setOutputFrequency(freq)
-
-    def setMajorIterStepCheck(self, int step):
-        self.ptr.setMajorIterStepCheck(step)
-
-    def setOutputFile(self, fname):
-        cdef char *filename = convert_to_chars(fname)
-        if filename is not None:
-            self.ptr.setOutputFile(filename)
-
-    def setOutputLevel(self, int level):
-        self.ptr.setOutputLevel(level)
-
-    def setGradientCheckFrequency(self, int freq, double step_size):
-         self.ptr.setGradientCheckFrequency(freq, step_size)
 
     # Write out the design variables to binary format (fast MPI/IO)
     def writeSolutionFile(self, fname):
@@ -1146,44 +1040,14 @@ cdef class InteriorPoint:
 
 cdef class MMA(ProblemBase):
     cdef ParOptMMA *mma
-    def __cinit__(self, ProblemBase _prob, use_mma=True):
-        cdef int use_true_mma = 0
-        if use_mma:
-            use_true_mma = 1
-        self.mma = new ParOptMMA(_prob.ptr, use_true_mma)
+    def __cinit__(self, ProblemBase _prob, dict options):
+        cdef ParOptOptions *opts = new ParOptOptions()
+        ParOptMMAAddDefaultOptions(opts)
+        addDictionaryToOptions(options, opts)
+        self.mma = new ParOptMMA(_prob.ptr, opts)
         self.mma.incref()
         self.ptr = self.mma
         return
-
-    def setIteration(self, int mma_iter):
-        self.mma.setIteration(mma_iter)
-
-    def setMultipliers(self, np.ndarray[ParOptScalar, ndim=1, mode='c'] z,
-                       PVec zw=None, PVec zl=None, PVec zu=None):
-        cdef ParOptVec *v = NULL
-        cdef ParOptVec *vl = NULL
-        cdef ParOptVec *vu = NULL
-        if zw is not None:
-            v = zw.ptr
-        if zl is not None:
-            vl = zl.ptr
-        if zu is not None:
-            vu = zu.ptr
-        self.mma.setMultipliers(<ParOptScalar*>z.data, v, vl, vu)
-        return
-
-    def initializeSubProblem(self, PVec vec=None):
-        cdef ParOptVec *v = NULL
-        if vec is not None:
-            v = vec.ptr
-        self.mma.initializeSubProblem(v)
-
-    def computeKKTError(self):
-        cdef double l1 = 0.0
-        cdef double linfty = 0.0
-        cdef double infeas = 0.0
-        self.mma.computeKKTError(&l1, &linfty, &infeas)
-        return l1, linfty, infeas
 
     def getOptimizedPoint(self):
         cdef ParOptVec *x
@@ -1201,34 +1065,6 @@ cdef class MMA(ProblemBase):
         cdef ParOptVec *x2 = NULL
         self.mma.getDesignHistory(&x1, &x2)
         return _init_PVec(x1), _init_PVec(x2)
-
-    def setPrintLevel(self, int level):
-        self.mma.setPrintLevel(level)
-
-    def setOutputFile(self, fname):
-        cdef char *filename = convert_to_chars(fname)
-        self.mma.setOutputFile(filename)
-
-    def setAsymptoteContract(self, double val):
-        self.mma.setAsymptoteContract(val)
-
-    def setAsymptoteRelax(self, double val):
-        self.mma.setAsymptoteRelax(val)
-
-    def setInitAsymptoteOffset(self, double val):
-        self.mma.setInitAsymptoteOffset(val)
-
-    def setMinAsymptoteOffset(self, double val):
-        self.mma.setMinAsymptoteOffset(val)
-
-    def setMaxAsymptoteOffset(self, double val):
-        self.mma.setMaxAsymptoteOffset(val)
-
-    def setBoundRelax(self, double val):
-        self.mma.setBoundRelax(val)
-
-    def setRegularization(self, double eps, double delta):
-        self.mma.setRegularization(eps, delta)
 
 cdef class TrustRegionSubproblem:
     def __cinit__(self):
@@ -1261,103 +1097,24 @@ cdef class QuadraticSubproblem(TrustRegionSubproblem):
 
 cdef class TrustRegion:
     cdef ParOptTrustRegion *tr
-    def __cinit__(self, TrustRegionSubproblem prob,
-                  double tr_size=1.0, double tr_min_size=1e-4,
-                  double tr_max_size=1.0, double eta=0.25,
-                  double penalty=10.0, double bound_relax=1e-4):
+    def __cinit__(self, TrustRegionSubproblem prob, dict options):
         """
         Create a trust region optimization object
 
         Args:
-            prob: TrustRegionSubproblem type
-
-        Kwargs:
-            tr_size: Initial trust region size
-            tr_min_size: Minimum trust region size
-            tr_max_size: Maximum trust region size
-            eta: Trust region update tolerance
-            penalty: Initial l1 penalty parameter
-            bound_relax: Bound tolerance for the KKT error
-            bound_relax: Bound tolerance for the KKT error
+            prob: Subproblem object for the trust region problem
+            options: Optimization options
         """
-        self.tr = new ParOptTrustRegion(prob.subproblem, tr_size,
-                                        tr_min_size, tr_max_size,
-                                        eta, penalty, bound_relax)
+        cdef ParOptOptions *opts = new ParOptOptions()
+        ParOptTrustRegionAddDefaultOptions(opts)
+        addDictionaryToOptions(options, opts)
+        self.tr = new ParOptTrustRegion(prob.subproblem, opts)
         self.tr.incref()
         return
 
     def __dealloc__(self):
         if self.tr:
             self.tr.decref()
-
-    def initialize(self):
-        self.tr.initialize()
-
-    def update(self, PVec vec,
-               np.ndarray[ParOptScalar, ndim=1, mode='c'] z,
-               PVec zw=None):
-        cdef ParOptVec *v = NULL
-        cdef double infeas = 0.0
-        cdef double l1 = 0.0
-        cdef double linfty = 0.0
-        if zw is not None:
-            v = zw.ptr
-        self.tr.update(vec.ptr, <ParOptScalar*>z.data, v,
-                       &infeas, &l1, &linfty)
-        return infeas, l1, linfty
-
-    def setOutputFile(self, fname):
-        cdef char *filename = convert_to_chars(fname)
-        self.tr.setOutputFile(filename)
-
-    def setPrintLevel(self, int lev):
-        self.tr.setPrintLevel(lev)
-
-    def setAdaptiveGammaUpdate(self, truth):
-        if truth:
-            self.tr.setAdaptiveGammaUpdate(1)
-        else:
-            self.tr.setAdaptiveGammaUpdate(0)
-        return
-
-    def setMaxTrustRegionIterations(self, int max_iters):
-        self.tr.setMaxTrustRegionIterations(max_iters)
-
-    def setTrustRegionTolerances(self, double infeas_tol,
-                                 double l1_tol, double linfty_tol):
-        self.tr.setTrustRegionTolerances(infeas_tol, l1_tol, linfty_tol)
-
-    def setPenaltyGamma(self, double gamma):
-        self.tr.setPenaltyGamma(gamma)
-
-    def setMultiplePenaltyGamma(self, list gamma):
-        cdef double *g = NULL
-        cdef int num_gam = 0
-        num_gam = len(gamma)
-        g = <double*>malloc(num_gam*sizeof(double));
-        for i in range(num_gam):
-            g[i] = <double>gamma[i];
-
-        self.tr.setPenaltyGamma(g)
-        free(g)
-
-    def getPenaltyGamma(self):
-        cdef const double *penalty_gamma
-        cdef int ncon
-        ncon = self.tr.getPenaltyGamma(&penalty_gamma)
-        gamma = np.zeros(ncon, dtype=np.double)
-        for i in range(ncon):
-            gamma[i] = penalty_gamma[i]
-        return gamma
-
-    def setPenaltyGammaMax(self, double gamma_max):
-        self.tr.setPenaltyGammaMax(gamma_max)
-
-    def setPenaltyGammaMin(self, double gamma_min):
-        self.tr.setPenaltyGammaMin(gamma_min)
-
-    def setOutputFrequency(self, int output_frequency):
-        self.tr.setOutputFrequency(output_frequency)
 
     def optimize(self, InteriorPoint optimizer):
         self.tr.optimize(optimizer.ptr)
@@ -1374,3 +1131,66 @@ cdef class TrustRegion:
             x = _init_PVec(_x)
 
         return x
+
+cdef class Optimizer:
+    cdef ParOptOptimizer *ptr
+    def __cinit__(self, ProblemBase problem, dict options):
+        cdef ParOptOptions *opts = new ParOptOptions()
+        ParOptOptimizerAddDefaultOptions(opts)
+        addDictionaryToOptions(options, opts)
+        self.ptr = new ParOptOptimizer(problem.ptr, opts)
+        self.ptr.incref()
+
+    def __dealloc__(self):
+        if self.ptr != NULL:
+            self.ptr.decref()
+
+    def optimize(self):
+        if self.ptr != NULL:
+            self.ptr.optimize()
+
+    def getOptimizedPoint(self):
+        """
+        Get the optimized solution in PVec form for interpolation purposes
+        """
+        cdef int ncon = 0
+        cdef ParOptScalar *_z = NULL
+        cdef ParOptVec *_x = NULL
+        cdef ParOptVec *_zw = NULL
+        cdef ParOptVec *_zl = NULL
+        cdef ParOptVec *_zu = NULL
+        cdef ParOptProblem *problem = NULL
+
+        # Get the problem size/vector for the values
+        problem = self.ptr.getProblem()
+        problem.getProblemSizes(NULL, &ncon, NULL, NULL);
+        self.ptr.getOptimizedPoint(&_x, &_z, &_zw, &_zl, &_zu);
+
+        # Set the default values
+        z = None
+        x = None
+        zw = None
+        zl = None
+        zu = None
+
+        # Convert the multipliers to an in-place numpy array. This is
+        # duplicated on all processors, and must have the same values
+        # on all processors.
+        if _z != NULL:
+            z = inplace_array_1d(PAROPT_NPY_SCALAR, ncon, <void*>_z, self)
+
+        # Note that these vectors are owned by the ParOpt class, we're simply
+        # passing references to them back to the python layer.
+        if _x != NULL:
+            x = _init_PVec(_x)
+        if _zw != NULL:
+            zw = _init_PVec(_zw)
+        if _zl != NULL:
+            zl = _init_PVec(_zl)
+        if _zu != NULL:
+            zu = _init_PVec(_zu)
+
+        return x, z, zw, zl, zu
+
+    def setTrustRegionSubproblem(self, TrustRegionSubproblem prob):
+        self.ptr.setTrustRegionSubproblem(prob.subproblem)

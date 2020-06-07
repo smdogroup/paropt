@@ -214,59 +214,41 @@ def plot_it_all(problem, use_tr=False):
         # Optimize the problem
         problem.x_hist = []
 
-        filename = 'paropt_output.out'
+        # Set the trust region parameters
+        filename = 'paropt.out'
+
+        options = {
+            'algorithm': 'ip',
+            'abs_res_tol': 1e-8,
+            'starting_point_strategy': 'affine_step',
+            'barrier_strategy': 'monotone',
+            'start_affine_multiplier_min': 0.01,
+            'penalty_gamma': 1000.0,
+            'qn_subspace_size': 10,
+            'qn_type': 'bfgs'}
+
         if use_tr:
-            # Create the quasi-Newton Hessian approximation
-            qn = ParOpt.LBFGS(problem, subspace=10)
+            options = {
+                'algorithm': 'tr',
+                'tr_init_size': 0.05,
+                'tr_min_size': 1e-6,
+                'tr_max_size': 10.0,
+                'tr_eta': 0.25,
+                'penalty_gamma': 10.0,
+                'qn_subspace_size': 10,
+                'qn_type': 'bfgs',
+                'abs_res_tol': 1e-8,
+                'output_file': filename,
+                'tr_output_file': os.path.splitext(filename)[0] + '.tr',
+                'starting_point_strategy': 'affine_step',
+                'barrier_strategy': 'monotone',
+                'start_affine_multiplier_min': 0.01}
 
-            # Create the trust region problem
-            tr_init_size = 0.05
-            tr_min_size = 1e-6
-            tr_max_size = 10.0
-            tr_eta = 0.25
-            tr_penalty_gamma = 10.0
-            subproblem = ParOpt.QuadraticSubproblem(problem, qn)
-            tr = ParOpt.TrustRegion(subproblem, tr_init_size,
-                                    tr_min_size, tr_max_size,
-                                    tr_eta, tr_penalty_gamma)
+        opt = ParOpt.Optimizer(problem, options)
 
-            # Set up the optimization problem
-            opt = ParOpt.InteriorPoint(subproblem, 2, ParOpt.BFGS)
-
-            # Set the paropt output file name
-            opt.setOutputFile(filename)
-
-            # Set the output file name for the trust region method
-            tr.setOutputFile(os.path.splitext(filename)[0] + '.tr')
-
-            # Set some optimization parameters for paropt
-            opt.setAbsOptimalityTol(1e-8)
-            opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
-            opt.setStartAffineStepMultiplierMin(0.01)
-            opt.setBarrierStrategy(ParOpt.MONOTONE)
-
-            # Optimize
-            tr.optimize(opt)
-
-            # Get the optimized point
-            step, z, zw, zl, zu = opt.getOptimizedPoint()
-            x = tr.getOptimizedPoint()
-        else:
-            # Set up the optimization problem
-            max_lbfgs = 20
-            opt = ParOpt.InteriorPoint(problem, max_lbfgs, ParOpt.BFGS)
-
-            # Set the paropt output file name
-            opt.setOutputFile(filename)
-
-            # Set some optimization parameters
-            opt.resetQuasiNewtonHessian()
-            opt.setInitBarrierParameter(0.1)
-            opt.setUseLineSearch(1)
-            opt.optimize()
-
-            # Get the optimized point and print out the data
-            x, z, zw, zl, zu = opt.getOptimizedPoint()
+        # Set a new starting point
+        opt.optimize()
+        x, z, zw, zl, zu = opt.getOptimizedPoint()
 
         # Copy out the steepest descent points
         popt = np.zeros((2, len(problem.x_hist)))

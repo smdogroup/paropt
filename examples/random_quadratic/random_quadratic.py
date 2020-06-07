@@ -88,55 +88,41 @@ def solve_problem(eigs, filename=None, use_stdout=False, use_tr=False):
 
     problem = Quadratic(A, b, Acon, bcon)
 
+    options = {
+        'algorithm': 'ip',
+        'abs_res_tol': 1e-8,
+        'starting_point_strategy': 'affine_step',
+        'barrier_strategy': 'monotone',
+        'start_affine_multiplier_min': 0.01,
+        'penalty_gamma': 1000.0,
+        'qn_subspace_size': 10,
+        'qn_type': 'bfgs',
+        'output_file': filename}
+
     if use_tr:
-        # Create the trust region problem
-        max_lbfgs = 10
-        tr_init_size = 0.05
-        tr_min_size = 1e-6
-        tr_max_size = 10.0
-        tr_eta = 0.25
-        tr_penalty_gamma = 10.0
+        options = {
+            'algorithm': 'tr',
+            'tr_init_size': 0.05,
+            'tr_min_size': 1e-6,
+            'tr_max_size': 10.0,
+            'tr_eta': 0.25,
+            'tr_adaptive_gamma_update': True,
+            'tr_max_iterations': 200,
+            'penalty_gamma': 10.0,
+            'qn_subspace_size': 10,
+            'qn_type': 'bfgs',
+            'abs_res_tol': 1e-8,
+            'output_file': filename,
+            'tr_output_file': os.path.splitext(filename)[0] + '.tr',
+            'starting_point_strategy': 'affine_step',
+            'barrier_strategy': 'monotone',
+            'start_affine_multiplier_min': 0.01}
 
-        qn = ParOpt.LBFGS(problem, subspace=max_lbfgs)
-        subproblem = ParOpt.QuadraticSubproblem(problem, qn)
-        tr = ParOpt.TrustRegion(subproblem, tr_init_size,
-                                tr_min_size, tr_max_size,
-                                tr_eta, tr_penalty_gamma)
-        tr.setMaxTrustRegionIterations(500)
+    opt = ParOpt.Optimizer(problem, options)
 
-        # Set up the optimization problem
-        tr_opt = ParOpt.InteriorPoint(subproblem, 10, ParOpt.BFGS)
-        if filename is not None and use_stdout is False:
-            tr_opt.setOutputFile(filename)
-            tr.setOutputFile(os.path.splitext(filename)[0] + '.tr')
-
-        # Set the tolerances
-        tr_opt.setAbsOptimalityTol(1e-8)
-        tr_opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
-        tr_opt.setStartAffineStepMultiplierMin(0.01)
-
-        # Set optimization parameters
-        tr_opt.setArmijoParam(1e-5)
-        tr_opt.setMaxMajorIterations(5000)
-        tr_opt.setBarrierPower(2.0)
-        tr_opt.setBarrierFraction(0.1)
-
-        # optimize
-        tr.setPrintLevel(1)
-        tr.optimize(tr_opt)
-    else:
-        # Set up the optimization problem
-        max_lbfgs = 10
-        opt = ParOpt.InteriorPoint(problem, max_lbfgs, ParOpt.BFGS)
-        if filename is not None and use_stdout is False:
-            opt.setOutputFile(filename)
-
-        # Set optimization parameters
-        opt.setArmijoParam(1e-5)
-        opt.setMaxMajorIterations(5000)
-        opt.setBarrierPower(2.0)
-        opt.setBarrierFraction(0.1)
-        opt.optimize()
+    # Set a new starting point
+    opt.optimize()
+    x, z, zw, zl, zu = opt.getOptimizedPoint()
 
     return
 

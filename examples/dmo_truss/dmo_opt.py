@@ -118,35 +118,32 @@ def setup_ground_struct(N, M, L=2.5, E=70e9, x_lb=0.0):
 
     return truss
 
-def paropt_truss(truss, use_hessian=False,
-                 max_qn_subspace=50, qn_type=ParOpt.BFGS):
+def paropt_truss(truss, use_hessian=False):
     '''
     Optimize the given truss structure using ParOpt
     '''
 
-    # Create the optimizer
-    opt = ParOpt.InteriorPoint(truss, max_qn_subspace, qn_type)
+    fname = os.path.join(prefix, 'truss_paropt%dx%d.out'%(N, M))
+    options = {
+        'algorithm': 'ip',
+        'qn_subspace_size': 10,
+        'abs_res_tol': 1e-6,
+        'barrier_strategy': 'complementarity_fraction',
+        'use_hvec_product': True,
+        'gmres_subspace_size': 25,
+        'nk_switch_tol': 1.0,
+        'eisenstat_walker_gamma': 0.01,
+        'eisenstat_walker_alpha': 0.0,
+        'max_gmres_rtol': 1.0,
+        'output_level': 1,
+        'armijo_constant': 1e-5,
+        'output_file': fname}
 
-    # Set the optimality tolerance
-    opt.setAbsOptimalityTol(1e-5)
+    if use_hessian is False:
+        options['use_hvec_product'] = False
 
-    # Set the Hessian-vector product iterations
-    if use_hessian:
-        opt.setUseLineSearch(0)
-        opt.setUseHvecProduct(1)
-        opt.setGMRESSubspaceSize(100)
-        opt.setNKSwitchTolerance(1.0)
-        opt.setEisenstatWalkerParameters(0.5, 0.0)
-        opt.setGMRESTolerances(1.0, 1e-30)
-    else:
-        opt.setUseHvecProduct(0)
-
-    # Set optimization parameters
-    opt.setArmijoParam(1e-5)
-    opt.setMaxMajorIterations(2500)
-
-    # Perform a quick check of the gradient (and Hessian)
-    opt.checkGradients(1e-6)
+    opt = ParOpt.Optimizer(truss, options)
+    opt.optimize()
 
     return opt
 
@@ -166,8 +163,7 @@ def optimize_truss(N, M, root_dir='results', penalization='SIMP',
     truss = setup_ground_struct(N, M, x_lb=0.0)
     
     # Set up the optimization problem in ParOpt
-    opt = paropt_truss(truss, use_hessian=use_hessian,
-                       qn_type=ParOpt.BFGS)
+    opt = paropt_truss(truss, use_hessian=use_hessian)
     
     # Log the optimization file
     log_filename = os.path.join(prefix, 'log_file.dat')

@@ -5,6 +5,7 @@
 #include "ParOptVec.h"
 #include "ParOptQuasiNewton.h"
 #include "ParOptProblem.h"
+#include "ParOptOptions.h"
 
 /*
   Different options for use within ParOpt
@@ -132,10 +133,13 @@ enum ParOptStartingPointStrategy { PAROPT_NO_START_STRATEGY,
 class ParOptInteriorPoint : public ParOptBase {
  public:
   ParOptInteriorPoint( ParOptProblem *_prob,
-                       int _max_qn_subspace=10,
-                       ParOptQuasiNewtonType qn_type=PAROPT_BFGS,
-                       double _max_bound_val=1e20 );
+                       ParOptOptions *_options=NULL );
   ~ParOptInteriorPoint();
+
+  // Set the default arguments and values
+  // ------------------------------------
+  static void addDefaultOptions( ParOptOptions *options );
+  ParOptOptions* getOptions();
 
   // Retrieve the optimization problem class
   // ---------------------------------------
@@ -169,84 +173,30 @@ class ParOptInteriorPoint : public ParOptBase {
   // --------------------------------------------
   void checkGradients( double dh );
 
-  // Set the maximum absolute value of the variable bound
-  // ----------------------------------------------------
-  void setMaxAbsVariableBound( double max_bound );
-
   // Set optimizer parameters
   // ------------------------
-  void setNormType( ParOptNormType _norm_type );
-  void setBarrierStrategy( ParOptBarrierStrategy strategy );
-  ParOptBarrierStrategy getBarrierStrategy();
-  void setStartingPointStrategy( ParOptStartingPointStrategy strategy );
-  ParOptStartingPointStrategy getStartingPointStrategy();
-  void setInitStartingPoint( int init );
-  void setMaxMajorIterations( int iters );
-  void setAbsOptimalityTol( double tol );
-  void setRelFunctionTol( double tol );
-  void setAbsStepTol( double tol );
   void setPenaltyGamma( double gamma );
   void setPenaltyGamma( const double *gamma );
   int getPenaltyGamma( const double **gamma );
-  void setBarrierFraction( double frac );
-  void setBarrierPower( double power );
-  void setHessianResetFreq( int freq );
-  void setQNDiagonalFactor( double sigma );
   void setBFGSUpdateType( ParOptBFGSUpdateType bfgs_update );
-  void setSequentialLinearMethod( int truth );
-  void setStartAffineStepMultiplierMin( double value );
-  void setFunctionPrecision( double tol );
-  void setDesignPrecision( double tol );
 
-  // Set/get the barrier parameter
-  // -----------------------------
-  void setInitBarrierParameter( double mu );
+  // Get the barrier parameter and complementarity measure
+  // -----------------------------------------------------
   double getBarrierParameter();
-  void setRelativeBarrier( double rel );
   ParOptScalar getComplementarity();
-
-  // Set parameters associated with the line search
-  // ----------------------------------------------
-  void setUseLineSearch( int truth );
-  void setMaxLineSearchIters( int iters );
-  void setBacktrackingLineSearch( int truth );
-  void setArmijoParam( double c1 );
-  void setPenaltyDescentFraction( double frac );
-  void setMinPenaltyParameter( double rho_min );
 
   // Set the parameter to set/use a diagonal Hessian
   // -----------------------------------------------
   void setUseDiagHessian( int truth );
 
-  // Set parameters for the internal GMRES algorithm
-  // -----------------------------------------------
-  void setUseHvecProduct( int truth );
-  void setUseQNGMRESPreCon( int truth );
-  void setNKSwitchTolerance( double tol );
-  void setEisenstatWalkerParameters( double gamma, double alpha );
-  void setGMRESTolerances( double rtol, double atol );
-  void setGMRESSubspaceSize( int _gmres_subspace_size );
-
   // Quasi-Newton options
   // --------------------
   void setQuasiNewton( ParOptCompactQuasiNewton *_qn );
-  void setUseQuasiNewtonUpdates( int truth );
   void resetQuasiNewtonHessian();
 
   // Reset the design point and the bounds using the problem instance
   // ----------------------------------------------------------------
   void resetDesignAndBounds();
-
-  // Set other parameters
-  // --------------------
-  void setOutputFrequency( int freq );
-  void setMajorIterStepCheck( int step );
-  void setGradientCheckFrequency( int freq, double step_size );
-
-  // Set the output print level
-  // --------------------------
-  void setOutputFile( const char *filename );
-  void setOutputLevel( int level );
 
   // Write out the design variables to a binary format (fast MPI/IO)
   // ---------------------------------------------------------------
@@ -275,11 +225,21 @@ class ParOptInteriorPoint : public ParOptBase {
   static const int PAROPT_LINE_SEARCH_NO_IMPROVEMENT = 16;
   static const int PAROPT_LINE_SEARCH_SHORT_STEP = 32;
 
+  // Set the size of the GMRES subspace
+  void setGMRESSubspaceSize( int m );
+
+  // Set the output file name and write the options summary
+  void setOutputFile( const char *filename );
+
   // Print out the optimizer options to a file
   void printOptionSummary( FILE *fp );
 
   // Check and initialize the design variables and their bounds
   void initAndCheckDesignAndBounds();
+
+  // Initialize the multipliers
+  void initLeastSquaresMultipliers();
+  void initAffineStepMultipliers( ParOptNormType norm_type );
 
   // Factor/apply the Cw matrix
   int factorCw();
@@ -288,13 +248,14 @@ class ParOptInteriorPoint : public ParOptBase {
   // Compute the negative of the KKT residuals - return
   // the maximum primal, dual residuals and the max infeasibility
   void computeKKTRes( double barrier,
+                      ParOptNormType norm_type,
                       double *max_prime,
                       double *max_dual,
                       double *max_infeas,
                       double *res_norm=NULL );
 
   // Compute the norm of the step
-  double computeStepNorm();
+  double computeStepNorm( ParOptNormType norm_type );
 
   // Set up the diagonal KKT system
   void setUpKKTDiagSystem( ParOptVec *xt, ParOptVec *wt, int use_qn );
@@ -349,10 +310,6 @@ class ParOptInteriorPoint : public ParOptBase {
                        ParOptVec *xt2, ParOptVec *wt, int use_bfgs );
 
   // Compute the full KKT step
-  int computeKKTMinResStep( ParOptScalar *ztmp,
-                            ParOptVec *xtmp1, ParOptVec *xtmp2,
-                            ParOptVec *xtmp3, ParOptVec *wtmp,
-                            double rtol, double atol, int use_qn );
   int computeKKTGMRESStep( ParOptScalar *ztmp, ParOptVec *xtmp1,
                            ParOptVec *xtmp2, ParOptVec *wtmp,
                            double rtol, double atol, int use_qn );
@@ -416,21 +373,12 @@ class ParOptInteriorPoint : public ParOptBase {
   // The parallel optimizer problem and constraints
   ParOptProblem *prob;
 
+  // All of the optimizer options
+  ParOptOptions *options;
+
   // Communicator info
   MPI_Comm comm;
   int opt_root;
-
-  // The type of starting point initialization strategy to use
-  ParOptStartingPointStrategy starting_point_strategy;
-
-  // The type of barrier strategy to use
-  ParOptBarrierStrategy barrier_strategy;
-
-  // Set the norm type to use
-  ParOptNormType norm_type;
-
-  // Set the variable bound value
-  double max_bound_val;
 
   // The number of variables and constraints in the problem
   int nvars; // The number of local (on-processor) variables
@@ -479,8 +427,8 @@ class ParOptInteriorPoint : public ParOptBase {
   ParOptCompactQuasiNewton *qn;
   ParOptVec *y_qn, *s_qn;
 
-  // Diagonal factor added to the Hessian to promote descent
-  double qn_sigma;
+  // Control of exact diagonal Hessian
+  ParOptVec *hdiag;
 
   // Keep track of the number of objective and gradient evaluations
   int niter, neval, ngeval, nhvec;
@@ -497,60 +445,11 @@ class ParOptInteriorPoint : public ParOptBase {
   // The l1-penalty parameter
   double *penalty_gamma;
 
-  // Parameters for optimization
-  int max_major_iters;
-  int write_output_frequency;
-
-  // Parameters for the periodic gradient check option
-  int gradient_check_frequency;
-  double gradient_check_step;
-
   // The barrier parameter
   double barrier_param;
-  double rel_bound_barrier;
 
-  // Stopping criteria tolerances
-  double abs_res_tol;
-  double rel_func_tol;
-  double abs_step_tol;
-
-  // Parameter for controlling the Hessian reset
-  int hessian_reset_freq;
-
-  // Parameter that controls whether quasi-Newton updates are applied
-  int use_quasi_newton_update;
-
-  // Parameters for the line search
-  int max_line_iters;
-  int use_line_search, use_backtracking_alpha;
+  // Penalty parameter for the line search
   double rho_penalty_search;
-  double min_rho_penalty_search;
-  double penalty_descent_fraction, armijo_constant;
-
-  // Function precision and design variable precision
-  double function_precision;
-  double design_precision;
-
-  // Parameters for controling the barrier update
-  double monotone_barrier_fraction, monotone_barrier_power;
-
-  // The minimum step to the boundary;
-  double min_fraction_to_boundary;
-
-  // Control of exact diagonal Hessian
-  int use_diag_hessian;
-  ParOptVec *hdiag;
-
-  // Set the minimum value of the multipliers/slacks in the affine
-  // step starting point initialization procedure
-  double start_affine_multiplier_min;
-
-  // Control of exact Hessian-vector products
-  int use_hvec_product;
-  int use_qn_gmres_precon;
-  double eisenstat_walker_alpha, eisenstat_walker_gamma;
-  double nk_switch_tol;
-  double max_gmres_rtol, gmres_atol;
 
   // Internal information about GMRES
   int gmres_subspace_size;
@@ -558,19 +457,8 @@ class ParOptInteriorPoint : public ParOptBase {
   ParOptScalar *gmres_y, *gmres_fproj, *gmres_aproj, *gmres_awproj;
   ParOptVec **gmres_W;
 
-  // Check the step at this major iteration - for debugging
-  int major_iter_step_check;
-
-  // The step length for the merit function derivative test
-  double merit_func_check_epsilon;
-
-  // Flag to indicate whether to use a sequential linear programming
-  // approach, completely discarding the quasi-Newton approximation
-  int sequential_linear_method;
-
   // The file pointer to use for printing things out
   FILE *outfp;
-  int output_level;
 };
 
 #endif // PAR_OPT_INTERIOR_POINT_H

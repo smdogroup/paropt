@@ -1,4 +1,4 @@
-#include "ParOptInteriorPoint.h"
+#include "ParOptOptimizer.h"
 
 /*
   The following is a simple implementation of a scalable Rosenbrock
@@ -220,28 +220,31 @@ int main( int argc, char* argv[] ){
                                      nwcon, nwstart, nw, nwskip);
   rosen->incref();
 
-  // Allocate the optimizer
-  int max_lbfgs = 10;
-  ParOptInteriorPoint *opt = new ParOptInteriorPoint(rosen, max_lbfgs);
-  opt->incref();
+  // Create the options class, and create default values
+  ParOptOptions *options = new ParOptOptions();
+  ParOptOptimizer::addDefaultOptions(options);
 
-  opt->setMaxMajorIterations(1500);
-  opt->setBarrierStrategy(PAROPT_MEHROTRA);
-  opt->setOutputFrequency(1);
-  opt->setOutputLevel(2);
-  opt->setAbsOptimalityTol(1e-9);
-  opt->setOutputFile("paropt.out");
+  options->setOption("algorithm", "tr");
+  options->setOption("barrier_strategy", "mehrotra");
+  options->setOption("output_level", 1);
+  options->setOption("qn_type", "bfgs");
+  options->setOption("qn_subspace_size", 10);
+  options->setOption("abs_res_tol", 1e-6);
+  options->setOption("output_file", "paropt.out");
+  options->setOption("tr_output_file", "paropt.tr");
+  options->setOption("mma_output_file", "paropt.mma");
+
+  ParOptOptimizer *opt = new ParOptOptimizer(rosen, options);
+  opt->incref();
 
   // Set the checkpoint file
   double start = MPI_Wtime();
   if (prefix){
     char output[512];
     sprintf(output, "%s/rosenbrock_output.bin", prefix);
-    opt->optimize(output);
+    options->setOption("ip_checkpoint_file", output);
   }
-  else {
-    opt->optimize();
-  }
+  opt->optimize();
   double diff = MPI_Wtime() - start;
 
   if (mpi_rank == 0){

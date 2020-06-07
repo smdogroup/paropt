@@ -1,12 +1,14 @@
 include ../Makefile.in
 include ../ParOpt_Common.mk
 
-OBJS = ParOptInteriorPoint.o \
+OBJS = ParOptOptions.o \
+	ParOptInteriorPoint.o \
 	ParOptVec.o \
 	ParOptQuasiNewton.o \
 	ParOptMMA.o \
 	ParOptTrustRegion.o \
 	ParOptProblem.o \
+	ParOptOptimizer.o \
 	ParOptCompactEigenvalueApprox.o \
 	CyParOptProblem.o
 

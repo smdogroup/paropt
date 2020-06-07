@@ -25,31 +25,27 @@ inline ParOptScalar max2( ParOptScalar a, ParOptScalar b ){
 /*
   Create the ParOptMMA object
 */
-ParOptMMA::ParOptMMA( ParOptProblem *_prob, int _use_true_mma ):
+ParOptMMA::ParOptMMA( ParOptProblem *_prob,
+                      ParOptOptions *_options ):
 ParOptProblem(_prob->getMPIComm()){
-  use_true_mma = _use_true_mma;
-
   // Set the problem instance
   prob = _prob;
   prob->incref();
 
+  // Store the input options
+  options = _options;
+  options->incref();
+
   // Pull out the communicator
   comm = prob->getMPIComm();
-
-  // Set default parameters
-  asymptote_contract = 0.7;
-  asymptote_relax = 1.2;
-  init_asymptote_offset = 0.25;
-  min_asymptote_offset = 0.01;
-  max_asymptote_offset = 10.0;
-  bound_relax = 0.0;
-  eps_regularization = 1e-3;
-  delta_regularization = 1e-5;
 
   // Set the file pointer to NULL
   first_print = 1;
   fp = NULL;
-  print_level = 1;
+
+  // By default, use the real MMA. But this will be set from
+  // the options object during the optimization.
+  use_true_mma = 1;
 
   // Set the default to stdout
   int rank;
@@ -57,6 +53,10 @@ ParOptProblem(_prob->getMPIComm()){
   if (rank == 0){
     fp = stdout;
   }
+
+  // Over-ride the settings argument
+  const char *mma_output_file = options->getStringOption("mma_output_file");
+  setOutputFile(mma_output_file);
 
   // Get the problem sizes
   int _nwcon, _nwblock;
@@ -202,7 +202,7 @@ void ParOptMMA::initialize(){
   memset(z, 0, m*sizeof(ParOptScalar));
   zwvec = prob->createConstraintVec();
   zwvec->incref();
-  
+
   // Set the bound multipliers
   zlvec = prob->createDesignVec();
   zuvec = prob->createDesignVec();
@@ -214,81 +214,71 @@ void ParOptMMA::initialize(){
   rvec->incref();
 }
 
-/*
-  Set the output flag
-*/
-void ParOptMMA::setPrintLevel( int _print_level ){
-  print_level = _print_level;
+void ParOptMMA::addDefaultOptions( ParOptOptions *options ){
+  // Set default parameters
+  options->addStringOption("mma_output_file", "paropt.mma",
+    "Ouput file name for MMA");
+
+  options->addIntOption("mma_max_iterations", 200, 0, 1000000,
+    "Maximum number of iterations");
+
+  options->addFloatOption("mma_l1_tol", 1e-6, 0.0, 1e20,
+    "l1 tolerance for the optimality tolerance");
+
+  options->addFloatOption("mma_linfty_tol", 1e-6, 0.0, 1e20,
+    "l-infinity tolerance for the optimality tolerance");
+
+  options->addFloatOption("mma_infeas_tol", 1e-5, 0.0, 1e20,
+    "Infeasibility tolerance ");
+
+  options->addIntOption("output_level", 0, 0, 1000000,
+    "Output level indicating how verbose the output should be");
+
+  options->addBoolOption("mma_use_constraint_linearization", 1,
+    "If false, linearized the constraints");
+
+  options->addFloatOption("mma_asymptote_contract", 0.7, 0.0, 1.0,
+    "Contraction factor applied to the asymptotes");
+
+  options->addFloatOption("mma_asymptote_relax", 1.2, 1.0, 1e20,
+    "Expansion factor applied to the asymptotes");
+
+  options->addFloatOption("mma_init_asymptote_offset", 0.25, 0.0, 1.0,
+    "Initial aymptote offset from the variable bounds");
+
+  options->addFloatOption("mma_min_asymptote_offset", 0.01, 0.0, 1e20,
+    "Minimum asymptote offset from the variable bounds");
+
+  options->addFloatOption("mma_max_asymptote_offset", 10.0, 0.0, 1e20,
+    "Maximum asymptote offset from the variable bounds");
+
+  options->addFloatOption("mma_bound_relax", 0.0, 0.0, 1e20,
+    "Relaxation bound for computing the error in the KKT conditions");
+
+  options->addFloatOption("mma_eps_regularization", 1e-3, 0.0, 1e20,
+    "Regularization term applied in the MMA approximation");
+
+  options->addFloatOption("mma_delta_regularization", 1e-5, 0.0, 1e20,
+    "Regularization term applied in the MMA approximation");
 }
 
-/*
-  Set the asymptote contraction factor
-*/
-void ParOptMMA::setAsymptoteContract( double val ){
-  if (val < 1.0){
-    asymptote_contract = val;
-  }
-}
-
-/*
-  Set the asymptote relaxation factor
-*/
-void ParOptMMA::setAsymptoteRelax( double val ){
-  if (val > 1.0){
-    asymptote_relax = val;
-  }
-}
-
-/*
-  Set the initial asymptote factor
-*/
-void ParOptMMA::setInitAsymptoteOffset( double val ){
-  init_asymptote_offset = val;
-}
-
-/*
-  Set the minimum asymptote offset
-*/
-void ParOptMMA::setMinAsymptoteOffset( double val ){
-  if (val < 1.0){
-    min_asymptote_offset = val;
-  }
-}
-
-/*
-  Set the maximum asymptote offset
-*/
-void ParOptMMA::setMaxAsymptoteOffset( double val ){
-  if (val > 1.0){
-    max_asymptote_offset = val;
-  }
-}
-
-/*
-  Set the relaxation on the bounds for the KKT error computation
-*/
-void ParOptMMA::setBoundRelax( double val ){
-  bound_relax = val;
-}
-
-/*
-  Set the regularization parameters
-*/
-void ParOptMMA::setRegularization( double eps, double delta ){
-  eps_regularization = eps;
-  delta_regularization = delta;
+ParOptOptions* ParOptMMA::getOptions(){
+  return options;
 }
 
 /*
   Set the output file (only on the root proc)
 */
 void ParOptMMA::setOutputFile( const char *filename ){
+  if (fp && fp != stdout){
+    fclose(fp);
+  }
+  fp = NULL;
+
   int rank;
   MPI_Comm_rank(comm, &rank);
-  if (rank == 0){
-    if (fp && fp != stdout){
-      fclose(fp);
-    }
+
+  if (filename && rank == 0){
     fp = fopen(filename, "w");
   }
 }
@@ -296,30 +286,72 @@ void ParOptMMA::setOutputFile( const char *filename ){
 /*
   Write the parameters to the output file
 */
-void ParOptMMA::printOptionsSummary( FILE *fp ){
-  int rank;
-  MPI_Comm_rank(comm, &rank);
-  if (rank == 0){
-    fprintf(fp, "ParOptMMA options summary:\n");
-    fprintf(fp, "%-30s %15d\n", "print_level", print_level);
-    fprintf(fp, "%-30s %15d\n", "use_true_mma", use_true_mma);
-    fprintf(fp, "%-30s %15g\n", "asymptote_contract", asymptote_contract);
-    fprintf(fp, "%-30s %15g\n", "asymptote_relax", asymptote_relax);
-    fprintf(fp, "%-30s %15g\n", "init_asymptote_offset", init_asymptote_offset);
-    fprintf(fp, "%-30s %15g\n", "min_asymptote_offset", min_asymptote_offset);
-    fprintf(fp, "%-30s %15g\n", "max_asymptote_offset", max_asymptote_offset);
-    fprintf(fp, "%-30s %15g\n", "bound_relax", bound_relax);
-    fprintf(fp, "%-30s %15g\n", "eps_regularization", eps_regularization);
-    fprintf(fp, "%-30s %15g\n", "delta_regularization", delta_regularization);
-    fprintf(fp, "\n");
-  }
+void ParOptMMA::printOptionsSummary( FILE *file ){
+  const int output_level = options->getIntOption("output_level");
+  options->printSummary(file, output_level);
 }
 
-/*
-  Set the iteration count for the MMA
-*/
-void ParOptMMA::setIteration( int _mma_iter ){
-  mma_iter = _mma_iter;
+void ParOptMMA::optimize( ParOptInteriorPoint *optimizer ){
+  if (optimizer->getOptProblem() != this){
+    fprintf(stderr,
+            "ParOptMMA: The optimizer must be associated with "
+            "the MMA object\n");
+    return;
+  }
+
+  // Get the stopping criteria data
+  const int max_iterations = options->getIntOption("mma_max_iterations");
+  const double infeas_tol = options->getFloatOption("mma_infeas_tol");
+  const double l1_tol = options->getFloatOption("mma_l1_tol");
+  const double linfty_tol = options->getFloatOption("mma_linfty_tol");
+
+  // Set what type of sub-problem wer'e going to use. Check if the flag
+  // has been set to use a linearization of the constraints. If so, then
+  // we're not using the "use_true_mma" option.
+  int use_linearized =
+    options->getBoolOption("mma_use_constraint_linearization");
+
+  // Set the member controlling the use of the MMA constraint approximation
+  use_true_mma = !use_linearized;
+
+  // Set the interior point optimizer data to be compatible
+  ParOptOptions *options = optimizer->getOptions();
+  options->setOption("use_diag_hessian", 1);
+
+  initializeSubProblem(xvec);
+  optimizer->resetDesignAndBounds();
+
+  for ( int i = 0; i < max_iterations; i++ ){
+    // Optimize the sub-problem
+    optimizer->optimize();
+
+    // Get the optimized point
+    ParOptVec *x, *zw, *zl, *zu;
+    ParOptScalar *z;
+    optimizer->getOptimizedPoint(&x, &z, &zw, &zl, &zu);
+
+    // Set the multipliers
+    setMultipliers(z, zw, zl, zu);
+
+    // Initialize the subproblem about the new point
+    initializeSubProblem(x);
+
+    // Reset the variable bounds
+    optimizer->resetDesignAndBounds();
+
+    // Compute the KKT error;
+    double infeas, l1, linfty;
+    computeKKTError(&infeas, &l1, &linfty);
+
+    // Check for convergence of the trust region problem
+    if (infeas < infeas_tol){
+      if (l1 < l1_tol ||
+          linfty < linfty_tol){
+        // Success!
+        break;
+      }
+    }
+  }
 }
 
 /*
@@ -350,6 +382,8 @@ void ParOptMMA::setMultipliers( ParOptScalar *_z, ParOptVec *_zw,
 void ParOptMMA::computeKKTError( double *l1,
                                  double *linfty,
                                  double *infeas ){
+  const double mma_bound_relax = options->getFloatOption("mma_bound_relax");
+
   // Get the lower/upper bounds for the variables
   ParOptScalar *lb, *ub;
   lbvec->getArray(&lb);
@@ -378,7 +412,7 @@ void ParOptMMA::computeKKTError( double *l1,
   ParOptScalar *r;
   rvec->getArray(&r);
 
-  if (bound_relax <= 0.0){
+  if (mma_bound_relax <= 0.0){
     // Add r = r - zl + zu
     rvec->axpy(-1.0, zlvec);
     rvec->axpy(1.0, zuvec);
@@ -397,12 +431,12 @@ void ParOptMMA::computeKKTError( double *l1,
       double w = ParOptRealPart(r[j]);
 
       // Check if we're on the lower bound
-      if ((ParOptRealPart(x[j]) <= ParOptRealPart(lb[j]) + bound_relax) && w > 0.0){
+      if ((ParOptRealPart(x[j]) <= ParOptRealPart(lb[j]) + mma_bound_relax) && w > 0.0){
         w = 0.0;
       }
 
       // Check if we're on the upper bound
-      if ((ParOptRealPart(x[j]) >= ParOptRealPart(ub[j]) - bound_relax) && w < 0.0){
+      if ((ParOptRealPart(x[j]) >= ParOptRealPart(ub[j]) - mma_bound_relax) && w < 0.0){
         w = 0.0;
       }
 
@@ -466,6 +500,26 @@ void ParOptMMA::getDesignHistory( ParOptVec **_x1, ParOptVec **_x2 ){
   approximations used in the MMA code.
 */
 int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
+  // Extract data used to determine the asymptote behavior
+  const double init_asymptote_offset =
+    options->getFloatOption("mma_init_asymptote_offset");
+  const double asymptote_contract =
+    options->getFloatOption("mma_asymptote_contract");
+  const double asymptote_relax =
+    options->getFloatOption("mma_asymptote_relax");
+  const double max_asymptote_offset =
+    options->getFloatOption("mma_max_asymptote_offset");
+  const double min_asymptote_offset =
+    options->getFloatOption("mma_min_asymptote_offset");
+
+  // Extract parameters used in the computation of the objective/constraint
+  // approximations
+  const double eps = options->getFloatOption("mma_eps_regularization");
+  const double eta = options->getFloatOption("mma_delta_regularization");
+
+  // Get the output level
+  const int output_level = options->getIntOption("output_level");
+
   x2vec->copyValues(x1vec);
   x1vec->copyValues(xvec);
   if (xv && xv != xvec){
@@ -493,7 +547,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
   }
 
   // Compute the KKT error, and print it out to a file
-  if (print_level > 0){
+  if (output_level > 0){
     double l1, linfty, infeas;
     computeKKTError(&l1, &linfty, &infeas);
 
@@ -604,11 +658,6 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
   ParOptScalar *alpha, *beta;
   alphavec->getArray(&alpha);
   betavec->getArray(&beta);
-
-  // Parameters used in the computation of the objective/constraint
-  // approximations
-  const double eps = eps_regularization;
-  const double eta = delta_regularization;
 
   // Compute the values of the lower/upper assymptotes
   for ( int j = 0; j < n; j++ ){

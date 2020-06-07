@@ -298,11 +298,12 @@ class ParOptInfeasSubproblem : public ParOptProblem {
 class ParOptTrustRegion : public ParOptBase {
  public:
   ParOptTrustRegion( ParOptTrustRegionSubproblem *_subproblem,
-                     double _tr_size,
-                     double _tr_min_size, double _tr_max_size,
-                     double _eta=0.25, double penalty_value=10.0,
-                     double _bound_relax=1e-4 );
+                     ParOptOptions *_options=NULL );
   ~ParOptTrustRegion();
+
+  // Get the default option values
+  static void addDefaultOptions( ParOptOptions *options );
+  ParOptOptions* getOptions();
 
   // Initialize the subproblem
   void initialize();
@@ -312,76 +313,46 @@ class ParOptTrustRegion : public ParOptBase {
                double *infeas, double *l1, double *linfty );
 
   // Set parameters for the trust region method
-  void setAdaptiveGammaUpdate( int truth );
-  void setAdaptiveObjectiveType( int flag );
-  void setAdaptiveConstraintType( int flag );
-  void setMaxTrustRegionIterations( int max_iters );
-  void setTrustRegionTolerances( double _infeas_tol,
-                                 double _l1_tol, double _linfty_tol );
   void setPenaltyGamma( double gamma );
   void setPenaltyGamma( const double *gamma );
   int getPenaltyGamma( const double **gamma );
   void setPenaltyGammaMax( double _gamma_max );
   void setPenaltyGammaMin( double _gamma_min );
-  void setOutputFrequency( int _write_output_frequency );
 
   // Optimization loop using the trust region subproblem
   void optimize( ParOptInteriorPoint *optimize );
 
-  // Set the output file (only on the root proc)
-  void setOutputFile( const char *filename );
-  void setPrintLevel( int _print_level );
-
   // Get the optimized point
   void getOptimizedPoint( ParOptVec **_x );
 
- protected:
+ private:
   ParOptTrustRegionSubproblem *subproblem;
+
+  ParOptOptions *options;
+
+  // Set the output file
+  void setOutputFile( const char *filename );
 
   // Compute the KKT error in the solution
   void computeKKTError( const ParOptScalar *z, ParOptVec *zw,
                         double *l1, double *linfty );
 
- private:
   // Print the options summary
   void printOptionSummary( FILE *fp );
 
   // File pointer for the summary file - depending on the settings
-  FILE *fp;
+  FILE *outfp;
   int iter_count; // Iteration counter
   int subproblem_iters; // Subproblem iteration counter
   int adaptive_subproblem_iters; // Subproblem iteration counter
-  int print_level; // Print level for the file
 
   int n; // The number of design variables (local)
   int m; // The number of dense constraints (global)
   int nwcon; // The number of sparse constraints
   int nwblock; // The block size
 
-  // Set the parameters
-  double tr_size;
-  double tr_min_size, tr_max_size;
-  double eta;
-  double bound_relax;
-
-  // Store the function precision
-  double function_precision;
-
-  // Control the adaptive penalty update
-  int adaptive_gamma_update;
-  int adaptive_objective_flag; // The subproblem objective type
-  int adaptive_constraint_flag; // The constraint type
-  double *penalty_gamma;
-  double penalty_gamma_max;
-  double penalty_gamma_min;
-
-  // Set the output parameters
-  int write_output_frequency;
-
-  // Set the trust region solution parameters
-  int max_tr_iterations;
-  double l1_tol, linfty_tol;
-  double infeas_tol;
+  double tr_size; // The trust region size
+  double *penalty_gamma; // Penalty parameters
 
   // Temporary vectors
   ParOptVec *t;

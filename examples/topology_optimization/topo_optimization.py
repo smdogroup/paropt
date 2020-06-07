@@ -510,51 +510,29 @@ if __name__ == '__main__':
                            thermal_problem=True, draw_figure=False)
     problem.checkGradients()
 
-    # Create the quasi-Newton Hessian approximation
-    qn = ParOpt.LBFGS(problem, subspace=10)
+    options = {
+        'algorithm': 'tr',
+        'tr_init_size': 0.05,
+        'tr_min_size': 1e-6,
+        'tr_max_size': 10.0,
+        'tr_eta': 0.2,
+        'tr_infeas_tol': 1e-4,
+        'tr_l1_tol': 1e-3,
+        'tr_linfty_tol': 1e-3,
+        'tr_adaptive_gamma_update': True,
+        'tr_max_iterations': 200,
+        'penalty_gamma': 10.0,
+        'qn_subspace_size': 10,
+        'qn_type': 'bfgs',
+        'abs_res_tol': 1e-8,
+        'starting_point_strategy': 'affine_step',
+        'barrier_strategy': 'monotone',
+        'start_affine_multiplier_min': 0.01}
 
-    # Create the trust region problem
-    tr_init_size = 0.02
-    tr_min_size = 1e-6
-    tr_max_size = 10.0
-    tr_eta = 0.2
-    tr_penalty_gamma = 10.0
-    subproblem = ParOpt.QuadraticSubproblem(problem, qn)
-    tr = ParOpt.TrustRegion(subproblem, tr_init_size,
-                            tr_min_size, tr_max_size,
-                            tr_eta, tr_penalty_gamma)
+    # Set up the optimizer
+    opt = ParOpt.Optimizer(problem, options)
 
-    # Set the tolerances
-    infeas_tol = 1e-4
-    l1_tol = 1e-3
-    linfty_tol = 1e-3
-    tr.setTrustRegionTolerances(infeas_tol, l1_tol, linfty_tol)
+    # Set a new starting point
+    opt.optimize()
+    x, z, zw, zl, zu = opt.getOptimizedPoint()
 
-    # Use the adaptive penalty update
-    tr.setAdaptiveGammaUpdate(1)
-
-    # Set the maximum number of iterations
-    tr.setMaxTrustRegionIterations(500)
-
-    # Set up the optimization problem
-    opt = ParOpt.InteriorPoint(subproblem, 2, ParOpt.BFGS)
-
-    # Set up the optimization problem
-    opt.setOutputFile('topo_optimization_paropt.out')
-
-    # Set the tolerances
-    opt.setAbsOptimalityTol(1e-8)
-    opt.setStartingPointStrategy(ParOpt.AFFINE_STEP)
-    opt.setStartAffineStepMultiplierMin(1.0)
-
-    # Set optimization parameters
-    opt.setArmijoParam(1e-5)
-    opt.setMaxMajorIterations(5000)
-    opt.setBarrierPower(1.15)
-    opt.setBarrierFraction(0.1)
-    opt.setOutputLevel(2)
-
-    # optimize
-    tr.setOutputFile('topo_optimization_paropt.tr')
-    tr.setPrintLevel(0)
-    tr.optimize(opt)

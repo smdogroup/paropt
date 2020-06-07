@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+import os
+
 # Import some utilities
 import numpy as np
 import mpi4py.MPI as MPI
@@ -7,6 +9,7 @@ import matplotlib.pyplot as plt
 
 # Import ParOpt
 from paropt import ParOpt
+
 
 # Create the rosenbrock function class
 class Rosenbrock(ParOpt.Problem):
@@ -46,7 +49,7 @@ class Rosenbrock(ParOpt.Problem):
     def evalObjConGradient(self, x, g, A):
         '''Evaluate the objective and constraint gradient'''
         fail = 0
-        
+
         # The objective gradient
         g[0] = 200*(x[1]-x[0]**2)*(-2*x[0]) - 2*(1-x[0])
         g[1] = 200*(x[1]-x[0]**2)
@@ -61,10 +64,6 @@ def plot_it_all(problem):
     Plot a carpet plot with the search histories for steepest descent,
     conjugate gradient and BFGS from the same starting point.
     '''
-
-    # Set up the optimization problem
-    max_lbfgs = 20
-    opt = ParOpt.InteriorPoint(problem, max_lbfgs, ParOpt.BFGS)
 
     # Create the data for the carpet plot
     n = 150
@@ -88,12 +87,23 @@ def plot_it_all(problem):
     colours = ['-bo', '-ko', '-co', '-mo', '-yo',
                '-bx', '-kx', '-cx', '-mx', '-yx' ]
 
+    filename = 'paropt.out'
+    options = {
+        'algorithm': 'tr',
+        'tr_init_size': 0.05,
+        'tr_min_size': 1e-6,
+        'tr_max_size': 10.0,
+        'tr_eta': 0.1,
+        'tr_output_file': os.path.splitext(filename)[0] + '.tr',
+        'tr_adaptive_gamma_update': True,
+        'tr_max_iterations': 200,
+        'output_file': filename}
+
     for k in range(len(colours)):
         # Optimize the problem
         problem.x_hist = []
-        opt.resetQuasiNewtonHessian()
-        opt.setInitBarrierParameter(0.1)
-        opt.setUseLineSearch(1)
+
+        opt = ParOpt.Optimizer(rosen, options)
         opt.optimize()
 
         # Copy out the steepest descent points

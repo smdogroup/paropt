@@ -5,127 +5,6 @@
 #include "ParOptInteriorPoint.h"
 
 /*
-  The following are the help-strings for each of the parameters
-  in the file. These provide some description of the purpose of
-  each parameter and how you should set it.
-*/
-
-static const int NUM_PAROPT_PARAMETERS = 36;
-static const char *paropt_parameter_help[][2] = {
-  {"max_qn_size",
-   "Integer: The maximum dimension of the quasi-Newton approximation"},
-
-  {"max_major_iters",
-   "Integer: The maximum number of major iterations before quiting"},
-
-  {"starting_point_strategy",
-   "Enum: Initialize the Lagrange multiplier estimates and slack variables"},
-
-  {"barrier_param",
-   "Float: The initial value of the barrier parameter"},
-
-  {"penalty_gamma",
-   "Float: l1 penalty parameter applied to slack variables"},
-
-  {"abs_res_tol",
-   "Float: Absolute stopping criterion"},
-
-  {"rel_func_tol",
-   "Float: Relative function value stopping criterion"},
-
-  {"abs_step_tol",
-   "Float: Absolute stopping norm on the step size"},
-
-  {"use_line_search",
-   "Boolean: Perform or skip the line search"},
-
-  {"use_backtracking_alpha",
-   "Boolean: Perform a back-tracking line search"},
-
-  {"max_line_iters",
-   "Integer: Maximum number of line search iterations"},
-
-  {"penalty_descent_fraction",
-   "Float: Fraction of infeasibility used to enforce a descent direction"},
-
-  {"min_rho_penalty_search",
-   "Float: Minimum value of the penalty parameter"},
-
-  {"armijo_constant",
-   "Float: The Armijo constant for the line search"},
-
-  {"monotone_barrier_fraction",
-   "Float: Factor applied to the barrier update < 1"},
-
-  {"monotone_barrier_power",
-   "Float: Exponent for barrier parameter update > 1"},
-
-  {"rel_bound_barrier",
-   "Float: Relative factor applied to barrier parameter for bound constraints"},
-
-  {"min_fraction_to_boundary",
-   "Float: Minimum fraction to the boundary rule < 1"},
-
-  {"major_iter_step_check",
-   "Integer: Perform a check of the computed KKT step at this iteration"},
-
-  {"write_output_frequency",
-   "Integer: Write out the solution file and checkpoint file \
-at this frequency"},
-
-  {"gradient_check_frequency",
-   "Integer: Print to screen the output of the gradient check \
-at this frequency"},
-
-  {"sequential_linear_method",
-   "Boolean: Discard the quasi-Newton approximation (but not \
-necessarily the exact Hessian)"},
-
-  {"hessian_reset_freq",
-   "Integer: Do a hard reset of the Hessian at this specified major \
-iteration frequency"},
-
-  {"use_quasi_newton_update",
-   "Boolean: Update the quasi-Newton approximation at each iteration"},
-
-  {"qn_sigma",
-   "Float: Scalar added to the diagonal of the quasi-Newton approximation > 0"},
-
-  {"use_hvec_product",
-   "Boolean: Use or do not use Hessian-vector products"},
-
-  {"use_diag_hessian",
-   "Boolean: Use or do not use the diagonal Hessian computation"},
-
-  {"use_qn_gmres_precon",
-   "Boolean: Use or do not use the quasi-Newton method as a preconditioner"},
-
-  {"nk_switch_tol",
-   "Float: Switch to the Newton-Krylov method at this residual tolerance"},
-
-  {"eisenstat_walker_alpha",
-   "Float: Exponent in the Eisenstat-Walker INK forcing equation"},
-
-  {"eisenstat_walker_gamma",
-   "Float: Multiplier in the Eisenstat-Walker INK forcing equation"},
-
-  {"gmres_subspace_size",
-   "Integer: The subspace size for GMRES"},
-
-  {"max_gmres_rtol",
-   "Float: The maximum relative tolerance used for GMRES, above this \
-the quasi-Newton approximation is used"},
-
-  {"gmres_atol",
-   "Float: The absolute GMRES tolerance (almost never relevant)"},
-
-  {"function_precision",
-   "Float: The absolute precision of the function and constraints"},
-
-  {"design_precision",
-   "Float: The absolute precision of the design variables"}};
-
-/*
   Static helper functions
 */
 ParOptScalar max2( const ParOptScalar a, const ParOptScalar b ){
@@ -153,16 +32,22 @@ ParOptScalar min2( const ParOptScalar a, const ParOptScalar b ){
    functions.
 
    @param prob the optimization problem
-   @param max_qn_size the number of steps to store in memory
-   @param qn_type the type of quasi-Newton method to use
-   @param max_bound_value the maximum value of any variable bound
+   @param options the options object
 */
 ParOptInteriorPoint::ParOptInteriorPoint( ParOptProblem *_prob,
-                                          int max_qn_size,
-                                          ParOptQuasiNewtonType qn_type,
-                                          double max_bound_value ){
+                                          ParOptOptions *_options ){
+  // Set the problem object
   prob = _prob;
   prob->incref();
+
+  if (_options){
+    options = _options;
+  }
+  else {
+    options = new ParOptOptions();
+    addDefaultOptions(options);
+  }
+  options->incref();
 
   // Record the communicator
   comm = prob->getMPIComm();
@@ -204,25 +89,6 @@ ParOptInteriorPoint::ParOptInteriorPoint( ParOptProblem *_prob,
 
   // Set the total number of variables
   nvars_total = var_range[size];
-
-  // Set the default norm type
-  norm_type = PAROPT_INFTY_NORM;
-
-  // Allocate the quasi-Newton approximation
-  if (qn_type == PAROPT_BFGS){
-    qn = new ParOptLBFGS(prob, max_qn_size);
-    qn->incref();
-  }
-  else if (qn_type == PAROPT_SR1){
-    qn = new ParOptLSR1(prob, max_qn_size);
-    qn->incref();
-  }
-  else {
-    qn = NULL;
-  }
-
-  // Set the default maximum variable bound
-  max_bound_val = max_bound_value;
 
   // Set the values of the variables/bounds
   x = prob->createDesignVec(); x->incref();
@@ -295,8 +161,24 @@ ParOptInteriorPoint::ParOptInteriorPoint( ParOptProblem *_prob,
   Dmat = new ParOptScalar[ ncon*ncon ];
   dpiv = new int[ ncon ];
 
+  // Allocate the quasi-Newton approximation
+  const char *qn_type = options->getEnumOption("qn_type");
+  const int qn_subspace_size = options->getIntOption("qn_subspace_size");
+
+  qn = NULL;
+  if (strcmp(qn_type, "bfgs") == 0){
+    qn = new ParOptLBFGS(prob, qn_subspace_size);
+    qn->incref();
+  }
+  else if (strcmp(qn_type, "sr1") == 0){
+    qn = new ParOptLSR1(prob, qn_subspace_size);
+    qn->incref();
+  }
+
+  hdiag = NULL;
+
   // Get the maximum subspace size
-  max_qn_size = 0;
+  int max_qn_size = 0;
   if (qn){
     max_qn_size = qn->getMaxLimitedMemorySize();
   }
@@ -340,71 +222,15 @@ ParOptInteriorPoint::ParOptInteriorPoint( ParOptProblem *_prob,
     Ac[i]->incref();
   }
 
-  // Zero the number of evals
-  neval = ngeval = nhvec = 0;
-
-  // Set the default starting point strategy
-  starting_point_strategy = PAROPT_LEAST_SQUARES_MULTIPLIERS;
-
-  // Set the barrier strategy
-  barrier_strategy = PAROPT_MONOTONE;
-
-  // Initialize the parameters with default values
-  max_major_iters = 1000;
-  barrier_param = 0.1;
-  rel_bound_barrier = 1.0;
-  abs_res_tol = 1e-5;
-  rel_func_tol = 0.0;
-  abs_step_tol = 0.0;
-  use_line_search = 1;
-  use_backtracking_alpha = 0;
-  max_line_iters = 10;
-  rho_penalty_search = 0.0;
-  min_rho_penalty_search = 0.0;
-  penalty_descent_fraction = 0.3;
-  armijo_constant = 1e-5;
-  monotone_barrier_fraction = 0.25;
-  monotone_barrier_power = 1.1;
-  min_fraction_to_boundary = 0.95;
-  write_output_frequency = 10;
-  gradient_check_frequency = -1;
-  gradient_check_step = 1e-6;
-  major_iter_step_check = -1;
-  sequential_linear_method = 0;
-  hessian_reset_freq = 100000000;
-  use_quasi_newton_update = 1;
-  qn_sigma = 0.0;
-  merit_func_check_epsilon = 5e-8;
-  start_affine_multiplier_min = 1e-3;
-
   // Set the default penalty values
+  const double gamma = options->getFloatOption("penalty_gamma");
   penalty_gamma = new double[ ncon ];
   for ( int i = 0; i < ncon; i++ ){
-    penalty_gamma[i] = 1000.0;
+    penalty_gamma[i] = gamma;
   }
 
-  // Set the function and design variable precision; changes below
-  // these values are considered below the function/design
-  // variable tolerance.
-  function_precision = 1e-10;
-  design_precision = 1e-14;
-
-  // Initialize the diagonal Hessian computation
-  use_diag_hessian = 0;
-  hdiag = NULL;
-
-  // Initialize the Hessian-vector product information
-  use_hvec_product = 0;
-  use_qn_gmres_precon = 1;
-  nk_switch_tol = 1e-3;
-  eisenstat_walker_alpha = 1.5;
-  eisenstat_walker_gamma = 1.0;
-  max_gmres_rtol = 0.1;
-  gmres_atol = 1e-30;
-
-  // By default, set the file pointer to stdout
-  outfp = stdout;
-  output_level = 0;
+  // Zero the number of evals
+  neval = ngeval = nhvec = 0;
 
   // Set the default information about GMRES
   gmres_subspace_size = 0;
@@ -417,6 +243,25 @@ ParOptInteriorPoint::ParOptInteriorPoint( ParOptProblem *_prob,
   gmres_awproj = NULL;
   gmres_Q = NULL;
   gmres_W = NULL;
+
+  // Check if we're going to use an optimization problem with an inexact
+  // optimization method.
+  int m = options->getIntOption("gmres_subspace_size");
+  if (m > 0){
+    setGMRESSubspaceSize(m);
+  }
+
+  // By default, set the file pointer to stdout. If a filename is specified,
+  // set the new filename.
+  outfp = NULL;
+  if (rank == opt_root){
+    outfp = stdout;
+  }
+
+  const char *filename = options->getStringOption("output_file");
+  if (filename){
+    setOutputFile(filename);
+  }
 
   // Initialize the design variables and bounds
   initAndCheckDesignAndBounds();
@@ -442,6 +287,7 @@ ParOptInteriorPoint::ParOptInteriorPoint( ParOptProblem *_prob,
 */
 ParOptInteriorPoint::~ParOptInteriorPoint(){
   prob->decref();
+  options->decref();
   if (qn){
     qn->decref();
   }
@@ -549,6 +395,176 @@ ParOptInteriorPoint::~ParOptInteriorPoint(){
   if (outfp && outfp != stdout){
     fclose(outfp);
   }
+}
+
+/**
+  Add the default options to the input options object
+
+  @param options The input options argument
+*/
+void ParOptInteriorPoint::addDefaultOptions( ParOptOptions *options ){
+  // Set the string options
+  options->addStringOption("output_file", "paropt.out", "Output file name");
+
+  options->addStringOption("problem_name", NULL, "The problem name");
+
+  // Set the float options
+  options->addFloatOption("max_bound_value", 1e20, 0.0, 1e300,
+    "Maximum bound value at which bound constraints are omitted");
+
+  options->addFloatOption("abs_res_tol", 1e-6, 0.0, 1e20,
+    "Absolute stopping criterion");
+
+  options->addFloatOption("rel_func_tol", 0.0, 0.0, 1e20,
+   "Relative function value stopping criterion");
+
+  options->addFloatOption("abs_step_tol", 0.0, 0.0, 1e20,
+   "Float: Absolute stopping norm on the step size");
+
+  options->addFloatOption("init_barrier_param", 0.1, 0.0, 1e20,
+    "The initial value of the barrier parameter");
+
+  options->addFloatOption("penalty_gamma", 1000.0, 0.0, 1e20,
+    "l1 penalty parameter applied to slack variables");
+
+  options->addFloatOption("penalty_descent_fraction", 0.3, 1e-6, 1.0,
+    "Fraction of infeasibility used to enforce a descent direction");
+
+  options->addFloatOption("min_rho_penalty_search", 0.0, 0.0, 1e20,
+    "Minimum value of the line search penalty parameter");
+
+  options->addFloatOption("init_rho_penalty_search", 0.0, 0.0, 1e20,
+    "Initial value of the line search penalty parameter");
+
+  options->addFloatOption("armijo_constant", 1e-5, 0.0, 1.0,
+    "The Armijo constant for the line search");
+
+  options->addFloatOption("monotone_barrier_fraction", 0.25, 0.0, 1.0,
+    "Factor applied to the barrier update < 1");
+
+  options->addFloatOption("monotone_barrier_power", 1.1, 1.0, 10.0,
+    "Exponent for barrier parameter update > 1");
+
+  options->addFloatOption("rel_bound_barrier", 1.0, 0.0, 1e20,
+   "Relative factor applied to barrier parameter for bound constraints");
+
+  options->addFloatOption("min_fraction_to_boundary", 0.95, 0.0, 1.0,
+    "Minimum fraction to the boundary rule < 1");
+
+  options->addFloatOption("qn_sigma", 0.0, 0.0, 1e20,
+    "Scalar added to the diagonal of the quasi-Newton approximation > 0");
+
+  options->addFloatOption("nk_switch_tol", 1e-3, 0.0, 1.0,
+    "Switch to the Newton-Krylov method at this residual tolerance");
+
+  options->addFloatOption("eisenstat_walker_alpha", 1.5, 0.0, 2.0,
+    "Exponent in the Eisenstat-Walker INK forcing equation");
+
+  options->addFloatOption("eisenstat_walker_gamma", 1.0, 0.0, 1.0,
+    "Multiplier in the Eisenstat-Walker INK forcing equation");
+
+  options->addFloatOption("max_gmres_rtol", 0.1, 0.0, 1.0,
+    "The maximum relative tolerance used for GMRES, above this "
+    "the quasi-Newton approximation is used");
+
+  options->addFloatOption("gmres_atol", 1e-30, 0.0, 1.0,
+    "The absolute GMRES tolerance (almost never relevant)");
+
+  options->addFloatOption("function_precision", 1e-10, 0.0, 1.0,
+    "The absolute precision of the function and constraints");
+
+  options->addFloatOption("design_precision", 1e-14, 0.0, 1.0,
+    "The absolute precision of the design variables");
+
+  options->addFloatOption("start_affine_multiplier_min", 1e-3, 0.0, 1e20,
+    "Minimum multiplier for the affine step initialization strategy");
+
+  // Set the boolean options
+  options->addBoolOption("use_line_search", 1,
+    "Perform or skip the line search");
+
+  options->addBoolOption("use_backtracking_alpha", 0,
+    "Perform a back-tracking line search");
+
+  options->addBoolOption("sequential_linear_method", 0,
+    "Discard the quasi-Newton approximation (but not "
+    "necessarily the exact Hessian)");
+
+  options->addBoolOption("use_quasi_newton_update", 1,
+    "Update the quasi-Newton approximation at each iteration");
+
+  options->addBoolOption("use_hvec_product", 0,
+    "Use or do not use Hessian-vector products");
+
+  options->addBoolOption("use_diag_hessian", 0,
+    "Use or do not use the diagonal Hessian computation");
+
+  options->addBoolOption("use_qn_gmres_precon", 1,
+    "Use or do not use the quasi-Newton method as a preconditioner");
+
+  options->addFloatOption("gradient_check_step_length", 1e-6, 0.0, 1.0,
+    "Step length used to check the gradient");
+
+  // Set the integer options
+  options->addIntOption("qn_subspace_size", 10, 0, 1000,
+    "The maximum dimension of the quasi-Newton approximation");
+
+  options->addIntOption("max_major_iters", 5000, 0, 1000000,
+    "The maximum number of major iterations before quiting");
+
+  options->addIntOption("max_line_iters", 10, 1, 100,
+    "Maximum number of line search iterations");
+
+  options->addIntOption("gmres_subspace_size", 0, 0, 1000,
+    "The subspace size for GMRES");
+
+  options->addIntOption("write_output_frequency", 10, 0, 1000000,
+    "Write out the solution file and checkpoint file "
+    "at this frequency");
+
+  options->addIntOption("gradient_verification_frequency",
+    -1, -1000000, 1000000,
+    "Print to screen the output of the gradient check "
+    "at this frequency during an optimization");
+
+  options->addIntOption("hessian_reset_freq", 0, 1000000, 1000000,
+    "Do a hard reset of the Hessian at this specified major "
+    "iteration frequency");
+
+  options->addIntOption("output_level", 0, 0, 1000000,
+    "Output level indicating how verbose the output should be");
+
+  // Set the enumerated options
+  const char *qn_type[3] = {"bfgs", "sr1", "none"};
+  options->addEnumOption("qn_type", "bfgs", 3, qn_type,
+    "The the of quasi-Newton approximation to use");
+
+  const char *norm_options[3] = {"infinty", "l1", "l2"};
+  options->addEnumOption("norm_type", "infinity", 3, norm_options,
+    "The type of norm to use in all computations");
+
+  const char *barrier_options[3] = {"monotone",
+                                    "mehrotra",
+                                    "complementarity_fraction"};
+  options->addEnumOption("barrier_strategy",
+    "monotone", 3, barrier_options,
+    "The type of barrier update strategy to use");
+
+  const char *start_options[3] = {"least_squares_multipliers",
+                                  "affine_step",
+                                  "no_start_strategy"};
+  options->addEnumOption("starting_point_strategy",
+    "affine_step", 3, start_options,
+    "Initialize the Lagrange multiplier estimates and slack variables");
+}
+
+/**
+  Get the options object associated with the interior point method
+
+  @return The options object
+*/
+ParOptOptions* ParOptInteriorPoint::getOptions(){
+  return options;
 }
 
 /**
@@ -685,110 +701,8 @@ void ParOptInteriorPoint::getOptimizedSlacks( ParOptScalar **_s,
    @param fp an open file handle
 */
 void ParOptInteriorPoint::printOptionSummary( FILE *fp ){
-  // Print out all the parameter values to the screen
-  int rank;
-  MPI_Comm_rank(comm, &rank);
-  if (fp && rank == opt_root){
-    int qn_size = 0;
-    if (qn && !sequential_linear_method){
-      qn_size = qn->getMaxLimitedMemorySize();
-    }
-
-    fprintf(fp, "ParOpt: Parameter values\n");
-    fprintf(fp, "%-30s %15d\n", "total variables", nvars_total);
-    fprintf(fp, "%-30s %15d\n", "constraints", ncon);
-    fprintf(fp, "%-30s %15d\n", "max_qn_size", qn_size);
-    if (norm_type == PAROPT_INFTY_NORM){
-      fprintf(fp, "%-30s %15s\n", "norm_type", "INFTY_NORM");
-    }
-    else if (norm_type == PAROPT_L1_NORM){
-      fprintf(fp, "%-30s %15s\n", "norm_type", "L1_NORM");
-    }
-    else {
-      fprintf(fp, "%-30s %15s\n", "norm_type", "L2_NORM");
-    }
-    if (barrier_strategy == PAROPT_MONOTONE){
-      fprintf(fp, "%-30s %15s\n", "barrier_strategy", "MONOTONE");
-    }
-    else if (barrier_strategy == PAROPT_COMPLEMENTARITY_FRACTION){
-      fprintf(fp, "%-30s %15s\n", "barrier_strategy", "COMP. FRACTION");
-    }
-    else {
-      fprintf(fp, "%-30s %15s\n", "barrier_strategy", "MEHROTRA");
-    }
-    // Compute the average penalty
-    double penalty = 0.0;
-    for ( int i = 0; i < ncon; i++ ){
-      penalty += penalty_gamma[i];
-    }
-    fprintf(fp, "%-30s %15g\n", "penalty_gamma", penalty/ncon);
-    fprintf(fp, "%-30s %15d\n", "max_major_iters", max_major_iters);
-    if (starting_point_strategy == PAROPT_NO_START_STRATEGY){
-      fprintf(fp, "%-30s %15s\n", "starting_point_strategy",
-              "NO_START");
-    }
-    else if (starting_point_strategy == PAROPT_LEAST_SQUARES_MULTIPLIERS){
-      fprintf(fp, "%-30s %15s\n", "starting_point_strategy",
-              "LEAST_SQUARES");
-    }
-    else if (starting_point_strategy == PAROPT_AFFINE_STEP){
-      fprintf(fp, "%-30s %15s\n", "starting_point_strategy",
-              "AFFINE_STEP");
-    }
-    fprintf(fp, "%-30s %15g\n", "barrier_param", barrier_param);
-    fprintf(fp, "%-30s %15g\n", "abs_res_tol", abs_res_tol);
-    fprintf(fp, "%-30s %15g\n", "rel_func_tol", rel_func_tol);
-    fprintf(fp, "%-30s %15g\n", "abs_step_tol", abs_step_tol);
-    fprintf(fp, "%-30s %15d\n", "use_line_search", use_line_search);
-    fprintf(fp, "%-30s %15d\n", "use_backtracking_alpha",
-            use_backtracking_alpha);
-    fprintf(fp, "%-30s %15d\n", "max_line_iters", max_line_iters);
-    fprintf(fp, "%-30s %15g\n", "penalty_descent_fraction",
-            penalty_descent_fraction);
-    fprintf(fp, "%-30s %15g\n", "min_rho_penalty_search",
-            min_rho_penalty_search);
-    fprintf(fp, "%-30s %15g\n", "armijo_constant", armijo_constant);
-    fprintf(fp, "%-30s %15g\n", "monotone_barrier_fraction",
-            monotone_barrier_fraction);
-    fprintf(fp, "%-30s %15g\n", "monotone_barrier_power",
-            monotone_barrier_power);
-    fprintf(fp, "%-30s %15g\n", "rel_bound_barrier",
-            rel_bound_barrier);
-    fprintf(fp, "%-30s %15g\n", "min_fraction_to_boundary",
-            min_fraction_to_boundary);
-    fprintf(fp, "%-30s %15d\n", "major_iter_step_check",
-            major_iter_step_check);
-    fprintf(fp, "%-30s %15d\n", "write_output_frequency",
-            write_output_frequency);
-    fprintf(fp, "%-30s %15d\n", "gradient_check_frequency",
-            gradient_check_frequency);
-    fprintf(fp, "%-30s %15g\n", "gradient_check_step",
-            gradient_check_step);
-    fprintf(fp, "%-30s %15d\n", "sequential_linear_method",
-            sequential_linear_method);
-    fprintf(fp, "%-30s %15d\n", "hessian_reset_freq",
-            hessian_reset_freq);
-    fprintf(fp, "%-30s %15d\n", "use_quasi_newton_update",
-            use_quasi_newton_update);
-    fprintf(fp, "%-30s %15g\n", "qn_sigma", qn_sigma);
-    fprintf(fp, "%-30s %15d\n", "use_hvec_product",
-            use_hvec_product);
-    fprintf(fp, "%-30s %15d\n", "use_diag_hessian",
-            use_diag_hessian);
-    fprintf(fp, "%-30s %15d\n", "use_qn_gmres_precon",
-            use_qn_gmres_precon);
-    fprintf(fp, "%-30s %15g\n", "nk_switch_tol", nk_switch_tol);
-    fprintf(fp, "%-30s %15g\n", "eisenstat_walker_alpha",
-            eisenstat_walker_alpha);
-    fprintf(fp, "%-30s %15g\n", "eisenstat_walker_gamma",
-            eisenstat_walker_gamma);
-    fprintf(fp, "%-30s %15d\n", "gmres_subspace_size",
-            gmres_subspace_size);
-    fprintf(fp, "%-30s %15g\n", "max_gmres_rtol", max_gmres_rtol);
-    fprintf(fp, "%-30s %15g\n", "gmres_atol", gmres_atol);
-    fprintf(fp, "%-30s %15g\n", "function_precision", function_precision);
-    fprintf(fp, "%-30s %15g\n", "design_precision", design_precision);
-  }
+  const int output_level = options->getIntOption("output_level");
+  options->printSummary(fp, output_level);
 }
 
 /**
@@ -1007,150 +921,12 @@ int ParOptInteriorPoint::readSolutionFile( const char *filename ){
 }
 
 /**
-   Set the maximum variable bound.
-
-   Bounds that exceed this value will be ignored within the
-   optimization problem.
-
-   @param max_bound_value the maximum value of any variable bound
-*/
-void ParOptInteriorPoint::setMaxAbsVariableBound( double max_bound_value ){
-  max_bound_val = max_bound_value;
-
-  // Set the largrange multipliers with bounds outside the
-  // limits to zero
-  ParOptScalar *lbvals, *ubvals, *zlvals, *zuvals;
-  lb->getArray(&lbvals);
-  ub->getArray(&ubvals);
-  zl->getArray(&zlvals);
-  zu->getArray(&zuvals);
-
-  for ( int i = 0; i < nvars; i++ ){
-    if (ParOptRealPart(lbvals[i]) <= -max_bound_val){
-      zlvals[i] = 0.0;
-    }
-    if (ParOptRealPart(ubvals[i]) >= max_bound_val){
-      zuvals[i] = 0.0;
-    }
-  }
-}
-
-/**
-   Set the type of norm to use in the convergence criteria.
-
-   @param _norm_type is the type of the norm used in the KKT conditions
-*/
-void ParOptInteriorPoint::setNormType( ParOptNormType _norm_type ){
-  norm_type = _norm_type;
-}
-
-/**
-   Set the type of barrier strategy to use.
-
-   @param strategy is the type of barrier update strategy
-*/
-void ParOptInteriorPoint::setBarrierStrategy( ParOptBarrierStrategy strategy ){
-  barrier_strategy = strategy;
-}
-
-/**
-   Get the type of barrier strategy
-
-   @return The type of barrier update strategy
-*/
-ParOptBarrierStrategy ParOptInteriorPoint::getBarrierStrategy(){
-  return barrier_strategy;
-}
-
-/**
-   Set the starting point strategy to use.
-
-   @param strategy is the type of strategy used to initialize the multipliers
-*/
-void ParOptInteriorPoint::setStartingPointStrategy( ParOptStartingPointStrategy strategy ){
-  starting_point_strategy = strategy;
-}
-
-/**
-   Get the starting point strategy
-
-   @return The type of strategy used to initialize the multipliers
-*/
-ParOptStartingPointStrategy ParOptInteriorPoint::getStartingPointStrategy(){
-  return starting_point_strategy;
-}
-
-/**
-   Set the maximum number of major iterations.
-
-   @param iters is the maximum number of inteior-point iterations
-*/
-void ParOptInteriorPoint::setMaxMajorIterations( int iters ){
-  if (iters >= 1){
-    max_major_iters = iters;
-  }
-}
-
-/**
-   Set the absolute KKT tolerance.
-
-   @param tol is the absolute stopping tolerance
-*/
-void ParOptInteriorPoint::setAbsOptimalityTol( double tol ){
-  if (tol < 1e-2 && tol >= 0.0){
-    abs_res_tol = tol;
-  }
-}
-
-/**
-   Set the relative function tolerance.
-
-   @param tol is the relative stopping tolerance
-*/
-void ParOptInteriorPoint::setRelFunctionTol( double tol ){
-  if (tol < 1e-2 && tol >= 0.0){
-    rel_func_tol = tol;
-  }
-}
-
-/**
-   Set the absolute step tolerance
-
-   @param tol is the absolute stopping tolerance
-*/
-void ParOptInteriorPoint::setAbsStepTol( double tol ){
-  if (tol < 1e-2 && tol >= 0.0){
-    abs_step_tol = tol;
-  }
-}
-
-/**
-   Set the initial barrier parameter.
-
-   @param mu is the initial barrier parameter value
-*/
-void ParOptInteriorPoint::setInitBarrierParameter( double mu ){
-  if (mu > 0.0){
-    barrier_param = mu;
-  }
-}
-
-/**
    Retrieve the barrier parameter
 
    @return the barrier parameter value.
 */
 double ParOptInteriorPoint::getBarrierParameter(){
   return barrier_param;
-}
-
-/**
-   Set the relative barrier value for the variable bounds
-*/
-void ParOptInteriorPoint::setRelativeBarrier( double rel ){
-  if (rel > 0.0){
-    rel_bound_barrier = rel;
-  }
 }
 
 /**
@@ -1161,28 +937,6 @@ void ParOptInteriorPoint::setRelativeBarrier( double rel ){
 */
 ParOptScalar ParOptInteriorPoint::getComplementarity(){
   return computeComp();
-}
-
-/**
-   Set fraction for the barrier update.
-
-   @param frac is the barrier reduction factor.
-*/
-void ParOptInteriorPoint::setBarrierFraction( double frac ){
-  if (frac > 0.0 && frac < 1.0){
-    monotone_barrier_fraction = frac;
-  }
-}
-
-/**
-   Set the power for the barrier update.
-
-   @param power is the exponent for the barrier update.
-*/
-void ParOptInteriorPoint::setBarrierPower( double power ){
-  if (power >= 1.0 && power < 10.0){
-    monotone_barrier_power = power;
-  }
 }
 
 /**
@@ -1222,91 +976,6 @@ int ParOptInteriorPoint::getPenaltyGamma( const double **_penalty_gamma ){
 }
 
 /**
-   Set the frequency with which the Hessian is updated.
-
-   @param freq is the Hessian update frequency
-*/
-void ParOptInteriorPoint::setHessianResetFreq( int freq ){
-  if (freq > 0){
-    hessian_reset_freq = freq;
-  }
-}
-
-/**
-   Set the diagonal entry to add to the quasi-Newton Hessian approximation.
-
-   @param sigma is the factor added to the diagonal of the quasi-Newton approximation.
-*/
-void ParOptInteriorPoint::setQNDiagonalFactor( double sigma ){
-  if (sigma >= 0.0){
-    qn_sigma = sigma;
-  }
-}
-
-/**
-   Set whether to use a line search or not.
-
-   @param truth indicates whether to use the line search or skip it.
-*/
-void ParOptInteriorPoint::setUseLineSearch( int truth ){
-  use_line_search = truth;
-}
-
-/**
-   Set the maximum number of line search iterations.
-
-   @param iters sets the maximum number of line search iterations.
-*/
-void ParOptInteriorPoint::setMaxLineSearchIters( int iters ){
-  if (iters > 0){
-    max_line_iters = iters;
-  }
-}
-
-/**
-   Set whether to use a backtracking line search.
-
-   @param truth indicates whether to use a simple backtracking line search.
-*/
-void ParOptInteriorPoint::setBacktrackingLineSearch( int truth ){
-  use_backtracking_alpha = truth;
-}
-
-/**
-   Set the Armijo parameter.
-
-   @param c1 is the Armijo parameter value
-*/
-void ParOptInteriorPoint::setArmijoParam( double c1 ){
-  if (c1 >= 0){
-    armijo_constant = c1;
-  }
-}
-
-/**
-   Set the penalty descent fraction.
-
-   @param frac is the penalty descent fraction used to ensure a descent direction.
-*/
-void ParOptInteriorPoint::setPenaltyDescentFraction( double frac ){
-  if (frac > 0.0){
-    penalty_descent_fraction = frac;
-  }
-}
-
-/**
-   Set the minimum allowable penalty parameter.
-
-   @param rho_min is the minimum line search penalty parameter
-*/
-void ParOptInteriorPoint::setMinPenaltyParameter( double rho_min ){
-  if (rho_min >= 0.0){
-    rho_penalty_search = rho_min;
-    min_rho_penalty_search = rho_min;
-  }
-}
-
-/**
    Set the type of BFGS update.
 
    @param update is the type of BFGS update to use
@@ -1317,193 +986,6 @@ void ParOptInteriorPoint::setBFGSUpdateType( ParOptBFGSUpdateType update ){
     if (lbfgs){
       lbfgs->setBFGSUpdateType(update);
     }
-  }
-}
-
-/**
-   Set whether to use a sequential linear method or not.
-
-   @param truth indicates whether to use a SLP method
-*/
-void ParOptInteriorPoint::setSequentialLinearMethod( int truth ){
-  sequential_linear_method = truth;
-}
-
-/**
-   Set the minimum value of the multiplier/slack variable allowed in
-   the affine step start up point initialization procedure.
-
-   @param value is the minimum multiplier value used during an affine
-   starting point initialization procedure.
-*/
-void ParOptInteriorPoint::setStartAffineStepMultiplierMin( double value ){
-  start_affine_multiplier_min = value;
-}
-
-/**
-  Set the function precision.
-
-  Note that this is considered the absolute tolerance on the function
-  precision for both objective and constraints. This is used to test
-  whether no improvement is detected, or when to terminate the line search.
-
-  @param tol The function tolerance
-*/
-void ParOptInteriorPoint::setFunctionPrecision( double tol ){
-  if (tol > 0.0){
-    function_precision = tol;
-  }
-}
-
-/**
-  Set the design precision.
-
-  This is an absolute tolerance for the design variable values.
-  Changes below this value are considered below precision. This
-  tolerance is used to decide when a step produces no progress.
-
-  @param tol The design variable precision
-*/
-void ParOptInteriorPoint::setDesignPrecision( double tol ){
-  if (tol > 0.0){
-    design_precision = tol;
-  }
-}
-
-/**
-   Set the frequency with which the output is written.
-
-   A frequency value <= 0 indicates that output should never be written.
-
-   @param freq controls the output frequency
-*/
-void ParOptInteriorPoint::setOutputFrequency( int freq ){
-  write_output_frequency = freq;
-}
-
-/**
-   Set the step at which to check the step.
-
-   @param step sets the iteration to check
-*/
-void ParOptInteriorPoint::setMajorIterStepCheck( int step ){
-  major_iter_step_check = step;
-}
-
-/**
-   Set the frequency with which the gradient information is checked.
-
-   @param freq sets the frequency of the check
-   @param step_size controls the step size for the check
-*/
-void ParOptInteriorPoint::setGradientCheckFrequency( int freq, double step_size ){
-  gradient_check_frequency = freq;
-  gradient_check_step = step_size;
-}
-
-/**
-   Set the flag to use a diagonal hessian.
-
-   @param truth The truth flag for whether or not to use a diagonal Hessian
-*/
-void ParOptInteriorPoint::setUseDiagHessian( int truth ){
-  if (truth){
-    if (gmres_H){
-      delete [] gmres_H;
-      delete [] gmres_alpha;
-      delete [] gmres_res;
-      delete [] gmres_y;
-      delete [] gmres_fproj;
-      delete [] gmres_aproj;
-      delete [] gmres_awproj;
-      delete [] gmres_Q;
-
-      for ( int i = 0; i < gmres_subspace_size; i++ ){
-        gmres_W[i]->decref();
-      }
-      delete [] gmres_W;
-
-      // Null out the subspace data
-      gmres_subspace_size = 0;
-      gmres_H = NULL;
-      gmres_alpha = NULL;
-      gmres_res = NULL;
-      gmres_y = NULL;
-      gmres_fproj = NULL;
-      gmres_aproj = NULL;
-      gmres_awproj = NULL;
-      gmres_Q = NULL;
-      gmres_W = NULL;
-    }
-    if (!hdiag){
-      hdiag = prob->createDesignVec();
-      hdiag->incref();
-    }
-    use_hvec_product = 0;
-  }
-  use_diag_hessian = truth;
-}
-
-/**
-   Set the flag for whether to use the Hessian-vector products or not
-*/
-void ParOptInteriorPoint::setUseHvecProduct( int truth ){
-  if (truth){
-    use_diag_hessian = 0;
-    if (hdiag){
-      hdiag->decref();
-      hdiag = NULL;
-    }
-  }
-  use_hvec_product = truth;
-}
-
-/**
-   Use the limited-memory BFGS update as a preconditioner.
-*/
-void ParOptInteriorPoint::setUseQNGMRESPreCon( int truth ){
-  use_qn_gmres_precon = truth;
-}
-
-/**
-   Set information about when to use the Newton-Krylov method.
-
-   @param tol sets the tolerance at which to switch to an inexact
-   Newton-Krylov method
-*/
-void ParOptInteriorPoint::setNKSwitchTolerance( double tol ){
-  nk_switch_tol = tol;
-}
-
-/**
-   Set the GMRES tolerances.
-
-   @param rtol the relative tolerance
-   @param atol the absolute tolerance
-*/
-void ParOptInteriorPoint::setGMRESTolerances( double rtol, double atol ){
-  max_gmres_rtol = rtol;
-  gmres_atol = atol;
-}
-
-/**
-   Set the parameters for choosing the forcing term in an inexact
-   Newton method.
-
-   The Newton forcing parameters are used to compute the relative
-   convergence tolerance as:
-
-   eta = gamma*(||r_{k}||/||r_{k-1}||)^{alpha}
-
-   @param gamma the linear factor
-   @param alpha the exponent
-*/
-void ParOptInteriorPoint::setEisenstatWalkerParameters( double gamma, double alpha ){
-  if (gamma > 0.0 && gamma <= 1.0){
-    eisenstat_walker_gamma = gamma;
-  }
-  if (alpha >= 0.0 && gamma <= 2.0){
-    eisenstat_walker_alpha = alpha;
   }
 }
 
@@ -1561,16 +1043,6 @@ void ParOptInteriorPoint::resetQuasiNewtonHessian(){
 }
 
 /**
-   Set the flag to indicate whether quasi-Newton updates should be used
-   or not.
-
-   @param truth set whether to use quasi-Newton updates.
-*/
-void ParOptInteriorPoint::setUseQuasiNewtonUpdates( int truth ){
-  use_quasi_newton_update = truth;
-}
-
-/**
    Reset the design variables and bounds.
 */
 void ParOptInteriorPoint::resetDesignAndBounds(){
@@ -1595,7 +1067,7 @@ void ParOptInteriorPoint::setGMRESSubspaceSize( int m ){
     delete [] gmres_awproj;
     delete [] gmres_Q;
 
-    for ( int i = 0; i < m; i++ ){
+    for ( int i = 0; i < gmres_subspace_size; i++ ){
       gmres_W[i]->decref();
     }
     delete [] gmres_W;
@@ -1641,25 +1113,7 @@ void ParOptInteriorPoint::setOutputFile( const char *filename ){
 
   if (filename && rank == opt_root){
     outfp = fopen(filename, "w");
-
-    if (outfp){
-      fprintf(outfp, "ParOpt: Parameter summary\n");
-      for ( int i = 0; i < NUM_PAROPT_PARAMETERS; i++ ){
-        fprintf(outfp, "%s\n%s\n\n",
-                paropt_parameter_help[i][0],
-                paropt_parameter_help[i][1]);
-      }
-    }
   }
-}
-
-/**
-   Set the output file level
-
-   @param level 0, 1, 2 the verbosity level.
-*/
-void ParOptInteriorPoint::setOutputLevel( int level ){
-  output_level = level;
 }
 
 /**
@@ -1678,10 +1132,14 @@ void ParOptInteriorPoint::setOutputLevel( int level ){
    rzl = -((ub - x)*zu - mu*e)
 */
 void ParOptInteriorPoint::computeKKTRes( double barrier,
+                                         ParOptNormType norm_type,
                                          double *max_prime,
                                          double *max_dual,
                                          double *max_infeas,
                                          double *res_norm ){
+  const double max_bound_value = options->getFloatOption("max_bound_value");
+  const double rel_bound_barrier = options->getFloatOption("rel_bound_barrier");
+
   // Zero the values of the maximum residuals
   *max_prime = 0.0;
   *max_dual = 0.0;
@@ -1801,7 +1259,7 @@ void ParOptInteriorPoint::computeKKTRes( double barrier,
     rzl->getArray(&rzlvals);
 
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(lbvals[i]) > -max_bound_val){
+      if (ParOptRealPart(lbvals[i]) > -max_bound_value){
         rzlvals[i] = -((xvals[i] - lbvals[i])*zlvals[i] -
                        rel_bound_barrier*barrier);
       }
@@ -1830,7 +1288,7 @@ void ParOptInteriorPoint::computeKKTRes( double barrier,
     rzu->getArray(&rzuvals);
 
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(ubvals[i]) < max_bound_val){
+      if (ParOptRealPart(ubvals[i]) < max_bound_value){
         rzuvals[i] = -((ubvals[i] - xvals[i])*zuvals[i] -
                        rel_bound_barrier*barrier);
       }
@@ -1903,7 +1361,7 @@ void ParOptInteriorPoint::computeKKTRes( double barrier,
 /*
   Compute the maximum norm of the step
 */
-double ParOptInteriorPoint::computeStepNorm(){
+double ParOptInteriorPoint::computeStepNorm( ParOptNormType norm_type ){
   double step_norm = 0.0;
   if (norm_type == PAROPT_INFTY_NORM){
     step_norm = px->maxabs();
@@ -2017,6 +1475,11 @@ int ParOptInteriorPoint::applyCwFactor( ParOptVec *vec ){
 void ParOptInteriorPoint::setUpKKTDiagSystem( ParOptVec *xtmp,
                                               ParOptVec *wtmp,
                                               int use_qn ){
+  // Diagonal coefficient used for the quasi-Newton Hessian aprpoximation
+  const double qn_sigma = options->getFloatOption("qn_sigma");
+  const double max_bound_value = options->getFloatOption("max_bound_value");
+  const int use_diag_hessian = options->getBoolOption("use_diag_hessian");
+
   // Retrive the diagonal entry for the BFGS update
   ParOptScalar b0 = 0.0;
   ParOptScalar *h = NULL;
@@ -2046,16 +1509,16 @@ void ParOptInteriorPoint::setUpKKTDiagSystem( ParOptVec *xtmp,
   if (use_lower && use_upper){
     for ( int i = 0; i < nvars; i++ ){
       if (h){ b0 = h[i]; }
-      if (ParOptRealPart(lbvals[i]) > -max_bound_val &&
-          ParOptRealPart(ubvals[i]) < max_bound_val){
+      if (ParOptRealPart(lbvals[i]) > -max_bound_value &&
+          ParOptRealPart(ubvals[i]) < max_bound_value){
         cvals[i] = 1.0/(b0 + qn_sigma +
                         zlvals[i]/(xvals[i] - lbvals[i]) +
                         zuvals[i]/(ubvals[i] - xvals[i]));
       }
-      else if (ParOptRealPart(lbvals[i]) > -max_bound_val){
+      else if (ParOptRealPart(lbvals[i]) > -max_bound_value){
         cvals[i] = 1.0/(b0 + qn_sigma + zlvals[i]/(xvals[i] - lbvals[i]));
       }
-      else if (ParOptRealPart(ubvals[i]) < max_bound_val){
+      else if (ParOptRealPart(ubvals[i]) < max_bound_value){
         cvals[i] = 1.0/(b0 + qn_sigma + zuvals[i]/(ubvals[i] - xvals[i]));
       }
       else {
@@ -2066,7 +1529,7 @@ void ParOptInteriorPoint::setUpKKTDiagSystem( ParOptVec *xtmp,
   else if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
       if (h){ b0 = h[i]; }
-      if (ParOptRealPart(lbvals[i]) > -max_bound_val){
+      if (ParOptRealPart(lbvals[i]) > -max_bound_value){
         cvals[i] = 1.0/(b0 + qn_sigma + zlvals[i]/(xvals[i] - lbvals[i]));
       }
       else {
@@ -2077,7 +1540,7 @@ void ParOptInteriorPoint::setUpKKTDiagSystem( ParOptVec *xtmp,
   else if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
       if (h){ b0 = h[i]; }
-      if (ParOptRealPart(ubvals[i]) < max_bound_val){
+      if (ParOptRealPart(ubvals[i]) < max_bound_value){
         cvals[i] = 1.0/(b0 + qn_sigma + zuvals[i]/(ubvals[i] - xvals[i]));
       }
       else {
@@ -2341,6 +1804,8 @@ void ParOptInteriorPoint::solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bt,
                                               ParOptScalar *yzt,
                                               ParOptVec *yzl, ParOptVec *yzu,
                                               ParOptVec *xtmp, ParOptVec *wtmp ){
+  const double max_bound_value = options->getFloatOption("max_bound_value");
+
   // Get the arrays for the variables and upper/lower bounds
   ParOptScalar *xvals, *lbvals, *ubvals;
   x->getArray(&xvals);
@@ -2364,14 +1829,14 @@ void ParOptInteriorPoint::solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bt,
 
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(lbvals[i]) > -max_bound_val){
+      if (ParOptRealPart(lbvals[i]) > -max_bound_value){
         dvals[i] += cvals[i]*(bzlvals[i]/(xvals[i] - lbvals[i]));
       }
     }
   }
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(ubvals[i]) < max_bound_val){
+      if (ParOptRealPart(ubvals[i]) < max_bound_value){
         dvals[i] -= cvals[i]*(bzuvals[i]/(ubvals[i] - xvals[i]));
       }
     }
@@ -2566,7 +2031,7 @@ void ParOptInteriorPoint::solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bt,
   // Compute the steps in the bound Lagrange multipliers
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(lbvals[i]) > -max_bound_val){
+      if (ParOptRealPart(lbvals[i]) > -max_bound_value){
         yzlvals[i] = (bzlvals[i] - zlvals[i]*yxvals[i])/(xvals[i] - lbvals[i]);
       }
       else {
@@ -2577,7 +2042,7 @@ void ParOptInteriorPoint::solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bt,
 
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(ubvals[i]) < max_bound_val){
+      if (ParOptRealPart(ubvals[i]) < max_bound_value){
         yzuvals[i] = (bzuvals[i] + zuvals[i]*yxvals[i])/(ubvals[i] - xvals[i]);
       }
       else {
@@ -2607,6 +2072,8 @@ void ParOptInteriorPoint::solveKKTDiagSystem( ParOptVec *bx,
                                               ParOptScalar *yzt,
                                               ParOptVec *yzl, ParOptVec *yzu,
                                               ParOptVec *xtmp, ParOptVec *wtmp ){
+  const double max_bound_value = options->getFloatOption("max_bound_value");
+
   // Compute the terms from the weighting constraints
   // Compute xt = C^{-1}*bx
   ParOptScalar *bxvals, *dvals, *cvals;
@@ -2771,7 +2238,7 @@ void ParOptInteriorPoint::solveKKTDiagSystem( ParOptVec *bx,
   // Compute the steps in the bound Lagrange multipliers
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(lbvals[i]) > -max_bound_val){
+      if (ParOptRealPart(lbvals[i]) > -max_bound_value){
         yzlvals[i] = -(zlvals[i]*yxvals[i])/(xvals[i] - lbvals[i]);
       }
       else {
@@ -2782,7 +2249,7 @@ void ParOptInteriorPoint::solveKKTDiagSystem( ParOptVec *bx,
 
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(ubvals[i]) < max_bound_val){
+      if (ParOptRealPart(ubvals[i]) < max_bound_value){
         yzuvals[i] = (zuvals[i]*yxvals[i])/(ubvals[i] - xvals[i]);
       }
       else {
@@ -2950,6 +2417,8 @@ void ParOptInteriorPoint::solveKKTDiagSystem( ParOptVec *bx,
                                               ParOptScalar *yz,
                                               ParOptScalar *ys, ParOptVec *ysw,
                                               ParOptVec *xtmp, ParOptVec *wtmp ){
+  const double max_bound_value = options->getFloatOption("max_bound_value");
+
   // Get the arrays for the variables and upper/lower bounds
   ParOptScalar *xvals, *lbvals, *ubvals;
   x->getArray(&xvals);
@@ -2973,14 +2442,14 @@ void ParOptInteriorPoint::solveKKTDiagSystem( ParOptVec *bx,
 
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(lbvals[i]) > -max_bound_val){
+      if (ParOptRealPart(lbvals[i]) > -max_bound_value){
         dvals[i] += alpha*cvals[i]*(bzlvals[i]/(xvals[i] - lbvals[i]));
       }
     }
   }
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(ubvals[i]) < max_bound_val){
+      if (ParOptRealPart(ubvals[i]) < max_bound_value){
         dvals[i] -= alpha*cvals[i]*(bzuvals[i]/(ubvals[i] - xvals[i]));
       }
     }
@@ -3312,6 +2781,9 @@ void ParOptInteriorPoint::computeKKTStep( ParOptScalar *ztmp,
   Compute the complementarity at the current solution
 */
 ParOptScalar ParOptInteriorPoint::computeComp(){
+  const double max_bound_value = options->getFloatOption("max_bound_value");
+  double rel_bound_barrier = options->getFloatOption("rel_bound_barrier");
+
   // Retrieve the values of the design variables, lower/upper bounds
   // and the corresponding lagrange multipliers
   ParOptScalar *xvals, *lbvals, *ubvals, *zlvals, *zuvals;
@@ -3326,7 +2798,7 @@ ParOptScalar ParOptInteriorPoint::computeComp(){
 
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(lbvals[i]) > -max_bound_val){
+      if (ParOptRealPart(lbvals[i]) > -max_bound_value){
         product += zlvals[i]*(xvals[i] - lbvals[i]);
         sum += 1.0;
       }
@@ -3335,7 +2807,7 @@ ParOptScalar ParOptInteriorPoint::computeComp(){
 
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(ubvals[i]) < max_bound_val){
+      if (ParOptRealPart(ubvals[i]) < max_bound_value){
         product += zuvals[i]*(ubvals[i] - xvals[i]);
         sum += 1.0;
       }
@@ -3381,6 +2853,9 @@ ParOptScalar ParOptInteriorPoint::computeComp(){
   Compute the complementarity at the given step
 */
 ParOptScalar ParOptInteriorPoint::computeCompStep( double alpha_x, double alpha_z ){
+  const double max_bound_value = options->getFloatOption("max_bound_value");
+  double rel_bound_barrier = options->getFloatOption("rel_bound_barrier");
+
   // Retrieve the values of the design variables, lower/upper bounds
   // and the corresponding lagrange multipliers
   ParOptScalar *xvals, *lbvals, *ubvals, *zlvals, *zuvals;
@@ -3400,7 +2875,7 @@ ParOptScalar ParOptInteriorPoint::computeCompStep( double alpha_x, double alpha_
   ParOptScalar product = 0.0, sum = 0.0;
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(lbvals[i]) > -max_bound_val){
+      if (ParOptRealPart(lbvals[i]) > -max_bound_value){
         ParOptScalar xnew = xvals[i] + alpha_x*pxvals[i];
         product += (zlvals[i] + alpha_z*pzlvals[i])*(xnew - lbvals[i]);
         sum += 1.0;
@@ -3410,7 +2885,7 @@ ParOptScalar ParOptInteriorPoint::computeCompStep( double alpha_x, double alpha_
 
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(ubvals[i]) < max_bound_val){
+      if (ParOptRealPart(ubvals[i]) < max_bound_value){
         ParOptScalar xnew = xvals[i] + alpha_x*pxvals[i];
         product += (zuvals[i] + alpha_z*pzuvals[i])*(ubvals[i] - xnew);
         sum += 1.0;
@@ -3669,6 +3144,7 @@ void ParOptInteriorPoint::computeStep( int nvals,
                                        const ParOptScalar *lower_value,
                                        const ParOptScalar *ubvals,
                                        const ParOptScalar *upper_value ){
+  const double design_precision = options->getFloatOption("design_precision");
   for ( int i = 0; i < nvals; i++ ){
     xvals[i] = xvals[i] + alpha*pvals[i];
   }
@@ -3932,6 +3408,9 @@ ParOptScalar ParOptInteriorPoint::evalMeritFunc( ParOptScalar fk,
                                                  const ParOptScalar *sk,
                                                  const ParOptScalar *tk,
                                                  ParOptVec *swk ){
+  const double max_bound_value = options->getFloatOption("max_bound_value");
+  double rel_bound_barrier = options->getFloatOption("rel_bound_barrier");
+
   // Get the value of the lower/upper bounds and variables
   ParOptScalar *xvals, *lbvals, *ubvals;
   xk->getArray(&xvals);
@@ -3946,7 +3425,7 @@ ParOptScalar ParOptInteriorPoint::evalMeritFunc( ParOptScalar fk,
 
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(lbvals[i]) > -max_bound_val){
+      if (ParOptRealPart(lbvals[i]) > -max_bound_value){
         if (ParOptRealPart(xvals[i] - lbvals[i]) > 1.0){
           pos_result += log(xvals[i] - lbvals[i]);
         }
@@ -3959,7 +3438,7 @@ ParOptScalar ParOptInteriorPoint::evalMeritFunc( ParOptScalar fk,
 
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(ubvals[i]) < max_bound_val){
+      if (ParOptRealPart(ubvals[i]) < max_bound_value){
         if (ParOptRealPart(ubvals[i] - xvals[i]) > 1.0){
           pos_result += log(ubvals[i] - xvals[i]);
         }
@@ -4097,6 +3576,13 @@ void ParOptInteriorPoint::evalMeritInitDeriv( double max_x,
                                               ParOptVec *xtmp,
                                               ParOptVec *wtmp1,
                                               ParOptVec *wtmp2 ){
+  const double min_rho_penalty_search = options->getFloatOption("min_rho_penalty_search");
+  const double penalty_descent_fraction = options->getFloatOption("penalty_descent_fraction");
+  const double max_bound_value = options->getFloatOption("max_bound_value");
+  double rel_bound_barrier = options->getFloatOption("rel_bound_barrier");
+  const double abs_res_tol = options->getFloatOption("abs_res_tol");
+  const int use_diag_hessian = options->getBoolOption("use_diag_hessian");
+
   // Retrieve the values of the design variables, the design
   // variable step, and the lower/upper bounds
   ParOptScalar *xvals, *pxvals, *lbvals, *ubvals;
@@ -4114,7 +3600,7 @@ void ParOptInteriorPoint::evalMeritInitDeriv( double max_x,
 
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(lbvals[i]) > -max_bound_val){
+      if (ParOptRealPart(lbvals[i]) > -max_bound_value){
         if (ParOptRealPart(xvals[i] - lbvals[i]) > 1.0){
           pos_result += log(xvals[i] - lbvals[i]);
         }
@@ -4134,7 +3620,7 @@ void ParOptInteriorPoint::evalMeritInitDeriv( double max_x,
 
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(ubvals[i]) < max_bound_val){
+      if (ParOptRealPart(ubvals[i]) < max_bound_value){
         if (ParOptRealPart(ubvals[i] - xvals[i]) > 1.0){
           pos_result += log(ubvals[i] - xvals[i]);
         }
@@ -4414,6 +3900,13 @@ void ParOptInteriorPoint::evalMeritInitDeriv( double max_x,
 */
 int ParOptInteriorPoint::lineSearch( double alpha_min, double *_alpha,
                                      ParOptScalar m0, ParOptScalar dm0 ){
+  // Get parameters for the line search method
+  const int max_line_iters = options->getIntOption("max_line_iters");
+  const int use_backtracking_alpha = options->getBoolOption("use_backtracking_alpha");
+  const double armijo_constant = options->getFloatOption("armijo_constant");
+  const double function_precision = options->getFloatOption("function_precision");
+  const int output_level = options->getIntOption("output_level");
+
   // Perform a backtracking line search until the sufficient decrease
   // conditions are satisfied
   double alpha = *_alpha;
@@ -4636,6 +4129,8 @@ int ParOptInteriorPoint::lineSearch( double alpha_min, double *_alpha,
 int ParOptInteriorPoint::computeStepAndUpdate( double alpha,
                                                int eval_obj_con,
                                                int perform_qn_update ){
+  const int use_quasi_newton_update = options->getBoolOption("use_quasi_newton_update");
+
   // Set the new values of the variables
   ParOptScalar zero = 0.0;
   if (nwcon > 0){
@@ -4739,6 +4234,8 @@ int ParOptInteriorPoint::computeStepAndUpdate( double alpha,
   init_multipliers:  Flag to indicate whether to initialize multipliers
 */
 void ParOptInteriorPoint::initAndCheckDesignAndBounds(){
+  const double max_bound_value = options->getFloatOption("max_bound_value");
+
   // Get the design variables and bounds
   prob->getVarsAndBounds(x, lb, ub);
 
@@ -4756,8 +4253,8 @@ void ParOptInteriorPoint::initAndCheckDesignAndBounds(){
     for ( int i = 0; i < nvars; i++ ){
       // Fixed variables are not allowed
       ParOptScalar delta = 1.0;
-      if (ParOptRealPart(lbvals[i]) > -max_bound_val &&
-          ParOptRealPart(ubvals[i]) < max_bound_val){
+      if (ParOptRealPart(lbvals[i]) > -max_bound_value &&
+          ParOptRealPart(ubvals[i]) < max_bound_value){
         if (ParOptRealPart(lbvals[i]) >= ParOptRealPart(ubvals[i])){
           check_flag = (check_flag | 1);
           // Make up bounds
@@ -4768,12 +4265,12 @@ void ParOptInteriorPoint::initAndCheckDesignAndBounds(){
       }
 
       // Check if x is too close the boundary
-      if (ParOptRealPart(lbvals[i]) > -max_bound_val &&
+      if (ParOptRealPart(lbvals[i]) > -max_bound_value &&
           ParOptRealPart(xvals[i]) < ParOptRealPart(lbvals[i] + rel_bound*delta)){
         check_flag = (check_flag | 2);
         xvals[i] = lbvals[i] + rel_bound*delta;
       }
-      if (ParOptRealPart(ubvals[i]) < max_bound_val &&
+      if (ParOptRealPart(ubvals[i]) < max_bound_value &&
           ParOptRealPart(xvals[i]) > ParOptRealPart(ubvals[i] - rel_bound*delta)){
         check_flag = (check_flag | 4);
         xvals[i] = ubvals[i] - rel_bound*delta;
@@ -4811,10 +4308,10 @@ void ParOptInteriorPoint::initAndCheckDesignAndBounds(){
   zu->getArray(&zuvals);
 
   for ( int i = 0; i < nvars; i++ ){
-    if (ParOptRealPart(lbvals[i]) <= -max_bound_val){
+    if (ParOptRealPart(lbvals[i]) <= -max_bound_value){
       zlvals[i] = 0.0;
     }
-    if (ParOptRealPart(ubvals[i]) >= max_bound_val){
+    if (ParOptRealPart(ubvals[i]) >= max_bound_value){
       zuvals[i] = 0.0;
     }
   }
@@ -4843,16 +4340,128 @@ void ParOptInteriorPoint::initAndCheckDesignAndBounds(){
    @param checkpoint the name of the checkpoint file (NULL if not needed)
 */
 int ParOptInteriorPoint::optimize( const char *checkpoint ){
-  if (gradient_check_frequency > 0){
-    prob->checkGradients(gradient_check_step, x, use_hvec_product);
+  // Set the stopping criteria constants
+  const double abs_res_tol = options->getFloatOption("abs_res_tol");
+  const double rel_func_tol = options->getFloatOption("rel_func_tol");
+  const double abs_step_tol = options->getFloatOption("abs_step_tol");
+
+  // Set the default norm type
+  const char *norm_name = options->getEnumOption("norm_type");
+  ParOptNormType norm_type = PAROPT_L2_NORM;
+  if (strcmp(norm_name, "infinity") == 0){
+    norm_type = PAROPT_INFTY_NORM;
+  }
+  else if (strcmp(norm_name, "l1") == 0){
+    norm_type = PAROPT_L1_NORM;
   }
 
-  // Zero out the number of function/gradient evaluations
+  // Set the default starting point strategy
+  const char *start_name = options->getEnumOption("starting_point_strategy");
+  ParOptStartingPointStrategy starting_point_strategy =
+    PAROPT_NO_START_STRATEGY;
+  if (strcmp(start_name, "least_squares_multipliers") == 0){
+    starting_point_strategy = PAROPT_LEAST_SQUARES_MULTIPLIERS;
+  }
+  else if (strcmp(start_name, "affine_step") == 0){
+    starting_point_strategy = PAROPT_AFFINE_STEP;
+  }
+
+  // Set the barrier strategy
+  const char *barrier_name = options->getEnumOption("barrier_strategy");
+  ParOptBarrierStrategy barrier_strategy = PAROPT_COMPLEMENTARITY_FRACTION;
+  if (strcmp(barrier_name, "monotone") == 0){
+    barrier_strategy = PAROPT_MONOTONE;
+  }
+  else if (strcmp(barrier_name, "mehrotra") == 0){
+    barrier_strategy = PAROPT_MEHROTRA;
+  }
+
+  // Set the initial barrier parameter
+  barrier_param = options->getFloatOption("init_barrier_param");
+
+  // Set the initial value of the penalty parameter for the line search
+  rho_penalty_search = options->getFloatOption("init_rho_penalty_search");
+
+  // Maximum number of iterations (major since we sometimes use GMRES an
+  // the inner loop)
+  const int max_major_iters = options->getIntOption("max_major_iters");
+
+  // Get options about the Hessian approximation (if any is defined)
+  const int use_quasi_newton_update =
+    options->getBoolOption("use_quasi_newton_update");
+  const int hessian_reset_freq =
+    options->getIntOption("hessian_reset_freq");
+  const int use_diag_hessian = options->getBoolOption("use_diag_hessian");
+  const int sequential_linear_method =
+    options->getBoolOption("sequential_linear_method");
+
+  // Adjust whether to use the diagonal contribution to the Hessian
+  if (!hdiag && use_diag_hessian){
+    hdiag = prob->createDesignVec();
+    hdiag->incref();
+  }
+  else if (hdiag && !use_diag_hessian){
+    hdiag->decref();
+    hdiag = NULL;
+  }
+
+  // Check if the GMRES subspace is large enough
+  int m = options->getIntOption("gmres_subspace_size");
+  if (m != gmres_subspace_size){
+    setGMRESSubspaceSize(m);
+  }
+
+  // Get settings related to the Hessian-vector products
+  const int use_hvec_product = options->getBoolOption("use_hvec_product");
+  const double nk_switch_tol = options->getFloatOption("nk_switch_tol");
+  const double eisenstat_walker_gamma =
+    options->getFloatOption("eisenstat_walker_gamma");
+  const double eisenstat_walker_alpha =
+    options->getFloatOption("eisenstat_walker_alpha");
+  const double max_gmres_rtol = options->getFloatOption("max_gmres_rtol");
+  const double gmres_atol = options->getFloatOption("gmres_atol");
+  const int use_qn_gmres_precon = options->getBoolOption("use_qn_gmres_precon");
+
+  // Fraction to the boundary rule
+  const double min_fraction_to_boundary =
+    options->getFloatOption("min_fraction_to_boundary");
+
+  // Use a line search or not?
+  const int use_line_search = options->getBoolOption("use_line_search");
+
+  // Get the precision parameter values
+  const double function_precision =
+    options->getFloatOption("function_precision");
+  const double design_precision =
+    options->getFloatOption("design_precision");
+
+  // Perform a gradient check at a specified frequency
+  const int gradient_verification_frequency =
+    options->getIntOption("gradient_verification_frequency");
+  const double gradient_check_step_length =
+    options->getFloatOption("gradient_check_step_length");
+
+  // Frequency at which the output is written to a file
+  const int write_output_frequency =
+    options->getIntOption("write_output_frequency");
+
+  // Set the output level
+  const int output_level = options->getIntOption("output_level");
+
+  // Perform an initial check of the gradient, if set by the options
+  if (gradient_verification_frequency > 0){
+    prob->checkGradients(gradient_check_step_length,
+                         x, use_hvec_product);
+  }
+
+  // Zero out the number of function/gradient/hessian evaluations
   niter = neval = ngeval = nhvec = 0;
 
   // If no quasi-Newton method is defined, use a sequential linear method instead
-  if (!qn){
-    sequential_linear_method = 1;
+  if (!sequential_linear_method && !qn){
+    fprintf(stderr, "ParOpt Error: Must use a sequential linear method if no "
+            "quasi-Newton approximation is defined\n");
+    return 1;
   }
 
   // Initialize and check the design variables and bounds
@@ -4877,194 +4486,11 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
     return fail_obj;
   }
 
-  // Set the largrange multipliers with bounds outside the
-  // limits to zero
-  ParOptScalar *lbvals, *ubvals, *zlvals, *zuvals;
-  lb->getArray(&lbvals);
-  ub->getArray(&ubvals);
-  zl->getArray(&zlvals);
-  zu->getArray(&zuvals);
-
   if (starting_point_strategy == PAROPT_AFFINE_STEP){
-    // Zero the multipliers for bounds that are out-of-range
-    for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(lbvals[i]) <= -max_bound_val){
-        zlvals[i] = 0.0;
-      }
-      if (ParOptRealPart(ubvals[i]) >= max_bound_val){
-        zuvals[i] = 0.0;
-      }
-    }
-
-    // Find the affine scaling step
-    double max_prime, max_dual, max_infeas;
-    computeKKTRes(0.0, &max_prime, &max_dual, &max_infeas);
-
-    // Set the flag which determines whether or not to use
-    // the quasi-Newton method as a preconditioner
-    int use_qn = 1;
-    if (sequential_linear_method || !use_qn_gmres_precon){
-      use_qn = 0;
-    }
-
-    // Set up the KKT diagonal system
-    setUpKKTDiagSystem(s_qn, wtemp, use_qn);
-
-    // Set up the full KKT system
-    setUpKKTSystem(ztemp, s_qn, y_qn, wtemp, use_qn);
-
-    // Solve for the KKT step
-    computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_qn);
-
-    // Copy over the values
-    if (dense_inequality){
-      for ( int i = 0; i < ncon; i++ ){
-        z[i] = max2(start_affine_multiplier_min,
-                    fabs(ParOptRealPart(z[i] + pz[i])));
-        s[i] = max2(start_affine_multiplier_min,
-                    fabs(ParOptRealPart(s[i] + ps[i])));
-        t[i] = max2(start_affine_multiplier_min,
-                    fabs(ParOptRealPart(t[i] + pt[i])));
-        zt[i] = max2(start_affine_multiplier_min,
-                     fabs(ParOptRealPart(zt[i] + pzt[i])));
-      }
-    }
-    else {
-      for ( int i = 0; i < ncon; i++ ){
-        z[i] = max2(start_affine_multiplier_min,
-                    fabs(ParOptRealPart(z[i] + pz[i])));
-      }
-    }
-
-    // Copy the values
-    if (nwcon > 0){
-      ParOptScalar *zwvals, *pzwvals;
-      zw->getArray(&zwvals);
-      pzw->getArray(&pzwvals);
-      for ( int i = 0; i < nwcon; i++ ){
-        zwvals[i] = max2(start_affine_multiplier_min,
-                         fabs(ParOptRealPart(zwvals[i] + pzwvals[i])));
-      }
-
-      if (sparse_inequality){
-        ParOptScalar *swvals, *pswvals;
-        sw->getArray(&swvals);
-        psw->getArray(&pswvals);
-        for ( int i = 0; i < nwcon; i++ ){
-          swvals[i] = max2(start_affine_multiplier_min,
-                           fabs(ParOptRealPart(swvals[i] + pswvals[i])));
-        }
-      }
-    }
-
-    if (use_lower){
-      ParOptScalar *zlvals, *pzlvals;
-      zl->getArray(&zlvals);
-      pzl->getArray(&pzlvals);
-      for ( int i = 0; i < nvars; i++ ){
-        if (ParOptRealPart(lbvals[i]) > -max_bound_val){
-          zlvals[i] = max2(start_affine_multiplier_min,
-                           fabs(ParOptRealPart(zlvals[i] + pzlvals[i])));
-        }
-      }
-    }
-    if (use_upper){
-      ParOptScalar *zuvals, *pzuvals;
-      zu->getArray(&zuvals);
-      pzu->getArray(&pzuvals);
-      for ( int i = 0; i < nvars; i++ ){
-        if (ParOptRealPart(ubvals[i]) < max_bound_val){
-          zuvals[i] = max2(start_affine_multiplier_min,
-                           fabs(ParOptRealPart(zuvals[i] + pzuvals[i])));
-        }
-      }
-    }
-
-    // Set the initial barrier parameter
-    barrier_param = ParOptRealPart(computeComp());
+    initAffineStepMultipliers(norm_type);
   }
   else if (starting_point_strategy == PAROPT_LEAST_SQUARES_MULTIPLIERS){
-    // Set the Largrange multipliers associated with the
-    // the lower/upper bounds to 1.0
-    zl->set(1.0);
-    zu->set(1.0);
-
-    // Set the Lagrange multipliers and slack variables
-    // associated with the sparse constraints to 1.0
-    zw->set(1.0);
-    sw->set(1.0);
-
-    // Set the Largrange multipliers and slack variables associated
-    // with the dense constraints to 1.0
-    for ( int i = 0; i < ncon; i++ ){
-      z[i] = 1.0;
-      s[i] = 1.0;
-      zt[i] = 1.0;
-      t[i] = 1.0;
-    }
-
-    // Zero the multipliers for bounds that are out-of-range
-    for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(lbvals[i]) <= -max_bound_val){
-        zlvals[i] = 0.0;
-      }
-      if (ParOptRealPart(ubvals[i]) >= max_bound_val){
-        zuvals[i] = 0.0;
-      }
-    }
-
-    // Form the right-hand-side of the least squares problem for the
-    // dense constraint multipliers
-    ParOptVec *xt = y_qn;
-    xt->copyValues(g);
-    xt->axpy(-1.0, zl);
-    xt->axpy(1.0, zu);
-
-    for ( int i = 0; i < ncon; i++ ){
-      z[i] = Ac[i]->dot(xt);
-    }
-
-    // Compute Dmat = A*A^{T}
-    for ( int i = 0; i < ncon; i++ ){
-      Ac[i]->mdot(Ac, ncon, &Dmat[i*ncon]);
-    }
-
-    if (ncon > 0){
-      // Compute the factorization of Dmat
-      int info;
-      LAPACKdgetrf(&ncon, &ncon, Dmat, &ncon, dpiv, &info);
-
-      // Solve the linear system
-      if (!info){
-        int one = 1;
-        LAPACKdgetrs("N", &ncon, &one, Dmat, &ncon, dpiv,
-                     z, &ncon, &info);
-
-        // Keep the Lagrange multipliers if they are within a
-        // reasonable range and they are positive.
-        if (dense_inequality){
-          for ( int i = 0; i < ncon; i++ ){
-            if (ParOptRealPart(z[i]) < 0.01 ||
-                ParOptRealPart(z[i]) > penalty_gamma[i]){
-              z[i] = 1.0;
-            }
-          }
-        }
-        else {
-          for ( int i = 0; i < ncon; i++ ){
-            if (ParOptRealPart(z[i]) < -penalty_gamma[i] ||
-                ParOptRealPart(z[i]) > penalty_gamma[i]){
-              z[i] = 1.0;
-            }
-          }
-        }
-      }
-      else {
-        for ( int i = 0; i < ncon; i++ ){
-          z[i] = 1.0;
-        }
-      }
-    }
+    initLeastSquaresMultipliers();
   }
 
   // Some quasi-Newton methods can be updated with only the design variable
@@ -5140,10 +4566,10 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
 
     // Print to screen the gradient check results at
     // iteration k
-    if (k > 0 &&
-        (gradient_check_frequency > 0) &&
-        (k % gradient_check_frequency == 0)){
-      prob->checkGradients(gradient_check_step, x, use_hvec_product);
+    if (k > 0 && (gradient_verification_frequency > 0) &&
+        (k % gradient_verification_frequency == 0)){
+      prob->checkGradients(gradient_check_step_length, x,
+                           use_hvec_product);
     }
 
     // Determine if we should switch to a new barrier problem or not
@@ -5174,7 +4600,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
 
     if (barrier_strategy == PAROPT_MONOTONE){
       // Compute the residual of the KKT system
-      computeKKTRes(barrier_param,
+      computeKKTRes(barrier_param, norm_type,
                     &max_prime, &max_dual, &max_infeas, &res_norm);
 
       // Compute the maximum of the norm of the residuals
@@ -5201,6 +4627,11 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       MPI_Bcast(&barrier_converged, 1, MPI_INT, opt_root, comm);
 
       if (barrier_converged){
+        const double monotone_barrier_fraction =
+          options->getFloatOption("monotone_barrier_fraction");
+        const double monotone_barrier_power =
+          options->getFloatOption("monotone_barrier_power");
+
         // If the barrier problem converged, we need a new convergence
         // test, but if the barrier parameter is  converged
         if (barrier_param > 0.1*abs_res_tol){
@@ -5227,11 +4658,12 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         }
 
         // Compute the new barrier parameter value
-        computeKKTRes(new_barrier_param,
+        computeKKTRes(new_barrier_param, norm_type,
                       &max_prime, &max_dual, &max_infeas, &res_norm);
 
         // Reset the penalty parameter to the min allowable value
-        rho_penalty_search = min_rho_penalty_search;
+        rho_penalty_search =
+          options->getFloatOption("min_rho_penalty_search");
 
         // Set the new barrier parameter
         barrier_param = new_barrier_param;
@@ -5239,7 +4671,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
     }
     else if (barrier_strategy == PAROPT_MEHROTRA){
       // Compute the residual of the KKT system
-      computeKKTRes(barrier_param,
+      computeKKTRes(barrier_param, norm_type,
                     &max_prime, &max_dual, &max_infeas, &res_norm);
 
       if (k == 0){
@@ -5247,13 +4679,16 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       }
     }
     else if (barrier_strategy == PAROPT_COMPLEMENTARITY_FRACTION){
+      const double monotone_barrier_fraction =
+        options->getFloatOption("monotone_barrier_fraction");
+
       barrier_param = monotone_barrier_fraction*ParOptRealPart(comp);
       if (barrier_param < 0.1*abs_res_tol){
         barrier_param = 0.1*abs_res_tol;
       }
 
       // Compute the residual of the KKT system
-      computeKKTRes(barrier_param,
+      computeKKTRes(barrier_param, norm_type,
                     &max_prime, &max_dual, &max_infeas, &res_norm);
 
       if (k == 0){
@@ -5366,7 +4801,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
                               gmres_rtol, gmres_atol, use_qn);
 
         if (abs_step_tol > 0.0){
-          step_norm_prev = computeStepNorm();
+          step_norm_prev = computeStepNorm(norm_type);
         }
 
         if (gmres_iters < 0){
@@ -5377,7 +4812,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
 
           // Recompute the residual of the KKT system - the residual
           // was destroyed during the failed GMRES iteration
-          computeKKTRes(barrier_param,
+          computeKKTRes(barrier_param, norm_type,
                         &max_prime, &max_dual, &max_infeas);
         }
         else {
@@ -5442,7 +4877,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       // Compute the affine residual with barrier = 0.0 if we are using
       // the Mehrotra probing barrier strategy
       if (barrier_strategy == PAROPT_MEHROTRA){
-        computeKKTRes(0.0, &max_prime, &max_dual, &max_infeas);
+        computeKKTRes(0.0, norm_type, &max_prime, &max_dual, &max_infeas);
       }
 
       // Set up the KKT diagonal system. If we're using only the
@@ -5466,7 +4901,7 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       // Compute the norm of the step length. This is only used if the
       // abs_step_tol is set. It defaults to zero.
       if (abs_step_tol > 0.0){
-        step_norm_prev = computeStepNorm();
+        step_norm_prev = computeStepNorm(norm_type);
       }
 
       if (barrier_strategy == PAROPT_MEHROTRA){
@@ -5497,7 +4932,8 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         }
 
         // Compute the residual with the new barrier parameter
-        computeKKTRes(barrier_param, &max_prime, &max_dual, &max_infeas);
+        computeKKTRes(barrier_param, norm_type,
+                      &max_prime, &max_dual, &max_infeas);
 
         // Compute the KKT Step
         computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_qn);
@@ -5505,8 +4941,8 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
     }
 
     // Check the KKT step
-    if (major_iter_step_check > 0 &&
-        ((k % major_iter_step_check) == 0)){
+    if (gradient_verification_frequency > 0 &&
+        ((k % gradient_verification_frequency) == 0)){
       checkKKTStep(k, inexact_newton_step);
     }
 
@@ -5577,7 +5013,8 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
 
           // Re-compute the KKT residuals since they may be over-written
           // during the line search step
-          computeKKTRes(barrier_param, &max_prime, &max_dual, &max_infeas);
+          computeKKTRes(barrier_param, norm_type,
+                        &max_prime, &max_dual, &max_infeas);
 
           // Set up the KKT diagonal system
           int use_qn = 0;
@@ -5605,9 +5042,9 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
 
         // Check that the merit function derivative is correct and print
         // the derivative to the screen on the optimization-root processor
-        if (major_iter_step_check > 0 &&
-            ((k % major_iter_step_check) == 0)){
-          checkMeritFuncGradient(NULL, merit_func_check_epsilon);
+        if (gradient_verification_frequency > 0 &&
+            ((k % gradient_verification_frequency) == 0)){
+          checkMeritFuncGradient(NULL, gradient_check_step_length);
         }
 
         if (ParOptRealPart(dm0) >= 0.0){
@@ -5733,396 +5170,222 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
 }
 
 /*
-  Compute the solution of the system using MINRES.
-
-  Note that this will only work if the preconditioner is
-  symmetrized, so it does not work with the current code.
+  Compute an initial multiplier estimate using a least-squares method
 */
-int ParOptInteriorPoint::computeKKTMinResStep( ParOptScalar *ztmp,
-                                               ParOptVec *xtmp1, ParOptVec *xtmp2,
-                                               ParOptVec *xtmp3, ParOptVec *wtmp,
-                                               double rtol, double atol,
-                                               int use_qn ){
-  // Compute the beta factor: the product of the diagonal terms
-  // after normalization
-  ParOptScalar beta_dot = 0.0;
+void ParOptInteriorPoint::initLeastSquaresMultipliers(){
+  const double max_bound_value =
+    options->getFloatOption("max_bound_value");
+
+  // Set the largrange multipliers with bounds outside the
+  // limits to zero
+  ParOptScalar *lbvals, *ubvals, *zlvals, *zuvals;
+  lb->getArray(&lbvals);
+  ub->getArray(&ubvals);
+  zl->getArray(&zlvals);
+  zu->getArray(&zuvals);
+
+  // Set the Largrange multipliers associated with the
+  // the lower/upper bounds to 1.0
+  zl->set(1.0);
+  zu->set(1.0);
+
+  // Set the Lagrange multipliers and slack variables
+  // associated with the sparse constraints to 1.0
+  zw->set(1.0);
+  sw->set(1.0);
+
+  // Set the Largrange multipliers and slack variables associated
+  // with the dense constraints to 1.0
   for ( int i = 0; i < ncon; i++ ){
-    beta_dot += rc[i]*rc[i];
+    z[i] = 1.0;
+    s[i] = 1.0;
+    zt[i] = 1.0;
+    t[i] = 1.0;
   }
-  if (dense_inequality){
-    for ( int i = 0; i < ncon; i++ ){
-      beta_dot += rs[i]*rs[i];
-      beta_dot += rt[i]*rt[i];
-      beta_dot += rzt[i]*rzt[i];
+
+  // Zero the multipliers for bounds that are out-of-range
+  for ( int i = 0; i < nvars; i++ ){
+    if (ParOptRealPart(lbvals[i]) <= -max_bound_value){
+      zlvals[i] = 0.0;
+    }
+    if (ParOptRealPart(ubvals[i]) >= max_bound_value){
+      zuvals[i] = 0.0;
     }
   }
+
+  // Form the right-hand-side of the least squares problem for the
+  // dense constraint multipliers
+  ParOptVec *xt = y_qn;
+  xt->copyValues(g);
+  xt->axpy(-1.0, zl);
+  xt->axpy(1.0, zu);
+
+  for ( int i = 0; i < ncon; i++ ){
+    z[i] = Ac[i]->dot(xt);
+  }
+
+  // Compute Dmat = A*A^{T}
+  for ( int i = 0; i < ncon; i++ ){
+    Ac[i]->mdot(Ac, ncon, &Dmat[i*ncon]);
+  }
+
+  if (ncon > 0){
+    // Compute the factorization of Dmat
+    int info;
+    LAPACKdgetrf(&ncon, &ncon, Dmat, &ncon, dpiv, &info);
+
+    // Solve the linear system
+    if (!info){
+      int one = 1;
+      LAPACKdgetrs("N", &ncon, &one, Dmat, &ncon, dpiv,
+                    z, &ncon, &info);
+
+      // Keep the Lagrange multipliers if they are within a
+      // reasonable range and they are positive.
+      if (dense_inequality){
+        for ( int i = 0; i < ncon; i++ ){
+          if (ParOptRealPart(z[i]) < 0.01 ||
+              ParOptRealPart(z[i]) > penalty_gamma[i]){
+            z[i] = 1.0;
+          }
+        }
+      }
+      else {
+        for ( int i = 0; i < ncon; i++ ){
+          if (ParOptRealPart(z[i]) < -penalty_gamma[i] ||
+              ParOptRealPart(z[i]) > penalty_gamma[i]){
+            z[i] = 1.0;
+          }
+        }
+      }
+    }
+    else {
+      for ( int i = 0; i < ncon; i++ ){
+        z[i] = 1.0;
+      }
+    }
+  }
+}
+
+void ParOptInteriorPoint::initAffineStepMultipliers( ParOptNormType norm_type ){
+  // Set the minimum allowable multiplier
+  const double start_affine_multiplier_min =
+    options->getFloatOption("start_affine_multiplier_min");
+  const double max_bound_value =
+    options->getFloatOption("max_bound_value");
+  const int sequential_linear_method =
+    options->getBoolOption("sequential_linear_method");
+  const int use_qn_gmres_precon =
+     options->getBoolOption("use_qn_gmres_precon");
+
+  // Perform a preliminary estimate of the multipliers using the
+  // least-squares method
+  initLeastSquaresMultipliers();
+
+  // Set the largrange multipliers with bounds outside the
+  // limits to zero
+  ParOptScalar *lbvals, *ubvals, *zlvals, *zuvals;
+  lb->getArray(&lbvals);
+  ub->getArray(&ubvals);
+  zl->getArray(&zlvals);
+  zu->getArray(&zuvals);
+
+  // Zero the multipliers for bounds that are out-of-range
+  for ( int i = 0; i < nvars; i++ ){
+    if (ParOptRealPart(lbvals[i]) <= -max_bound_value){
+      zlvals[i] = 0.0;
+    }
+    if (ParOptRealPart(ubvals[i]) >= max_bound_value){
+      zuvals[i] = 0.0;
+    }
+  }
+
+  // Find the affine scaling step
+  double max_prime, max_dual, max_infeas;
+  computeKKTRes(0.0, norm_type, &max_prime, &max_dual, &max_infeas);
+
+  // Set the flag which determines whether or not to use
+  // the quasi-Newton method as a preconditioner
+  int use_qn = 1;
+  if (sequential_linear_method || !use_qn_gmres_precon){
+    use_qn = 0;
+  }
+
+  // Set up the KKT diagonal system
+  setUpKKTDiagSystem(s_qn, wtemp, use_qn);
+
+  // Set up the full KKT system
+  setUpKKTSystem(ztemp, s_qn, y_qn, wtemp, use_qn);
+
+  // Solve for the KKT step
+  computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_qn);
+
+  // Copy over the values
+  if (dense_inequality){
+    for ( int i = 0; i < ncon; i++ ){
+      z[i] = max2(start_affine_multiplier_min,
+                  fabs(ParOptRealPart(z[i] + pz[i])));
+      s[i] = max2(start_affine_multiplier_min,
+                  fabs(ParOptRealPart(s[i] + ps[i])));
+      t[i] = max2(start_affine_multiplier_min,
+                  fabs(ParOptRealPart(t[i] + pt[i])));
+      zt[i] = max2(start_affine_multiplier_min,
+                    fabs(ParOptRealPart(zt[i] + pzt[i])));
+    }
+  }
+  else {
+    for ( int i = 0; i < ncon; i++ ){
+      z[i] = max2(start_affine_multiplier_min,
+                  fabs(ParOptRealPart(z[i] + pz[i])));
+    }
+  }
+
+  // Copy the values
+  if (nwcon > 0){
+    ParOptScalar *zwvals, *pzwvals;
+    zw->getArray(&zwvals);
+    pzw->getArray(&pzwvals);
+    for ( int i = 0; i < nwcon; i++ ){
+      zwvals[i] = max2(start_affine_multiplier_min,
+                        fabs(ParOptRealPart(zwvals[i] + pzwvals[i])));
+    }
+
+    if (sparse_inequality){
+      ParOptScalar *swvals, *pswvals;
+      sw->getArray(&swvals);
+      psw->getArray(&pswvals);
+      for ( int i = 0; i < nwcon; i++ ){
+        swvals[i] = max2(start_affine_multiplier_min,
+                          fabs(ParOptRealPart(swvals[i] + pswvals[i])));
+      }
+    }
+  }
+
   if (use_lower){
-    beta_dot += rzl->dot(rzl);
+    ParOptScalar *zlvals, *pzlvals;
+    zl->getArray(&zlvals);
+    pzl->getArray(&pzlvals);
+    for ( int i = 0; i < nvars; i++ ){
+      if (ParOptRealPart(lbvals[i]) > -max_bound_value){
+        zlvals[i] = max2(start_affine_multiplier_min,
+                          fabs(ParOptRealPart(zlvals[i] + pzlvals[i])));
+      }
+    }
   }
   if (use_upper){
-    beta_dot += rzu->dot(rzu);
-  }
-  if (nwcon > 0){
-    beta_dot += rcw->dot(rcw);
-    if (sparse_inequality){
-      beta_dot += rsw->dot(rsw);
-    }
-  }
-
-  // Compute the norm of the initial vector
-  ParOptScalar bnorm = sqrt(rx->dot(rx) + beta_dot);
-
-  // Broadcast the norm of the residuals and the beta parameter to
-  // keep things consistent across processors
-  ParOptScalar temp[2];
-  temp[0] = bnorm;
-  temp[1] = beta_dot;
-  MPI_Bcast(temp, 2, PAROPT_MPI_TYPE, opt_root, comm);
-  bnorm = temp[0];
-  beta_dot = temp[1];
-
-  beta_dot = beta_dot/(bnorm*bnorm);
-
-  // Compute the inverse of the l2 norm of the dense inequality constraint
-  // infeasibility and store it for later computations.
-  ParOptScalar cinfeas = 0.0, cscale = 0.0;
-  if (dense_inequality){
-    for ( int i = 0; i < ncon; i++ ){
-      cinfeas += (c[i] - s[i] + t[i])*(c[i] - s[i] + t[i]);
-    }
-  }
-  else {
-    for ( int i = 0; i < ncon; i++ ){
-      cinfeas += c[i]*c[i];
-    }
-  }
-  if (ParOptRealPart(cinfeas) != 0.0){
-    cinfeas = sqrt(cinfeas);
-    cscale = 1.0/cinfeas;
-  }
-
-  // Compute the inverse of the l2 norm of the sparse constraint
-  // infeasibility and store it.
-  ParOptScalar cwinfeas = 0.0, cwscale = 0.0;
-  if (nwcon > 0){
-    cwinfeas = sqrt(rcw->dot(rcw));
-    if (ParOptRealPart(cwinfeas) != 0.0){
-      cwscale = 1.0/cwinfeas;
-    }
-  }
-
-  // Keep track of the actual number of iterations
-  int niters = 0;
-
-  // Print out the results on the root processor
-  int rank;
-  MPI_Comm_rank(comm, &rank);
-
-  if (outfp && rank == opt_root && output_level > 0){
-    fprintf(outfp, "%5s %4s %4s %7s %7s %8s %8s minres rtol: %7.1e\n",
-            "minres", "nhvc", "iter", "res", "rel", "fproj", "cproj", rtol);
-    fprintf(outfp, "      %4d %4d %7.1e %7.1e\n",
-            nhvec, 0, fabs(ParOptRealPart(bnorm)), 1.0);
-  }
-
-  // Zero the solution vector for MINRES
-  px->zeroEntries();
-  ParOptScalar p_alpha = 0.0;
-
-  // Set the vectors that will be used
-  ParOptVec *v = gmres_W[0];  ParOptScalar v_alpha = 0.0;
-  ParOptVec *v_next = gmres_W[1];  ParOptScalar v_next_alpha = 0.0;
-  ParOptVec *v_prev = gmres_W[2];  ParOptScalar v_prev_alpha = 0.0;
-  ParOptVec *tv = gmres_W[3];  ParOptScalar tv_alpha = 0.0;
-  ParOptVec *w1 = gmres_W[4];  ParOptScalar w1_alpha = 0.0;
-  ParOptVec *w2 = gmres_W[5];  ParOptScalar w2_alpha = 0.0;
-
-  // Set the initial values of the v-vector
-  v->copyValues(rx);
-  v->scale(1.0/bnorm);
-  v_alpha = 1.0;
-
-  v_next->zeroEntries();
-  v_prev->zeroEntries();
-  w1->zeroEntries();
-  w2->zeroEntries();
-
-  // Set the initial values of the scalars
-  ParOptScalar beta = bnorm;
-  ParOptScalar eta = bnorm;
-  ParOptScalar sigma = 0.0;
-  ParOptScalar sigma_prev = 0.0;
-  ParOptScalar gamma = 1.0;
-  ParOptScalar gamma_prev = 1.0;
-
-  // Iterate until we've found a solution
-  int minres_max_iters = 100;
-  for ( int i = 0; i < minres_max_iters; i++ ){
-    // Compute t <- K*M^{-1}*s
-    // Get the size of the limited-memory BFGS subspace
-    ParOptScalar b0;
-    const ParOptScalar *d, *M;
-    ParOptVec **Z;
-    int size = 0;
-    if (qn && use_qn){
-      size = qn->getCompactMat(&b0, &d, &M, &Z);
-    }
-
-    // In the loop, all the components of the step vector
-    // that are not the px-vector can be used as temporary variables
-    solveKKTDiagSystem(v, v_alpha/bnorm,
-                       rt, rc, rcw, rs, rsw, rzt, rzl, rzu,
-                       xtmp3, pt, pz, ps, psw, xtmp2, wtmp);
-
-    if (size > 0){
-      // dz = Z^{T}*xt1
-      xtmp3->mdot(Z, size, ztmp);
-
-      // Compute dz <- Ce^{-1}*dz
-      int one = 1, info = 0;
-      LAPACKdgetrs("N", &size, &one,
-                   Ce, &size, cpiv, ztmp, &size, &info);
-
-      // Compute rx = Z^{T}*dz
-      xtmp2->zeroEntries();
-      for ( int k = 0; k < size; k++ ){
-        xtmp2->axpy(ztmp[k], Z[k]);
+    ParOptScalar *zuvals, *pzuvals;
+    zu->getArray(&zuvals);
+    pzu->getArray(&pzuvals);
+    for ( int i = 0; i < nvars; i++ ){
+      if (ParOptRealPart(ubvals[i]) < max_bound_value){
+        zuvals[i] = max2(start_affine_multiplier_min,
+                          fabs(ParOptRealPart(zuvals[i] + pzuvals[i])));
       }
-
-      // Solve the digaonal system again, this time simplifying the
-      // result due to the structure of the right-hand-side.  Note
-      // that this call uses tv as a temporary vector.
-      solveKKTDiagSystem(xtmp2, xtmp1, ztmp, tv, wtmp);
-
-      // Add the final contributions
-      xtmp3->axpy(-1.0, xtmp1);
-    }
-
-    // Compute the vector product with the exact Hessian
-    prob->evalHvecProduct(x, z, zw, xtmp3, tv);
-    nhvec++;
-
-    // Keep track of the number of iterations
-    niters++;
-
-    // Add the term -B*W[i]
-    if (qn && use_qn){
-      qn->multAdd(-1.0, xtmp3, tv);
-    }
-
-    // Add the term from the diagonal
-    tv->axpy(1.0, v);
-
-    // Transfer the identity part of the matrix-multiplication
-    tv_alpha = v_alpha;
-
-    // Compute the dot product v^{T}*A*v
-    ParOptScalar alpha = v->dot(tv) + beta_dot*v_alpha*tv_alpha;
-
-    // v_next = t - alpha*v - beta*v_prev
-    v_next->copyValues(tv);
-    v_next->axpy(-alpha, v);
-    v_next->axpy(-beta, v_prev);
-    v_next_alpha = tv_alpha - alpha*v_alpha - beta*v_prev_alpha;
-
-    // beta_next = np.sqrt(np.dot(v_next, v_next))
-    ParOptScalar beta_next = sqrt(v_next->dot(v_next) +
-                                  beta_dot*v_next_alpha*v_next_alpha);
-
-    // Scale the vector by beta_next
-    ParOptScalar scale = 1.0/beta_next;
-    v_next->scale(scale);
-    v_next_alpha = scale*v_next_alpha;
-
-    // Compute the QR factorization part...
-    ParOptScalar delta = gamma*alpha - gamma_prev*sigma*beta;
-
-    // Compute the terms in the Given's rotation
-    ParOptScalar rho1 = sqrt(delta*delta + beta_next*beta_next);
-    ParOptScalar rho2 = sigma*alpha + gamma_prev*gamma*beta;
-    ParOptScalar rho3 = sigma_prev*beta;
-
-    // Compute the next values of sigma//gamma
-    scale = 1.0/rho1;
-    ParOptScalar gamma_next = scale*delta;
-    ParOptScalar sigma_next = scale*beta_next;
-
-    // Compute the next vector t[:] = (v - w1*rho2 - w2*rho3)/rho1
-    tv->copyValues(v);
-    tv->axpy(-rho2, w1);
-    tv->axpy(-rho3, w2);
-    tv->scale(scale);
-    tv_alpha = scale*(v_alpha - rho2*w1_alpha - rho3*w2_alpha);
-
-    // Update the solution: x = x + gamma_next*eta*t
-    px->axpy(gamma_next*eta, tv);
-    p_alpha = p_alpha + gamma_next*eta*tv_alpha;
-
-    // Update to find the new value of eta
-    eta = -sigma_next*eta;
-
-    // Compute the estimate of the residual norm
-    double rnorm = fabs(ParOptRealPart(eta));
-
-    if (rank == opt_root && output_level > 0){
-      ParOptScalar fpr = 0.0, cpr = 0.0;
-      fprintf(outfp, "      %4d %4d %7.1e %7.1e %8.1e %8.1e\n",
-              nhvec, i+1, fabs(ParOptRealPart(rnorm)),
-              fabs(ParOptRealPart(rnorm/bnorm)),
-              ParOptRealPart(fpr), ParOptRealPart(cpr));
-      fflush(outfp);
-    }
-
-    // Check for convergence
-    if (fabs(ParOptRealPart(rnorm)) < atol ||
-        fabs(ParOptRealPart(rnorm)) < rtol*ParOptRealPart(bnorm)){
-      break;
-    }
-
-    // Reset the pointer
-    ParOptVec *tmp = v_prev;
-    v_prev = v;
-    v_prev_alpha = v_alpha;
-    v = v_next;
-    v_alpha = v_next_alpha;
-    v_next = tmp;
-    v_next_alpha = 0.0;
-
-    // Reset the other vectors
-    tmp = w2;
-    w2 = w1;
-    w2_alpha = w1_alpha;
-    w1 = tv;
-    w1_alpha = tv_alpha;
-    tv = tmp;
-    tv_alpha = 0.0;
-
-    // Update the scalar parameters
-    beta = beta_next;
-    gamma_prev = gamma;
-    gamma = gamma_next;
-    sigma_prev = sigma;
-    sigma = sigma_next;
-  }
-
-  // Copy the solution vector
-  rx->copyValues(px);
-
-  // Normalize the residual term
-  ParOptScalar scale = p_alpha/bnorm;
-
-  // Scale the right-hand-side by p_alpha
-  for ( int i = 0; i < ncon; i++ ){
-    rc[i] *= scale;
-    rs[i] *= scale;
-    rt[i] *= scale;
-    rzt[i] *= scale;
-  }
-
-  rzl->scale(scale);
-  rzu->scale(scale);
-  if (nwcon > 0){
-    rcw->scale(scale);
-    rsw->scale(scale);
-  }
-
-  // Apply M^{-1} to the result to obtain the final answer
-  solveKKTDiagSystem(rx, rt, rc, rcw, rs, rsw, rzt, rzl, rzu,
-                     px, pt, pz, pzw, ps, psw, pzt, pzl, pzu,
-                     xtmp1, wtmp);
-
-  // Get the size of the limited-memory BFGS subspace
-  ParOptScalar b0;
-  const ParOptScalar *d, *M;
-  ParOptVec **Z;
-  int size = 0;
-  if (qn && use_qn){
-    size = qn->getCompactMat(&b0, &d, &M, &Z);
-  }
-
-  if (size > 0){
-    // dz = Z^{T}*px
-    px->mdot(Z, size, ztmp);
-
-    // Compute dz <- Ce^{-1}*dz
-    int one = 1, info = 0;
-    LAPACKdgetrs("N", &size, &one,
-                 Ce, &size, cpiv, ztmp, &size, &info);
-
-    // Compute rx = Z^{T}*dz
-    xtmp1->zeroEntries();
-    for ( int i = 0; i < size; i++ ){
-      xtmp1->axpy(ztmp[i], Z[i]);
-    }
-
-    // Solve the digaonal system again, this time simplifying
-    // the result due to the structure of the right-hand-side
-    solveKKTDiagSystem(xtmp1, rx, rt, rc, rcw, rs, rsw, rzt, rzl, rzu,
-                       xtmp2, wtmp);
-
-    // Add the final contributions
-    px->axpy(-1.0, rx);
-    pzw->axpy(-1.0, rcw);
-    psw->axpy(-1.0, rsw);
-    pzl->axpy(-1.0, rzl);
-    pzu->axpy(-1.0, rzu);
-
-    // Add the terms from the dense constraints
-    for ( int i = 0; i < ncon; i++ ){
-      pz[i] -= rc[i];
-      ps[i] -= rs[i];
-      pt[i] -= rt[i];
-      pzt[i] -= rzt[i];
     }
   }
 
-  // Add the contributions from the objective and dense constraints
-  ParOptScalar fpr = g->dot(px);
-  ParOptScalar cpr = 0.0;
-  if (dense_inequality){
-    for ( int i = 0; i < ncon; i++ ){
-      ParOptScalar deriv = (Ac[i]->dot(px) - ps[i] + pt[i]);
-      cpr += cscale*(c[i] - s[i] + t[i])*deriv;
-    }
-  }
-  else {
-    for ( int i = 0; i < ncon; i++ ){
-      cpr += cscale*c[i]*Ac[i]->dot(px);
-    }
-  }
-
-  // Add the contributions from the sparse constraints
-  if (nwcon > 0){
-    // Compute the residual rcw = (cw - sw)
-    prob->evalSparseCon(x, rcw);
-    if (sparse_inequality){
-      rcw->axpy(-1.0, sw);
-    }
-    xtmp1->zeroEntries();
-    prob->addSparseJacobianTranspose(1.0, x, rcw, xtmp1);
-    cpr += cwscale*px->dot(xtmp1);
-
-    // Finish depending on whether this is a sparse inequality or not
-    if (sparse_inequality){
-      cpr += cwscale*psw->dot(rcw);
-    }
-  }
-
-  if (rank == opt_root && output_level > 0){
-    fprintf(outfp, "      %9s %7s %7s %8.1e %8.1e\n",
-            "final", " ", " ", ParOptRealPart(fpr),
-            ParOptRealPart(cpr));
-    fflush(outfp);
-  }
-
-  // Check if this should be considered a failure based on the
-  // convergence criteria
-  if (ParOptRealPart(fpr) < 0.0 ||
-      ParOptRealPart(cpr) < -0.01*ParOptRealPart(cinfeas + cwinfeas)){
-    return niters;
-  }
-
-  return -niters;
+  // Set the initial barrier parameter
+  barrier_param = ParOptRealPart(computeComp());
 }
 
 /*
@@ -6137,6 +5400,9 @@ int ParOptInteriorPoint::computeKKTMinResStep( ParOptScalar *ztmp,
   directions (px, ps, pt).
 */
 ParOptScalar ParOptInteriorPoint::evalObjBarrierDeriv(){
+  const double rel_bound_barrier = options->getFloatOption("rel_bound_barrier");
+  const double max_bound_value = options->getFloatOption("max_bound_value");
+
   // Retrieve the values of the design variables, the design
   // variable step, and the lower/upper bounds
   ParOptScalar *xvals, *pxvals, *lbvals, *ubvals;
@@ -6150,7 +5416,7 @@ ParOptScalar ParOptInteriorPoint::evalObjBarrierDeriv(){
 
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(lbvals[i]) > -max_bound_val){
+      if (ParOptRealPart(lbvals[i]) > -max_bound_value){
         if (ParOptRealPart(pxvals[i]) > 0.0){
           pos_presult += rel_bound_barrier*pxvals[i]/(xvals[i] - lbvals[i]);
         }
@@ -6163,7 +5429,7 @@ ParOptScalar ParOptInteriorPoint::evalObjBarrierDeriv(){
 
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(ubvals[i]) < max_bound_val){
+      if (ParOptRealPart(ubvals[i]) < max_bound_value){
         if (ParOptRealPart(pxvals[i]) > 0.0){
           neg_presult -= rel_bound_barrier*pxvals[i]/(ubvals[i] - xvals[i]);
         }
@@ -6266,6 +5532,9 @@ int ParOptInteriorPoint::computeKKTGMRESStep( ParOptScalar *ztmp,
                                               ParOptVec *wtmp,
                                               double rtol, double atol,
                                               int use_qn ){
+  // Set the output level
+  const int output_level = options->getIntOption("output_level");
+
   // Check that the subspace has been allocated
   if (gmres_subspace_size <= 0){
     int rank;
@@ -6695,6 +5964,7 @@ int ParOptInteriorPoint::computeKKTGMRESStep( ParOptScalar *ztmp,
   Check that the gradients match along a projected direction.
 */
 void ParOptInteriorPoint::checkGradients( double dh ){
+  const int use_hvec_product = options->getBoolOption("use_hvec_product");
   prob->checkGradients(dh, x, use_hvec_product);
 }
 
@@ -6710,6 +5980,13 @@ void ParOptInteriorPoint::checkGradients( double dh ){
   zu*px + (ub - x)*pzu + (zu*(ub - x) - mu) = 0
 */
 void ParOptInteriorPoint::checkKKTStep( int iteration, int is_newton ){
+  // Diagonal coefficient used for the quasi-Newton Hessian aprpoximation
+  const double qn_sigma = options->getFloatOption("qn_sigma");
+  const double max_bound_value = options->getFloatOption("max_bound_value");
+  const int sequential_linear_method =
+    options->getBoolOption("sequential_linear_method");
+  const int use_diag_hessian = options->getBoolOption("use_diag_hessian");
+
   // Retrieve the values of the design variables, lower/upper bounds
   // and the corresponding lagrange multipliers
   ParOptScalar *xvals, *lbvals, *ubvals, *zlvals, *zuvals;
@@ -6855,7 +6132,7 @@ void ParOptInteriorPoint::checkKKTStep( int iteration, int is_newton ){
   max_val = 0.0;
   if (use_lower){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(lbvals[i]) > -max_bound_val){
+      if (ParOptRealPart(lbvals[i]) > -max_bound_value){
         ParOptScalar val =
           (zlvals[i]*pxvals[i] + (xvals[i] - lbvals[i])*pzlvals[i] +
            (zlvals[i]*(xvals[i] - lbvals[i]) - barrier_param));
@@ -6878,7 +6155,7 @@ void ParOptInteriorPoint::checkKKTStep( int iteration, int is_newton ){
   max_val = 0.0;
   if (use_upper){
     for ( int i = 0; i < nvars; i++ ){
-      if (ParOptRealPart(ubvals[i]) < max_bound_val){
+      if (ParOptRealPart(ubvals[i]) < max_bound_value){
         ParOptScalar val =
           (-zuvals[i]*pxvals[i] + (ubvals[i] - xvals[i])*pzuvals[i] +
            (zuvals[i]*(ubvals[i] - xvals[i]) - barrier_param));

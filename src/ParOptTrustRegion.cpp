@@ -2,41 +2,6 @@
 #include "ParOptTrustRegion.h"
 #include "ParOptComplexStep.h"
 
-/*
-  Summary of the different trust region algorithm options
-*/
-static const int NUM_TRUST_REGION_PARAMS = 10;
-static const char *trust_regions_parameter_help[][2] = {
-  {"tr_size",
-   "Float: Initial trust region radius size"},
-
-  {"tr_min_size",
-   "Float: Minimum trust region radius size"},
-
-  {"tr_max_size",
-   "Float: Maximum trust region radius size"},
-
-  {"eta",
-   "Float: Trust region step acceptance ratio of actual/predicted improvement"},
-
-  {"bound_relax",
-   "Float: Relax the bounds by this tolerance when computing KKT errors"},
-
-  {"adaptive_gamma_update",
-   "Boolean: Adaptively update the trust region "},
-
-  {"max_tr_iterations",
-   "Integer: Maximum number of trust region radius steps"},
-
-  {"l1_tol",
-   "Float: Convergence tolerance for the optimality error in the l1 norm"},
-
-  {"linfty_tol",
-   "Float: Convergence tolerance for the optimality error in the l-infinity norm"},
-
-  {"infeas_tol",
-   "Float: Convergence tolerance for feasibility in the l1 norm"}};
-
 // Helper functions
 inline ParOptScalar min2( ParOptScalar a, ParOptScalar b ){
   if (ParOptRealPart(a) < ParOptRealPart(b)){
@@ -613,72 +578,55 @@ void ParOptInfeasSubproblem::addSparseInnerProduct( ParOptScalar alpha,
   solved at each step by an instance of the ParOptInteriorPoint optimizer.
 
   @param _subproblem the ParOptTrustRegionSubproblem class
-  @param _tr_size the initial trust-region size
-  @param _tr_min_size the minimum trust-region size
-  @param _tr_max_size the maximum trust-region size
-  @param _eta the trust-region acceptance parameter
-  @param _penalty_value the initial l1 penalty paramter value
-  @param _bound_relax bound relaxation parameter
+  @param _options The trust region options
 */
 ParOptTrustRegion::ParOptTrustRegion( ParOptTrustRegionSubproblem *_subproblem,
-                                      double _tr_size,
-                                      double _tr_min_size,
-                                      double _tr_max_size,
-                                      double _eta,
-                                      double _penalty_value,
-                                      double _bound_relax ){
+                                      ParOptOptions *_options ){
   // Create the sub-problem instance
   subproblem = _subproblem;
   subproblem->incref();
 
+  if (_options){
+    options = _options;
+  }
+  else {
+    options = new ParOptOptions();
+    addDefaultOptions(options);
+  }
+  options->incref();
+
   // Get the subproblem sizes
   subproblem->getProblemSizes(&n, &m, &nwcon, &nwblock);
 
-  // Set the solution parameters
-  tr_size = _tr_size;
-  tr_min_size = _tr_min_size;
-  tr_max_size = _tr_max_size;
-  eta = _eta;
-  bound_relax = _bound_relax;
-
-  // Set the default output parameters
-  write_output_frequency = 10;
-
-  // Set default values for the convergence parameters
-  adaptive_gamma_update = 1;
-  max_tr_iterations = 200;
-  l1_tol = 1e-6;
-  linfty_tol = 1e-6;
-  infeas_tol = 1e-5;
-  penalty_gamma_max = 1e4;
-  penalty_gamma_min = 0.0;
-
-  // Set the function precision; changes below this value are
-  // considered below the function/design variable tolerance.
-  function_precision = 1e-10;
-
   // Set the penalty parameters
+  const double gamma = options->getFloatOption("penalty_gamma");
   penalty_gamma = new double[ m ];
   for ( int i = 0; i < m; i++ ){
-    penalty_gamma[i] = _penalty_value;
+    penalty_gamma[i] = gamma;
   }
+
+  // Set the trust region radius
+  tr_size = options->getFloatOption("tr_init_size");
 
   // Set the iteration count to zero
   iter_count = 0;
 
-  // Set the subproblem iteration counter
+  // Set the number of parameters
   subproblem_iters = 0;
   adaptive_subproblem_iters = 0;
-  adaptive_objective_flag = ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE;
-  adaptive_constraint_flag = ParOptInfeasSubproblem::PAROPT_LINEAR_CONSTRAINT;
-
-  // Set the file pointer to NULL
-  fp = NULL;
-  print_level = 0;
 
   // Create a temporary vector
   t = subproblem->createDesignVec();
   t->incref();
+
+  // By default, set the file pointer to stdout. If a filename is specified,
+  // set the new filename.
+  outfp = stdout;
+
+  const char *filename = options->getStringOption("tr_output_file");
+  if (filename){
+    setOutputFile(filename);
+  }
 }
 
 /**
@@ -686,14 +634,86 @@ ParOptTrustRegion::ParOptTrustRegion( ParOptTrustRegionSubproblem *_subproblem,
 */
 ParOptTrustRegion::~ParOptTrustRegion(){
   subproblem->decref();
+  options->decref();
 
   delete [] penalty_gamma;
   t->decref();
 
   // Close the file when we quit
-  if (fp){
-    fclose(fp);
+  if (outfp && outfp != stdout){
+    fclose(outfp);
   }
+}
+
+void ParOptTrustRegion::addDefaultOptions( ParOptOptions *options ){
+  options->addStringOption("tr_output_file", "paropt.tr",
+    "Trust region output file");
+
+  options->addIntOption("output_level", 0, 0, 1000000,
+    "Output level indicating how verbose the output should be");
+
+  // Float options
+  options->addFloatOption("tr_init_size", 0.1, 0.0, 1e20,
+    "The initial trust region radius");
+
+  options->addFloatOption("tr_min_size", 1e-3, 0.0, 1e20,
+    "The minimum trust region radius");
+
+  options->addFloatOption("tr_max_size", 1.0, 0.0, 1e20,
+    "The maximum trust region radius");
+
+  options->addFloatOption("tr_eta", 0.25, 0.0, 1.0,
+    "Trust region trial step acceptance ratio");
+
+  options->addFloatOption("tr_bound_relax", 1e-4, 0.0, 1e20,
+    "Upper and lower bound relaxing parameter");
+
+  options->addIntOption("tr_write_output_frequency", 10, 0, 1000000,
+    "Write output frequency");
+
+  options->addFloatOption("function_precision", 1e-10, 0.0, 1.0,
+    "The absolute precision of the function and constraints");
+
+  options->addFloatOption("design_precision", 1e-14, 0.0, 1.0,
+    "The absolute precision of the design variables");
+
+  options->addBoolOption("tr_adaptive_gamma_update", 1,
+    "Adaptive penalty parameter update");
+
+  options->addIntOption("tr_max_iterations", 200, 0, 1000000,
+    "Maximum number of trust region iterations");
+
+  options->addFloatOption("tr_l1_tol", 1e-6, 0.0, 1e20,
+    "l1 tolerance for the optimality tolerance");
+
+  options->addFloatOption("tr_linfty_tol", 1e-6, 0.0, 1e20,
+    "l-infinity tolerance for the optimality tolerance");
+
+  options->addFloatOption("tr_infeas_tol", 1e-5, 0.0, 1e20,
+    "Infeasibility tolerance ");
+
+  options->addFloatOption("tr_penalty_gamma_max", 1e4, 0.0, 1e20,
+    "Maximum value for the penalty parameter");
+
+  options->addFloatOption("tr_penalty_gamma_min", 0.0, 0.0, 1e20,
+    "Minimum value for the penalty parameter");
+
+  const char *obj_options[3] = {"constant_objective",
+                                "linear_objective",
+                                "subproblem_objective"};
+  options->addEnumOption("tr_adaptive_objective",
+    "linear_objective", 3, obj_options,
+    "The type of objective to use for the adaptive penalty subproblem");
+
+  const char *con_options[2] = {"linear_constraint",
+                                "subproblem_constraint"};
+  options->addEnumOption("tr_adaptive_constraint",
+    "linear_constraint", 2, con_options,
+    "The type of constraint to use for the adaptive penalty subproblem");
+}
+
+ParOptOptions* ParOptTrustRegion::getOptions(){
+  return options;
 }
 
 /**
@@ -702,32 +722,17 @@ ParOptTrustRegion::~ParOptTrustRegion(){
   @param filename the output file name
 */
 void ParOptTrustRegion::setOutputFile( const char *filename ){
+  if (outfp && outfp != stdout){
+    fclose(outfp);
+  }
+  outfp = NULL;
+
   int rank;
   MPI_Comm_rank(subproblem->getMPIComm(), &rank);
-  if (rank == 0){
-    if (fp && fp != stdout){
-      fclose(fp);
-    }
-    fp = fopen(filename, "w");
 
-    if (fp){
-      fprintf(fp, "ParOptTrustRegion: Parameter summary\n");
-      for ( int i = 0; i < NUM_TRUST_REGION_PARAMS; i++ ){
-        fprintf(fp, "%s\n%s\n\n",
-                trust_regions_parameter_help[i][0],
-                trust_regions_parameter_help[i][1]);
-      }
-    }
+  if (filename && rank == 0){
+    outfp = fopen(filename, "w");
   }
-}
-
-/**
-  Set the print level
-
-  @param _print_level the integer print level
-*/
-void ParOptTrustRegion::setPrintLevel( int _print_level ){
-  print_level = _print_level;
 }
 
 /**
@@ -747,88 +752,12 @@ void ParOptTrustRegion::getOptimizedPoint( ParOptVec **_x ){
   @param fp an open file handle
 */
 void ParOptTrustRegion::printOptionSummary( FILE *fp ){
+  const int output_level = options->getIntOption("output_level");
   int rank;
   MPI_Comm_rank(subproblem->getMPIComm(), &rank);
   if (rank == 0){
-    fprintf(fp, "ParOptTrustRegion options summary:\n");
-    fprintf(fp, "%-30s %15g\n", "tr_size", tr_size);
-    fprintf(fp, "%-30s %15g\n", "tr_min_size", tr_min_size);
-    fprintf(fp, "%-30s %15g\n", "tr_max_size", tr_max_size);
-    fprintf(fp, "%-30s %15g\n", "eta", eta);
-    double value = 0.0;
-    for ( int i = 0; i < m; i++ ){
-      value += penalty_gamma[i];
-    }
-    fprintf(fp, "%-30s %15g\n", "avg(penalty_gamma)", value/m);
-    fprintf(fp, "%-30s %15g\n", "bound_relax", bound_relax);
-    fprintf(fp, "%-30s %15d\n", "adaptive_gamma_update", adaptive_gamma_update);
-    fprintf(fp, "%-30s %15d\n", "max_tr_iterations", max_tr_iterations);
-    fprintf(fp, "%-30s %15g\n", "l1_tol", l1_tol);
-    fprintf(fp, "%-30s %15g\n", "linfty_tol", linfty_tol);
-    fprintf(fp, "%-30s %15g\n", "infeas_tol", infeas_tol);
-    fprintf(fp, "%-30s %15g\n", "penalty_gamma_max", penalty_gamma_max);
-    fprintf(fp, "%-30s %15g\n", "penalty_gamma_min", penalty_gamma_min);
+    options->printSummary(fp, output_level);
   }
-}
-
-/**
-  Set whether or not to adaptively update the penalty parameters
-
-  @param truth flag to indicate whether or not to use adaptive penalty
-*/
-void ParOptTrustRegion::setAdaptiveGammaUpdate( int truth ){
-  adaptive_gamma_update = truth;
-}
-
-/*
-  Set the flag for the objective in the adaptive penalty update
-
-  @param flag Flag indicating the type of objective
-*/
-void ParOptTrustRegion::setAdaptiveObjectiveType( int flag ){
-  if (flag == ParOptInfeasSubproblem::PAROPT_SUBPROBLEM_OBJECTIVE ||
-      flag ==  ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE ||
-      flag == ParOptInfeasSubproblem::PAROPT_CONSTANT_OBJECTIVE){
-    adaptive_objective_flag = flag;
-  }
-}
-
-/*
-  Set the flag for the constraint in the adaptive penalty update
-
-  @param flag Flag indicating the type of constraint
-*/
-void ParOptTrustRegion::setAdaptiveConstraintType( int flag ){
-  if (flag == ParOptInfeasSubproblem::PAROPT_SUBPROBLEM_CONSTRAINT ||
-      flag ==  ParOptInfeasSubproblem::PAROPT_LINEAR_CONSTRAINT){
-    adaptive_constraint_flag = flag;
-  }
-}
-
-/**
-  Set the maximum number of trust region steps
-
-  @param max_iters the maximum number of trust region iterations
-*/
-void ParOptTrustRegion::setMaxTrustRegionIterations( int max_iters ){
-  max_tr_iterations = max_iters;
-}
-
-/**
-  Set the trust region stopping criterion values.
-
-  The trust region algorithm terminates when the infeasibility tolerance and
-  either the l1 or l-infinity tolerances are satisfied.
-
-  @param _infeas_tol the infeasibility tolerance
-  @param _l1_tol the l1 norm
-*/
-void ParOptTrustRegion::setTrustRegionTolerances( double _infeas_tol,
-                                                  double _l1_tol,
-                                                  double _linfty_tol ){
-  infeas_tol = _infeas_tol;
-  l1_tol = _l1_tol;
-  linfty_tol = _linfty_tol;
 }
 
 /**
@@ -868,36 +797,10 @@ int ParOptTrustRegion::getPenaltyGamma( const double **_penalty_gamma ){
 }
 
 /**
-  Set the maximum value of the penalty parameters
-
-  @param _gamma_max the maximum penalty value
-*/
-void ParOptTrustRegion::setPenaltyGammaMax( double _gamma_max ){
-  penalty_gamma_max = _gamma_max;
-}
-
-/**
-  Set the minimum value of the penalty parameters
-
-  @param _gamma_min the maximum penalty value
-*/
-void ParOptTrustRegion::setPenaltyGammaMin( double _gamma_min ){
-  penalty_gamma_min = _gamma_min;
-}
-
-/**
-  Set the output frequency
-
-  @param _write_output_frequency frequency with which ouput is written
-*/
-void ParOptTrustRegion::setOutputFrequency( int _write_output_frequency ){
-  write_output_frequency = _write_output_frequency;
-}
-
-/**
   Initialize the problem
 */
 void ParOptTrustRegion::initialize(){
+  tr_size = options->getFloatOption("tr_init_size");
   subproblem->initModelAndBounds(tr_size);
 
   // Set the iteration count to zero
@@ -906,11 +809,8 @@ void ParOptTrustRegion::initialize(){
   int mpi_rank;
   MPI_Comm_rank(subproblem->getMPIComm(), &mpi_rank);
   if (mpi_rank == 0){
-    if (fp){
-      printOptionSummary(fp);
-    }
-    else {
-      printOptionSummary(stdout);
+    if (outfp){
+      printOptionSummary(outfp);
     }
   }
 }
@@ -924,6 +824,17 @@ void ParOptTrustRegion::update( ParOptVec *step,
                                 double *infeas,
                                 double *l1,
                                 double *linfty ){
+  // Extract options from the options object
+  const double tr_eta = options->getFloatOption("tr_eta");
+  const double tr_min_size = options->getFloatOption("tr_min_size");
+  const double tr_max_size = options->getFloatOption("tr_max_size");
+  const int tr_adaptive_gamma_update =
+    options->getBoolOption("tr_adaptive_gamma_update");
+
+  const int output_level = options->getIntOption("output_level");
+  const double function_precision =
+    options->getFloatOption("function_precision");
+
   // Get the mpi rank for printing
   int mpi_rank;
   MPI_Comm_rank(subproblem->getMPIComm(), &mpi_rank);
@@ -971,21 +882,21 @@ void ParOptTrustRegion::update( ParOptVec *step,
   ParOptScalar model_reduc =
     obj_reduc + (infeas_k - infeas_model);
 
-  if (mpi_rank == 0 && print_level > 0){
-    FILE *outfp = stdout;
-    if (fp){
-      outfp = fp;
+  if (mpi_rank == 0 && output_level > 0){
+    FILE *fp = stdout;
+    if (outfp){
+      fp = outfp;
     }
-    fprintf(outfp, "%-12s %2s %12s %12s %12s\n",
+    fprintf(fp, "%-12s %2s %12s %12s %12s\n",
             "Constraints", "i", "c(x)", "c(x+p)", "gamma");
     for ( int i = 0; i < m; i++ ){
-      fprintf(outfp, "%12s %2d %12.5e %12.5e %12.5e\n",
+      fprintf(fp, "%12s %2d %12.5e %12.5e %12.5e\n",
               " ", i, ParOptRealPart(ck[i]), ParOptRealPart(ct[i]),
               penalty_gamma[i]);
     }
-    fprintf(outfp, "\n%-15s %12s %12s %12s %12s\n",
+    fprintf(fp, "\n%-15s %12s %12s %12s %12s\n",
             "Model", "ared(f)", "pred(f)", "ared(c)", "pred(c)");
-    fprintf(outfp, "%15s %12.5e %12.5e %12.5e %12.5e\n",
+    fprintf(fp, "%15s %12.5e %12.5e %12.5e %12.5e\n",
             " ", ParOptRealPart(fk - ft), ParOptRealPart(obj_reduc),
             ParOptRealPart(infeas_k - infeas_t),
             ParOptRealPart(infeas_k - infeas_model));
@@ -1016,7 +927,7 @@ void ParOptTrustRegion::update( ParOptVec *step,
 
   // Check whether to accept the new point or not. If the trust region
   // radius size is at the lower bound, the step is always accepted
-  if (ParOptRealPart(rho) >= eta || tr_size <= tr_min_size){
+  if (ParOptRealPart(rho) >= tr_eta || tr_size <= tr_min_size){
     // Compute the length of the step for log entry purposes
     smax = ParOptRealPart(step->maxabs());
     subproblem->acceptTrialStep(step, z, zw);
@@ -1067,7 +978,7 @@ void ParOptTrustRegion::update( ParOptVec *step,
     sprintf(&info[strlen(info)], "%s ", "skipH");
   }
   // Write out the number of subproblem iterations
-  if (adaptive_gamma_update){
+  if (tr_adaptive_gamma_update){
     sprintf(&info[strlen(info)], "%d/%d", subproblem_iters,
             adaptive_subproblem_iters);
   }
@@ -1076,24 +987,24 @@ void ParOptTrustRegion::update( ParOptVec *step,
   }
 
   if (mpi_rank == 0){
-    FILE *outfp = stdout;
-    if (fp){
-      outfp = fp;
+    FILE *fp = stdout;
+    if (outfp){
+      fp = outfp;
     }
-    if (iter_count % 10 == 0 || print_level > 0){
-      fprintf(outfp,
+    if (iter_count % 10 == 0 || output_level > 0){
+      fprintf(fp,
               "\n%5s %12s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %-12s\n",
               "iter", "fobj", "infeas", "l1", "linfty", "|x - xk|", "tr",
               "rho", "mod red.", "avg z", "max z", "avg pen.", "max pen.", "info");
-      fflush(outfp);
+      fflush(fp);
     }
-    fprintf(outfp,
+    fprintf(fp,
             "%5d %12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e "
             "%9.2e %9.2e %9.2e %9.2e %-12s\n",
             iter_count, ParOptRealPart(fk), *infeas, *l1, *linfty, smax, tr_size,
             ParOptRealPart(rho), ParOptRealPart(model_reduc),
             zav/m, zmax, gav/m, gmax, info);
-    fflush(outfp);
+    fflush(fp);
   }
 
   // Update the iteration counter
@@ -1116,23 +1027,69 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
     return;
   }
 
+  // Extract options
+  const int tr_adaptive_gamma_update =
+    options->getBoolOption("tr_adaptive_gamma_update");
+  const int tr_max_iterations = options->getIntOption("tr_max_iterations");
+  const double tr_penalty_gamma_max =
+    options->getFloatOption("tr_penalty_gamma_max");
+  const double tr_penalty_gamma_min =
+    options->getFloatOption("tr_penalty_gamma_min");
+
+  const double tr_infeas_tol = options->getFloatOption("tr_infeas_tol");
+  const double tr_l1_tol = options->getFloatOption("tr_l1_tol");
+  const double tr_linfty_tol = options->getFloatOption("tr_linfty_tol");
+  const int output_level = options->getIntOption("output_level");
+  const int tr_write_output_frequency =
+    options->getIntOption("tr_write_output_frequency");
+
+  const char *obj_problem = options->getEnumOption("tr_adaptive_objective");
+  int adaptive_objective_flag = ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE;
+  if (strcmp(obj_problem, "constant_objective") == 0){
+    adaptive_objective_flag = ParOptInfeasSubproblem::PAROPT_CONSTANT_OBJECTIVE;
+  }
+  else if (strcmp(obj_problem, "subproblem_objective") == 0){
+    adaptive_objective_flag = ParOptInfeasSubproblem::PAROPT_SUBPROBLEM_OBJECTIVE;
+  }
+
+  const char *con_problem = options->getEnumOption("tr_adaptive_constraint");
+  int adaptive_constraint_flag = ParOptInfeasSubproblem::PAROPT_LINEAR_CONSTRAINT;
+  if (strcmp(con_problem, "subproblem_constraint") == 0){
+    adaptive_constraint_flag = ParOptInfeasSubproblem::PAROPT_SUBPROBLEM_CONSTRAINT;
+  }
+
   // Set up the optimizer so that it uses the quasi-Newton approximation
   ParOptCompactQuasiNewton *qn = subproblem->getQuasiNewton();
   optimizer->setQuasiNewton(qn);
 
+  // Get the interior point options
+  ParOptOptions *ip_options = optimizer->getOptions();
+
   // Do not update the Hessian within the interior-point method
-  optimizer->setUseQuasiNewtonUpdates(0);
+  ip_options->setOption("use_quasi_newton_update", 0);
 
   // Set the output frequency for the subproblem iterations to zero so we
   // don't generate output files from subiterations.
-  optimizer->setOutputFrequency(0);
+  ip_options->setOption("write_output_frequency", 0);
+
+  // Extract and store the barrier strategy and starting point strategy.
+  // During the linear optimization subproblem, these will be reset to
+  // more appropriate values. During the QP part of the optimization, these
+  // will be set back to their original values.
+  const char *barrier_strategy = ip_options->getEnumOption("barrier_strategy");
+  char *barrier_option = new char[ strlen(barrier_strategy)+1 ];
+  strcpy(barrier_option, barrier_strategy);
+
+  const char *start_strategy = ip_options->getEnumOption("starting_point_strategy");
+  char *start_option = new char[ strlen(start_strategy)+1 ];
+  strcpy(start_option, start_strategy);
 
   // Set the initial values for the penalty parameter
   optimizer->setPenaltyGamma(penalty_gamma);
 
   // If needed, allocate a subproblem instance
   ParOptInfeasSubproblem *infeas_problem = NULL;
-  if (adaptive_gamma_update){
+  if (tr_adaptive_gamma_update){
     infeas_problem = new ParOptInfeasSubproblem(subproblem,
                                                 adaptive_objective_flag,
                                                 adaptive_constraint_flag);
@@ -1143,7 +1100,7 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
   ParOptScalar *con_infeas = NULL;
   ParOptScalar *model_con_infeas = NULL;
   ParOptScalar *best_con_infeas = NULL;
-  if (adaptive_gamma_update){
+  if (tr_adaptive_gamma_update){
     con_infeas = new ParOptScalar[ m ];
     model_con_infeas = new ParOptScalar[ m ];
     best_con_infeas = new ParOptScalar[ m ];
@@ -1157,35 +1114,31 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
   initialize();
 
   // Iterate over the trust region subproblem until convergence
-  for ( int i = 0; i < max_tr_iterations; i++ ){
-    if (adaptive_gamma_update){
+  for ( int i = 0; i < tr_max_iterations; i++ ){
+    if (tr_adaptive_gamma_update){
       // Reset the problem instance
       optimizer->resetProblemInstance(infeas_problem);
 
-      // Store the starting point and barrier strategies to be reset later
-      ParOptBarrierStrategy barrier_strategy = optimizer->getBarrierStrategy();
-      ParOptStartingPointStrategy start_strategy = optimizer->getStartingPointStrategy();
-
       // Set the starting point strategy
-      optimizer->setStartingPointStrategy(PAROPT_AFFINE_STEP);
+      ip_options->setOption("starting_point_strategy", "affine_step");
 
       // Set whether or not to use a sequential linear method or not
       if ((adaptive_objective_flag == ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE ||
            adaptive_objective_flag == ParOptInfeasSubproblem::PAROPT_CONSTANT_OBJECTIVE) &&
           (adaptive_constraint_flag == ParOptInfeasSubproblem::PAROPT_LINEAR_CONSTRAINT)){
-        optimizer->setBarrierStrategy(PAROPT_MEHROTRA);
-        optimizer->setSequentialLinearMethod(1);
+        ip_options->setOption("barrier_strategy", "mehrotra");
+        ip_options->setOption("sequential_linear_method", 1);
       }
 
       // Set the penalty parameter to a large value
       double gamma = 1e6;
-      if (1e2*penalty_gamma_max > gamma){
-        gamma = 1e2*penalty_gamma_max;
+      if (1e2*tr_penalty_gamma_max > gamma){
+        gamma = 1e2*tr_penalty_gamma_max;
       }
       optimizer->setPenaltyGamma(gamma);
 
       // Initialize the barrier parameter
-      optimizer->setInitBarrierParameter(10.0);
+      ip_options->setOption("init_barrier_param", 10.0);
       optimizer->resetDesignAndBounds();
 
       // Optimize the subproblem
@@ -1212,22 +1165,24 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
       optimizer->setPenaltyGamma(penalty_gamma);
 
       // Reset the problem instance and turn off the sequential linear method
-      optimizer->setBarrierStrategy(barrier_strategy);
-      optimizer->setStartingPointStrategy(start_strategy);
       optimizer->resetProblemInstance(subproblem);
-      optimizer->setSequentialLinearMethod(0);
+
+      // Reset the options
+      ip_options->setOption("starting_point_strategy", start_option);
+      ip_options->setOption("barrier_strategy", barrier_option);
+      ip_options->setOption("sequential_linear_method", 0);
     }
 
     // Print out the current solution progress using the
     // hook in the problem definition
-    if (i % write_output_frequency == 0){
+    if (i % tr_write_output_frequency == 0){
       ParOptVec *xk;
       subproblem->getLinearModel(&xk);
       subproblem->writeOutput(i, xk);
     }
 
     // Initialize the barrier parameter
-    optimizer->setInitBarrierParameter(10.0);
+    ip_options->setOption("init_barrier_param", 10.0);
     optimizer->resetDesignAndBounds();
 
     // Optimize the subproblem
@@ -1241,7 +1196,7 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
     // Get the number of subproblem iterations
     optimizer->getIterationCounters(&subproblem_iters);
 
-    if (adaptive_gamma_update){
+    if (tr_adaptive_gamma_update){
       // Find the infeasibility at the origin x = xk
       ParOptScalar f0;
       subproblem->evalObjCon(NULL, &f0, con_infeas);
@@ -1261,22 +1216,22 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
     update(step, z, zw, &infeas, &l1, &linfty);
 
     // Check for convergence of the trust region problem
-    if (infeas < infeas_tol){
-      if (l1 < l1_tol ||
-          linfty < linfty_tol){
+    if (infeas < tr_infeas_tol){
+      if (l1 < tr_l1_tol ||
+          linfty < tr_linfty_tol){
         // Success!
         break;
       }
     }
 
     // Adapat the penalty parameters
-    if (adaptive_gamma_update){
-      FILE *outfp = stdout;
-      if (fp){
-        outfp = fp;
+    if (tr_adaptive_gamma_update){
+      FILE *fp = stdout;
+      if (outfp){
+        fp = outfp;
       }
-      if (mpi_rank == 0 && print_level > 0){
-        fprintf(outfp, "%-12s %2s %12s %12s %12s %12s %12s %12s %9s\n",
+      if (mpi_rank == 0 && output_level > 0){
+        fprintf(fp, "%-12s %2s %12s %12s %12s %12s %12s %12s %9s\n",
                 "Penalty", "i", "|c(x)|", "|c+Ap|", "min|c+Ap|",
                 "pred", "min. pred", "gamma", "update");
       }
@@ -1288,7 +1243,7 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
         double best_reduction = ParOptRealPart(con_infeas[i] - best_con_infeas[i]);
 
         char info[8];
-        if (print_level > 0){
+        if (output_level > 0){
           sprintf(info, "---");
         }
 
@@ -1296,29 +1251,29 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
         // and the constraints are satisfied, decrease the penalty
         // parameter. Otherwise, if the best case infeasibility is
         // significantly better, increase the penalty parameter.
-        if (ParOptRealPart(z[i]) > infeas_tol &&
-            ParOptRealPart(con_infeas[i]) < infeas_tol &&
+        if (ParOptRealPart(z[i]) > tr_infeas_tol &&
+            ParOptRealPart(con_infeas[i]) < tr_infeas_tol &&
             penalty_gamma[i] >= 2.0*ParOptRealPart(z[i])){
           // Reduce gamma
           penalty_gamma[i] =
-            0.5*(penalty_gamma[i] + ParOptRealPart(z[i])) +
-            penalty_gamma_min;
-          if (print_level > 0){
+            ParOptRealPart(max2(0.5*(penalty_gamma[i] + z[i]),
+                                tr_penalty_gamma_min));
+          if (output_level > 0){
             sprintf(info, "decr");
           }
         }
-        else if (ParOptRealPart(con_infeas[i]) > infeas_tol &&
+        else if (ParOptRealPart(con_infeas[i]) > tr_infeas_tol &&
                  0.995*best_reduction > infeas_reduction){
           // Increase gamma
           penalty_gamma[i] = ParOptRealPart(min2(1.5*penalty_gamma[i],
-                                                 penalty_gamma_max));
-          if (print_level > 0){
+                                                 tr_penalty_gamma_max));
+          if (output_level > 0){
             sprintf(info, "incr");
           }
         }
 
-        if (mpi_rank == 0 && print_level > 0){
-          fprintf(outfp, "%12s %2d %12.5e %12.5e %12.5e %12.5e %12.5e %12.5e %9s\n",
+        if (mpi_rank == 0 && output_level > 0){
+          fprintf(fp, "%12s %2d %12.5e %12.5e %12.5e %12.5e %12.5e %12.5e %9s\n",
                   " ", i, ParOptRealPart(con_infeas[i]),
                   ParOptRealPart(model_con_infeas[i]),
                   ParOptRealPart(best_con_infeas[i]),
@@ -1326,15 +1281,15 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
         }
       }
 
-      if (mpi_rank == 0 && print_level > 0){
-        fprintf(outfp, "\n");
-        fflush(outfp);
+      if (mpi_rank == 0 && output_level > 0){
+        fprintf(fp, "\n");
+        fflush(fp);
       }
     }
   }
 
   // Free the allocated data
-  if (adaptive_gamma_update){
+  if (tr_adaptive_gamma_update){
     delete [] con_infeas;
     delete [] model_con_infeas;
     delete [] best_con_infeas;
@@ -1343,6 +1298,9 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
       infeas_problem->decref();
     }
   }
+
+  delete [] barrier_option;
+  delete [] start_option;
 }
 
 /**
@@ -1354,6 +1312,8 @@ void ParOptTrustRegion::computeKKTError( const ParOptScalar *z,
                                          ParOptVec *zw,
                                          double *l1,
                                          double *linfty ){
+  const double tr_bound_relax = options->getFloatOption("tr_bound_relax");
+
   // Extract the point, objective/constraint gradients, and
   // lower and upper bounds
   ParOptVec *xk, *gk, **Ak, *lb, *ub;
@@ -1391,12 +1351,12 @@ void ParOptTrustRegion::computeKKTError( const ParOptScalar *z,
     double w = ParOptRealPart(r[j]);
 
     // Check if we're on the lower bound
-    if ((ParOptRealPart(x[j]) <= ParOptRealPart(l[j]) + bound_relax) && w > 0.0){
+    if ((ParOptRealPart(x[j]) <= ParOptRealPart(l[j]) + tr_bound_relax) && w > 0.0){
       w = 0.0;
     }
 
     // Check if we're on the upper bound
-    if ((ParOptRealPart(x[j]) >= ParOptRealPart(u[j]) - bound_relax) && w < 0.0){
+    if ((ParOptRealPart(x[j]) >= ParOptRealPart(u[j]) - tr_bound_relax) && w < 0.0){
       w = 0.0;
     }
 

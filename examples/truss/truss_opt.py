@@ -125,37 +125,26 @@ def paropt_truss(truss, use_hessian=False,
     Optimize the given truss structure using ParOpt
     '''
 
-    # Create the optimizer
-    max_qn_subspace = 10
-    opt = ParOpt.InteriorPoint(truss, max_qn_subspace, ParOpt.BFGS)
-
-    # Set the optimality tolerance
-    opt.setAbsOptimalityTol(1e-6)
-    opt.setBarrierStrategy(ParOpt.COMPLEMENTARITY_FRACTION)
-
-    # Set the Hessian-vector product iterations
-    if use_hessian:
-        # opt.setUseLineSearch(0)
-        opt.setUseHvecProduct(1)
-        opt.setGMRESSubspaceSize(25)
-        opt.setNKSwitchTolerance(1.0)
-        opt.setEisenstatWalkerParameters(0.01, 0.0)
-        opt.setGMRESTolerances(1.0, 1e-30)
-    else:
-        opt.setUseHvecProduct(0)
-
-    # Set the output level
-    opt.setOutputLevel(1)
-
-    # Set optimization parameters
-    opt.setArmijoParam(1e-5)
-    opt.setMaxMajorIterations(2500)
-
-    # Set the output file to use
     fname = os.path.join(prefix, 'truss_paropt%dx%d.out'%(N, M))
-    opt.setOutputFile(fname)
+    options = {
+        'algorithm': 'ip',
+        'qn_subspace_size': 10,
+        'abs_res_tol': 1e-6,
+        'barrier_strategy': 'complementarity_fraction',
+        'use_hvec_product': True,
+        'gmres_subspace_size': 25,
+        'nk_switch_tol': 1.0,
+        'eisenstat_walker_gamma': 0.01,
+        'eisenstat_walker_alpha': 0.0,
+        'max_gmres_rtol': 1.0,
+        'output_level': 1,
+        'armijo_constant': 1e-5,
+        'output_file': fname}
 
-    # Optimize the truss
+    if use_hessian is False:
+        options['use_hvec_product'] = False
+
+    opt = ParOpt.Optimizer(truss, options)
     opt.optimize()
 
     return opt
@@ -421,10 +410,6 @@ else:
     if optimizer is 'None':
         opt = paropt_truss(truss, prefix=prefix,
                            use_hessian=use_hessian)
-        opt.checkGradients(1e-6)
-
-        # Get the optimized point
-        x = opt.getOptimizedPoint()
 
         # Retrieve the optimized multipliers
         x, z, zw, zl, zu = opt.getOptimizedPoint()

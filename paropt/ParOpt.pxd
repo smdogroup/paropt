@@ -43,6 +43,7 @@ cdef extern from "ParOptProblem.h":
         ParOptProblem(MPI_Comm, int, int, int, int)
         ParOptVec *createDesignVec()
         ParOptVec *createConstraintVec()
+        void getProblemSizes(int*, int*, int*, int*)
         void checkGradients(double, ParOptVec*, int)
 
 cdef extern from "ParOptQuasiNewton.h":
@@ -125,129 +126,45 @@ cdef extern from "CyParOptProblem.h":
         void setAddSparseJacobianTranspose(addsparsejacobiantranspose usr_func)
         void setAddSparseInnerProduct(addsparseinnerproduct usr_func)
 
+cdef extern from "ParOptOptions.h":
+    cppclass ParOptOptions(ParOptBase):
+        ParOptOptions()
+        int setOption(const char*, const char*)
+        int setOption(const char* int)
+        int setOption(const char*, double)
+
 cdef extern from "ParOptInteriorPoint.h":
-    # Set the quasi-Newton type to use
-    enum ParOptQuasiNewtonType:
-        PAROPT_BFGS
-        PAROPT_SR1
-        PAROPT_NO_HESSIAN_APPROX
-
-    enum ParOptNormType:
-        PAROPT_INFTY_NORM
-        PAROPT_L1_NORM
-        PAROPT_L2_NORM
-
-    enum ParOptBarrierStrategy:
-        PAROPT_MONOTONE
-        PAROPT_MEHROTRA
-        PAROPT_COMPLEMENTARITY_FRACTION
-
-    enum ParOptStartingPointStrategy:
-        PAROPT_NO_START_STRATEGY
-        PAROPT_LEAST_SQUARES_MULTIPLIERS
-        PAROPT_AFFINE_STEP
-
     cppclass ParOptInteriorPoint(ParOptBase):
-        ParOptInteriorPoint(ParOptProblem*, int,
-                            ParOptQuasiNewtonType qn_type) except +
-
-        # Perform the optimiztion
+        ParOptInteriorPoint(ParOptProblem*, ParOptOptions*) except +
         int optimize(const char*)
-
-        # Get the problem dimensions
         void getProblemSizes(int*, int*, int*, int*)
-
-        # Retrieve the optimized point
         void getOptimizedPoint(ParOptVec**,
                                ParOptScalar**, ParOptVec**,
                                ParOptVec**, ParOptVec**)
         void getOptimizedSlacks(ParOptScalar**, ParOptScalar**, ParOptVec**)
-
-        # Check objective and constraint gradients
         void checkGradients(double)
-
-        # Set optimizer parameters
-        void setNormType(ParOptNormType)
-        void setBarrierStrategy(ParOptBarrierStrategy)
-        void setStartingPointStrategy(ParOptStartingPointStrategy)
-        void setMaxMajorIterations(int)
-        void setAbsOptimalityTol(double)
-        void setRelFunctionTol(double)
-        void setAbsStepTol(double)
         void setPenaltyGamma(double)
         void setPenaltyGamma(double*)
         int getPenaltyGamma(double**)
-        void setBarrierFraction(double)
-        void setBarrierPower(double)
-        void setHessianResetFreq(int)
-        void setQNDiagonalFactor(double)
-        void setBFGSUpdateType(ParOptBFGSUpdateType)
-        void setSequentialLinearMethod(int)
-        void setStartAffineStepMultiplierMin(double)
-
-        # Set/obtain the barrier parameter
-        void setInitBarrierParameter(double)
         double getBarrierParameter()
-        void setRelativeBarrier(double)
         ParOptScalar getComplementarity()
-
-        # Advanced quasi-Newton options
         void setQuasiNewton(ParOptCompactQuasiNewton*)
-        void setUseQuasiNewtonUpdates(int)
         void resetQuasiNewtonHessian()
-
-        # Reset the design variables and the bounds
         void resetDesignAndBounds()
-
-        # Set parameters associated with the line search
-        void setUseLineSearch(int)
-        void setMaxLineSearchIters(int)
-        void setBacktrackingLineSearch(int)
-        void setArmijoParam(double)
-        void setPenaltyDescentFraction(double)
-        void setMinPenaltyParameter(double)
-
-        # Set parameters for the internal GMRES algorithm
-        void setUseDiagHessian(int)
-        void setUseHvecProduct(int)
-        void setUseQNGMRESPreCon(int)
-        void setNKSwitchTolerance(double)
-        void setEisenstatWalkerParameters(double, double)
-        void setGMRESTolerances(double, double)
-        void setGMRESSubspaceSize(int)
-
-        # Set other parameters
-        void setOutputFrequency(int)
-        void setMajorIterStepCheck(int)
-        void setGradientCheckFrequency(int, double)
-
-        # Set the output file/print level
-        void setOutputFile(const char*)
-        void setOutputLevel(int)
-
-        # Write out the design variables to binary format (fast MPI/IO)
         int writeSolutionFile(const char*)
         int readSolutionFile(const char*)
 
+    void ParOptInteriorPointAddDefaultOptions"ParOptInteriorPoint::addDefaultOptions"(ParOptOptions*)
+
 cdef extern from "ParOptMMA.h":
     cdef cppclass ParOptMMA(ParOptProblem):
-        ParOptMMA(ParOptProblem*, int)
-        void setIteration(int)
-        void setMultipliers(ParOptScalar*, ParOptVec*, ParOptVec*, ParOptVec*)
-        int initializeSubProblem(ParOptVec*)
-        void computeKKTError(double*, double*, double*)
+        ParOptMMA(ParOptProblem*, ParOptOptions*)
+        void optimize(ParOptInteriorPoint*)
         void getOptimizedPoint(ParOptVec**)
         void getAsymptotes(ParOptVec**, ParOptVec**)
         void getDesignHistory(ParOptVec**, ParOptVec**)
-        void setPrintLevel(int)
-        void setOutputFile(const char*)
-        void setAsymptoteContract(double)
-        void setAsymptoteRelax(double)
-        void setInitAsymptoteOffset(double)
-        void setMinAsymptoteOffset(double)
-        void setMaxAsymptoteOffset(double)
-        void setBoundRelax(double)
-        void setRegularization(double, double)
+
+    void ParOptMMAAddDefaultOptions"ParOptMMA::addDefaultOptions"(ParOptOptions*)
 
 cdef extern from "ParOptTrustRegion.h":
     cdef cppclass ParOptTrustRegionSubproblem(ParOptProblem):
@@ -259,23 +176,27 @@ cdef extern from "ParOptTrustRegion.h":
 
     cdef cppclass ParOptTrustRegion(ParOptBase):
         ParOptTrustRegion(ParOptTrustRegionSubproblem*,
-                          double, double, double, double, double, double)
-        void initialize()
-        void update(ParOptVec*, const ParOptScalar*, ParOptVec*,
-                    double*, double*, double*)
-        void setOutputFile(const char*)
-        void setPrintLevel(int)
-        void setAdaptiveGammaUpdate(int)
-        void setMaxTrustRegionIterations(int)
-        void setTrustRegionTolerances(double, double, double)
+                          ParOptOptions*)
         void setPenaltyGamma(double)
         void setPenaltyGamma(double*)
         int getPenaltyGamma(double**)
         void setPenaltyGammaMax(double)
         void setPenaltyGammaMin(double)
-        void setOutputFrequency(int)
         void optimize(ParOptInteriorPoint*)
         void getOptimizedPoint(ParOptVec**)
+
+    void ParOptTrustRegionAddDefaultOptions"ParOptTrustRegion::addDefaultOptions"(ParOptOptions*)
+
+cdef extern from "ParOptOptimizer.h":
+    void ParOptOptimizerAddDefaultOptions"ParOptOptimizer::addDefaultOptions"(ParOptOptions*)
+    cdef cppclass ParOptOptimizer(ParOptBase):
+        ParOptOptimizer(ParOptProblem*, ParOptOptions*)
+        ParOptOptions* getOptions()
+        ParOptProblem* getProblem()
+        void optimize()
+        void getOptimizedPoint(ParOptVec**, ParOptScalar**,
+                               ParOptVec**, ParOptVec**, ParOptVec**)
+        void setTrustRegionSubproblem(ParOptTrustRegionSubproblem*)
 
 cdef class ProblemBase:
     cdef ParOptProblem *ptr
