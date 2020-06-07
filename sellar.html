@@ -121,7 +121,7 @@ If an error is encountered during the evaluation of either the functions or grad
 <span class="cm">  constraints that can be used to test the parallel optimizer.</span>
 <span class="cm">*/</span>
 <span class="k">class</span> <span class="nc">Sellar</span> <span class="o">:</span> <span class="k">public</span> <span class="n">ParOptProblem</span> <span class="p">{</span>
-<span class="k">public</span><span class="o">:</span>
+ <span class="k">public</span><span class="o">:</span>
   <span class="k">static</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">nvars</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
   <span class="k">static</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">ncon</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
   <span class="n">Sellar</span><span class="p">(</span> <span class="n">MPI_Comm</span> <span class="n">_comm</span> <span class="p">)</span><span class="o">:</span> <span class="n">ParOptProblem</span><span class="p">(</span><span class="n">_comm</span><span class="p">,</span> <span class="n">nvars</span><span class="p">,</span> <span class="n">ncon</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">){}</span>
@@ -143,12 +143,12 @@ If an error is encountered during the evaluation of either the functions or grad
     <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
     <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
     <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
-
+    
     <span class="c1">// set lower and upper bounds to design variables</span>
     <span class="n">lb</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>  <span class="n">lb</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span> <span class="n">lb</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">;</span> <span class="n">lb</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">;</span>
-    <span class="n">ub</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">;</span> <span class="n">ub</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">;</span> <span class="n">ub</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">3.16</span><span class="p">;</span> <span class="n">ub</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mf">24.0</span><span class="p">;</span>
+    <span class="n">ub</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">;</span> <span class="n">ub</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">;</span> <span class="n">ub</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">3.16</span><span class="p">;</span> <span class="n">ub</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mf">24.0</span><span class="p">;</span> 
   <span class="p">}</span>
-
+  
   <span class="c1">//! Evaluate the objective and constraints</span>
   <span class="kt">int</span> <span class="n">evalObjCon</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
                   <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">fobj</span><span class="p">,</span> <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">cons</span> <span class="p">){</span>
@@ -163,7 +163,7 @@ If an error is encountered during the evaluation of either the functions or grad
 
     <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
   <span class="p">}</span>
-
+  
   <span class="c1">//! Evaluate the objective and constraint gradients</span>
   <span class="kt">int</span> <span class="n">evalObjConGradient</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">xvec</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">gvec</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">**</span><span class="n">Ac</span> <span class="p">){</span>
 
@@ -186,7 +186,7 @@ If an error is encountered during the evaluation of either the functions or grad
     <span class="n">Ac</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">g</span><span class="p">);</span>
     <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
     <span class="n">g</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
-
+    
     <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
   <span class="p">}</span>
 <span class="p">};</span>
@@ -197,15 +197,13 @@ If an error is encountered during the evaluation of either the functions or grad
   <span class="c1">// Allocate the Sellar function</span>
   <span class="n">Sellar</span> <span class="o">*</span><span class="n">sellar</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Sellar</span><span class="p">(</span><span class="n">MPI_COMM_SELF</span><span class="p">);</span>
   <span class="n">sellar</span><span class="o">-&gt;</span><span class="n">incref</span><span class="p">();</span>
-
-  <span class="c1">// Allocate the optimizer</span>
-  <span class="kt">int</span> <span class="n">max_lbfgs</span> <span class="o">=</span> <span class="mi">20</span><span class="p">;</span>
-  <span class="n">ParOptInteriorPoint</span> <span class="o">*</span><span class="n">opt</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ParOptInteriorPoint</span><span class="p">(</span><span class="n">sellar</span><span class="p">,</span> <span class="n">max_lbfgs</span><span class="p">);</span>
+  
+  <span class="c1">// Allocate the optimizer with default options</span>
+  <span class="n">ParOptInteriorPoint</span> <span class="o">*</span><span class="n">opt</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ParOptInteriorPoint</span><span class="p">(</span><span class="n">sellar</span><span class="p">);</span>
   <span class="n">opt</span><span class="o">-&gt;</span><span class="n">incref</span><span class="p">();</span>
 
-  <span class="n">opt</span><span class="o">-&gt;</span><span class="n">setMaxMajorIterations</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span>
   <span class="n">opt</span><span class="o">-&gt;</span><span class="n">checkGradients</span><span class="p">(</span><span class="mf">1e-6</span><span class="p">);</span>
-
+  
   <span class="kt">double</span> <span class="n">start</span> <span class="o">=</span> <span class="n">MPI_Wtime</span><span class="p">();</span>
   <span class="n">opt</span><span class="o">-&gt;</span><span class="n">optimize</span><span class="p">();</span>
   <span class="kt">double</span> <span class="n">diff</span> <span class="o">=</span> <span class="n">MPI_Wtime</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span><span class="p">;</span>
@@ -296,8 +294,9 @@ These vectors are of type ParOpt.PVec, but act in many ways like a numpy array.<
 <span class="n">problem</span> <span class="o">=</span> <span class="n">Sellar</span><span class="p">()</span>
 
 <span class="c1"># Set up the optimization problem</span>
-<span class="n">max_lbfgs</span> <span class="o">=</span> <span class="mi">50</span>
-<span class="n">opt</span> <span class="o">=</span> <span class="n">ParOpt</span><span class="o">.</span><span class="n">InteriorPoint</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">max_lbfgs</span><span class="p">,</span> <span class="n">ParOpt</span><span class="o">.</span><span class="n">BFGS</span><span class="p">)</span>
+<span class="n">options</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">opt</span> <span class="o">=</span> <span class="n">ParOpt</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+<span class="n">opt</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>
 
 <span class="c1"># Optimize</span>
 <span class="n">opt</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>

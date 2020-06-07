@@ -15,7 +15,7 @@
     <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Rosenbrock example" href="rosenbrock.html" /> 
+    <link rel="next" title="Options and generic interface for ParOpt optimziers" href="options.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
@@ -27,7 +27,7 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="rosenbrock.html" title="Rosenbrock example"
+          <a href="options.html" title="Options and generic interface for ParOpt optimziers"
              accesskey="N">next</a> |</li>
         <li class="nav-item nav-item-0"><a href="#">paropt  documentation</a> &#187;</li> 
       </ul>
@@ -37,6 +37,7 @@
   <h3><a href="#">Table of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">ParOpt Overview</a><ul>
+<li><a class="reference internal" href="#quick-example">Quick example</a></li>
 <li><a class="reference internal" href="#please-cite-us">Please cite us</a></li>
 <li><a class="reference internal" href="#installation">Installation</a></li>
 </ul>
@@ -46,8 +47,8 @@
 </ul>
 
   <h4>Next topic</h4>
-  <p class="topless"><a href="rosenbrock.html"
-                        title="next chapter">Rosenbrock example</a></p>
+  <p class="topless"><a href="options.html"
+                        title="next chapter">Options and generic interface for ParOpt optimziers</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -90,6 +91,56 @@ ParOpt contains both an interior-point optimization algorithm with a line search
 The constraints <span class="math notranslate nohighlight">\(c(x)\)</span>, which we refer to as dense constraints, are a small number of global constraints.
 The constraints <span class="math notranslate nohighlight">\(c_{w}(x)\)</span> are sparse and separable, where their Jacobian <span class="math notranslate nohighlight">\(A_{w}(x) = \nabla c_{w}(x)\)</span>.
 The separable constraints satisfy the property that the matrix <span class="math notranslate nohighlight">\(A_{w} C A_{w}^{T}\)</span> is block diagonal when <span class="math notranslate nohighlight">\(C\)</span> is a diagonal matrix.</p>
+<div class="section" id="quick-example">
+<h2>Quick example<a class="headerlink" href="#quick-example" title="Permalink to this headline">¶</a></h2>
+<p>The following code is an example of ParOpt applied to the optimization problem:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+    \text{min} \qquad &amp; -10 x_{1}^2 + 10 x_{2}^{2} + 4\sin(x_{1}x_{2}) - 2x_{1} + x_{1}^4 \\
+    \text{with respect to} \qquad &amp; -3 \le x_{1},x_{2} \le 3 \\
+    \text{subject to} \qquad &amp; x_{1} + x_{2} - 0.5 \ge 0 \\
+\end{align}\end{split}\]</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">mpi4py</span> <span class="kn">import</span> <span class="n">MPI</span>
+<span class="kn">from</span> <span class="nn">paropt</span> <span class="kn">import</span> <span class="n">ParOpt</span>
+
+<span class="k">class</span> <span class="nc">Problem</span><span class="p">(</span><span class="n">ParOpt</span><span class="o">.</span><span class="n">Problem</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">nvars</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="n">ncon</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Problem</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">MPI</span><span class="o">.</span><span class="n">COMM_SELF</span><span class="p">,</span> <span class="n">nvars</span><span class="p">,</span> <span class="n">ncon</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">getVarsAndBounds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">lb</span><span class="p">,</span> <span class="n">ub</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the variable values and bounds&quot;&quot;&quot;</span>
+        <span class="n">lb</span><span class="p">[:]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">3.0</span>
+        <span class="n">ub</span><span class="p">[:]</span> <span class="o">=</span> <span class="mf">3.0</span>
+        <span class="n">x</span><span class="p">[:]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span>
+        <span class="k">return</span>
+
+    <span class="k">def</span> <span class="nf">evalObjCon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Evaluate the objective and constraint values&quot;&quot;&quot;</span>
+        <span class="n">fail</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">fobj</span> <span class="o">=</span> <span class="o">-</span><span class="mi">10</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">10</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">4</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="mi">4</span>
+        <span class="n">cons</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">fail</span><span class="p">,</span> <span class="n">fobj</span><span class="p">,</span> <span class="n">cons</span>
+
+    <span class="k">def</span> <span class="nf">evalObjConGradient</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">A</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Evaluate the objective and constraint gradients&quot;&quot;&quot;</span>
+        <span class="n">fail</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">20</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">4</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mf">2.0</span> <span class="o">+</span> <span class="mi">4</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="mi">3</span>
+        <span class="n">g</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span>  <span class="mi">20</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">4</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">A</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="n">A</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="k">return</span> <span class="n">fail</span>
+
+<span class="n">problem</span> <span class="o">=</span> <span class="n">Problem</span><span class="p">()</span>
+<span class="n">options</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">opt</span> <span class="o">=</span> <span class="n">ParOpt</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+<span class="n">opt</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>
+<span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">zw</span><span class="p">,</span> <span class="n">zl</span><span class="p">,</span> <span class="n">zw</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">getOptimizedPoint</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
 <div class="section" id="please-cite-us">
 <h2>Please cite us<a class="headerlink" href="#please-cite-us" title="Permalink to this headline">¶</a></h2>
 <p>The key contributions and development of ParOpt are described in the following paper:
@@ -127,6 +178,10 @@ The recommended python installation command &quot;python setup.py build_ext --in
 <h1>Introduction and examples<a class="headerlink" href="#introduction-and-examples" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="options.html">Options and generic interface for ParOpt optimziers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="options.html#options">Options</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="rosenbrock.html">Rosenbrock example</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="rosenbrock.html#python-implementation">Python implementation</a></li>
 </ul>
@@ -173,7 +228,7 @@ The recommended python installation command &quot;python setup.py build_ext --in
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="rosenbrock.html" title="Rosenbrock example"
+          <a href="options.html" title="Options and generic interface for ParOpt optimziers"
              >next</a> |</li>
         <li class="nav-item nav-item-0"><a href="#">paropt  documentation</a> &#187;</li> 
       </ul>

@@ -102,15 +102,19 @@
 </li>
       <li><a href="reference.html#paropt.get_libraries">get_libraries() (in module paropt)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="reference.html#paropt.ParOpt.InteriorPoint.getOptimizedPoint">getOptimizedPoint() (paropt.ParOpt.InteriorPoint method)</a>
 
       <ul>
+        <li><a href="reference.html#paropt.ParOpt.Optimizer.getOptimizedPoint">(paropt.ParOpt.Optimizer method)</a>
+</li>
         <li><a href="reference.html#paropt.ParOpt.TrustRegion.getOptimizedPoint">(paropt.ParOpt.TrustRegion method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="reference.html#paropt.ParOpt.InteriorPoint.getOptimizedSlacks">getOptimizedSlacks() (paropt.ParOpt.InteriorPoint method)</a>
+</li>
+      <li><a href="reference.html#paropt.ParOpt.getOptionsInfo">getOptionsInfo() (in module paropt.ParOpt)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -166,6 +170,10 @@
       <li><a href="reference.html#paropt.paropt_driver.ParOptDriver.opt_settings">opt_settings (paropt.paropt_driver.ParOptDriver attribute)</a>
 </li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="reference.html#paropt.ParOpt.Optimizer">Optimizer (class in paropt.ParOpt)</a>
+</li>
+  </ul></td>
 </tr></table>
 
 <h2 id="P">P</h2>
@@ -189,6 +197,8 @@
 </li>
       <li><a href="reference.html#_CPPv419ParOptInteriorPoint">ParOptInteriorPoint (C++ class)</a>
 </li>
+      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint17addDefaultOptionsEP13ParOptOptions">ParOptInteriorPoint::addDefaultOptions (C++ function)</a>
+</li>
       <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint19getBarrierParameterEv">ParOptInteriorPoint::getBarrierParameter (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint18getComplementarityEv">ParOptInteriorPoint::getComplementarity (C++ function)</a>
@@ -197,13 +207,15 @@
 </li>
       <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec">ParOptInteriorPoint::getOptimizedSlacks (C++ function)</a>
 </li>
+      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint10getOptionsEv">ParOptInteriorPoint::getOptions (C++ function)</a>
+</li>
       <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint15getPenaltyGammaEPPKd">ParOptInteriorPoint::getPenaltyGamma (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint15getProblemSizesEPiPiPiPi">ParOptInteriorPoint::getProblemSizes (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint8optimizeEPKc">ParOptInteriorPoint::optimize (C++ function)</a>
 </li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint19ParOptInteriorPointEP13ParOptProblemi21ParOptQuasiNewtonTyped">ParOptInteriorPoint::ParOptInteriorPoint (C++ function)</a>
+      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint19ParOptInteriorPointEP13ParOptProblemP13ParOptOptions">ParOptInteriorPoint::ParOptInteriorPoint (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint16readSolutionFileEPKc">ParOptInteriorPoint::readSolutionFile (C++ function)</a>
 </li>
@@ -213,83 +225,11 @@
 </li>
       <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint23resetQuasiNewtonHessianEv">ParOptInteriorPoint::resetQuasiNewtonHessian (C++ function)</a>
 </li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint19setAbsOptimalityTolEd">ParOptInteriorPoint::setAbsOptimalityTol (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint13setAbsStepTolEd">ParOptInteriorPoint::setAbsStepTol (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint14setArmijoParamEd">ParOptInteriorPoint::setArmijoParam (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint25setBacktrackingLineSearchEi">ParOptInteriorPoint::setBacktrackingLineSearch (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint18setBarrierFractionEd">ParOptInteriorPoint::setBarrierFraction (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint15setBarrierPowerEd">ParOptInteriorPoint::setBarrierPower (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint18setBarrierStrategyE21ParOptBarrierStrategy">ParOptInteriorPoint::setBarrierStrategy (C++ function)</a>
-</li>
       <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint17setBFGSUpdateTypeE20ParOptBFGSUpdateType">ParOptInteriorPoint::setBFGSUpdateType (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint28setEisenstatWalkerParametersEdd">ParOptInteriorPoint::setEisenstatWalkerParameters (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint20setGMRESSubspaceSizeEi">ParOptInteriorPoint::setGMRESSubspaceSize (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint18setGMRESTolerancesEdd">ParOptInteriorPoint::setGMRESTolerances (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint25setGradientCheckFrequencyEid">ParOptInteriorPoint::setGradientCheckFrequency (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint19setHessianResetFreqEi">ParOptInteriorPoint::setHessianResetFreq (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint23setInitBarrierParameterEd">ParOptInteriorPoint::setInitBarrierParameter (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint21setMajorIterStepCheckEi">ParOptInteriorPoint::setMajorIterStepCheck (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint22setMaxAbsVariableBoundEd">ParOptInteriorPoint::setMaxAbsVariableBound (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint21setMaxLineSearchItersEi">ParOptInteriorPoint::setMaxLineSearchIters (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint21setMaxMajorIterationsEi">ParOptInteriorPoint::setMaxMajorIterations (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint22setMinPenaltyParameterEd">ParOptInteriorPoint::setMinPenaltyParameter (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint20setNKSwitchToleranceEd">ParOptInteriorPoint::setNKSwitchTolerance (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint11setNormTypeE14ParOptNormType">ParOptInteriorPoint::setNormType (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint13setOutputFileEPKc">ParOptInteriorPoint::setOutputFile (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint18setOutputFrequencyEi">ParOptInteriorPoint::setOutputFrequency (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint14setOutputLevelEi">ParOptInteriorPoint::setOutputLevel (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint25setPenaltyDescentFractionEd">ParOptInteriorPoint::setPenaltyDescentFraction (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint15setPenaltyGammaEPKd">ParOptInteriorPoint::setPenaltyGamma (C++ function)</a>, <a href="reference.html#_CPPv4N19ParOptInteriorPoint15setPenaltyGammaEd">[1]</a>
 </li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint19setQNDiagonalFactorEd">ParOptInteriorPoint::setQNDiagonalFactor (C++ function)</a>
-</li>
       <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint14setQuasiNewtonEP24ParOptCompactQuasiNewton">ParOptInteriorPoint::setQuasiNewton (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint18setRelativeBarrierEd">ParOptInteriorPoint::setRelativeBarrier (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint17setRelFunctionTolEd">ParOptInteriorPoint::setRelFunctionTol (C++ function)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint25setSequentialLinearMethodEi">ParOptInteriorPoint::setSequentialLinearMethod (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint31setStartAffineStepMultiplierMinEd">ParOptInteriorPoint::setStartAffineStepMultiplierMin (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint24setStartingPointStrategyE27ParOptStartingPointStrategy">ParOptInteriorPoint::setStartingPointStrategy (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint17setUseDiagHessianEi">ParOptInteriorPoint::setUseDiagHessian (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint17setUseHvecProductEi">ParOptInteriorPoint::setUseHvecProduct (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint16setUseLineSearchEi">ParOptInteriorPoint::setUseLineSearch (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint19setUseQNGMRESPreConEi">ParOptInteriorPoint::setUseQNGMRESPreCon (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint24setUseQuasiNewtonUpdatesEi">ParOptInteriorPoint::setUseQuasiNewtonUpdates (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint17writeSolutionFileEPKc">ParOptInteriorPoint::writeSolutionFile (C++ function)</a>
 </li>
@@ -303,7 +243,11 @@
 </li>
       <li><a href="reference.html#_CPPv4N13ParOptProblem26addSparseJacobianTransposeE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec">ParOptProblem::addSparseJacobianTranspose (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="reference.html#_CPPv4N13ParOptProblem14checkGradientsEdP9ParOptVeci">ParOptProblem::checkGradients (C++ function)</a>
+</li>
+      <li><a href="reference.html#_CPPv4N13ParOptProblem34computeQuasiNewtonUpdateCorrectionEP9ParOptVecP9ParOptVec">ParOptProblem::computeQuasiNewtonUpdateCorrection (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N13ParOptProblem19createConstraintVecEv">ParOptProblem::createConstraintVec (C++ function)</a>
 </li>
@@ -341,33 +285,23 @@
 </li>
       <li><a href="reference.html#_CPPv417ParOptTrustRegion">ParOptTrustRegion (C++ class)</a>
 </li>
+      <li><a href="reference.html#_CPPv4N17ParOptTrustRegion17getOptimizedPointEPP9ParOptVec">ParOptTrustRegion::getOptimizedPoint (C++ function)</a>
+</li>
       <li><a href="reference.html#_CPPv4N17ParOptTrustRegion15getPenaltyGammaEPPKd">ParOptTrustRegion::getPenaltyGamma (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N17ParOptTrustRegion10initializeEv">ParOptTrustRegion::initialize (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N17ParOptTrustRegion8optimizeEP19ParOptInteriorPoint">ParOptTrustRegion::optimize (C++ function)</a>
 </li>
-      <li><a href="reference.html#_CPPv4N17ParOptTrustRegion17ParOptTrustRegionEP27ParOptTrustRegionSubproblemdddddd">ParOptTrustRegion::ParOptTrustRegion (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N17ParOptTrustRegion22setAdaptiveGammaUpdateEi">ParOptTrustRegion::setAdaptiveGammaUpdate (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N17ParOptTrustRegion27setMaxTrustRegionIterationsEi">ParOptTrustRegion::setMaxTrustRegionIterations (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N17ParOptTrustRegion13setOutputFileEPKc">ParOptTrustRegion::setOutputFile (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N17ParOptTrustRegion18setOutputFrequencyEi">ParOptTrustRegion::setOutputFrequency (C++ function)</a>
+      <li><a href="reference.html#_CPPv4N17ParOptTrustRegion17ParOptTrustRegionEP27ParOptTrustRegionSubproblemP13ParOptOptions">ParOptTrustRegion::ParOptTrustRegion (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N17ParOptTrustRegion15setPenaltyGammaEPKd">ParOptTrustRegion::setPenaltyGamma (C++ function)</a>, <a href="reference.html#_CPPv4N17ParOptTrustRegion15setPenaltyGammaEd">[1]</a>
-</li>
-      <li><a href="reference.html#_CPPv4N17ParOptTrustRegion18setPenaltyGammaMaxEd">ParOptTrustRegion::setPenaltyGammaMax (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N17ParOptTrustRegion13setPrintLevelEi">ParOptTrustRegion::setPrintLevel (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N17ParOptTrustRegion24setTrustRegionTolerancesEddd">ParOptTrustRegion::setTrustRegionTolerances (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N17ParOptTrustRegion6updateEP9ParOptVecPK12ParOptScalarP9ParOptVecPdPdPd">ParOptTrustRegion::update (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N17ParOptTrustRegionD0Ev">ParOptTrustRegion::~ParOptTrustRegion (C++ function)</a>
+</li>
+      <li><a href="reference.html#paropt.ParOpt.printOptionSummary">printOptionSummary() (in module paropt.ParOpt)</a>
 </li>
       <li><a href="reference.html#paropt.ParOpt.PVec">PVec (class in paropt.ParOpt)</a>
 </li>
