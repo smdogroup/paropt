@@ -4008,8 +4008,8 @@ int ParOptInteriorPoint::lineSearch( double alpha_min, double *_alpha,
 
       // The line search may be successful but the merit function value may
       // not have resulted in no improvement.
-      if ((ParOptScalar(merit) <= ParOptScalar(m0) + function_precision) &&
-          (ParOptScalar(merit) + function_precision >= ParOptScalar(m0))){
+      if ((ParOptRealPart(merit) <= ParOptRealPart(m0) + function_precision) &&
+          (ParOptRealPart(merit) + function_precision >= ParOptRealPart(m0))){
         fail |= PAROPT_LINE_SEARCH_NO_IMPROVEMENT;
       }
       break;
@@ -4064,8 +4064,8 @@ int ParOptInteriorPoint::lineSearch( double alpha_min, double *_alpha,
       // Turn off the fail flag
       fail &= ~PAROPT_LINE_SEARCH_FAILURE;
     }
-    else if ((ParOptScalar(merit) <= ParOptScalar(m0) + function_precision) &&
-             (ParOptScalar(merit) + function_precision >= ParOptScalar(m0))){
+    else if ((ParOptRealPart(merit) <= ParOptRealPart(m0) + function_precision) &&
+             (ParOptRealPart(merit) + function_precision >= ParOptRealPart(m0))){
       // Check if there is no significant change in the function value
       fail |= PAROPT_LINE_SEARCH_NO_IMPROVEMENT;
     }
