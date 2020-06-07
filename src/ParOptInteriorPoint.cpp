@@ -539,7 +539,7 @@ void ParOptInteriorPoint::addDefaultOptions( ParOptOptions *options ){
   options->addEnumOption("qn_type", "bfgs", 3, qn_type,
     "The the of quasi-Newton approximation to use");
 
-  const char *norm_options[3] = {"infinty", "l1", "l2"};
+  const char *norm_options[3] = {"infinity", "l1", "l2"};
   options->addEnumOption("norm_type", "infinity", 3, norm_options,
     "The type of norm to use in all computations");
 

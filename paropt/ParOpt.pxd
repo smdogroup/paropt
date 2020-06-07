@@ -129,9 +129,26 @@ cdef extern from "CyParOptProblem.h":
 cdef extern from "ParOptOptions.h":
     cppclass ParOptOptions(ParOptBase):
         ParOptOptions()
+        int isOption(const char*)
         int setOption(const char*, const char*)
         int setOption(const char* int)
         int setOption(const char*, double)
+
+        const char* getStringOption(const char*)
+        int getBoolOption(const char*)
+        int getIntOption(const char*)
+        double getFloatOption(const char*)
+        const char* getEnumOption(const char*)
+        int getOptionType(const char*)
+        const char* getDescription(const char*)
+
+        int getIntRange(const char*, int*, int*)
+        int getFloatRange(const char*, double*, double*)
+        int getEnumRange(const char*, int*, char***)
+
+        void begin()
+        const char* getName()
+        int next()
 
 cdef extern from "ParOptInteriorPoint.h":
     cppclass ParOptInteriorPoint(ParOptBase):
@@ -188,7 +205,6 @@ cdef extern from "ParOptTrustRegion.h":
     void ParOptTrustRegionAddDefaultOptions"ParOptTrustRegion::addDefaultOptions"(ParOptOptions*)
 
 cdef extern from "ParOptOptimizer.h":
-    void ParOptOptimizerAddDefaultOptions"ParOptOptimizer::addDefaultOptions"(ParOptOptions*)
     cdef cppclass ParOptOptimizer(ParOptBase):
         ParOptOptimizer(ParOptProblem*, ParOptOptions*)
         ParOptOptions* getOptions()
@@ -197,6 +213,8 @@ cdef extern from "ParOptOptimizer.h":
         void getOptimizedPoint(ParOptVec**, ParOptScalar**,
                                ParOptVec**, ParOptVec**, ParOptVec**)
         void setTrustRegionSubproblem(ParOptTrustRegionSubproblem*)
+
+    void ParOptOptimizerAddDefaultOptions"ParOptOptimizer::addDefaultOptions"(ParOptOptions*)
 
 cdef class ProblemBase:
     cdef ParOptProblem *ptr

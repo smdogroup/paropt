@@ -6,6 +6,10 @@ from __future__ import print_function, division
 from mpi4py.MPI cimport *
 cimport mpi4py.MPI as MPI
 
+# Import the python version information
+from cpython.version cimport PY_MAJOR_VERSION
+
+# Import the string library
 from libcpp.string cimport string
 
 # Import the declarations required from the pxd file
@@ -36,6 +40,14 @@ cdef char* convert_to_chars(s):
     if isinstance(s, unicode):
         s = (<unicode>s).encode('utf8')
     return s
+
+cdef str convert_char_to_str(const char* s):
+    if s == NULL:
+        return None
+    elif PY_MAJOR_VERSION >= 3:
+        return s.decode('utf-8')
+    else:
+        return str(s)
 
 # Set the update type
 SKIP_NEGATIVE_CURVATURE = PAROPT_SKIP_NEGATIVE_CURVATURE
@@ -319,7 +331,7 @@ cdef inplace_array_1d(int nptype, int dim1, void *data_ptr,
 
     return ndarray
 
-cdef void addDictionaryToOptions(dict options,
+cdef void addDictionaryToOptions(options,
                                  ParOptOptions *opts):
     cdef int int_value = 0
     cdef double float_value = 0
@@ -328,30 +340,104 @@ cdef void addDictionaryToOptions(dict options,
 
     # Set the options from the dictionary
     for key in options:
-        value = options[key]
-        if isinstance(value, bool):
-            key_value = convert_to_chars(key)
-            int_value = 0
-            if value:
-                int_value = 1
-            opts.setOption(key_value.c_str(), int_value)
-        elif isinstance(value, int):
-            key_value = convert_to_chars(key)
-            int_value = value
-            opts.setOption(key_value.c_str(), int_value)
-        elif isinstance(value, float):
-            key_value = convert_to_chars(key)
-            float_value = value
-            opts.setOption(key_value.c_str(), float_value)
-        elif isinstance(value, str):
-            key_value = convert_to_chars(key)
-            str_value = convert_to_chars(value)
-            opts.setOption(key_value.c_str(), str_value.c_str())
-        else:
-            errmsg = 'ParOpt Error: Cannot convert dictionary to ParOptOptions type'
-            raise ValueError(errmsg)
+        key_value = convert_to_chars(key)
+        if opts.isOption(key_value.c_str()):
+            value = options[key]
+            if value is None:
+                continue
+            elif isinstance(value, bool):
+                int_value = 0
+                if value:
+                    int_value = 1
+                opts.setOption(key_value.c_str(), int_value)
+            elif isinstance(value, int):
+                int_value = value
+                opts.setOption(key_value.c_str(), int_value)
+            elif isinstance(value, float):
+                float_value = value
+                opts.setOption(key_value.c_str(), float_value)
+            elif isinstance(value, str):
+                str_value = convert_to_chars(value)
+                opts.setOption(key_value.c_str(), str_value.c_str())
+            else:
+                errmsg = 'Cannot convert option %s value '%(str(key)) + str(value)
+                errmsg += ' to ParOptOptions type'
+                raise ValueError(errmsg)
 
     return
+
+def getOptionsInfo():
+    """
+    Get a dictionary that contains all of the option values and information
+    that are used in any of the ParOpt optimizers.
+    """
+    cdef int index
+    cdef int size
+    cdef const char *name = NULL
+    cdef const char *const *enum_values
+    cdef int int_low, int_high
+    cdef double float_low, float_high
+    cdef ParOptOptions *options = NULL
+
+    # Create the options object and populate it with information
+    options = new ParOptOptions()
+    options.incref()
+    ParOptOptimizerAddDefaultOptions(options)
+
+    # Set the type integer to string representation
+    type_names = {1:'str', 2:'bool', 3:'int', 4:'float', 5:'enum'}
+
+    class OptionInfo:
+        def __init__(self, option_type='', default=None,
+                     values=None, descript=''):
+            self.option_type = option_type
+            self.default = default
+            self.values = values
+            self.descript = descript
+            return
+
+    # Set
+    opts = {}
+    options.begin()
+    while True:
+        name = options.getName()
+        index = options.getOptionType(name)
+        descript = convert_char_to_str(options.getDescription(name))
+        option_type = type_names[index]
+        default = None
+        values = None
+        if index == 1: # str
+            default= convert_char_to_str(options.getStringOption(name))
+        elif index == 2: # bool
+            default = options.getBoolOption(name)
+            if default:
+                default = True
+            else:
+                default = False
+        elif index == 3: # int
+            default = options.getIntOption(name)
+            options.getIntRange(name, &int_low, &int_high)
+            values = [int_low, int_high]
+        elif index == 4: # float
+            default = options.getFloatOption(name)
+            options.getFloatRange(name, &float_low, &float_high)
+            values = [float_low, float_high]
+        elif index == 5: # enum
+            default= convert_char_to_str(options.getEnumOption(name))
+            options.getEnumRange(name, &size, &enum_values)
+            values = []
+            for i in range(size):
+                val = convert_char_to_str(enum_values[i])
+                values.append(val)
+
+        str_name = convert_char_to_str(name)
+        opts[str_name] = OptionInfo(option_type=option_type, default=default,
+                                    values=values, descript=descript)
+
+        if not options.next():
+            break
+
+    return opts
 
 cdef void _getvarsandbounds(void *_self, int nvars,
                             ParOptVec *_x, ParOptVec *_lb,
@@ -897,7 +983,7 @@ cdef class LSR1(CompactQuasiNewton):
 # Python class for corresponding instance ParOpt
 cdef class InteriorPoint:
     cdef ParOptInteriorPoint *ptr
-    def __cinit__(self, ProblemBase _prob, dict options):
+    def __cinit__(self, ProblemBase _prob, options):
         cdef ParOptOptions *opts = new ParOptOptions()
         ParOptInteriorPointAddDefaultOptions(opts)
         addDictionaryToOptions(options, opts)
@@ -1040,7 +1126,7 @@ cdef class InteriorPoint:
 
 cdef class MMA(ProblemBase):
     cdef ParOptMMA *mma
-    def __cinit__(self, ProblemBase _prob, dict options):
+    def __cinit__(self, ProblemBase _prob, options):
         cdef ParOptOptions *opts = new ParOptOptions()
         ParOptMMAAddDefaultOptions(opts)
         addDictionaryToOptions(options, opts)
@@ -1097,7 +1183,7 @@ cdef class QuadraticSubproblem(TrustRegionSubproblem):
 
 cdef class TrustRegion:
     cdef ParOptTrustRegion *tr
-    def __cinit__(self, TrustRegionSubproblem prob, dict options):
+    def __cinit__(self, TrustRegionSubproblem prob, options):
         """
         Create a trust region optimization object
 
@@ -1134,7 +1220,7 @@ cdef class TrustRegion:
 
 cdef class Optimizer:
     cdef ParOptOptimizer *ptr
-    def __cinit__(self, ProblemBase problem, dict options):
+    def __cinit__(self, ProblemBase problem, options):
         cdef ParOptOptions *opts = new ParOptOptions()
         ParOptOptimizerAddDefaultOptions(opts)
         addDictionaryToOptions(options, opts)

@@ -6,8 +6,8 @@ import argparse
 
 # Create an argument parser
 parser = argparse.ArgumentParser()
-parser.add_argument('--optimizer', default='Interior Point',
-                    choices=['Interior Point', 'Trust Region'],
+parser.add_argument('--algorithm', default='ip',
+                    choices=['ip', 'tr', 'mma'],
                     help='optimizer type')
 args = parser.parse_args()
 
@@ -39,9 +39,7 @@ prob.model.add_constraint('con.c', lower=0.0)
 prob.driver = ParOptDriver()
 
 # Set options for the driver
-prob.driver.options['optimizer'] = args.optimizer
-prob.driver.options['output_file'] = 'paropt.out'
-prob.driver.options['tr_output_file'] = 'tr_paropt.out'
+prob.driver.options['algorithm'] = args.algorithm
 
 # Run the problem
 prob.setup()

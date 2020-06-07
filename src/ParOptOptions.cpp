@@ -2,7 +2,9 @@
 #include <string.h>
 #include "ParOptOptions.h"
 
-ParOptOptions::ParOptOptions(){}
+ParOptOptions::ParOptOptions(){
+  iter = entries.begin();
+}
 
 ParOptOptions::~ParOptOptions(){}
 
@@ -237,6 +239,19 @@ int ParOptOptions::addEnumOption( const char *name,
   return fail;
 }
 
+/*
+  Is this an option that has been added or not?
+
+  @param name Name of the option
+  @return Boolean value indicating if the option is valid
+*/
+int ParOptOptions::isOption( const char *name ){
+  if (entries.count(name) > 0){
+    return 1;
+  }
+  return 0;
+}
+
 /**
   Set either an enum or string type option
 
@@ -422,6 +437,84 @@ const char* ParOptOptions::getDescription( const char *name ){
   return NULL;
 }
 
+int ParOptOptions::getIntRange( const char *name,
+                                int *low, int *high ){
+  int fail = 1;
+  if (entries.count(name) == 0){
+    fprintf(stderr, "ParOptOptions Error: Unknown option %s\n", name);
+  }
+  else {
+    ParOptOptionEntry *entry = entries[name];
+    if (entry->type_info == PAROPT_INT_OPTION){
+      ParOptOptionEntry *entry = entries[name];
+      if (low){
+        *low = entry->int_low;
+      }
+      if (high){
+        *high = entry->int_high;
+      }
+      fail = 0;
+    }
+    else {
+      fprintf(stderr, "ParOptOptions Error: %s is not an integer option\n",
+              name);
+    }
+  }
+  return fail;
+}
+
+int ParOptOptions::getFloatRange( const char *name,
+                                  double *low, double *high ){
+  int fail = 1;
+  if (entries.count(name) == 0){
+    fprintf(stderr, "ParOptOptions Error: Unknown option %s\n", name);
+  }
+  else {
+    ParOptOptionEntry *entry = entries[name];
+    if (entry->type_info == PAROPT_FLOAT_OPTION){
+      ParOptOptionEntry *entry = entries[name];
+      if (low){
+        *low = entry->float_low;
+      }
+      if (high){
+        *high = entry->float_high;
+      }
+      fail = 0;
+    }
+    else {
+      fprintf(stderr, "ParOptOptions Error: %s is not a float option\n",
+              name);
+    }
+  }
+  return fail;
+}
+
+int ParOptOptions::getEnumRange( const char *name,
+                                 int *size, const char *const **values ){
+  int fail = 1;
+  if (entries.count(name) == 0){
+    fprintf(stderr, "ParOptOptions Error: Unknown option %s\n", name);
+  }
+  else {
+    ParOptOptionEntry *entry = entries[name];
+    if (entry->type_info == PAROPT_ENUM_OPTION){
+      ParOptOptionEntry *entry = entries[name];
+      if (size){
+        *size = entry->num_enum;
+      }
+      if (values){
+        *values = entry->enum_range;
+      }
+      fail = 0;
+    }
+    else {
+      fprintf(stderr, "ParOptOptions Error: %s is not an enum option\n",
+              name);
+    }
+  }
+  return fail;
+}
+
 void ParOptOptions::printSummary( FILE *fp, int output_level ){
   if (fp){
     std::map<std::string, ParOptOptionEntry*>::iterator it = entries.begin();
@@ -477,4 +570,22 @@ void ParOptOptions::printSummary( FILE *fp, int output_level ){
       it++;
     }
   }
+}
+
+void ParOptOptions::begin(){
+  iter = entries.begin();
+}
+
+const char* ParOptOptions::getName(){
+  if (iter != entries.end()){
+    return iter->first.c_str();
+  }
+  return NULL;
+}
+
+int ParOptOptions::next(){
+  if (iter != entries.end()){
+    iter++;
+  }
+  return (iter != entries.end());
 }

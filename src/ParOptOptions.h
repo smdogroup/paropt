@@ -32,6 +32,9 @@ class ParOptOptions : public ParOptBase {
                      int size, const char *options[],
                      const char *descript );
 
+  // Is this an option?
+  int isOption( const char *name );
+
   // Set the option values
   int setOption( const char *name, const char *value );
   int setOption( const char *name, int value );
@@ -51,11 +54,16 @@ class ParOptOptions : public ParOptBase {
   const char* getDescription( const char *name );
 
   // Get information about the range of possible values
-  // int getIntRange( const char *name, int *low, int *high );
-  // int getFloatRange( const char *name, double *low, double *high );
-  // int getEnumRange( const char *name, int *size, const char ***values );
+  int getIntRange( const char *name, int *low, int *high );
+  int getFloatRange( const char *name, double *low, double *high );
+  int getEnumRange( const char *name, int *size,
+                    const char *const **values );
 
   void printSummary( FILE *fp, int output_level );
+
+  void begin();
+  const char* getName();
+  int next();
 
  private:
   class ParOptOptionEntry {
@@ -111,6 +119,7 @@ class ParOptOptions : public ParOptBase {
   };
 
   std::map<std::string, ParOptOptionEntry*> entries;
+  std::map<std::string, ParOptOptionEntry*>::iterator iter;
 };
 
 #endif // PAR_OPT_OPTIONS_H
