@@ -419,7 +419,7 @@ void ParOptInteriorPoint::addDefaultOptions( ParOptOptions *options ){
    "Relative function value stopping criterion");
 
   options->addFloatOption("abs_step_tol", 0.0, 0.0, 1e20,
-   "Float: Absolute stopping norm on the step size");
+   "Absolute stopping norm on the step size");
 
   options->addFloatOption("init_barrier_param", 0.1, 0.0, 1e20,
     "The initial value of the barrier parameter");
@@ -446,7 +446,7 @@ void ParOptInteriorPoint::addDefaultOptions( ParOptOptions *options ){
     "Exponent for barrier parameter update > 1");
 
   options->addFloatOption("rel_bound_barrier", 1.0, 0.0, 1e20,
-   "Relative factor applied to barrier parameter for bound constraints");
+    "Relative factor applied to barrier parameter for bound constraints");
 
   options->addFloatOption("min_fraction_to_boundary", 0.95, 0.0, 1.0,
     "Minimum fraction to the boundary rule < 1");
@@ -701,8 +701,11 @@ void ParOptInteriorPoint::getOptimizedSlacks( ParOptScalar **_s,
    @param fp an open file handle
 */
 void ParOptInteriorPoint::printOptionSummary( FILE *fp ){
-  const int output_level = options->getIntOption("output_level");
-  options->printSummary(fp, output_level);
+  if (fp){
+    const int output_level = options->getIntOption("output_level");
+    fprintf(fp, "ParOptInteriorPoint Parameter Summary:\n");
+    options->printSummary(fp, output_level);
+  }
 }
 
 /**

@@ -16,14 +16,14 @@ class Problem1(ParOpt.Problem):
         return
 
     def getVarsAndBounds(self, x, lb, ub):
-        '''Get the variable values and bounds'''
+        """Get the variable values and bounds"""
         lb[:] = -3.0
         ub[:] = 3.0
         x[:] = -2.0 + 4.0*np.random.uniform(size=len(x))
         return
 
     def evalObjCon(self, x):
-        '''Evaluate the objective and constraint values'''
+        """Evaluate the objective and constraint values"""
 
         # Append the point to the solution history
         self.x_hist.append(np.array(x))
@@ -49,14 +49,14 @@ class Problem2(ParOpt.Problem):
         return
 
     def getVarsAndBounds(self, x, lb, ub):
-        '''Get the variable values and bounds'''
+        """Get the variable values and bounds"""
         lb[:] = -3.0
         ub[:] = 3.0
         x[:] = -2.0 + 4.0*np.random.uniform(size=len(x))
         return
 
     def evalObjCon(self, x):
-        '''Evaluate the objective and constraint values'''
+        """Evaluate the objective and constraint values"""
 
         # Append the point to the history
         self.x_hist.append(np.array(x))
@@ -82,14 +82,14 @@ class Problem3(ParOpt.Problem):
         return
 
     def getVarsAndBounds(self, x, lb, ub):
-        '''Get the variable values and bounds'''
+        """Get the variable values and bounds"""
         lb[:] = -3.0
         ub[:] = 3.0
         x[:] = -2.0 + 4.0*np.random.uniform(size=len(x))
         return
 
     def evalObjCon(self, x):
-        '''Evaluate the objective and constraint values'''
+        """Evaluate the objective and constraint values"""
 
         # Append the point to the solution history
         self.x_hist.append(np.array(x))
@@ -115,14 +115,14 @@ class Problem4(ParOpt.Problem):
         return
 
     def getVarsAndBounds(self, x, lb, ub):
-        '''Get the variable values and bounds'''
+        """Get the variable values and bounds"""
         lb[:] = -3.0
         ub[:] = 3.0
         x[:] = -2.0 + 4.0*np.random.uniform(size=len(x))
         return
 
     def evalObjCon(self, x):
-        '''Evaluate the objective and constraint values'''
+        """Evaluate the objective and constraint values"""
 
         # Append the point to the solution history
         self.x_hist.append(np.array(x))
@@ -148,14 +148,14 @@ class Problem5(ParOpt.Problem):
         return
 
     def getVarsAndBounds(self, x, lb, ub):
-        '''Get the variable values and bounds'''
+        """Get the variable values and bounds"""
         lb[:] = -3.0
         ub[:] = 3.0
         x[:] = -2.0 + 4.0*np.random.uniform(size=len(x))
         return
 
     def evalObjCon(self, x):
-        '''Evaluate the objective and constraint values'''
+        """Evaluate the objective and constraint values"""
 
         # Append the point to the solution history
         self.x_hist.append(np.array(x))
@@ -175,10 +175,10 @@ class Problem5(ParOpt.Problem):
         return fail
 
 def plot_it_all(problem, use_tr=False):
-    '''
+    """
     Plot a carpet plot with the search histories for steepest descent,
     conjugate gradient and BFGS from the same starting point.
-    '''
+    """
 
     # Check the problem gradients
     problem.checkGradients(1e-6)

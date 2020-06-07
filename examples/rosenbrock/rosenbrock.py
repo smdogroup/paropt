@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 # Import ParOpt
 from paropt import ParOpt
 
-
 # Create the rosenbrock function class
 class Rosenbrock(ParOpt.Problem):
     def __init__(self):
@@ -28,14 +27,14 @@ class Rosenbrock(ParOpt.Problem):
         return
 
     def getVarsAndBounds(self, x, lb, ub):
-        '''Set the values of the bounds'''
+        """Set the values of the bounds"""
         x[:] = -2.0 + np.random.uniform(size=len(x))
         lb[:] = -2.0
         ub[:] = 2.0
         return
 
     def evalObjCon(self, x):
-        '''Evaluate the objective and constraint'''
+        """Evaluate the objective and constraint"""
         # Append the point to the solution history
         self.x_hist.append(np.array(x))
 
@@ -47,7 +46,7 @@ class Rosenbrock(ParOpt.Problem):
         return fail, fobj, con
 
     def evalObjConGradient(self, x, g, A):
-        '''Evaluate the objective and constraint gradient'''
+        """Evaluate the objective and constraint gradient"""
         fail = 0
 
         # The objective gradient
@@ -60,10 +59,10 @@ class Rosenbrock(ParOpt.Problem):
         return fail
 
 def plot_it_all(problem):
-    '''
+    """
     Plot a carpet plot with the search histories for steepest descent,
     conjugate gradient and BFGS from the same starting point.
-    '''
+    """
 
     # Create the data for the carpet plot
     n = 150
@@ -87,17 +86,14 @@ def plot_it_all(problem):
     colours = ['-bo', '-ko', '-co', '-mo', '-yo',
                '-bx', '-kx', '-cx', '-mx', '-yx' ]
 
-    filename = 'paropt.out'
     options = {
         'algorithm': 'tr',
         'tr_init_size': 0.05,
         'tr_min_size': 1e-6,
         'tr_max_size': 10.0,
         'tr_eta': 0.1,
-        'tr_output_file': os.path.splitext(filename)[0] + '.tr',
         'tr_adaptive_gamma_update': True,
-        'tr_max_iterations': 200,
-        'output_file': filename}
+        'tr_max_iterations': 200}
 
     for k in range(len(colours)):
         # Optimize the problem

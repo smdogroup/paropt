@@ -755,7 +755,8 @@ void ParOptTrustRegion::printOptionSummary( FILE *fp ){
   const int output_level = options->getIntOption("output_level");
   int rank;
   MPI_Comm_rank(subproblem->getMPIComm(), &rank);
-  if (rank == 0){
+  if (fp && rank == 0){
+    fprintf(fp, "ParOptTrustRegion Parameter Summary:\n");
     options->printSummary(fp, output_level);
   }
 }

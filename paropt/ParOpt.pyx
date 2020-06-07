@@ -366,6 +366,36 @@ cdef void addDictionaryToOptions(options,
 
     return
 
+def printOptionSummary():
+    """
+    Print a summary of all the options available within all ParOpt optimizers.
+    """
+
+    info = getOptionsInfo()
+
+    for name in info:
+        print(info[name].descript)
+        if info[name].option_type == 'str':
+            print('%-40s %-15s'%(name, info[name].default))
+        elif info[name].option_type == 'bool':
+            print('%-40s %-15s'%(name, str(info[name].default)))
+        elif info[name].option_type == 'int':
+            print('%-40s %-15d'%(name, info[name].default))
+            print('Range of values: low %-15d high %-15d'%(
+                info[name].values[0], info[name].values[1]))
+        elif info[name].option_type == 'float':
+            print('%-40s %-15g'%(name, info[name].default))
+            print('Range of values: low %-15g high %-15g'%(
+                info[name].values[0], info[name].values[1]))
+        elif info[name].option_type == 'enum':
+            print('%-40s %-15s'%(name, info[name].default))
+            print('%-40s %-15s'%('Range of values:', info[name].values[0]))
+            for opt in info[name].values[1:]:
+                print('%-40s %-15s'%(' ', opt))
+        print('')
+
+    return
+
 def getOptionsInfo():
     """
     Get a dictionary that contains all of the option values and information

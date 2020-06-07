@@ -1,5 +1,3 @@
-# Test script used while wrapping ParOpt with OpenMDAO
-
 from openmdao.api import Problem, ScipyOptimizeDriver, ExecComp, IndepVarComp
 from paropt.paropt_driver import ParOptDriver
 import argparse
