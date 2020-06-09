@@ -172,7 +172,6 @@ int ParOptLBFGS::update( ParOptVec *x, const ParOptScalar *z,
     }
     else if (ParOptRealPart(sTy) <= epsilon_precision*sqrt(ParOptRealPart(yTy*yTy))){
       update_type = 2;
-      b0 = fabs(ParOptRealPart(sTy))/ParOptRealPart(sTs);
       return update_type;
     }
 
@@ -496,6 +495,9 @@ ParOptLSR1::ParOptLSR1( ParOptProblem *prob, int _msub_max ){
   memset(D, 0, msub_max*sizeof(ParOptScalar));
   memset(L, 0, msub_max*msub_max*sizeof(ParOptScalar));
   memset(B, 0, msub_max*msub_max*sizeof(ParOptScalar));
+
+  // Set the orthogonality precision
+  epsilon_precision = 1e-12;
 }
 
 /**
@@ -571,8 +573,17 @@ int ParOptLSR1::update( ParOptVec *x, const ParOptScalar *z,
                         ParOptVec *s, ParOptVec *y ){
   int update_type = 0;
 
+
+  ParOptScalar yTy = y->dot(y);
+  ParOptScalar sTy = s->dot(y);
+
   // Set the diagonal components to the identity matrix
-  b0 = 1.0;
+  if (ParOptRealPart(sTy) > epsilon_precision*ParOptRealPart(yTy)){
+    b0 = yTy/sTy;
+  }
+  else {
+    b0 = 1.0;
+  }
 
   // Set up the new values
   if (msub < msub_max){

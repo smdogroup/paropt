@@ -454,7 +454,7 @@ void ParOptInteriorPoint::addDefaultOptions( ParOptOptions *options ){
   options->addFloatOption("qn_sigma", 0.0, 0.0, 1e20,
     "Scalar added to the diagonal of the quasi-Newton approximation > 0");
 
-  options->addFloatOption("nk_switch_tol", 1e-3, 0.0, 1.0,
+  options->addFloatOption("nk_switch_tol", 1e-3, 0.0, 1e20,
     "Switch to the Newton-Krylov method at this residual tolerance");
 
   options->addFloatOption("eisenstat_walker_alpha", 1.5, 0.0, 2.0,
@@ -543,11 +543,12 @@ void ParOptInteriorPoint::addDefaultOptions( ParOptOptions *options ){
   options->addEnumOption("norm_type", "infinity", 3, norm_options,
     "The type of norm to use in all computations");
 
-  const char *barrier_options[3] = {"monotone",
+  const char *barrier_options[4] = {"monotone",
                                     "mehrotra",
+                                    "mehrotra_predictor_corrector",
                                     "complementarity_fraction"};
   options->addEnumOption("barrier_strategy",
-    "monotone", 3, barrier_options,
+    "monotone", 4, barrier_options,
     "The type of barrier update strategy to use");
 
   const char *start_options[3] = {"least_squares_multipliers",
@@ -1357,6 +1358,67 @@ void ParOptInteriorPoint::computeKKTRes( double barrier,
     }
     if (*max_infeas > *res_norm){
       *res_norm = *max_infeas;
+    }
+  }
+}
+
+
+/*
+  Add the contributions to the residual from the affine predictor
+  step due to the Mehrotra predictor-corrector
+*/
+void ParOptInteriorPoint::addMehrotraCorrectorResidual(){
+  const double max_bound_value = options->getFloatOption("max_bound_value");
+
+  if (dense_inequality){
+    for ( int i = 0; i < ncon; i++ ){
+      rs[i] -= ps[i]*pz[i];
+      rzt[i] -= pt[i]*pzt[i];
+    }
+  }
+
+  // Extract the values of the variables and lower/upper bounds
+  ParOptScalar *pxvals, *lbvals, *ubvals, *pzlvals, *pzuvals;
+  px->getArray(&pxvals);
+  lb->getArray(&lbvals);
+  ub->getArray(&ubvals);
+  pzl->getArray(&pzlvals);
+  pzu->getArray(&pzuvals);
+
+  if (use_lower){
+    // Compute the residuals for the lower bounds
+    ParOptScalar *rzlvals;
+    rzl->getArray(&rzlvals);
+
+    for ( int i = 0; i < nvars; i++ ){
+      if (ParOptRealPart(lbvals[i]) > -max_bound_value){
+        rzlvals[i] -= pxvals[i]*pzlvals[i];
+      }
+    }
+  }
+
+  if (use_upper){
+    // Compute the residuals for the upper bounds
+    ParOptScalar *rzuvals;
+    rzu->getArray(&rzuvals);
+
+    for ( int i = 0; i < nvars; i++ ){
+      if (ParOptRealPart(ubvals[i]) < max_bound_value){
+        rzuvals[i] += pxvals[i]*pzuvals[i];
+      }
+    }
+  }
+
+  if (nwcon > 0 && sparse_inequality){
+    // Set the values of the perturbed complementarity
+    // constraints for the sparse slack variables
+    ParOptScalar *pzwvals, *pswvals, *rswvals;
+    pzw->getArray(&pzwvals);
+    psw->getArray(&pswvals);
+    rsw->getArray(&rswvals);
+
+    for ( int i = 0; i < nwcon; i++ ){
+      rswvals[i] -= pswvals[i]*pzwvals[i];
     }
   }
 }
@@ -4378,6 +4440,9 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
   else if (strcmp(barrier_name, "mehrotra") == 0){
     barrier_strategy = PAROPT_MEHROTRA;
   }
+  else if (strcmp(barrier_name, "mehrotra_predictor_corrector") == 0){
+    barrier_strategy = PAROPT_MEHROTRA_PREDICTOR_CORRECTOR;
+  }
 
   // Set the initial barrier parameter
   barrier_param = options->getFloatOption("init_barrier_param");
@@ -4672,7 +4737,8 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         barrier_param = new_barrier_param;
       }
     }
-    else if (barrier_strategy == PAROPT_MEHROTRA){
+    else if (barrier_strategy == PAROPT_MEHROTRA ||
+             barrier_strategy == PAROPT_MEHROTRA_PREDICTOR_CORRECTOR){
       // Compute the residual of the KKT system
       computeKKTRes(barrier_param, norm_type,
                     &max_prime, &max_dual, &max_infeas, &res_norm);
@@ -4879,7 +4945,8 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
 
       // Compute the affine residual with barrier = 0.0 if we are using
       // the Mehrotra probing barrier strategy
-      if (barrier_strategy == PAROPT_MEHROTRA){
+      if (barrier_strategy == PAROPT_MEHROTRA ||
+          barrier_strategy == PAROPT_MEHROTRA_PREDICTOR_CORRECTOR){
         computeKKTRes(0.0, norm_type, &max_prime, &max_dual, &max_infeas);
       }
 
@@ -4907,7 +4974,8 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         step_norm_prev = computeStepNorm(norm_type);
       }
 
-      if (barrier_strategy == PAROPT_MEHROTRA){
+      if (barrier_strategy == PAROPT_MEHROTRA ||
+          barrier_strategy == PAROPT_MEHROTRA_PREDICTOR_CORRECTOR){
         // Compute the affine step to the boundary, allowing
         // the variables to go right to zero
         double max_x, max_z;
@@ -4937,6 +5005,12 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         // Compute the residual with the new barrier parameter
         computeKKTRes(barrier_param, norm_type,
                       &max_prime, &max_dual, &max_infeas);
+
+        // Add the contributions to the residual from the predictor
+        // corrector step
+        if (barrier_strategy == PAROPT_MEHROTRA_PREDICTOR_CORRECTOR){
+          addMehrotraCorrectorResidual();
+        }
 
         // Compute the KKT Step
         computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_qn);
@@ -5178,6 +5252,8 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
 void ParOptInteriorPoint::initLeastSquaresMultipliers(){
   const double max_bound_value =
     options->getFloatOption("max_bound_value");
+  const double init_barrier_param =
+    options->getFloatOption("init_barrier_param");
 
   // Set the largrange multipliers with bounds outside the
   // limits to zero
@@ -5189,21 +5265,25 @@ void ParOptInteriorPoint::initLeastSquaresMultipliers(){
 
   // Set the Largrange multipliers associated with the
   // the lower/upper bounds to 1.0
-  zl->set(1.0);
-  zu->set(1.0);
+  zl->set(init_barrier_param);
+  zu->set(init_barrier_param);
 
   // Set the Lagrange multipliers and slack variables
   // associated with the sparse constraints to 1.0
-  zw->set(1.0);
-  sw->set(1.0);
+  zw->set(init_barrier_param);
+  sw->set(init_barrier_param);
 
   // Set the Largrange multipliers and slack variables associated
   // with the dense constraints to 1.0
   for ( int i = 0; i < ncon; i++ ){
-    z[i] = 1.0;
-    s[i] = 1.0;
-    zt[i] = 1.0;
-    t[i] = 1.0;
+    z[i] = init_barrier_param;
+    s[i] = init_barrier_param;
+    zt[i] = init_barrier_param;
+    t[i] = init_barrier_param;
+    if (dense_inequality){
+      s[i] = max2(init_barrier_param, c[i] + init_barrier_param);
+      t[i] = max2(init_barrier_param, -c[i] + init_barrier_param);
+    }
   }
 
   // Zero the multipliers for bounds that are out-of-range
@@ -5264,7 +5344,7 @@ void ParOptInteriorPoint::initLeastSquaresMultipliers(){
     }
     else {
       for ( int i = 0; i < ncon; i++ ){
-        z[i] = 1.0;
+        z[i] = init_barrier_param;
       }
     }
   }
@@ -5322,6 +5402,12 @@ void ParOptInteriorPoint::initAffineStepMultipliers( ParOptNormType norm_type ){
 
   // Solve for the KKT step
   computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_qn);
+
+  // Compute the complementarity and scale the step
+  ParOptScalar comp = computeComp();
+  double alpha_x = 1.0, alpha_z = 1.0;
+  int inexact_newton_step = 0;
+  scaleKKTStep(1.0, comp, inexact_newton_step, &alpha_x, &alpha_z);
 
   // Copy over the values
   if (dense_inequality){

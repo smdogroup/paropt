@@ -166,6 +166,9 @@ class ParOptLSR1 : public ParOptCompactQuasiNewton {
   // The size of the BFGS subspace
   int msub, msub_max;
 
+  // Set the finite-precision tolerance
+  double epsilon_precision;
+
   // The full list of vectors
   ParOptVec **Z;
 

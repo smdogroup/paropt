@@ -272,6 +272,7 @@ int ParOptOptions::setOption( const char *name,
       }
       entry->str_value = new char[ strlen(value)+1 ];
       strcpy(entry->str_value, value);
+      entry->is_set = 1;
       fail = 0;
     }
     else if (entry->type_info == PAROPT_ENUM_OPTION){
@@ -283,6 +284,7 @@ int ParOptOptions::setOption( const char *name,
           }
           entry->enum_value = new char[ strlen(value)+1 ];
           strcpy(entry->enum_value, value);
+          entry->is_set = 1;
           fail = 0;
           break;
         }
@@ -316,12 +318,14 @@ int ParOptOptions::setOption( const char *name,
     if (entry->type_info == PAROPT_BOOLEAN_OPTION){
       ParOptOptionEntry *entry = entries[name];
       entry->bool_value = value;
+      entry->is_set = 1;
       fail = 0;
     }
     else if (entry->type_info == PAROPT_INT_OPTION){
       ParOptOptionEntry *entry = entries[name];
       if (value >= entry->int_low && value <= entry->int_high){
         entry->int_value = value;
+        entry->is_set = 1;
         fail = 0;
       }
       else {
@@ -353,6 +357,7 @@ int ParOptOptions::setOption( const char *name,
       ParOptOptionEntry *entry = entries[name];
       if (value >= entry->float_low && value <= entry->float_high){
         entry->float_value = value;
+        entry->is_set = 1;
         fail = 0;
       }
       else {
@@ -520,54 +525,59 @@ void ParOptOptions::printSummary( FILE *fp, int output_level ){
     std::map<std::string, ParOptOptionEntry*>::iterator it = entries.begin();
 
     // Iterate over the map using Iterator till end.
-    while (it != entries.end()){
+    for ( ; it != entries.end(); it++ ){
       ParOptOptionEntry *entry = it->second;
 
-      if (output_level > 0){
+      // If the output level is zero, then print out only those
+      // options that are set
+      if (output_level <= 1 && !entry->is_set){
+        continue;
+      }
+
+      if (output_level > 1){
         fprintf(fp, "%s\n", entry->descript);
       }
       if (entry->type_info == PAROPT_STRING_OPTION){
         fprintf(fp, "%-40s %-15s\n",
                 entry->name, entry->str_value);
-        if (output_level > 0){
+        if (output_level > 1){
           fprintf(fp, "%-40s %-15s\n", "default", entry->str_default);
         }
       }
       else if (entry->type_info == PAROPT_BOOLEAN_OPTION){
         fprintf(fp, "%-40s %-15d\n",
                 entry->name, entry->bool_value);
-        if (output_level > 0){
+        if (output_level > 1){
           fprintf(fp, "%-40s %-15d\n", "default", entry->bool_default);
         }
       }
       else if (entry->type_info == PAROPT_INT_OPTION){
         fprintf(fp, "%-40s %-15d\n",
                 entry->name, entry->int_value);
-        if (output_level > 0){
+        if (output_level > 1){
           fprintf(fp, "%-40s %-15d\n", "default", entry->int_default);
         }
       }
       else if (entry->type_info == PAROPT_FLOAT_OPTION){
         fprintf(fp, "%-40s %-15g\n",
                 entry->name, entry->float_value);
-        if (output_level > 0){
+        if (output_level > 1){
           fprintf(fp, "%-40s %-15g\n", "default", entry->float_default);
         }
       }
       else if (entry->type_info == PAROPT_ENUM_OPTION){
         fprintf(fp, "%-40s %-15s\n",
                 entry->name, entry->enum_value);
-        if (output_level > 0){
+        if (output_level > 1){
           for ( int i = 0; i < entry->num_enum; i++ ){
             fprintf(fp, "%-40s %-15s\n", "options", entry->enum_range[i]);
           }
           fprintf(fp, "%-40s %-15s\n", "default", entry->enum_default);
         }
       }
-      if (output_level > 0){
+      if (output_level > 1){
         fprintf(fp, "\n");
       }
-      it++;
     }
   }
 }

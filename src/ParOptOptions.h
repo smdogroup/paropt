@@ -77,6 +77,7 @@ class ParOptOptions : public ParOptBase {
       num_enum = 0;
       enum_value = enum_default = NULL;
       enum_range = NULL;
+      is_set = 0;
     }
     ~ParOptOptionEntry(){
       if (name){ delete [] name; }
@@ -97,6 +98,10 @@ class ParOptOptions : public ParOptBase {
 
     // Name of the description
     char *descript;
+
+    // Flag to indicate whether the option has been set
+    // by the user/algorithm
+    int is_set;
 
     // Type of entry
     int type_info;

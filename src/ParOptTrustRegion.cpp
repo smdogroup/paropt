@@ -710,6 +710,23 @@ void ParOptTrustRegion::addDefaultOptions( ParOptOptions *options ){
   options->addEnumOption("tr_adaptive_constraint",
     "linear_constraint", 2, con_options,
     "The type of constraint to use for the adaptive penalty subproblem");
+
+  const char *barrier_options[5] = {"monotone",
+                                    "mehrotra",
+                                    "mehrotra_predictor_corrector",
+                                    "complementarity_fraction",
+                                    "default"};
+  options->addEnumOption("tr_steering_barrier_strategy",
+    "monotone", 5, barrier_options,
+    "The barrier update strategy to use for the steering method subproblem");
+
+  const char *start_options[4] = {"least_squares_multipliers",
+                                  "affine_step",
+                                  "no_start_strategy",
+                                  "default"};
+  options->addEnumOption("tr_steering_starting_point_strategy",
+    "affine_step", 4, start_options,
+    "The barrier update strategy to use for the steering method subproblem");
 }
 
 ParOptOptions* ParOptTrustRegion::getOptions(){
@@ -1059,6 +1076,12 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
     adaptive_constraint_flag = ParOptInfeasSubproblem::PAROPT_SUBPROBLEM_CONSTRAINT;
   }
 
+  // Set the starting point strategy for the subproblem
+  const char* tr_barrier_strategy =
+    options->getEnumOption("tr_steering_barrier_strategy");
+  const char* tr_starting_strategy =
+    options->getEnumOption("tr_steering_starting_point_strategy");
+
   // Set up the optimizer so that it uses the quasi-Newton approximation
   ParOptCompactQuasiNewton *qn = subproblem->getQuasiNewton();
   optimizer->setQuasiNewton(qn);
@@ -1121,13 +1144,19 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
       optimizer->resetProblemInstance(infeas_problem);
 
       // Set the starting point strategy
-      ip_options->setOption("starting_point_strategy", "affine_step");
+      if (strcmp(tr_barrier_strategy, "default") != 0){
+        printf("tr_barrier_strategy = %s\n", tr_barrier_strategy);
+        ip_options->setOption("barrier_strategy", tr_barrier_strategy);
+      }
+      if (strcmp(tr_starting_strategy, "default") != 0){
+        ip_options->setOption("starting_point_strategy", tr_starting_strategy);
+      }
 
       // Set whether or not to use a sequential linear method or not
+      int is_seq = ip_options->getBoolOption("sequential_linear_method");
       if ((adaptive_objective_flag == ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE ||
            adaptive_objective_flag == ParOptInfeasSubproblem::PAROPT_CONSTANT_OBJECTIVE) &&
           (adaptive_constraint_flag == ParOptInfeasSubproblem::PAROPT_LINEAR_CONSTRAINT)){
-        ip_options->setOption("barrier_strategy", "mehrotra");
         ip_options->setOption("sequential_linear_method", 1);
       }
 
@@ -1171,7 +1200,7 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
       // Reset the options
       ip_options->setOption("starting_point_strategy", start_option);
       ip_options->setOption("barrier_strategy", barrier_option);
-      ip_options->setOption("sequential_linear_method", 0);
+      ip_options->setOption("sequential_linear_method", is_seq);
     }
 
     // Print out the current solution progress using the

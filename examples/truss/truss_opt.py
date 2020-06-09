@@ -25,7 +25,7 @@ import numpy as np
 from truss_analysis import TrussAnalysis
 
 def get_ground_structure(N=4, M=4, L=2.5, P=10.0, n=5):
-    '''
+    """
     Set up the connectivity for a ground structure consisting of a 2D
     mesh of (N x M) nodes of completely connected elements.
 
@@ -43,7 +43,7 @@ def get_ground_structure(N=4, M=4, L=2.5, P=10.0, n=5):
     xpos:   the nodal locations
     loads:  the loading conditions applied to the problem
     P:      the load applied to the mesh
-    '''
+    """
 
     # First, generate a co-prime grid that will be used to
     grid = []
@@ -89,57 +89,70 @@ def get_ground_structure(N=4, M=4, L=2.5, P=10.0, n=5):
 
 def setup_ground_struct(N, M, L=2.5, E=70e9, rho=2700.0,
                         A_min=5e-4, A_max=10.0):
-    '''
+    """
     Create a ground structure with a given number of nodes and
     material properties.
-    '''
+    """
 
     # Create the ground structure
     conn, xpos, loads, bcs = get_ground_structure(N=N, M=M,
                                                   L=L, P=10e3)
 
     # Set the scaling for the material variables
-    Area_scale = 1e-4
+    Area_scale = 1.0
 
     # Set the fixed mass constraint
     mass_fixed = 5.0*N*M*L*rho
 
-    # Set the mass scaling
-    mass_scale = L*rho
-
     # Create the truss topology optimization object
     truss = TrussAnalysis(conn, xpos, loads, bcs,
                           E, rho, mass_fixed, A_min, A_max,
-                          Area_scale=Area_scale, mass_scale=mass_scale)
+                          Area_scale=Area_scale)
 
     # Set the options
-    truss.setInequalityOptions(dense_ineq=False,
+    truss.setInequalityOptions(dense_ineq=True,
                                use_lower=True,
                                use_upper=True)
 
     return truss
 
-def paropt_truss(truss, use_hessian=False,
+def paropt_truss(truss, use_hessian=False, use_tr=False,
                  prefix='results'):
-    '''
+    """
     Optimize the given truss structure using ParOpt
-    '''
+    """
 
     fname = os.path.join(prefix, 'truss_paropt%dx%d.out'%(N, M))
     options = {
         'algorithm': 'ip',
         'qn_subspace_size': 10,
-        'abs_res_tol': 1e-6,
+        'abs_res_tol': 1e-5,
+        'norm_type': 'l1',
+        'init_barrier_param': 10.0,
+        'monotone_barrier_fraction': 0.75,
         'barrier_strategy': 'complementarity_fraction',
+        'starting_point_strategy': 'least_squares_multipliers',
         'use_hvec_product': True,
-        'gmres_subspace_size': 25,
-        'nk_switch_tol': 1.0,
+        'gmres_subspace_size': 50,
+        'nk_switch_tol': 1e3,
         'eisenstat_walker_gamma': 0.01,
         'eisenstat_walker_alpha': 0.0,
         'max_gmres_rtol': 1.0,
         'output_level': 1,
         'armijo_constant': 1e-5,
         'output_file': fname}
+
+    if use_tr:
+        options['algorithm'] = 'tr'
+        options['abs_res_tol'] = 1e-8
+        options['barrier_strategy'] = 'monotone'
+        options['tr_max_size'] = 100.0
+        options['tr_linfty_tol'] = 1e-5
+        options['tr_l1_tol'] = 0.0
+        options['tr_max_iterations'] = 2000
+        options['tr_penalty_gamma_max'] = 1e6
+        options['tr_adaptive_gamma_update'] = True
+        options['tr_output_file'] = fname.split('.')[0] + '.tr'
 
     if use_hessian is False:
         options['use_hvec_product'] = False
@@ -150,10 +163,10 @@ def paropt_truss(truss, use_hessian=False,
     return opt
 
 def pyopt_truss(truss, optimizer='snopt', options={}):
-    '''
+    """
     Take the given problem and optimize it with the given optimizer
     from the pyOptSparse library of optimizers.
-    '''
+    """
     # Import the optimization problem
     from pyoptsparse import Optimization, OPT
 
@@ -204,9 +217,9 @@ def pyopt_truss(truss, optimizer='snopt', options={}):
     return opt, prob, sol
 
 def get_performance_profile(r, tau_max):
-    '''
+    """
     Get the performance profile for the given ratio
-    '''
+    """
 
     # Sort the ratios in increasing order
     r = sorted(r)
@@ -243,6 +256,9 @@ parser.add_argument('--profile', action='store_true',
 parser.add_argument('--use_hessian',
                     action='store_true', default=False,
                     help='Use the exact Hessian-vector products')
+parser.add_argument('--use_tr',
+                    action='store_true', default=False,
+                    help='Use the trust region variant of the optimization algorithm')
 parser.add_argument('--optimizer', default='None',
                     help='Optimizer name from pyOptSparse')
 args = parser.parse_args()
@@ -252,6 +268,7 @@ N = args.N
 M = args.M
 profile = args.profile
 use_hessian = args.use_hessian
+use_tr = args.use_tr
 optimizer = args.optimizer
 
 # Set the options for the pyOptSparse optimizers for comparisons
@@ -291,6 +308,8 @@ if profile:
         # Set the prefix to use
         if use_hessian:
             prefix = 'hessian'
+        elif use_tr:
+            prefix = 'tr'
         else:
             prefix = 'bfgs'
     else:
@@ -319,7 +338,7 @@ if profile:
         truss = setup_ground_struct(N, M)
         t0 = MPI.Wtime()
         if optimizer is 'None':
-            opt = paropt_truss(truss, prefix=prefix,
+            opt = paropt_truss(truss, prefix=prefix, use_tr=use_tr,
                                use_hessian=use_hessian)
 
             # Get the optimized point
@@ -408,7 +427,7 @@ else:
     truss = setup_ground_struct(N, M)
 
     if optimizer is 'None':
-        opt = paropt_truss(truss, prefix=prefix,
+        opt = paropt_truss(truss, prefix=prefix, use_tr=use_tr,
                            use_hessian=use_hessian)
 
         # Retrieve the optimized multipliers

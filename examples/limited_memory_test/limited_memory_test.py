@@ -111,10 +111,7 @@ py = problem.createDesignVec()
 # Compute the update to the
 y0 = Y[:,-1]
 s0 = S[:,-1]
-if qn_type == 'sr1':
-    B = np.eye(n)
-else:
-    B = (np.dot(y0, y0)/np.dot(s0, y0))*np.eye(n)
+B = (np.dot(y0, y0)/np.dot(s0, y0))*np.eye(n)
 
 for i in range(n):
     s = S[:,i]

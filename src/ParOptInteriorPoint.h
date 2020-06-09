@@ -20,6 +20,7 @@ enum ParOptQuasiNewtonType { PAROPT_BFGS,
 
 enum ParOptBarrierStrategy { PAROPT_MONOTONE,
                              PAROPT_MEHROTRA,
+                             PAROPT_MEHROTRA_PREDICTOR_CORRECTOR,
                              PAROPT_COMPLEMENTARITY_FRACTION };
 
 enum ParOptStartingPointStrategy { PAROPT_NO_START_STRATEGY,
@@ -253,6 +254,9 @@ class ParOptInteriorPoint : public ParOptBase {
                       double *max_dual,
                       double *max_infeas,
                       double *res_norm=NULL );
+
+  // Add the corrector components to the residual to compute the MPC step
+  void addMehrotraCorrectorResidual();
 
   // Compute the norm of the step
   double computeStepNorm( ParOptNormType norm_type );
