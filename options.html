@@ -114,11 +114,11 @@ Options without the <code class="docutils literal notranslate"><span class="pre"
 <p>This produces the following output:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Absolute</span> <span class="n">stopping</span> <span class="n">criterion</span>
 <span class="n">abs_res_tol</span>                              <span class="mf">1e-06</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Absolute</span> <span class="n">stopping</span> <span class="n">norm</span> <span class="n">on</span> <span class="n">the</span> <span class="n">step</span> <span class="n">size</span>
 <span class="n">abs_step_tol</span>                             <span class="mi">0</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">The</span> <span class="nb">type</span> <span class="n">of</span> <span class="n">optimization</span> <span class="n">algorithm</span>
 <span class="n">algorithm</span>                                <span class="n">tr</span>
@@ -128,132 +128,133 @@ Options without the <code class="docutils literal notranslate"><span class="pre"
 
 <span class="n">The</span> <span class="n">Armijo</span> <span class="n">constant</span> <span class="k">for</span> <span class="n">the</span> <span class="n">line</span> <span class="n">search</span>
 <span class="n">armijo_constant</span>                          <span class="mf">1e-05</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
 
 <span class="n">The</span> <span class="nb">type</span> <span class="n">of</span> <span class="n">barrier</span> <span class="n">update</span> <span class="n">strategy</span> <span class="n">to</span> <span class="n">use</span>
 <span class="n">barrier_strategy</span>                         <span class="n">monotone</span>
 <span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span>                         <span class="n">monotone</span>
                                          <span class="n">mehrotra</span>
+                                         <span class="n">mehrotra_predictor_corrector</span>
                                          <span class="n">complementarity_fraction</span>
 
 <span class="n">The</span> <span class="n">absolute</span> <span class="n">precision</span> <span class="n">of</span> <span class="n">the</span> <span class="n">design</span> <span class="n">variables</span>
 <span class="n">design_precision</span>                         <span class="mf">1e-14</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
 
 <span class="n">Exponent</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">Eisenstat</span><span class="o">-</span><span class="n">Walker</span> <span class="n">INK</span> <span class="n">forcing</span> <span class="n">equation</span>
 <span class="n">eisenstat_walker_alpha</span>                   <span class="mf">1.5</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">2</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">2</span>
 
 <span class="n">Multiplier</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">Eisenstat</span><span class="o">-</span><span class="n">Walker</span> <span class="n">INK</span> <span class="n">forcing</span> <span class="n">equation</span>
 <span class="n">eisenstat_walker_gamma</span>                   <span class="mi">1</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
 
 <span class="n">The</span> <span class="n">absolute</span> <span class="n">precision</span> <span class="n">of</span> <span class="n">the</span> <span class="n">function</span> <span class="ow">and</span> <span class="n">constraints</span>
 <span class="n">function_precision</span>                       <span class="mf">1e-10</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
 
 <span class="n">The</span> <span class="n">absolute</span> <span class="n">GMRES</span> <span class="n">tolerance</span> <span class="p">(</span><span class="n">almost</span> <span class="n">never</span> <span class="n">relevant</span><span class="p">)</span>
 <span class="n">gmres_atol</span>                               <span class="mf">1e-30</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
 
 <span class="n">The</span> <span class="n">subspace</span> <span class="n">size</span> <span class="k">for</span> <span class="n">GMRES</span>
 <span class="n">gmres_subspace_size</span>                      <span class="mi">0</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1000</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000</span>
 
 <span class="n">Step</span> <span class="n">length</span> <span class="n">used</span> <span class="n">to</span> <span class="n">check</span> <span class="n">the</span> <span class="n">gradient</span>
 <span class="n">gradient_check_step_length</span>               <span class="mf">1e-06</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
 
 <span class="n">Print</span> <span class="n">to</span> <span class="n">screen</span> <span class="n">the</span> <span class="n">output</span> <span class="n">of</span> <span class="n">the</span> <span class="n">gradient</span> <span class="n">check</span> <span class="n">at</span> <span class="n">this</span> <span class="n">frequency</span> <span class="n">during</span> <span class="n">an</span> <span class="n">optimization</span>
 <span class="n">gradient_verification_frequency</span>          <span class="o">-</span><span class="mi">1</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="o">-</span><span class="mi">1000000</span>        <span class="n">high</span> <span class="mi">1000000</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="o">-</span><span class="mi">1000000</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000000</span>
 
 <span class="n">Do</span> <span class="n">a</span> <span class="n">hard</span> <span class="n">reset</span> <span class="n">of</span> <span class="n">the</span> <span class="n">Hessian</span> <span class="n">at</span> <span class="n">this</span> <span class="n">specified</span> <span class="n">major</span> <span class="n">iteration</span> <span class="n">frequency</span>
 <span class="n">hessian_reset_freq</span>                       <span class="mi">1000000</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">1000000</span>         <span class="n">high</span> <span class="mi">1000000</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">1000000</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000000</span>
 
 <span class="n">The</span> <span class="n">initial</span> <span class="n">value</span> <span class="n">of</span> <span class="n">the</span> <span class="n">barrier</span> <span class="n">parameter</span>
 <span class="n">init_barrier_param</span>                       <span class="mf">0.1</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Initial</span> <span class="n">value</span> <span class="n">of</span> <span class="n">the</span> <span class="n">line</span> <span class="n">search</span> <span class="n">penalty</span> <span class="n">parameter</span>
 <span class="n">init_rho_penalty_search</span>                  <span class="mi">0</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Checkpoint</span> <span class="n">file</span> <span class="k">for</span> <span class="n">the</span> <span class="n">interior</span> <span class="n">point</span> <span class="n">method</span>
 <span class="n">ip_checkpoint_file</span>                       <span class="kc">None</span>
 
 <span class="n">Maximum</span> <span class="n">bound</span> <span class="n">value</span> <span class="n">at</span> <span class="n">which</span> <span class="n">bound</span> <span class="n">constraints</span> <span class="n">are</span> <span class="n">omitted</span>
 <span class="n">max_bound_value</span>                          <span class="mf">1e+20</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+300</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+300</span>
 
 <span class="n">The</span> <span class="n">maximum</span> <span class="n">relative</span> <span class="n">tolerance</span> <span class="n">used</span> <span class="k">for</span> <span class="n">GMRES</span><span class="p">,</span> <span class="n">above</span> <span class="n">this</span> <span class="n">the</span> <span class="n">quasi</span><span class="o">-</span><span class="n">Newton</span> <span class="n">approximation</span> <span class="ow">is</span> <span class="n">used</span>
 <span class="n">max_gmres_rtol</span>                           <span class="mf">0.1</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
 
 <span class="n">Maximum</span> <span class="n">number</span> <span class="n">of</span> <span class="n">line</span> <span class="n">search</span> <span class="n">iterations</span>
 <span class="n">max_line_iters</span>                           <span class="mi">10</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">1</span>               <span class="n">high</span> <span class="mi">100</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">1</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">100</span>
 
 <span class="n">The</span> <span class="n">maximum</span> <span class="n">number</span> <span class="n">of</span> <span class="n">major</span> <span class="n">iterations</span> <span class="n">before</span> <span class="n">quiting</span>
 <span class="n">max_major_iters</span>                          <span class="mi">5000</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1000000</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000000</span>
 
 <span class="n">Minimum</span> <span class="n">fraction</span> <span class="n">to</span> <span class="n">the</span> <span class="n">boundary</span> <span class="n">rule</span> <span class="o">&lt;</span> <span class="mi">1</span>
 <span class="n">min_fraction_to_boundary</span>                 <span class="mf">0.95</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
 
 <span class="n">Minimum</span> <span class="n">value</span> <span class="n">of</span> <span class="n">the</span> <span class="n">line</span> <span class="n">search</span> <span class="n">penalty</span> <span class="n">parameter</span>
 <span class="n">min_rho_penalty_search</span>                   <span class="mi">0</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Contraction</span> <span class="n">factor</span> <span class="n">applied</span> <span class="n">to</span> <span class="n">the</span> <span class="n">asymptotes</span>
 <span class="n">mma_asymptote_contract</span>                   <span class="mf">0.7</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
 
 <span class="n">Expansion</span> <span class="n">factor</span> <span class="n">applied</span> <span class="n">to</span> <span class="n">the</span> <span class="n">asymptotes</span>
 <span class="n">mma_asymptote_relax</span>                      <span class="mf">1.2</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">1</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">1</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Relaxation</span> <span class="n">bound</span> <span class="k">for</span> <span class="n">computing</span> <span class="n">the</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">KKT</span> <span class="n">conditions</span>
 <span class="n">mma_bound_relax</span>                          <span class="mi">0</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Regularization</span> <span class="n">term</span> <span class="n">applied</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">MMA</span> <span class="n">approximation</span>
 <span class="n">mma_delta_regularization</span>                 <span class="mf">1e-05</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Regularization</span> <span class="n">term</span> <span class="n">applied</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">MMA</span> <span class="n">approximation</span>
 <span class="n">mma_eps_regularization</span>                   <span class="mf">0.001</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Infeasibility</span> <span class="n">tolerance</span>
 <span class="n">mma_infeas_tol</span>                           <span class="mf">1e-05</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Initial</span> <span class="n">aymptote</span> <span class="n">offset</span> <span class="kn">from</span> <span class="nn">the</span> <span class="n">variable</span> <span class="n">bounds</span>
 <span class="n">mma_init_asymptote_offset</span>                <span class="mf">0.25</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
 
 <span class="n">l1</span> <span class="n">tolerance</span> <span class="k">for</span> <span class="n">the</span> <span class="n">optimality</span> <span class="n">tolerance</span>
 <span class="n">mma_l1_tol</span>                               <span class="mf">1e-06</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">l</span><span class="o">-</span><span class="n">infinity</span> <span class="n">tolerance</span> <span class="k">for</span> <span class="n">the</span> <span class="n">optimality</span> <span class="n">tolerance</span>
 <span class="n">mma_linfty_tol</span>                           <span class="mf">1e-06</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Maximum</span> <span class="n">asymptote</span> <span class="n">offset</span> <span class="kn">from</span> <span class="nn">the</span> <span class="n">variable</span> <span class="n">bounds</span>
 <span class="n">mma_max_asymptote_offset</span>                 <span class="mi">10</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Maximum</span> <span class="n">number</span> <span class="n">of</span> <span class="n">iterations</span>
 <span class="n">mma_max_iterations</span>                       <span class="mi">200</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1000000</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000000</span>
 
 <span class="n">Minimum</span> <span class="n">asymptote</span> <span class="n">offset</span> <span class="kn">from</span> <span class="nn">the</span> <span class="n">variable</span> <span class="n">bounds</span>
 <span class="n">mma_min_asymptote_offset</span>                 <span class="mf">0.01</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Ouput</span> <span class="n">file</span> <span class="n">name</span> <span class="k">for</span> <span class="n">MMA</span>
 <span class="n">mma_output_file</span>                          <span class="n">paropt</span><span class="o">.</span><span class="n">mma</span>
@@ -263,15 +264,15 @@ Options without the <code class="docutils literal notranslate"><span class="pre"
 
 <span class="n">Factor</span> <span class="n">applied</span> <span class="n">to</span> <span class="n">the</span> <span class="n">barrier</span> <span class="n">update</span> <span class="o">&lt;</span> <span class="mi">1</span>
 <span class="n">monotone_barrier_fraction</span>                <span class="mf">0.25</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
 
 <span class="n">Exponent</span> <span class="k">for</span> <span class="n">barrier</span> <span class="n">parameter</span> <span class="n">update</span> <span class="o">&gt;</span> <span class="mi">1</span>
 <span class="n">monotone_barrier_power</span>                   <span class="mf">1.1</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">1</span>               <span class="n">high</span> <span class="mi">10</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">1</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">10</span>
 
 <span class="n">Switch</span> <span class="n">to</span> <span class="n">the</span> <span class="n">Newton</span><span class="o">-</span><span class="n">Krylov</span> <span class="n">method</span> <span class="n">at</span> <span class="n">this</span> <span class="n">residual</span> <span class="n">tolerance</span>
 <span class="n">nk_switch_tol</span>                            <span class="mf">0.001</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">The</span> <span class="nb">type</span> <span class="n">of</span> <span class="n">norm</span> <span class="n">to</span> <span class="n">use</span> <span class="ow">in</span> <span class="nb">all</span> <span class="n">computations</span>
 <span class="n">norm_type</span>                                <span class="n">infinity</span>
@@ -284,26 +285,26 @@ Options without the <code class="docutils literal notranslate"><span class="pre"
 
 <span class="n">Output</span> <span class="n">level</span> <span class="n">indicating</span> <span class="n">how</span> <span class="n">verbose</span> <span class="n">the</span> <span class="n">output</span> <span class="n">should</span> <span class="n">be</span>
 <span class="n">output_level</span>                             <span class="mi">0</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1000000</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000000</span>
 
 <span class="n">Fraction</span> <span class="n">of</span> <span class="n">infeasibility</span> <span class="n">used</span> <span class="n">to</span> <span class="n">enforce</span> <span class="n">a</span> <span class="n">descent</span> <span class="n">direction</span>
 <span class="n">penalty_descent_fraction</span>                 <span class="mf">0.3</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mf">1e-06</span>           <span class="n">high</span> <span class="mi">1</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mf">1e-06</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
 
 <span class="n">l1</span> <span class="n">penalty</span> <span class="n">parameter</span> <span class="n">applied</span> <span class="n">to</span> <span class="n">slack</span> <span class="n">variables</span>
 <span class="n">penalty_gamma</span>                            <span class="mi">1000</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">The</span> <span class="n">problem</span> <span class="n">name</span>
 <span class="n">problem_name</span>                             <span class="kc">None</span>
 
 <span class="n">Scalar</span> <span class="n">added</span> <span class="n">to</span> <span class="n">the</span> <span class="n">diagonal</span> <span class="n">of</span> <span class="n">the</span> <span class="n">quasi</span><span class="o">-</span><span class="n">Newton</span> <span class="n">approximation</span> <span class="o">&gt;</span> <span class="mi">0</span>
 <span class="n">qn_sigma</span>                                 <span class="mi">0</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">The</span> <span class="n">maximum</span> <span class="n">dimension</span> <span class="n">of</span> <span class="n">the</span> <span class="n">quasi</span><span class="o">-</span><span class="n">Newton</span> <span class="n">approximation</span>
 <span class="n">qn_subspace_size</span>                         <span class="mi">10</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1000</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000</span>
 
 <span class="n">The</span> <span class="n">the</span> <span class="n">of</span> <span class="n">quasi</span><span class="o">-</span><span class="n">Newton</span> <span class="n">approximation</span> <span class="n">to</span> <span class="n">use</span>
 <span class="n">qn_type</span>                                  <span class="n">bfgs</span>
@@ -311,20 +312,25 @@ Options without the <code class="docutils literal notranslate"><span class="pre"
                                          <span class="n">sr1</span>
                                          <span class="n">none</span>
 
+<span class="n">The</span> <span class="nb">type</span> <span class="n">of</span> <span class="n">BFGS</span> <span class="n">update</span> <span class="n">to</span> <span class="n">apply</span> <span class="n">when</span> <span class="n">the</span> <span class="n">curvature</span> <span class="n">condition</span> <span class="n">fails</span>
+<span class="n">qn_update_type</span>                           <span class="n">skip_negative_curvature</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span>                         <span class="n">skip_negative_curvature</span>
+                                         <span class="n">damped_update</span>
+
 <span class="n">Relative</span> <span class="n">factor</span> <span class="n">applied</span> <span class="n">to</span> <span class="n">barrier</span> <span class="n">parameter</span> <span class="k">for</span> <span class="n">bound</span> <span class="n">constraints</span>
 <span class="n">rel_bound_barrier</span>                        <span class="mi">1</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Relative</span> <span class="n">function</span> <span class="n">value</span> <span class="n">stopping</span> <span class="n">criterion</span>
 <span class="n">rel_func_tol</span>                             <span class="mi">0</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Discard</span> <span class="n">the</span> <span class="n">quasi</span><span class="o">-</span><span class="n">Newton</span> <span class="n">approximation</span> <span class="p">(</span><span class="n">but</span> <span class="ow">not</span> <span class="n">necessarily</span> <span class="n">the</span> <span class="n">exact</span> <span class="n">Hessian</span><span class="p">)</span>
 <span class="n">sequential_linear_method</span>                 <span class="kc">False</span>
 
 <span class="n">Minimum</span> <span class="n">multiplier</span> <span class="k">for</span> <span class="n">the</span> <span class="n">affine</span> <span class="n">step</span> <span class="n">initialization</span> <span class="n">strategy</span>
-<span class="n">start_affine_multiplier_min</span>              <span class="mf">0.001</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">start_affine_multiplier_min</span>              <span class="mi">1</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Initialize</span> <span class="n">the</span> <span class="n">Lagrange</span> <span class="n">multiplier</span> <span class="n">estimates</span> <span class="ow">and</span> <span class="n">slack</span> <span class="n">variables</span>
 <span class="n">starting_point_strategy</span>                  <span class="n">affine_step</span>
@@ -348,54 +354,69 @@ Options without the <code class="docutils literal notranslate"><span class="pre"
 
 <span class="n">Upper</span> <span class="ow">and</span> <span class="n">lower</span> <span class="n">bound</span> <span class="n">relaxing</span> <span class="n">parameter</span>
 <span class="n">tr_bound_relax</span>                           <span class="mf">0.0001</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Trust</span> <span class="n">region</span> <span class="n">trial</span> <span class="n">step</span> <span class="n">acceptance</span> <span class="n">ratio</span>
 <span class="n">tr_eta</span>                                   <span class="mf">0.25</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
 
 <span class="n">Infeasibility</span> <span class="n">tolerance</span>
 <span class="n">tr_infeas_tol</span>                            <span class="mf">1e-05</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">The</span> <span class="n">initial</span> <span class="n">trust</span> <span class="n">region</span> <span class="n">radius</span>
 <span class="n">tr_init_size</span>                             <span class="mf">0.1</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">l1</span> <span class="n">tolerance</span> <span class="k">for</span> <span class="n">the</span> <span class="n">optimality</span> <span class="n">tolerance</span>
 <span class="n">tr_l1_tol</span>                                <span class="mf">1e-06</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">l</span><span class="o">-</span><span class="n">infinity</span> <span class="n">tolerance</span> <span class="k">for</span> <span class="n">the</span> <span class="n">optimality</span> <span class="n">tolerance</span>
 <span class="n">tr_linfty_tol</span>                            <span class="mf">1e-06</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Maximum</span> <span class="n">number</span> <span class="n">of</span> <span class="n">trust</span> <span class="n">region</span> <span class="n">iterations</span>
 <span class="n">tr_max_iterations</span>                        <span class="mi">200</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1000000</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000000</span>
 
 <span class="n">The</span> <span class="n">maximum</span> <span class="n">trust</span> <span class="n">region</span> <span class="n">radius</span>
 <span class="n">tr_max_size</span>                              <span class="mi">1</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">The</span> <span class="n">minimum</span> <span class="n">trust</span> <span class="n">region</span> <span class="n">radius</span>
 <span class="n">tr_min_size</span>                              <span class="mf">0.001</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Trust</span> <span class="n">region</span> <span class="n">output</span> <span class="n">file</span>
 <span class="n">tr_output_file</span>                           <span class="n">paropt</span><span class="o">.</span><span class="n">tr</span>
 
 <span class="n">Maximum</span> <span class="n">value</span> <span class="k">for</span> <span class="n">the</span> <span class="n">penalty</span> <span class="n">parameter</span>
 <span class="n">tr_penalty_gamma_max</span>                     <span class="mi">10000</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
 
 <span class="n">Minimum</span> <span class="n">value</span> <span class="k">for</span> <span class="n">the</span> <span class="n">penalty</span> <span class="n">parameter</span>
 <span class="n">tr_penalty_gamma_min</span>                     <span class="mi">0</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mf">1e+20</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
+
+<span class="n">The</span> <span class="n">barrier</span> <span class="n">update</span> <span class="n">strategy</span> <span class="n">to</span> <span class="n">use</span> <span class="k">for</span> <span class="n">the</span> <span class="n">steering</span> <span class="n">method</span> <span class="n">subproblem</span>
+<span class="n">tr_steering_barrier_strategy</span>             <span class="n">mehrotra_predictor_corrector</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span>                         <span class="n">monotone</span>
+                                         <span class="n">mehrotra</span>
+                                         <span class="n">mehrotra_predictor_corrector</span>
+                                         <span class="n">complementarity_fraction</span>
+                                         <span class="n">default</span>
+
+<span class="n">The</span> <span class="n">barrier</span> <span class="n">update</span> <span class="n">strategy</span> <span class="n">to</span> <span class="n">use</span> <span class="k">for</span> <span class="n">the</span> <span class="n">steering</span> <span class="n">method</span> <span class="n">subproblem</span>
+<span class="n">tr_steering_starting_point_strategy</span>      <span class="n">affine_step</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span>                         <span class="n">least_squares_multipliers</span>
+                                         <span class="n">affine_step</span>
+                                         <span class="n">no_start_strategy</span>
+                                         <span class="n">default</span>
 
 <span class="n">Write</span> <span class="n">output</span> <span class="n">frequency</span>
 <span class="n">tr_write_output_frequency</span>                <span class="mi">10</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1000000</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000000</span>
 
 <span class="n">Perform</span> <span class="n">a</span> <span class="n">back</span><span class="o">-</span><span class="n">tracking</span> <span class="n">line</span> <span class="n">search</span>
 <span class="n">use_backtracking_alpha</span>                   <span class="kc">False</span>
@@ -417,7 +438,7 @@ Options without the <code class="docutils literal notranslate"><span class="pre"
 
 <span class="n">Write</span> <span class="n">out</span> <span class="n">the</span> <span class="n">solution</span> <span class="n">file</span> <span class="ow">and</span> <span class="n">checkpoint</span> <span class="n">file</span> <span class="n">at</span> <span class="n">this</span> <span class="n">frequency</span>
 <span class="n">write_output_frequency</span>                   <span class="mi">10</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">low</span> <span class="mi">0</span>               <span class="n">high</span> <span class="mi">1000000</span>
+<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000000</span>
 </pre></div>
 </div>
 </div>
