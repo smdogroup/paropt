@@ -436,8 +436,8 @@ class TopoAnalysis(ParOpt.Problem):
 
         ymod ~ P*s = (H + N)*s ~ y + N*s
         """
-        Ns = self.compliance_negative_hessian(s[:])
-        y[:] += Ns[:]
+        # Ns = self.compliance_negative_hessian(s[:])
+        # y[:] += Ns[:]
         return
 
     def getVarsAndBounds(self, x, lb, ub):
@@ -527,9 +527,10 @@ if __name__ == '__main__':
         'abs_res_tol': 1e-8,
         'starting_point_strategy': 'affine_step',
         'barrier_strategy': 'mehrotra_predictor_corrector',
-        'tr_steering_barrier_strategy': 'default',
-        'tr_steering_starting_point_strategy': 'default',
-        'start_affine_multiplier_min': 0.01}
+        'tr_steering_barrier_strategy': 'affine_step',
+        'tr_steering_starting_point_strategy':
+            'mehrotra_predictor_corrector',
+        'use_line_search': False}
 
     # Set up the optimizer
     opt = ParOpt.Optimizer(problem, options)

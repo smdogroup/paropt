@@ -13,7 +13,7 @@ class ParOptOptions : public ParOptBase {
   static const int PAROPT_FLOAT_OPTION = 4;
   static const int PAROPT_ENUM_OPTION = 5;
 
-  ParOptOptions();
+  ParOptOptions( MPI_Comm _comm=MPI_COMM_WORLD );
   ~ParOptOptions();
 
   // Add the options
@@ -123,6 +123,7 @@ class ParOptOptions : public ParOptBase {
     char *enum_value, *enum_default, **enum_range;
   };
 
+  MPI_Comm comm;
   std::map<std::string, ParOptOptionEntry*> entries;
   std::map<std::string, ParOptOptionEntry*>::iterator iter;
 };

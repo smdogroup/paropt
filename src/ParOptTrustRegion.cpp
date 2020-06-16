@@ -590,7 +590,7 @@ ParOptTrustRegion::ParOptTrustRegion( ParOptTrustRegionSubproblem *_subproblem,
     options = _options;
   }
   else {
-    options = new ParOptOptions();
+    options = new ParOptOptions(subproblem->getMPIComm());
     addDefaultOptions(options);
   }
   options->incref();
@@ -717,7 +717,7 @@ void ParOptTrustRegion::addDefaultOptions( ParOptOptions *options ){
                                     "complementarity_fraction",
                                     "default"};
   options->addEnumOption("tr_steering_barrier_strategy",
-    "monotone", 5, barrier_options,
+    "mehrotra_predictor_corrector", 5, barrier_options,
     "The barrier update strategy to use for the steering method subproblem");
 
   const char *start_options[4] = {"least_squares_multipliers",
@@ -1145,7 +1145,6 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
 
       // Set the starting point strategy
       if (strcmp(tr_barrier_strategy, "default") != 0){
-        printf("tr_barrier_strategy = %s\n", tr_barrier_strategy);
         ip_options->setOption("barrier_strategy", tr_barrier_strategy);
       }
       if (strcmp(tr_starting_strategy, "default") != 0){
@@ -1168,7 +1167,6 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
       optimizer->setPenaltyGamma(gamma);
 
       // Initialize the barrier parameter
-      ip_options->setOption("init_barrier_param", 10.0);
       optimizer->resetDesignAndBounds();
 
       // Optimize the subproblem
@@ -1205,14 +1203,14 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
 
     // Print out the current solution progress using the
     // hook in the problem definition
-    if (i % tr_write_output_frequency == 0){
+    if (tr_write_output_frequency > 0 &&
+        i % tr_write_output_frequency == 0){
       ParOptVec *xk;
       subproblem->getLinearModel(&xk);
       subproblem->writeOutput(i, xk);
     }
 
     // Initialize the barrier parameter
-    ip_options->setOption("init_barrier_param", 10.0);
     optimizer->resetDesignAndBounds();
 
     // Optimize the subproblem

@@ -41,6 +41,7 @@ cdef extern from "ParOptProblem.h":
         ParOptProblem()
         ParOptProblem(MPI_Comm)
         ParOptProblem(MPI_Comm, int, int, int, int)
+        MPI_Comm getMPIComm()
         ParOptVec *createDesignVec()
         ParOptVec *createConstraintVec()
         void getProblemSizes(int*, int*, int*, int*)
@@ -129,6 +130,7 @@ cdef extern from "CyParOptProblem.h":
 cdef extern from "ParOptOptions.h":
     cppclass ParOptOptions(ParOptBase):
         ParOptOptions()
+        ParOptOptions(MPI_Comm)
         int isOption(const char*)
         int setOption(const char*, const char*)
         int setOption(const char* int)

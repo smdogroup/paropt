@@ -44,7 +44,7 @@ ParOptInteriorPoint::ParOptInteriorPoint( ParOptProblem *_prob,
     options = _options;
   }
   else {
-    options = new ParOptOptions();
+    options = new ParOptOptions(prob->getMPIComm());
     addDefaultOptions(options);
   }
   options->incref();
@@ -167,8 +167,17 @@ ParOptInteriorPoint::ParOptInteriorPoint( ParOptProblem *_prob,
 
   qn = NULL;
   if (strcmp(qn_type, "bfgs") == 0){
-    qn = new ParOptLBFGS(prob, qn_subspace_size);
+    ParOptLBFGS *bfgs = new ParOptLBFGS(prob, qn_subspace_size);
+    qn = bfgs;
     qn->incref();
+
+    const char *update_type = options->getEnumOption("qn_update_type");
+    if (strcmp(update_type, "skip_negative_curvature") == 0){
+      bfgs->setBFGSUpdateType(PAROPT_SKIP_NEGATIVE_CURVATURE);
+    }
+    else if (strcmp(update_type, "damped_update") == 0){
+      bfgs->setBFGSUpdateType(PAROPT_DAMPED_UPDATE);
+    }
   }
   else if (strcmp(qn_type, "sr1") == 0){
     qn = new ParOptLSR1(prob, qn_subspace_size);
@@ -476,7 +485,7 @@ void ParOptInteriorPoint::addDefaultOptions( ParOptOptions *options ){
   options->addFloatOption("design_precision", 1e-14, 0.0, 1.0,
     "The absolute precision of the design variables");
 
-  options->addFloatOption("start_affine_multiplier_min", 1e-3, 0.0, 1e20,
+  options->addFloatOption("start_affine_multiplier_min", 1.0, 0.0, 1e20,
     "Minimum multiplier for the affine step initialization strategy");
 
   // Set the boolean options
@@ -538,6 +547,12 @@ void ParOptInteriorPoint::addDefaultOptions( ParOptOptions *options ){
   const char *qn_type[3] = {"bfgs", "sr1", "none"};
   options->addEnumOption("qn_type", "bfgs", 3, qn_type,
     "The the of quasi-Newton approximation to use");
+
+  const char *bfgs_type[2] = {"skip_negative_curvature",
+                              "damped_update"};
+  options->addEnumOption("qn_update_type",
+    "skip_negative_curvature", 2, bfgs_type,
+    "The type of BFGS update to apply when the curvature condition fails");
 
   const char *norm_options[3] = {"infinity", "l1", "l2"};
   options->addEnumOption("norm_type", "infinity", 3, norm_options,
@@ -3339,7 +3354,8 @@ int ParOptInteriorPoint::scaleKKTStep( double tau, ParOptScalar comp,
 }
 
 /*
-  Check the gradient of the merit function using finite-difference or complex-step
+  Check the gradient of the merit function using finite-difference
+  or complex-step
 */
 void ParOptInteriorPoint::checkMeritFuncGradient( ParOptVec *xpt, double dh ){
   if (xpt){
@@ -3393,8 +3409,15 @@ void ParOptInteriorPoint::checkMeritFuncGradient( ParOptVec *xpt, double dh ){
   evalMeritInitDeriv(max_x, &m0, &dm0, rx, wtemp, rcw);
 
 #ifdef PAROPT_USE_COMPLEX
-  rx->copyValues(x);
-  rx->axpy(ParOptScalar(0.0, dh), px);
+  ParOptScalar *xvals, *rxvals, *pxvals;
+  int size = x->getArray(&xvals);
+  rx->getArray(&rxvals);
+  px->getArray(&pxvals);
+
+  for ( int i = 0; i < size; i++ ){
+    rxvals[i] = ParOptScalar(ParOptRealPart(xvals[i]),
+                             dh*ParOptRealPart(pxvals[i]));
+  }
 
   if (dense_inequality){
     for ( int i = 0; i < ncon; i++ ){
@@ -3641,8 +3664,10 @@ void ParOptInteriorPoint::evalMeritInitDeriv( double max_x,
                                               ParOptVec *xtmp,
                                               ParOptVec *wtmp1,
                                               ParOptVec *wtmp2 ){
-  const double min_rho_penalty_search = options->getFloatOption("min_rho_penalty_search");
-  const double penalty_descent_fraction = options->getFloatOption("penalty_descent_fraction");
+  const double min_rho_penalty_search =
+    options->getFloatOption("min_rho_penalty_search");
+  const double penalty_descent_fraction =
+    options->getFloatOption("penalty_descent_fraction");
   const double max_bound_value = options->getFloatOption("max_bound_value");
   double rel_bound_barrier = options->getFloatOption("rel_bound_barrier");
   const double abs_res_tol = options->getFloatOption("abs_res_tol");
@@ -3814,11 +3839,6 @@ void ParOptInteriorPoint::evalMeritInitDeriv( double max_x,
 
   // Compute the projected derivative
   ParOptScalar proj = g->dot(px);
-  if (dense_inequality){
-    for ( int i = 0; i < ncon; i++ ){
-      proj += penalty_gamma[i]*pt[i];
-    }
-  }
 
   // Perform the computations only on the root processor
   int rank = 0;
@@ -3934,6 +3954,7 @@ void ParOptInteriorPoint::evalMeritInitDeriv( double max_x,
     if (dense_inequality){
       for ( int i = 0; i < ncon; i++ ){
         merit += penalty_gamma[i]*t[i];
+        pmerit += penalty_gamma[i]*pt[i];
       }
     }
   }
@@ -4988,12 +5009,9 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
         double s1 = ParOptRealPart(comp_affine/comp);
         double sigma = s1*s1*s1;
 
-        // Set the bounds on sigma between [0.01, 1.0]
+        // Set a bound on sigma so that it is sigma >= 0.01
         if (sigma < 0.01){
           sigma = 0.01;
-        }
-        else if (sigma > 1.0){
-          sigma = 1.0;
         }
 
         // Compute the new adaptive barrier parameter
@@ -5160,12 +5178,35 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
       }
     }
     else {
+      // Compute the initial value of the merit function and its
+      // derivative and a new value for the penalty parameter. This
+      // occurs even thought we are not using a line search.
+      ParOptScalar m0, dm0;
+      evalMeritInitDeriv(alpha_x, &m0, &dm0, rx, wtemp, rcw);
+
+      // Store the merit function derivative to print to the output file
+      dm0_prev = dm0;
+
+      // We signal success here
+      line_fail = PAROPT_LINE_SEARCH_SUCCESS;
+
       // Evaluate the objective/constraints at the new point since we skipped
       // the line search step here.
       int eval_obj_con = 1;
       int perform_qn_update = 1;
       update_type = computeStepAndUpdate(alpha, eval_obj_con,
                                          perform_qn_update);
+
+      // No line search has been performed, but there may have been no
+      // improvement in the last step
+      ParOptScalar m1 = evalMeritFunc(fobj, c, x, s, t, sw);
+      if ((ParOptRealPart(m1) <= ParOptRealPart(m0) + function_precision) &&
+          (ParOptRealPart(m1) + function_precision >= ParOptRealPart(m0))){
+        line_fail |= PAROPT_LINE_SEARCH_NO_IMPROVEMENT;
+      }
+      else if (fabs(ParOptRealPart(dm0)) <= function_precision){
+        line_fail = PAROPT_LINE_SEARCH_NO_IMPROVEMENT;
+      }
     }
 
     // Check whether there was a change in the merit function to
@@ -5329,7 +5370,7 @@ void ParOptInteriorPoint::initLeastSquaresMultipliers(){
         for ( int i = 0; i < ncon; i++ ){
           if (ParOptRealPart(z[i]) < 0.01 ||
               ParOptRealPart(z[i]) > penalty_gamma[i]){
-            z[i] = 1.0;
+            z[i] = init_barrier_param;
           }
         }
       }
@@ -5337,7 +5378,7 @@ void ParOptInteriorPoint::initLeastSquaresMultipliers(){
         for ( int i = 0; i < ncon; i++ ){
           if (ParOptRealPart(z[i]) < -penalty_gamma[i] ||
               ParOptRealPart(z[i]) > penalty_gamma[i]){
-            z[i] = 1.0;
+            z[i] = init_barrier_param;
           }
         }
       }
@@ -5402,12 +5443,6 @@ void ParOptInteriorPoint::initAffineStepMultipliers( ParOptNormType norm_type ){
 
   // Solve for the KKT step
   computeKKTStep(ztemp, s_qn, y_qn, wtemp, use_qn);
-
-  // Compute the complementarity and scale the step
-  ParOptScalar comp = computeComp();
-  double alpha_x = 1.0, alpha_z = 1.0;
-  int inexact_newton_step = 0;
-  scaleKKTStep(1.0, comp, inexact_newton_step, &alpha_x, &alpha_z);
 
   // Copy over the values
   if (dense_inequality){
@@ -5475,6 +5510,417 @@ void ParOptInteriorPoint::initAffineStepMultipliers( ParOptNormType norm_type ){
 
   // Set the initial barrier parameter
   barrier_param = ParOptRealPart(computeComp());
+}
+
+/*
+  Compute the starting point based on the technique proposed by
+  Mehrotra for linear optimization problems.
+
+  Note this approach modifies the initial point and should only
+  be used for linear or potentially quadratic optimization problems.
+*/
+void ParOptInteriorPoint::initMehrotraMultipliers(){
+  // Zero the multiplizers
+  zl->zeroEntries();
+  zu->zeroEntries();
+
+  zw->zeroEntries();
+  sw->zeroEntries();
+
+  // Zero out the multipliers
+  for ( int i = 0; i < ncon; i++ ){
+    z[i] = 0.0;
+    s[i] = 0.0;
+    zt[i] = 0.0;
+    t[i] = 0.0;
+  }
+
+  // Now compute the estimate for the initial step using
+  // the least-squares method.
+  double alpha = 0.0, beta = 0.0;
+  int use_sparse = 0;
+  if (dense_inequality){
+    alpha += 2.0;
+  }
+  if (nwcon > 0 && sparse_inequality){
+    use_sparse = 1;
+    beta += 1.0;
+  }
+
+  // Compute the right-hand-side for the inequality constraints
+  for ( int i = 0; i < ncon; i++ ){
+    rc[i] = -c[i];
+  }
+  if (nwcon > 0 && sparse_inequality){
+    prob->evalSparseCon(x, rcw);
+    rcw->scale(-1.0);
+  }
+
+  // Set up the least-squares system of equations
+  setUpLeastSquaresSystem(alpha, beta, s_qn, wtemp, use_sparse);
+
+  // Solve the least-squares system
+  solveLeastSquaresSystem(rc, rcw, ps, psw, use_sparse);
+
+  // Set px = Ac^{T}*ps + Aw^{T}*pzw
+  px->copyValues(x);
+  for ( int i = 0; i < ncon; i++ ){
+    px->axpy(ps[i], Ac[i]);
+  }
+  if (nwcon > 0 && sparse_inequality){
+    prob->addSparseJacobianTranspose(1.0, x, psw, px);
+  }
+
+  // Compute the update to the slack primal variables
+  if (dense_inequality){
+    for ( int i = 0; i < ncon; i++ ){
+      pt[i] = ps[i];
+    }
+  }
+
+  // First, compute the least-squares multiplier estimate
+  // Compute the right-hand-sides for the the multiplier system
+  alpha = 0.0, beta = 0.0;
+  if (dense_inequality){
+    alpha = 1.0;
+
+    // Compute the right-hand-side
+    for ( int i = 0; i < ncon; i++ ){
+      rc[i] = penalty_gamma[i] + Ac[i]->dot(g);
+    }
+  }
+  else {
+    // Equality constraints
+    for ( int i = 0; i < ncon; i++ ){
+      rc[i] = Ac[i]->dot(g);
+    }
+  }
+
+  // Don't use the sparse inequality by defualt
+  use_sparse = 0;
+
+  // Compute the right-hand-side for the sparse constraints
+  if (nwcon > 0){
+    use_sparse = 1;
+    rcw->zeroEntries();
+    prob->addSparseJacobian(1.0, x, g, rcw);
+  }
+
+  // Set up the least-squares system of equations
+  setUpLeastSquaresSystem(alpha, beta, s_qn, wtemp, use_sparse);
+
+  // Solve the least-squares system
+  solveLeastSquaresSystem(rc, rcw, pz, pzw, use_sparse);
+
+  // Compute the multipliers for pzt
+  if (dense_inequality){
+    for ( int i = 0; i < ncon; i++ ){
+      pzt[i] = penalty_gamma[i] - pz[i];
+    }
+  }
+
+  // Use rx as a temporary variable value
+  rx->copyValues(g);
+  for ( int i = 0; i < ncon; i++ ){
+    rx->axpy(-1.0, Ac[i]);
+  }
+  if (nwcon > 0){
+    prob->addSparseJacobianTranspose(-1.0, x, pzw, rx);
+  }
+
+  // Compute the remaining multiplier values
+  pzl->copyValues(rx);
+  pzu->copyValues(rx);
+  pzl->scale(0.5);
+  pzu->scale(0.5);
+
+  // Compute the maximum step along the different directions
+  double alpha_x = 1.0, alpha_z = 1.0;
+  computeMaxStep(1.0, &alpha_x, &alpha_z);
+  alpha_x *= 0.5;
+  alpha_z *= 0.5;
+
+  // Set the new values of the variables
+  ParOptScalar zero = 0.0;
+  if (nwcon > 0){
+    computeStepVec(zw, alpha_z, pzw, NULL, &zero, NULL, NULL);
+    if (sparse_inequality){
+      computeStepVec(sw, alpha_x, psw, NULL, &zero, NULL, NULL);
+    }
+  }
+  if (use_lower){
+    computeStepVec(zl, alpha_z, pzl, NULL, &zero, NULL, NULL);
+  }
+  if (use_upper){
+    computeStepVec(zu, alpha_z, pzu, NULL, &zero, NULL, NULL);
+  }
+
+  computeStep(ncon, z, alpha_z, pz, NULL, &zero, NULL, NULL);
+  if (dense_inequality){
+    computeStep(ncon, s, alpha_x, ps, NULL, &zero, NULL, NULL);
+    computeStep(ncon, t, alpha_x, pt, NULL, &zero, NULL, NULL);
+    computeStep(ncon, zt, alpha_z, pzt, NULL, &zero, NULL, NULL);
+  }
+
+  // If we're allowed to update the step
+  computeStepVec(x, alpha, px, lb, NULL, ub, NULL);
+}
+
+/*
+  Set up the least squares multipliers problem for the initial multiplier
+  problem. This takes the form:
+
+  mat =
+  [ A*A^{T} + I*alpha  | A*Aw^{T}           ]
+  [ Aw*A^{T}           | Aw*Aw^{T} + I*beta ]
+  =
+  [ Dmat | Emat^{T} ]
+  [ Emat | Cw       ]
+
+  @param alpha Diagonal factor for the dense constraint
+  @param beta Diagonal factor for the sparse weight constraint
+  @param xtmp Temporary vector, size of the design variables
+  @param wtmp Temporary vector, size of the sparse constraints
+  @param use_sparse Form the sparse matrix portion least-squares problem
+*/
+void ParOptInteriorPoint::setUpLeastSquaresSystem( double alpha,
+                                                   double beta,
+                                                   ParOptVec *xtmp,
+                                                   ParOptVec *wtmp,
+                                                   int use_sparse ){
+  if (nwcon > 0 && use_sparse){
+    // Set the values in the Cw diagonal matrix
+    memset(Cw, 0, nwcon*(nwblock+1)/2*sizeof(ParOptScalar));
+
+    // Set Cw = I
+    // First compute Cw = Zw^{-1}*Sw
+    if (sparse_inequality){
+      ParOptScalar *swvals, *zwvals;
+      zw->getArray(&zwvals);
+      sw->getArray(&swvals);
+
+      if (nwblock == 1){
+        for ( int i = 0; i < nwcon; i++ ){
+          Cw[i] = beta;
+        }
+      }
+      else {
+        // Set the pointer and the increment for the
+        // block-diagonal matrix
+        ParOptScalar *cw = Cw;
+        const int incr = ((nwblock+1)*nwblock)/2;
+
+        // Iterate over each block matrix
+        for ( int i = 0; i < nwcon; i += nwblock ){
+          // Index into each block
+          for ( int j = 0, k = 0; j < nwblock; j++, k += j+1 ){
+            cw[k] = beta;
+          }
+
+          // Increment the pointer to the next block
+          cw += incr;
+        }
+      }
+    }
+
+    // Next, complete the evaluation of Cw by adding the following
+    // contribution to the matrix
+    // Cw += Aw*Aw^{T}
+    Cvec->set(1.0);
+    prob->addSparseInnerProduct(1.0, x, Cvec, Cw);
+
+    // Factor the Cw matrix
+    factorCw();
+
+    // Compute Ew = Aw*A
+    for ( int k = 0; k < ncon; k++ ){
+      Ew[k]->zeroEntries();
+      prob->addSparseJacobian(1.0, x, Ac[k], Ew[k]);
+    }
+  }
+
+  // Set the value of the D matrix
+  memset(Dmat, 0, ncon*ncon*sizeof(ParOptScalar));
+
+  if (nwcon > 0 && use_sparse){
+    // Add the term Dw = - Ew^{T}*Cw^{-1}*Ew to the Dmat matrix first
+    // by computing the product with Cw^{-1}
+    for ( int j = 0; j < ncon; j++ ){
+      // Apply Cw^{-1}*Ew[j] -> wt
+      wtmp->copyValues(Ew[j]);
+      applyCwFactor(wtmp);
+
+      for ( int i = j; i < ncon; i++ ){
+        // Get the vectors required
+        ParOptScalar *wvals, *ewivals;
+        Ew[i]->getArray(&ewivals);
+        wtmp->getArray(&wvals);
+
+        ParOptScalar dmat = 0.0;
+        int k = 0;
+        int remainder = nwcon % 4;
+        for ( ; k < remainder; k++ ){
+          dmat += ewivals[0]*wvals[0];
+          ewivals++; wvals++;
+        }
+
+        for ( int k = remainder; k < nwcon; k += 4 ){
+          dmat += (ewivals[0]*wvals[0] + ewivals[1]*wvals[1] +
+                   ewivals[2]*wvals[2] + ewivals[3]*wvals[3]);
+          ewivals += 4; wvals += 4;
+        }
+
+        Dmat[i + ncon*j] -= dmat;
+      }
+    }
+  }
+
+  // Compute the lower diagonal portion of the matrix. This
+  // code unrolls the loop to achieve better performance. Note
+  // that this only computes the on-processor components.
+  for ( int j = 0; j < ncon; j++ ){
+    for ( int i = j; i < ncon; i++ ){
+      // Get the vectors required
+      ParOptScalar *aivals, *ajvals;
+      Ac[i]->getArray(&aivals);
+      Ac[j]->getArray(&ajvals);
+
+      ParOptScalar dmat = 0.0;
+      int k = 0, remainder = nvars % 4;
+      for ( ; k < remainder; k++ ){
+        dmat += aivals[0]*ajvals[0];
+        aivals++; ajvals++;
+      }
+
+      for ( int k = remainder; k < nvars; k += 4 ){
+        dmat += (aivals[0]*ajvals[0] +
+                 aivals[1]*ajvals[1] +
+                 aivals[2]*ajvals[2] +
+                 aivals[3]*ajvals[3]);
+        aivals += 4; ajvals += 4;
+      }
+
+      Dmat[i + ncon*j] += dmat;
+    }
+  }
+
+  // Populate the remainder of the matrix because it is
+  // symmetric
+  for ( int j = 0; j < ncon; j++ ){
+    for ( int i = j+1; i < ncon; i++ ){
+      Dmat[j + ncon*i] = Dmat[i + ncon*j];
+    }
+  }
+
+  if (ncon > 0){
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+
+    // Reduce the result to the root processor
+    if (rank == opt_root){
+      MPI_Reduce(MPI_IN_PLACE, Dmat, ncon*ncon,
+                 PAROPT_MPI_TYPE, MPI_SUM, opt_root, comm);
+    }
+    else {
+      MPI_Reduce(Dmat, NULL, ncon*ncon, PAROPT_MPI_TYPE, MPI_SUM,
+                 opt_root, comm);
+    }
+
+    // Add the diagonal component to the matrix
+    if (rank == opt_root){
+      if (dense_inequality){
+        for ( int i = 0; i < ncon; i++ ){
+          Dmat[i*(ncon + 1)] += alpha;
+        }
+      }
+    }
+
+    // Broadcast the result to all processors. Note that this ensures
+    // that the factorization will be the same on all processors
+    MPI_Bcast(Dmat, ncon*ncon, PAROPT_MPI_TYPE, opt_root, comm);
+
+    // Factor the matrix for future use
+    int info = 0;
+    LAPACKdgetrf(&ncon, &ncon, Dmat, &ncon, dpiv, &info);
+  }
+}
+
+/*
+  Solve for the least-squares solution.
+
+  [ Dmat | Ew^{T} ][ yz  ] = [ bz  ]
+  [ Ew   | Cw     ][ yzw ]   [ bzw ]
+
+  (Dmat - Ew^{T}*Cw^{-1}*Ew)*yz = bz - Ew^{T}*C^{-1}*bzw
+
+  yzw = Cw^{-1}*(bzw - Ew*yz)
+*/
+void ParOptInteriorPoint::solveLeastSquaresSystem( ParOptScalar *bz,
+                                                   ParOptVec *bzw,
+                                                   ParOptScalar *yz,
+                                                   ParOptVec *yzw,
+                                                   int use_sparse ){
+  // Compute the terms from the weighting constraints
+  if (nwcon > 0 && use_sparse){
+    // Compute yzw = Cw^{-1}*bsw
+    yzw->copyValues(bzw);
+    applyCwFactor(yzw);
+  }
+
+  // Now, set yz = 0 and begin to compute yz = bc - Ew^{T}*yzw
+  memset(yz, 0, ncon*sizeof(ParOptScalar));
+
+  // Compute the contribution from the weighing constraints
+  if (nwcon > 0 && use_sparse){
+    ParOptScalar *wvals;
+    int size = yzw->getArray(&wvals);
+    for ( int i = 0; i < ncon; i++ ){
+      int one = 1;
+      ParOptScalar *ewvals;
+      Ew[i]->getArray(&ewvals);
+      yz[i] = BLASddot(&size, wvals, &one, ewvals, &one);
+    }
+  }
+
+  // Reduce all the results to the opt-root processor:
+  // yz will now store the following term:
+  // yz = Ew^{T}*Cw^{-1}*bzw
+  if (ncon > 0){
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+    if (rank == opt_root){
+      // Reduce the result to the root processor
+      MPI_Reduce(MPI_IN_PLACE, yz, ncon, PAROPT_MPI_TYPE, MPI_SUM,
+                 opt_root, comm);
+    }
+    else {
+      MPI_Reduce(yz, NULL, ncon, PAROPT_MPI_TYPE, MPI_SUM,
+                 opt_root, comm);
+    }
+
+    // Compute the full right-hand-side
+    if (rank == opt_root){
+      // Compute the full right-hand-side on the root processor
+      // and solve for the Lagrange multipliers
+      for ( int i = 0; i < ncon; i++ ){
+        yz[i] = bz[i] - yz[i];
+      }
+
+      int one = 1, info = 0;
+      LAPACKdgetrs("N", &ncon, &one,
+                   Dmat, &ncon, dpiv, yz, &ncon, &info);
+    }
+
+    MPI_Bcast(yz, ncon, PAROPT_MPI_TYPE, opt_root, comm);
+  }
+
+  if (nwcon > 0 && use_sparse){
+    yzw->copyValues(bzw);
+    for ( int i = 0; i < ncon; i++ ){
+      yzw->axpy(-yz[i], Ew[i]);
+    }
+    applyCwFactor(yzw);
+  }
 }
 
 /*

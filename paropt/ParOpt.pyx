@@ -381,11 +381,11 @@ def printOptionSummary():
             print('%-40s %-15s'%(name, str(info[name].default)))
         elif info[name].option_type == 'int':
             print('%-40s %-15d'%(name, info[name].default))
-            print('Range of values: low %-15d high %-15d'%(
+            print('Range of values: lower limit %d  upper limit %d'%(
                 info[name].values[0], info[name].values[1]))
         elif info[name].option_type == 'float':
             print('%-40s %-15g'%(name, info[name].default))
-            print('Range of values: low %-15g high %-15g'%(
+            print('Range of values: lower limit %g  upper limit %g'%(
                 info[name].values[0], info[name].values[1]))
         elif info[name].option_type == 'enum':
             print('%-40s %-15s'%(name, info[name].default))
@@ -1014,7 +1014,7 @@ cdef class LSR1(CompactQuasiNewton):
 cdef class InteriorPoint:
     cdef ParOptInteriorPoint *ptr
     def __cinit__(self, ProblemBase _prob, options):
-        cdef ParOptOptions *opts = new ParOptOptions()
+        cdef ParOptOptions *opts = new ParOptOptions(_prob.ptr.getMPIComm())
         ParOptInteriorPointAddDefaultOptions(opts)
         addDictionaryToOptions(options, opts)
         self.ptr = new ParOptInteriorPoint(_prob.ptr, opts)
@@ -1157,7 +1157,7 @@ cdef class InteriorPoint:
 cdef class MMA(ProblemBase):
     cdef ParOptMMA *mma
     def __cinit__(self, ProblemBase _prob, options):
-        cdef ParOptOptions *opts = new ParOptOptions()
+        cdef ParOptOptions *opts = new ParOptOptions(_prob.ptr.getMPIComm())
         ParOptMMAAddDefaultOptions(opts)
         addDictionaryToOptions(options, opts)
         self.mma = new ParOptMMA(_prob.ptr, opts)
@@ -1221,7 +1221,7 @@ cdef class TrustRegion:
             prob: Subproblem object for the trust region problem
             options: Optimization options
         """
-        cdef ParOptOptions *opts = new ParOptOptions()
+        cdef ParOptOptions *opts = new ParOptOptions(prob.ptr.getMPIComm())
         ParOptTrustRegionAddDefaultOptions(opts)
         addDictionaryToOptions(options, opts)
         self.tr = new ParOptTrustRegion(prob.subproblem, opts)
@@ -1251,7 +1251,7 @@ cdef class TrustRegion:
 cdef class Optimizer:
     cdef ParOptOptimizer *ptr
     def __cinit__(self, ProblemBase problem, options):
-        cdef ParOptOptions *opts = new ParOptOptions()
+        cdef ParOptOptions *opts = new ParOptOptions(problem.ptr.getMPIComm())
         ParOptOptimizerAddDefaultOptions(opts)
         addDictionaryToOptions(options, opts)
         self.ptr = new ParOptOptimizer(problem.ptr, opts)

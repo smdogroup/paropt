@@ -3,7 +3,7 @@
 
 
 ParOptOptimizer::ParOptOptimizer( ParOptProblem *_problem,
-                   ParOptOptions *_options ){
+                                  ParOptOptions *_options ){
   problem = _problem;
   problem->incref();
 
@@ -59,6 +59,9 @@ ParOptProblem* ParOptOptimizer::getProblem(){
   Perform the optimization
 */
 void ParOptOptimizer::optimize(){
+  int rank;
+  MPI_Comm_rank(problem->getMPIComm(), &rank);
+
   // Check what type of optimization algorithm has been requirested
   int algo_type = 0;
   const char *algorithm = options->getEnumOption("algorithm");
@@ -73,8 +76,10 @@ void ParOptOptimizer::optimize(){
     algo_type = 3;
   }
   else {
-    fprintf(stderr, "ParOptOptimizer Error: Unrecognized algorithm option %s\n",
-            algorithm);
+    if (rank == 0){
+      fprintf(stderr, "ParOptOptimizer Error: Unrecognized algorithm option %s\n",
+              algorithm);
+    }
     return;
   }
 
@@ -115,8 +120,17 @@ void ParOptOptimizer::optimize(){
     if (!subproblem){
       ParOptCompactQuasiNewton *qn = NULL;
       if (strcmp(qn_type, "bfgs") == 0){
-        qn = new ParOptLBFGS(problem, qn_subspace_size);
+        ParOptLBFGS *bfgs = new ParOptLBFGS(problem, qn_subspace_size);
+        qn = bfgs;
         qn->incref();
+
+        const char *update_type = options->getEnumOption("qn_update_type");
+        if (strcmp(update_type, "skip_negative_curvature") == 0){
+          bfgs->setBFGSUpdateType(PAROPT_SKIP_NEGATIVE_CURVATURE);
+        }
+        else if (strcmp(update_type, "damped_update") == 0){
+          bfgs->setBFGSUpdateType(PAROPT_DAMPED_UPDATE);
+        }
       }
       else if (strcmp(qn_type, "sr1") == 0){
         qn = new ParOptLSR1(problem, qn_subspace_size);

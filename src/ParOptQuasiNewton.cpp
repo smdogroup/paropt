@@ -167,7 +167,6 @@ int ParOptLBFGS::update( ParOptVec *x, const ParOptScalar *z,
     // Check if we should skip the update
     if (ParOptRealPart(sTs) <= epsilon_precision*epsilon_precision){
       update_type = 2;
-      reset();
       return update_type;
     }
     else if (ParOptRealPart(sTy) <= epsilon_precision*sqrt(ParOptRealPart(yTy*yTy))){

@@ -1,9 +1,5 @@
-from paropt import ParOpt
-import mpi4py.MPI as MPI
-import numpy as np
-import argparse
 
-'''
+"""
 ref: Benchmarking Optimization Software with COPS 3.0
 problem 1. Largest Small Polygon
 nv: number of vertices
@@ -13,7 +9,13 @@ s.t.  c1 = theta_{i+1} - theta_i >= 0, i=0,1,...,nv-2
       c2 = 1 - r_i^2 - r_j^2 + 2 * r_i * r_j * cos(theta_i - theta_j) >= 0        i=0,1,..,nv-2; j=i+1,...,nv-1
       0 <= r_i     <= 10
       0 <= theta_i <= pi
-'''
+"""
+
+from paropt import ParOpt
+import mpi4py.MPI as MPI
+import numpy as np
+import argparse
+
 class Polygon(ParOpt.Problem):
     def __init__(self, nv):
         # Set the communicator pointer
@@ -35,13 +37,11 @@ class Polygon(ParOpt.Problem):
         """Set the values of the bounds"""
         nv = self.nv
 
-        x[:nv] = np.random.uniform(low=0., high=10., size=nv)
-        # x[:nv] = 0.5
+        x[:nv] = np.random.uniform(low=0.1, high=9.9, size=nv)
         lb[:nv] = 0.0
         ub[:nv] = 10.0
 
-        # x[nv:] = np.random.uniform(low=0.,high=np.pi, size=nv)
-        x[nv:] = np.linspace(start=0, stop=np.pi, num=nv)
+        x[nv:] = np.linspace(start=0.1*np.pi, stop=0.9*np.pi, num=nv)
         lb[nv:] = 0.0
         ub[nv:] = np.pi
 
@@ -51,7 +51,7 @@ class Polygon(ParOpt.Problem):
         """Evaluate the objective and constraint"""
         fail = 0
         nv = self.nv
-        con = np.zeros(self.ncon)
+        con = np.zeros(self.ncon, dtype=ParOpt.dtype)
         c1 = con[:nv-1]
         c2 = con[nv-1:]
         r =     x[:nv]
@@ -79,6 +79,7 @@ class Polygon(ParOpt.Problem):
         theta = x[nv:]
 
         # Compute g
+        g[:] = 0.0
         for i in range(nv - 1):
             g[i] -= 0.5 * r[i+1] * np.sin(theta[i+1] - theta[i])
             g[i+1] -= 0.5 * r[i] * np.sin(theta[i+1] - theta[i])
@@ -91,13 +92,16 @@ class Polygon(ParOpt.Problem):
             A[i][nv+i+1] = 1.0
 
         # Compute A2r and A2t
-        index = 0
+        index = nv-1
         for i in range(nv - 1):
             for j in range(i + 1, nv):
-                A[nv-1+index][i] = - 2 * r[i] + 2 * r[j] * np.cos(theta[i] - theta[j])
-                A[nv-1+index][j] = - 2 * r[j] + 2 * r[i] * np.cos(theta[i] - theta[j])
-                A[nv-1+index][nv+i] = - 2 * r[i] * r[j] * np.sin(theta[i] - theta[j])
-                A[nv-1+index][nv+j] = 2 * r[i] * r[j] * np.sin(theta[i] - theta[j])
+                # Derivatives w.r.t. r
+                A[index][i] = -2.0 * r[i] + 2.0 * r[j] * np.cos(theta[i] - theta[j])
+                A[index][j] = -2.0 * r[j] + 2.0 * r[i] * np.cos(theta[i] - theta[j])
+
+                # Derivatives w.r.t. theta
+                A[index][nv + i] = - 2.0 * r[i] * r[j] * np.sin(theta[i] - theta[j])
+                A[index][nv + j] =   2.0 * r[i] * r[j] * np.sin(theta[i] - theta[j])
                 index += 1
 
         return fail
@@ -117,30 +121,33 @@ if __name__ == "__main__":
     # use interior point algorithm
     options = {
         'algorithm': 'ip',
+        'qn_type': 'bfgs',
         'qn_subspace_size': 10,
         'abs_res_tol': 1e-6,
         'barrier_strategy': 'monotone',
-        'gmres_subspace_size': 25,
-        'nk_switch_tol': 1.0,
-        'eisenstat_walker_gamma': 0.01,
-        'eisenstat_walker_alpha': 0.0,
-        'max_gmres_rtol': 1.0,
+        'starting_point_strategy': 'affine_step',
+        'use_backtracking_alpha': True,
         'output_level': 1,
-        'armijo_constant': 1e-5,
-        'max_major_iters': 2000}
+        'max_major_iters': 1000}
 
     # use trust region algorithm
     if use_tr:
         options = {
             'algorithm': 'tr',
-            'tr_init_size': 0.05,
-            'tr_min_size': 1e-8,
+            'qn_type': 'bfgs',
+            'abs_res_tol': 1e-8,
+            'output_level': 0,
+            'use_backtracking_alpha': True,
+            'max_major_iters': 100,
+            'tr_init_size': 0.1,
+            'tr_min_size': 1e-6,
             'tr_max_size': 1.0,
-            'tr_eta': 0.5,
+            'tr_eta': 0.25,
+            'penalty_gamma': 1.0,
             'tr_adaptive_gamma_update': True,
             'tr_penalty_gamma_max': 1e5,
             'tr_penalty_gamma_min': 1e-5,
-            'tr_max_iterations': 200}
+            'tr_max_iterations': 500}
 
     polygon = Polygon(args.n)
     polygon.checkGradients()

@@ -241,6 +241,7 @@ class ParOptInteriorPoint : public ParOptBase {
   // Initialize the multipliers
   void initLeastSquaresMultipliers();
   void initAffineStepMultipliers( ParOptNormType norm_type );
+  void initMehrotraMultipliers();
 
   // Factor/apply the Cw matrix
   int factorCw();
@@ -312,6 +313,16 @@ class ParOptInteriorPoint : public ParOptBase {
   // Solve for the KKT step
   void computeKKTStep( ParOptScalar *zt, ParOptVec *xt1,
                        ParOptVec *xt2, ParOptVec *wt, int use_bfgs );
+
+  // Set up the least-squares multiplier problem
+  void setUpLeastSquaresSystem( double alpha, double beta,
+                                ParOptVec *xtmp, ParOptVec *wtmp,
+                                int use_sparse );
+
+  // Solve the least-squares system
+  void solveLeastSquaresSystem( ParOptScalar *bz, ParOptVec *bzw,
+                                ParOptScalar *yz, ParOptVec *yzw,
+                                int use_sparse );
 
   // Compute the full KKT step
   int computeKKTGMRESStep( ParOptScalar *ztmp, ParOptVec *xtmp1,
