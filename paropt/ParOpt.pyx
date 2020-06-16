@@ -331,8 +331,8 @@ cdef inplace_array_1d(int nptype, int dim1, void *data_ptr,
 
     return ndarray
 
-cdef void addDictionaryToOptions(options,
-                                 ParOptOptions *opts):
+cdef int addDictionaryToOptions(options,
+                                ParOptOptions *opts) except -1:
     cdef int int_value = 0
     cdef double float_value = 0
     cdef string str_value
@@ -363,8 +363,11 @@ cdef void addDictionaryToOptions(options,
                 errmsg = 'Cannot convert option %s value '%(str(key)) + str(value)
                 errmsg += ' to ParOptOptions type'
                 raise ValueError(errmsg)
+        else:
+            errmsg = 'Unknown ParOpt option %s'%(str(key))
+            raise ValueError(errmsg)
 
-    return
+    return 0
 
 def printOptionSummary():
     """

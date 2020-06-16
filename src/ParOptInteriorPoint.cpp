@@ -238,6 +238,10 @@ ParOptInteriorPoint::ParOptInteriorPoint( ParOptProblem *_prob,
     penalty_gamma[i] = gamma;
   }
 
+  // Set parameters that will be over-written later
+  barrier_param = options->getFloatOption("init_barrier_param");
+  rho_penalty_search = options->getFloatOption("init_rho_penalty_search");
+
   // Zero the number of evals
   neval = ngeval = nhvec = 0;
 
