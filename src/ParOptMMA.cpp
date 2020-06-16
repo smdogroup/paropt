@@ -547,7 +547,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
   }
 
   // Compute the KKT error, and print it out to a file
-  if (output_level > 0){
+  if (output_level >= 0){
     double l1, linfty, infeas;
     computeKKTError(&l1, &linfty, &infeas);
 
