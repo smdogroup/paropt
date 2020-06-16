@@ -107,7 +107,7 @@ def solve_problem(eigs, filename=None, use_stdout=False, use_tr=False):
             'tr_max_size': 10.0,
             'tr_eta': 0.25,
             'tr_adaptive_gamma_update': True,
-            'tr_max_iterations': 200,
+            'tr_max_iterations': 1000,
             'penalty_gamma': 10.0,
             'qn_subspace_size': 10,
             'qn_type': 'bfgs',
@@ -116,7 +116,7 @@ def solve_problem(eigs, filename=None, use_stdout=False, use_tr=False):
             'tr_output_file': os.path.splitext(filename)[0] + '.tr',
             'starting_point_strategy': 'affine_step',
             'barrier_strategy': 'monotone',
-            'start_affine_multiplier_min': 0.01}
+            'use_line_search': False}
 
     opt = ParOpt.Optimizer(problem, options)
 

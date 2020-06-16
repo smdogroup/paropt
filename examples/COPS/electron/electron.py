@@ -140,7 +140,8 @@ if __name__ == "__main__":
             'tr_eta': 0.1,
             'tr_adaptive_gamma_update': True,
             'tr_max_iterations': 500,
-            'max_major_iters': 200}
+            'max_major_iters': 500,
+            'use_line_search': False}
 
     problem = Electron(args.n, 1e-15)
     problem.checkGradients()

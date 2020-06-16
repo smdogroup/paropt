@@ -396,6 +396,9 @@ ParOptInfeasSubproblem::ParOptInfeasSubproblem( ParOptTrustRegionSubproblem *_pr
   prob = _prob;
   prob->incref();
 
+  // Set the default scaling factor to unity
+  obj_scale = 1.0;
+
   // Set the objective and constraint types
   subproblem_objective = _subproblem_objective;
   subproblem_constraint = _subproblem_constraint;
@@ -496,6 +499,9 @@ int ParOptInfeasSubproblem::evalObjCon( ParOptVec *step,
     }
   }
 
+  // Apply the objective scaling
+  *fobj *= obj_scale;
+
   return 0;
 }
 
@@ -526,6 +532,8 @@ int ParOptInfeasSubproblem::evalObjConGradient( ParOptVec *step,
       Ac[i]->copyValues(Ak[i]);
     }
   }
+
+  g->scale(obj_scale);
 
   return 0;
 }
@@ -1164,7 +1172,13 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
       if (1e2*tr_penalty_gamma_max > gamma){
         gamma = 1e2*tr_penalty_gamma_max;
       }
-      optimizer->setPenaltyGamma(gamma);
+
+      // Set the objective scaling to 1.0/gamma so that the contribution from
+      // the objective is small
+      infeas_problem->setObjectiveScaling(1.0/gamma);
+
+      // Set the penalty parameters to zero
+      optimizer->setPenaltyGamma(1.0);
 
       // Initialize the barrier parameter
       optimizer->resetDesignAndBounds();

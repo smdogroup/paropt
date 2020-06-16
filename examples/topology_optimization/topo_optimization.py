@@ -515,7 +515,7 @@ if __name__ == '__main__':
         'tr_init_size': 0.05,
         'tr_min_size': 1e-6,
         'tr_max_size': 10.0,
-        'tr_eta': 0.2,
+        'tr_eta': 0.25,
         'tr_infeas_tol': 1e-4,
         'tr_l1_tol': 1e-3,
         'tr_linfty_tol': 1e-3,
@@ -527,9 +527,9 @@ if __name__ == '__main__':
         'abs_res_tol': 1e-8,
         'starting_point_strategy': 'affine_step',
         'barrier_strategy': 'mehrotra_predictor_corrector',
-        'tr_steering_barrier_strategy': 'affine_step',
-        'tr_steering_starting_point_strategy':
+        'tr_steering_barrier_strategy':
             'mehrotra_predictor_corrector',
+        'tr_steering_starting_point_strategy': 'affine_step',
         'use_line_search': False}
 
     # Set up the optimizer

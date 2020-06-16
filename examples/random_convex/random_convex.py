@@ -144,7 +144,7 @@ def solve_problem(eigs, filename=None, data_type='orthogonal',
             'tr_output_file': os.path.splitext(filename)[0] + '.tr',
             'starting_point_strategy': 'affine_step',
             'barrier_strategy': 'monotone',
-            'start_affine_multiplier_min': 0.01}
+            'use_line_search': False}
 
     opt = ParOpt.Optimizer(problem, options)
 

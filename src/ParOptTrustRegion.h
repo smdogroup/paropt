@@ -233,6 +233,11 @@ class ParOptInfeasSubproblem : public ParOptProblem {
                           int subproblem_constraint );
   ~ParOptInfeasSubproblem();
 
+  // Set the objective scaling
+  void setObjectiveScaling( ParOptScalar _scale ){
+    obj_scale = _scale;
+  }
+
   // Create the design vectors
   ParOptVec *createDesignVec();
   ParOptVec *createConstraintVec();
@@ -283,6 +288,8 @@ class ParOptInfeasSubproblem : public ParOptProblem {
   void addSparseInnerProduct( ParOptScalar alpha, ParOptVec *x,
                               ParOptVec *cvec, ParOptScalar *A );
  private:
+  ParOptScalar obj_scale; // Objective function scaling factor
+
   int n; // The number of design variables (local)
   int m; // The number of dense constraints (global)
   ParOptTrustRegionSubproblem *prob;

@@ -116,7 +116,14 @@ class ParOptDriver(Driver):
         # Create the ParOptProblem from the OpenMDAO problem
         self.paropt_problem = ParOptProblem(problem)
 
-        self.opt = ParOpt.Optimizer(self.paropt_problem, self.options)
+        # Take only the options declared from ParOpt
+        info = ParOpt.getOptionsInfo()
+        paropt_options = {}
+        for key in self.options:
+            if key in info.keys():
+                paropt_options[key] = self.options[key]
+
+        self.opt = ParOpt.Optimizer(self.paropt_problem, paropt_options)
 
         return
 
