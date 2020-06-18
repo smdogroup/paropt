@@ -132,6 +132,9 @@ ParOptEigenQuasiNewton::ParOptEigenQuasiNewton( ParOptCompactQuasiNewton *_qn,
   eigh = _eigh;
   eigh->incref();
 
+  // Use the compact approximation terms from the objective
+  use_quasi_newton_objective = 1;
+
   // Set the initial multiplier and index
   index = _index;
   z0 = 1.0;
@@ -160,6 +163,10 @@ ParOptEigenQuasiNewton::~ParOptEigenQuasiNewton(){
   delete [] d;
 }
 
+void ParOptEigenQuasiNewton::setUseQuasiNewtonObjective( int truth ){
+  use_quasi_newton_objective = truth;
+}
+
 // Reset the internal data
 void ParOptEigenQuasiNewton::reset(){
   if (qn){
@@ -183,7 +190,7 @@ int ParOptEigenQuasiNewton::update( ParOptVec *x, const ParOptScalar *z, ParOptV
 }
 
 void ParOptEigenQuasiNewton::mult( ParOptVec *x, ParOptVec *y ){
-  if (qn){
+  if (qn && use_quasi_newton_objective){
     qn->mult(x, y);
   }
   else {
@@ -195,7 +202,7 @@ void ParOptEigenQuasiNewton::mult( ParOptVec *x, ParOptVec *y ){
 void ParOptEigenQuasiNewton::multAdd( ParOptScalar alpha,
                                       ParOptVec *x,
                                       ParOptVec *y ){
-  if (qn){
+  if (qn && use_quasi_newton_objective){
     qn->multAdd(alpha, x, y);
   }
   eigh->multAdd(-alpha*z0, x, y);
@@ -216,7 +223,7 @@ int ParOptEigenQuasiNewton::getCompactMat( ParOptScalar *b0,
   int mat_size = N;
   int qn_size = 0;
 
-  if (qn){
+  if (qn && use_quasi_newton_objective){
     // Get the compact quasi-Newton approximation
     ParOptVec **Z0;
     const ParOptScalar *d0, *M0;
@@ -584,6 +591,8 @@ void ParOptEigenSubproblem::getVarsAndBounds( ParOptVec *step,
                                               ParOptVec *l,
                                               ParOptVec *u ){
   step->zeroEntries();
+  step->axpy(0.5, lk);
+  step->axpy(0.5, uk);
   l->copyValues(lk);
   u->copyValues(uk);
 }

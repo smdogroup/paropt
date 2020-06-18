@@ -436,8 +436,8 @@ class TopoAnalysis(ParOpt.Problem):
 
         ymod ~ P*s = (H + N)*s ~ y + N*s
         """
-        # Ns = self.compliance_negative_hessian(s[:])
-        # y[:] += Ns[:]
+        Ns = self.compliance_negative_hessian(s[:])
+        y[:] += Ns[:]
         return
 
     def getVarsAndBounds(self, x, lb, ub):
@@ -516,11 +516,11 @@ if __name__ == '__main__':
         'tr_min_size': 1e-6,
         'tr_max_size': 10.0,
         'tr_eta': 0.25,
-        'tr_infeas_tol': 1e-4,
+        'tr_infeas_tol': 1e-6,
         'tr_l1_tol': 1e-3,
-        'tr_linfty_tol': 1e-3,
+        'tr_linfty_tol': 0.0,
         'tr_adaptive_gamma_update': True,
-        'tr_max_iterations': 200,
+        'tr_max_iterations': 1000,
         'penalty_gamma': 10.0,
         'qn_subspace_size': 10,
         'qn_type': 'bfgs',

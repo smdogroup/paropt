@@ -39,6 +39,9 @@ class ParOptEigenQuasiNewton : public ParOptCompactQuasiNewton {
                           int _index=0 );
   ~ParOptEigenQuasiNewton();
 
+  // Set whether or not to use the terms from the objective
+  void setUseQuasiNewtonObjective( int truth );
+
   // Reset the internal data
   void reset();
 
@@ -66,6 +69,10 @@ class ParOptEigenQuasiNewton : public ParOptCompactQuasiNewton {
   int getMultiplierIndex();
 
  private:
+  // Flag to indicate whether to include the quasi-Newton terms
+  // or just the constraint approximation in the compact approx.
+  int use_quasi_newton_objective;
+
   // The two contributions to the Hessian of the Lagrangian
   int index;
   ParOptScalar z0;

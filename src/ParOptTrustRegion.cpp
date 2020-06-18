@@ -1,5 +1,6 @@
 #include <string.h>
 #include "ParOptTrustRegion.h"
+#include "ParOptCompactEigenvalueApprox.h"
 #include "ParOptComplexStep.h"
 
 // Helper functions
@@ -267,6 +268,8 @@ void ParOptQuadraticSubproblem::getVarsAndBounds( ParOptVec *step,
                                                   ParOptVec *l,
                                                   ParOptVec *u ){
   step->zeroEntries();
+  step->axpy(0.5, lk);
+  step->axpy(0.5, uk);
   l->copyValues(lk);
   u->copyValues(uk);
 }
@@ -964,9 +967,6 @@ void ParOptTrustRegion::update( ParOptVec *step,
     smax = 0.0;
   }
 
-  // Compute the KKT error at the current point
-  computeKKTError(z, zw, l1, linfty);
-
   // Set the new trust region radius
   if (ParOptRealPart(rho) < 0.25){
     tr_size = ParOptRealPart(max2(0.25*tr_size, tr_min_size));
@@ -978,7 +978,10 @@ void ParOptTrustRegion::update( ParOptVec *step,
   // Reset the trust region radius bounds
   subproblem->setTrustRegionBounds(tr_size);
 
-  // Keep track of the max z/average z and max gamma/average gamma
+  // Compute the KKT error at the current point
+  computeKKTError(z, zw, l1, linfty);
+
+  // Compute the max z/average z and max gamma/average gamma
   double zmax = 0.0, zav = 0.0, gmax = 0.0, gav = 0.0;
   for ( int i = 0; i < m; i++ ){
     zav += ParOptRealPart(z[i]);
@@ -990,6 +993,8 @@ void ParOptTrustRegion::update( ParOptVec *step,
       gmax = penalty_gamma[i];
     }
   }
+  zav = zav/m;
+  gav = gav/m;
 
   // Create an info string for the update type
   int update_type = subproblem->getQuasiNewtonUpdateType();
@@ -1029,7 +1034,7 @@ void ParOptTrustRegion::update( ParOptVec *step,
             "%9.2e %9.2e %9.2e %9.2e %-12s\n",
             iter_count, ParOptRealPart(fk), *infeas, *l1, *linfty, smax, tr_size,
             ParOptRealPart(rho), ParOptRealPart(model_reduc),
-            zav/m, zmax, gav/m, gmax, info);
+            zav, zmax, gav, gmax, info);
     fflush(fp);
   }
 
@@ -1159,12 +1164,21 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
         ip_options->setOption("starting_point_strategy", tr_starting_strategy);
       }
 
-      // Set whether or not to use a sequential linear method or not
+      // Check if this is an compact representation using the eigenvalue Hessian
+      ParOptEigenQuasiNewton *eig_qn = dynamic_cast<ParOptEigenQuasiNewton*>(qn);
+
+      // Check what type of infeasible subproblem
       int is_seq = ip_options->getBoolOption("sequential_linear_method");
-      if ((adaptive_objective_flag == ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE ||
-           adaptive_objective_flag == ParOptInfeasSubproblem::PAROPT_CONSTANT_OBJECTIVE) &&
-          (adaptive_constraint_flag == ParOptInfeasSubproblem::PAROPT_LINEAR_CONSTRAINT)){
-        ip_options->setOption("sequential_linear_method", 1);
+      if (adaptive_objective_flag == ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE ||
+          adaptive_objective_flag == ParOptInfeasSubproblem::PAROPT_CONSTANT_OBJECTIVE){
+        if (eig_qn){
+          eig_qn->setUseQuasiNewtonObjective(0);
+        }
+
+        // Linear (or constant) objective and linear constraints - sequential linear problem
+        if (adaptive_constraint_flag == ParOptInfeasSubproblem::PAROPT_LINEAR_CONSTRAINT){
+          ip_options->setOption("sequential_linear_method", 1);
+        }
       }
 
       // Set the penalty parameter to a large value
@@ -1208,6 +1222,11 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
 
       // Reset the problem instance and turn off the sequential linear method
       optimizer->resetProblemInstance(subproblem);
+
+      // Set the quasi-Newton method so that it uses the objective again
+      if (eig_qn){
+        eig_qn->setUseQuasiNewtonObjective(1);
+      }
 
       // Reset the options
       ip_options->setOption("starting_point_strategy", start_option);
@@ -1396,9 +1415,7 @@ void ParOptTrustRegion::computeKKTError( const ParOptScalar *z,
     if ((ParOptRealPart(x[j]) <= ParOptRealPart(l[j]) + tr_bound_relax) && w > 0.0){
       w = 0.0;
     }
-
-    // Check if we're on the upper bound
-    if ((ParOptRealPart(x[j]) >= ParOptRealPart(u[j]) - tr_bound_relax) && w < 0.0){
+    else if ((ParOptRealPart(x[j]) >= ParOptRealPart(u[j]) - tr_bound_relax) && w < 0.0){
       w = 0.0;
     }
 
@@ -1415,4 +1432,19 @@ void ParOptTrustRegion::computeKKTError( const ParOptScalar *z,
                 MPI_SUM, subproblem->getMPIComm());
   MPI_Allreduce(&infty_norm, linfty, 1, MPI_DOUBLE,
                 MPI_MAX, subproblem->getMPIComm());
+
+  // Find the maximum absolute multiplier value
+  ParOptScalar zmax = 0.0;
+  if (nwcon > 0){
+    zmax = zw->maxabs();
+  }
+  for ( int i = 0; i < m; i++ ){
+    if (z[i] > zmax){
+      zmax = z[i];
+    }
+  }
+
+  // Compute the maximum
+  *l1 = *l1/ParOptRealPart(max2(gk->l1norm(), zmax));
+  *linfty = *linfty/ParOptRealPart(max2(gk->maxabs(), zmax));
 }

@@ -11,9 +11,12 @@ p.add_argument('filename', metavar='paropt.out', type=str,
                help='ParOpt output file name')
 args = p.parse_args()
 
+colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728',
+          '#9467bd', '#8c564b', '#e377c2', '#7f7f7f',
+          '#bcbd22', '#17becf']
 # Set font info
-font = {'family': 'sans-serif', 'weight': 'normal', 'size': 17}
-matplotlib.rc('font', **font)
+# font = {'family': 'sans-serif', 'weight': 'normal', 'size': 17}
+# matplotlib.rc('font', **font)
 
 # Try to unpack values for the interior point code
 header, values = ParOpt.unpack_output(args.filename)
@@ -32,14 +35,14 @@ if len(values[0]) > 0:
 
     # Make the subplots
     fig, ax1 = plt.subplots()
-    l1 = ax1.plot(iteration, objective, '-b', linewidth=2, label='objective')
+    l1 = ax1.plot(iteration, objective, color=colors[0], label='objective')
     ax1.set_xlabel('Iteration')
     ax1.set_ylabel('Function value')
 
     ax2 = ax1.twinx()
-    l2 = ax2.semilogy(iteration, opt, '-r', linewidth=2, label='opt')
-    l3 = ax2.semilogy(iteration, infeas, '-m', linewidth=2, label='infeas')
-    l4 = ax2.semilogy(iteration, barrier, '-g', linewidth=2, label='barrier')
+    l2 = ax2.semilogy(iteration, opt, color=colors[1], label='opt')
+    l3 = ax2.semilogy(iteration, infeas, color=colors[2], label='infeas')
+    l4 = ax2.semilogy(iteration, barrier, color=colors[3], label='barrier')
     ax2.set_ylabel('Optimality and Feasibility')
 
     # Manually add all the lines to the legend
@@ -55,7 +58,6 @@ else:
         # You can get more stuff out of this array
         iteration = np.linspace(1, len(values[0]), len(values[0]))
         objective = values[header.index('fobj')]
-        # opt_l1 = values[header.index('l1')]
         opt_linfty = values[header.index('linfty')]
         infeas = values[header.index('infes')]
         tr = values[header.index('tr')]
@@ -67,17 +69,16 @@ else:
 
         # Make the subplots
         fig, ax1 = plt.subplots()
-        l1 = ax1.plot(iteration, objective, '-b', linewidth=2, label='objective')
+        l1 = ax1.plot(iteration, objective, color=colors[0], label='objective')
         ax1.set_xlabel('Iteration')
         ax1.set_ylabel('Function value')
 
         ax2 = ax1.twinx()
-        # l2 = ax2.semilogy(iteration, opt_l1, '-r', linewidth=2, label='opt-l1')
-        l2 = ax2.semilogy(iteration, opt_linfty, '-r', linewidth=2, label='opt-linfty')
-        l3 = ax2.semilogy(iteration, avg_gamma, '-k', linewidth=2, label='avg. pen.')
-        l4 = ax2.semilogy(iteration, avg_z, '-y', linewidth=2, label='avg z')
-        l5 = ax2.semilogy(iteration, infeas, '-m', linewidth=2, label='infeas')
-        l6 = ax2.semilogy(iteration, tr, '-g', linewidth=2, label='tr')
+        l2 = ax2.semilogy(iteration, opt_linfty, color=colors[1], label='opt-linfty')
+        l3 = ax2.semilogy(iteration, avg_gamma, color=colors[2], label='avg. pen.')
+        l4 = ax2.semilogy(iteration, avg_z, color=colors[3], label='avg z')
+        l5 = ax2.semilogy(iteration, infeas, color=colors[4], label='infeas')
+        l6 = ax2.semilogy(iteration, tr, color=colors[5], label='tr')
         ax2.set_ylabel('Optimality and Feasibility')
 
         # Manually add all the lines to the legend
@@ -102,13 +103,13 @@ else:
 
         # Make the subplots
         fig, ax1 = plt.subplots()
-        l1 = ax1.plot(iteration, objective, '-b', linewidth=2, label='objective')
+        l1 = ax1.plot(iteration, objective, color=colors[0], label='objective')
         ax1.set_xlabel('Iteration')
         ax1.set_ylabel('Function value')
 
         ax2 = ax1.twinx()
-        l2 = ax2.semilogy(iteration, lone, '-r', linewidth=2, label='l1-opt')
-        l3 = ax2.semilogy(iteration, lambd, '-g', linewidth=2, label='l1-lambda')
+        l2 = ax2.semilogy(iteration, lone, color=colors[1], label='l1-opt')
+        l3 = ax2.semilogy(iteration, lambd, color=colors[2], label='l1-lambda')
         ax2.set_ylabel('Optimality error')
 
         # Manually add all the lines to the legend

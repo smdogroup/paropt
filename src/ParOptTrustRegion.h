@@ -333,8 +333,10 @@ class ParOptTrustRegion : public ParOptBase {
   void getOptimizedPoint( ParOptVec **_x );
 
  private:
+  // The trust region optimization subproblem
   ParOptTrustRegionSubproblem *subproblem;
 
+  // The options object for the trust-region method
   ParOptOptions *options;
 
   // Set the output file
