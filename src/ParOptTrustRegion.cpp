@@ -1439,7 +1439,7 @@ void ParOptTrustRegion::computeKKTError( const ParOptScalar *z,
     zmax = zw->maxabs();
   }
   for ( int i = 0; i < m; i++ ){
-    if (z[i] > zmax){
+    if (ParOptRealPart(z[i]) > ParOptRealPart(zmax)){
       zmax = z[i];
     }
   }
