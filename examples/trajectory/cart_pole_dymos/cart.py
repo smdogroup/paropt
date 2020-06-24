@@ -183,7 +183,6 @@ else:
     p.driver.opt_settings['starting_point_strategy'] = 'least_square_multipliers'
     p.driver.opt_settings['qn_type'] = 'bfgs'
 
-# p.driver.opt_settings['tr_max_iterations'] = 1000
 
 # Allow OpenMDAO to automatically determine our sparsity pattern.
 # Doing so can significant speed up the execution of Dymos.
@@ -229,7 +228,7 @@ p.run_driver()
 sim_out = traj.simulate()
 
 # Plot the results
-fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(12, 4.5))
+fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(12, 6))
 
 axes[0].plot(p.get_val('traj.phase0.timeseries.time'),
              p.get_val('traj.phase0.timeseries.states:q1'),
