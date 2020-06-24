@@ -25,7 +25,7 @@ filecolor=black, urlcolor=blue]{hyperref}
 \section{Introduction}
 
 ParOpt is a parallel gradient-based optimization library implemented in C++ and is intended for solving large-scale constrained optimization problems.
-ParOpt can be applied to general purpose optimization problems, but is often used for large-scale topology optimization. 
+ParOpt can be applied to general purpose optimization problems, but is often used for large-scale topology optimization.
 The constraints in ParOpt fall into one of two categories: (1) constraints with full dependence on the design vector such that the constraint Jacobian is fully populated, or (2) constraints that have a specific sparse structure, described below, that enables them to be grouped independently.
 All operations in ParOpt use distributed design vectors and almost all computations are performed in parallel, with a small number of factorization operations performed on small dense matrices in serial.
 ParOpt can optionally use information from Hessian-vector products to accelerate convergence.
@@ -49,23 +49,23 @@ ParOpt uses an interior-point method to solve optimization problems formulated a
   \label{eqn:opt-problem}
   \begin{aligned}
     \min_{\mb{x}} \qquad & f(\mb{x}) \\
-    \text{such that} \qquad 
+    \text{such that} \qquad
     & \mb{c}(\mb{x}) \ge 0 \\
     & \mb{c}_{w}(\mb{x}) \ge 0 \\
     & \mb{l} \le \mb{x} \le \mb{u}
   \end{aligned}
 \end{equation}
-Here, $\mb{c}(\mb{x})$ are the dense constraints, and $\mb{c}_{w}(\mb{x})$ are the sparse constraints. 
+Here, $\mb{c}(\mb{x})$ are the dense constraints, and $\mb{c}_{w}(\mb{x})$ are the sparse constraints.
 The sparse constraint Jacobian, $\mb{A}_{w} = \nabla_{x} \mb{c}_{w}(\mb{x})$ must have a structure such that the matrix
 \begin{equation*}
   \mb{D} = \mb{A}_{w}\mb{S}\mb{A}_{w}^{T}
 \end{equation*}
-is a block-diagonal matrix whenever $\mb{S}$ is a diagonal matrix. 
-This structure arises in many topology and multimaterial optimization problems that employ weighting constraints for each element within the problem. 
+is a block-diagonal matrix whenever $\mb{S}$ is a diagonal matrix.
+This structure arises in many topology and multimaterial optimization problems that employ weighting constraints for each element within the problem.
 
 An interior point algorithm approximately solves a sequence of barrier problems that are designed to approach the true constrained minimizer in the limit.
-The barrier problem is formed by adding inequality constraints to the objective through a log barrier penalty function. 
-This barrier function is designed to keep the iterates strictly in the interior of the feasible region. 
+The barrier problem is formed by adding inequality constraints to the objective through a log barrier penalty function.
+This barrier function is designed to keep the iterates strictly in the interior of the feasible region.
 The barrier problem corresponding to~\eqref{eqn:opt-problem} is the following
 \begin{equation}
   \label{eqn:barrier-problem}
@@ -75,7 +75,7 @@ The barrier problem corresponding to~\eqref{eqn:opt-problem} is the following
     & \mb{c}_{w}(\mb{x}) = \mb{s}_{w} \\
   \end{aligned}
 \end{equation}
-where $\mb{s}$, $\mb{t}$ and $\mb{s}_{w}$ are slack variables associated with the dense and sparse constraints, respectively. 
+where $\mb{s}$, $\mb{t}$ and $\mb{s}_{w}$ are slack variables associated with the dense and sparse constraints, respectively.
 The function $\log$ is the component-wise sum of the logarithms of the vector components, i.e. $\log \mb{s} = \sum_{i} \ln s_{i}$.
 As the barrier parameter, $\mu$, decreases, the minimizer of the barrier problem~\eqref{eqn:barrier-problem} approaches the KKT solution.
 
@@ -136,17 +136,17 @@ The approximate KKT matrix is
   \end{bmatrix} = -\mb{r}.
 \end{equation}
 
-ParOpt uses quasi-Newton Hessian approximations based either on compact limited-memory BFGS or compact limited-memory SR1 updates~\citep{Byrd:1994:quasi-Newton-LBFGS}. 
+ParOpt uses quasi-Newton Hessian approximations based either on compact limited-memory BFGS or compact limited-memory SR1 updates~\citep{Byrd:1994:quasi-Newton-LBFGS}.
 Compact representations of limited-memory quasi-Newton approximations take the form
 %
 \begin{equation*}
   \mb{B} = b_0\mb{I} - \mb{W}\mb{M}\mb{W}^{T},
 \end{equation*}
 where $b_0$ is a scalar, $\mb{M}$ is a small matrix and $\mb{W}$ is a matrix with a small number of columns that is stored as a series of vectors.
-The form of these matrices depends on whether the limited-memory BFGS or SR1 technique is used. 
+The form of these matrices depends on whether the limited-memory BFGS or SR1 technique is used.
 An exact solution to the update step $\mb{p}$ can be obtained by using the compact representation in conjunction with the Sherman-Morrison-Woodbury formula.
 
-ParOpt approximately solves the perturbed KKT equations~\eqref{eqn:perturbed-kkt} for a sequence of barrier parameters $\mu_{k}$ such that $\mu_{k} \rightarrow 0$ for $k \rightarrow \infty$. 
+ParOpt approximately solves the perturbed KKT equations~\eqref{eqn:perturbed-kkt} for a sequence of barrier parameters $\mu_{k}$ such that $\mu_{k} \rightarrow 0$ for $k \rightarrow \infty$.
 ParOpt uses a monotone approach~\citet{Fiacco:McCormick:1990} in which the barrier parameter is maintained at a fixed value and reduced only after a barrier-problem convergence criterion is satisfied.
 The barrier parameter criterion is that the infinity norm of the solution vector must be reduced below a factor of the barrier parameter itself
 %
@@ -171,30 +171,30 @@ The line search is based on the following $\ell_{2}$ merit function:
 \end{equation}
 %
 where $\mb{p}^{s}$ is the KKT update vector $\mb{p}$ scaled to ensure that the primal variables remain strictly within the feasible region and so that the dual variables remain positive.
-The penalty parameter $\nu$ is selected to ensure a sufficiently negative descent direction, such that $\phi'(0)$ is sufficiently negative~\citep{Nocedal.Wright}. 
+The penalty parameter $\nu$ is selected to ensure a sufficiently negative descent direction, such that $\phi'(0)$ is sufficiently negative~\citep{Nocedal.Wright}.
 At each step ParOpt uses a line search that seeks a point that satisfies the Armijo sufficient decrease condition:
 %
 \begin{equation*}
   \phi(\alpha) < \phi(0) + c_{1} \alpha \phi'(0),
 \end{equation*}
-where we typically choose $c_{1} = 10^{-3}$. If a step is unsuccessful, we select the next step using a quadratic interpolation based on the initial point and slope of the merit function along the search direction, as well as the most recent merit function value. 
+where we typically choose $c_{1} = 10^{-3}$. If a step is unsuccessful, we select the next step using a quadratic interpolation based on the initial point and slope of the merit function along the search direction, as well as the most recent merit function value.
 Since $\phi'(0)$ is negative, and $\phi(\alpha) \ge \phi(0) + c_{1} \alpha \phi'(0)$, this sequence of step lengths is decreasing.
 
 To ensure that the design variables remain within bounds and that the dual and slack variables remain sufficiently positive, ParOpt uses a fraction-to-the-boundary rule, such that
 %
 \begin{equation*}
   \begin{aligned}
-    \alpha_{x} & = \max\left\{ \alpha \in (0, 1]\;|\; 
+    \alpha_{x} & = \max\left\{ \alpha \in (0, 1]\;|\;
       \mb{x} + \alpha \mb{p}_{x} - \mb{l} \ge (1 - \tau)(\mb{x} - \mb{l}) \right\}, \\
       %
-      \alpha_{z} & = \max\left\{ \alpha \in (0, 1]\;|\; 
+      \alpha_{z} & = \max\left\{ \alpha \in (0, 1]\;|\;
       \mb{z} + \alpha \mb{p}_{z} \ge (1 - \tau)\mb{z} \right\},
   \end{aligned}
 \end{equation*}
 %
-with analogous expressions for the remaining components of the step length vector $\mb{p}$. 
+with analogous expressions for the remaining components of the step length vector $\mb{p}$.
 The $\alpha_{x}$ and $\alpha_{z}$ parameters are then used to compute the step $\mb{p}^{s}$ such that $\mb{p}_{x}^{s} = \alpha_{x} \mb{p}_{x}$ and $\mb{p}_{z} = \alpha_{z}\mb{p}_{z}$.
-Note that $\alpha_{x}$ is the step length for the design and slack variables, and $\alpha_{z}$ is the step length for the Lagrange multipliers. 
+Note that $\alpha_{x}$ is the step length for the design and slack variables, and $\alpha_{z}$ is the step length for the Lagrange multipliers.
 Following~\citet{Wachter:2006:IPOPT}, ParOpt sets the parameter $\tau$ as follows
 %
 \begin{equation*}
@@ -209,13 +209,13 @@ otherwise if $\alpha_z > \alpha_{x}$, we set:
 \begin{equation*}
   \alpha_z = \max(\min(\alpha_z, 100\alpha_x), \alpha_x/100).
 \end{equation*}
-Note that this modification only has an effect if the difference in step lengths exceeds $100$. 
+Note that this modification only has an effect if the difference in step lengths exceeds $100$.
 This modification does not interfere with the asymptotic convergence behavior of the algorithm and enables faster recovery from poor steps early in the optimization.
 
 \subsection{Solving the approximate KKT system with a compact quasi-Newton Hessian}
 
-Within ParOpt, the single most computationally expensive operation at each iteration of the optimization algorithm is the solution of the linearized KKT system obtained from the perturbed KKT conditions~\eqref{eqn:perturbed-kkt}. 
-The following section presents an overview of the methods used to solve this linear system in a computationally efficient manner in parallel. 
+Within ParOpt, the single most computationally expensive operation at each iteration of the optimization algorithm is the solution of the linearized KKT system obtained from the perturbed KKT conditions~\eqref{eqn:perturbed-kkt}.
+The following section presents an overview of the methods used to solve this linear system in a computationally efficient manner in parallel.
 
 To derive the proposed solution procedure, we first express the linearized KKT matrix as a combination of two matrices which take the form:
 %
@@ -226,36 +226,36 @@ To derive the proposed solution procedure, we first express the linearized KKT m
 where the matrix $\mb{Y}$ is
 %
 \begin{equation*}
-  \mb{Y}^{T} = \begin{bmatrix} \mb{W}^T & 0 & 0 & 
-    0 & 0 & 0 & 0 & 0 & 0 \end{bmatrix}, 
+  \mb{Y}^{T} = \begin{bmatrix} \mb{W}^T & 0 & 0 &
+    0 & 0 & 0 & 0 & 0 & 0 \end{bmatrix},
 \end{equation*}
 and the matrices $\mb{W}$ and $\mb{M}$ are from the compact BFGS representation.
 Note that the terms in $\mb{K}_{0}$ represent the diagonal term $b_{0}$ from the compact BFGS representation and all other first-order terms from the linearized KKT system.
 
-An exact solution to the linear system~\eqref{eqn:ip-newton-update} can be obtained using the Sherman--Morrison--Woodbury formula.  
+An exact solution to the linear system~\eqref{eqn:ip-newton-update} can be obtained using the Sherman--Morrison--Woodbury formula.
 This formula leads to the following expression for the update $\mb{p}$:
 \begin{equation*}
-  \mb{p} = \mb{K}^{-1}_{0} \mb{Y} \mb{C}^{-1} \mb{Y}^{T} \mb{K}_{0}^{-1} \mb{r} - \mb{K}_{0}^{-1} \mb{r}  
+  \mb{p} = \mb{K}^{-1}_{0} \mb{Y} \mb{C}^{-1} \mb{Y}^{T} \mb{K}_{0}^{-1} \mb{r} - \mb{K}_{0}^{-1} \mb{r}
 \end{equation*}
 where the matrix $\mb{C} \in \mathbb{R}^{2m \times 2m}$ is given as
 follows:
 \begin{equation*}
   \mb{C} = \mb{Y}^{T} \mb{K}_{0}^{-1}\mb{Y} + \mb{M}^{-1}.
 \end{equation*}
-A solution of the linear system~\eqref{eqn:ip-newton-update} can be obtained from the solution of $2m+1$ linear systems of the form $\mb{K}_{0}\mb{y} = \mb{b}$.  
-Furthermore, if the matrix $\mb{Y}$ is stored as a series of column vectors, then the operations required to compute the solution consist of operations with small matrices of size $\mathcal{O}(m)$, parallel vector-vector products, and the application of $\mb{K}_{0}^{-1}$. 
+A solution of the linear system~\eqref{eqn:ip-newton-update} can be obtained from the solution of $2m+1$ linear systems of the form $\mb{K}_{0}\mb{y} = \mb{b}$.
+Furthermore, if the matrix $\mb{Y}$ is stored as a series of column vectors, then the operations required to compute the solution consist of operations with small matrices of size $\mathcal{O}(m)$, parallel vector-vector products, and the application of $\mb{K}_{0}^{-1}$.
 Since vector-vector operations parallelize efficiently for distributed vectors, and the small matrix operations normally constitute a small contribution to the overall computational time, we concentrate on the parallel solution of systems of the form $\mb{K}_{0} \mb{p} =
-\mb{b}$. 
+\mb{b}$.
 Note that this refer to the linear system $\mb{K}_{0} \mb{p} = \mb{b}$ as the diagonal KKT matrix since the Hessian term in the matrix $\mb{K}_{0}$ is replaced by a diagonal matrix, $\mb{B} = b_{0}\mb{I}$.
 
 \subsection{Parallel solution of the diagonal KKT system}
 
-The diagonal KKT system $\mb{K}_{0} \mb{p} = \mb{b}$ is solved in parallel through a series of variable eliminations. 
-In general, this method can be susceptible to numerical cancellation, however, experience has shown that this method produces remarkably accurate steps, even for very small values of the barrier parameter.  
+The diagonal KKT system $\mb{K}_{0} \mb{p} = \mb{b}$ is solved in parallel through a series of variable eliminations.
+In general, this method can be susceptible to numerical cancellation, however, experience has shown that this method produces remarkably accurate steps, even for very small values of the barrier parameter.
 This can be attributed to the structure of the constraint Jacobians.
-The sequence of variable eliminations produces a linear system for the Lagrange multipliers of the dense constraints.  
+The sequence of variable eliminations produces a linear system for the Lagrange multipliers of the dense constraints.
 The Schur-complement matrices that are produced during the elimination process can be precomputed and stored.
-The computations during the elimination process can be reduced to a sequence of vector-vector operations and can therefore be implemented efficiently in parallel. 
+The computations during the elimination process can be reduced to a sequence of vector-vector operations and can therefore be implemented efficiently in parallel.
 Since each operation can be performed in parallel, with a small number of dense matrix operations on matrices of size $\mathcal{O}(m)$, the entire solution procedure scales efficiently.
 
 The solution procedure begins by obtaining the solution for the slack variables and lower and upper Lagrange multiplier bound variables as follows:
@@ -284,7 +284,7 @@ Substituting the expressions for the slack and Lagrange multiplier updates~\eqre
 \begin{equation}
   \label{eqn:kkt-x-lagrange}
   \begin{aligned}
-    \mb{D} \mb{p}_{x} - \mb{A}^{T}\mb{p}_{z} - \mb{A}_{w}^{T}\mb{p}_{z_{w}} &= 
+    \mb{D} \mb{p}_{x} - \mb{A}^{T}\mb{p}_{z} - \mb{A}_{w}^{T}\mb{p}_{z_{w}} &=
     \mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}}, \\
     %
     \mb{A}\mb{p}_{x} + (\mb{Z}^{-1}\mb{S} + \mb{Z}_{t}^{-1}\mb{T}) \mb{p}_{z} &= \mb{b}_{z} + \mb{Z}^{-1}\mb{b}_{s} - \mb{Z}_{t}^{-1}(\mb{b}_{z_{t}} + \mb{T}\mb{b}_{t})\\
@@ -304,7 +304,7 @@ Finally, $\mb{p}_{x}$ can be eliminated for $\mb{p}_{z}$ and $\mb{p}_{z_{w}}$ as
   \end{aligned}
 \end{equation}
 %
-The right hand sides, $\mb{d}_{z_{w}}$ and $\mb{d}_{z}$ are 
+The right hand sides, $\mb{d}_{z_{w}}$ and $\mb{d}_{z}$ are
 \begin{equation*}
   \begin{aligned}
     \mb{d}_{z_{w}} &\triangleq \mb{b}_{z_{w}} + \mb{Z}_{w}^{-1}\mb{b}_{s_{w}} - \mb{A}_{w}\mb{D}^{-1}\left(\mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}} \right), \\
@@ -317,7 +317,7 @@ Finally, defining the matrix $\mb{E} \triangleq (\mb{Z}_{w}^{-1}\mb{S}_{w} + \mb
   \left[\mb{Z}^{-1}\mb{S} + \mb{Z}_{t}^{-1}\mb{T} + \mb{A}\mb{D}^{-1}\mb{A}^{T} - \mb{F}\mb{E}^{-1}\mb{F}^{T} \right]\mb{p}_{z} = \mb{d}_{z} - \mb{E}^{-1} \mb{d}_{z_{w}}
 \end{equation*}
 
-This solution procedure is invoked each time a solution of the form $\mb{K}_{0}\mb{p} = \mb{b}$ is required. 
+This solution procedure is invoked each time a solution of the form $\mb{K}_{0}\mb{p} = \mb{b}$ is required.
 
 \subsection{Inexact Hessian-vector product mode}
 
@@ -332,7 +332,7 @@ The product of the Jacobian and precondition is
 %
 \begin{equation}
   \begin{aligned}
-    \mb{K}\mb{K}_{B}^{-1} & = \left(\mb{K}_{B} + 
+    \mb{K}\mb{K}_{B}^{-1} & = \left(\mb{K}_{B} +
     \mb{N}\left(\mb{H} - \mb{B}\right)\mb{N}^{T}\right)\mb{K}_{B}^{-1} \\
     %
     & = \mb{I} + \mb{N} \left(\mb{H} - \mb{B} \right) \mb{N}^{T} \mb{K}_{B}^{-1}
@@ -343,12 +343,12 @@ Here $\mb{N}$ is a matrix that consists of an identity in the $\mb{x}$-component
 \begin{equation*}
   \mb{N}^{T} = \begin{bmatrix} \mb{I} & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \end{bmatrix}
 \end{equation*}
-The right-preconditioned operator $\mb{K}\mb{K}_{B}^{-1}$ only modifies the $\mb{x}$-components of the output vector directly. 
+The right-preconditioned operator $\mb{K}\mb{K}_{B}^{-1}$ only modifies the $\mb{x}$-components of the output vector directly.
 Since the Krylov subspace within GMRES is
 \begin{equation*}
   \mathcal{K}_{m}(\mb{K}\mb{K}_{B}^{-1}, \mb{r}) = \text{span} \left\{\mb{r}, \mb{K}\mb{K}_{B}^{-1}\mb{r}, \left(\mb{K}\mb{K}_{B}^{-1}\right)^{2} \mb{r}, \ldots, \left(\mb{K}\mb{K}_{B}^{-1}\right)^{m-1} \mb{r} \right\},
-\end{equation*} 
-all vectors in the GMRES algorithm consist of different $\mb{x}$-component values, while all remaining components are scalar multiples of $\mb{r}$. 
+\end{equation*}
+all vectors in the GMRES algorithm consist of different $\mb{x}$-component values, while all remaining components are scalar multiples of $\mb{r}$.
 This property can be used to reduce the memory requirements of GMRES by storing only the $\mb{x}$-components of each vector and a scalar for all remaining components.
 Using this approach, the full vector $\hat{\mb{v}}_{i}$ is stored as a pair $(\mb{v}_{i}, \alpha_{i})$ which can be extracted as
 %
@@ -359,8 +359,8 @@ Using this representation, the dot product of two vectors $\hat{\mb{v}}_{1}$ and
 %
 \begin{equation*}
   \begin{aligned}
-    \hat{\mb{v}}_{1}^{T}\hat{\mb{v}}_{2} & = 
-    \mb{v}_{1}^{T} \mb{N}^{T}\mb{N}\mb{v}_{2} + 
+    \hat{\mb{v}}_{1}^{T}\hat{\mb{v}}_{2} & =
+    \mb{v}_{1}^{T} \mb{N}^{T}\mb{N}\mb{v}_{2} +
     \alpha_{1}\alpha_{2} \mb{r}^{T} \left(\mb{I} - \mb{N} \mb{N}^{T}\right)\mb{r} \\
       &= \mb{v}_{1}^{T} \mb{v}_{2} + \beta_{r} \alpha_{1}\alpha_{2}
   \end{aligned}
@@ -370,14 +370,14 @@ where $\beta_{r} \triangleq \mb{r}^{T} \left(\mb{I} - \mb{N} \mb{N}^{T}\right)\m
 When using a line search method, it is necessary to obtain a descent direction.
 This is guaranteed for the methods which employ a quasi-Newton approximation by maintaining a positive-definite Hessian and exactly satisfying the constraint condition $\mb{A}\mb{p}_{x} = -\mb{c}$ (omitting the slack variables).
 However, in the exact Newton method a descent direction is not guaranteed.
-When the objective is convex, the Hessian is positive semi-definite and a descent direction can be found if the equations are solved to sufficient precision. 
+When the objective is convex, the Hessian is positive semi-definite and a descent direction can be found if the equations are solved to sufficient precision.
 Within the present algorithm, the convergence criteria is modified within GMRES to require a sufficiently accurate solution that satisfies a descent criteria.
-A penalty parameter $\nu$ for the exact $\ell_{2}$ merit function can be found if either 
+A penalty parameter $\nu$ for the exact $\ell_{2}$ merit function can be found if either
 \begin{equation}
   \label{eqn:descent-function}
   \mb{p}_{x}^{T} \nabla_{x} f < 0,
 \end{equation}
-or 
+or
 \begin{equation}
   \label{eqn:descent-constraint}
   \mb{c}^{T}\mb{A} \mb{p}_{x} \le - \gamma ||\mb{c}||_{2}^2,
@@ -425,7 +425,7 @@ If GMRES fails to find an inexact solution that is also a descent direction, we 
     %
     \While{$k \le m$}
       \State{Compute $\mb{z} = \mb{K}_{B}^{-1} \mb{v}_{k}$}
-      \State{Compute $a_{k} = \mb{z}^{T}\mb{N}^{T}\nabla_{x} f$}  
+      \State{Compute $a_{k} = \mb{z}^{T}\mb{N}^{T}\nabla_{x} f$}
       \State{Compute $b_{k} = \mb{z}^{T}\mb{N}^{T}\mb{A}^{T}\mb{c}$}
       \State{Set $\mb{a}_{k} = (\mb{a}_{k-1}, a_{k})$ and $\mb{b}_{k} = (\mb{b}_{k-1}, b_{k})$}
       \State{Compute $\mb{w} \leftarrow \mb{K}\mb{z}$}
@@ -450,7 +450,7 @@ If GMRES fails to find an inexact solution that is also a descent direction, we 
 
 The two main classes need by users of ParOpt are \texttt{ParOptProblem} and \texttt{ParOpt}.
 These classes are both accessible using Python through a Cython wrapper.
-The \texttt{ParOptProblem} class is an abstract base class that is designed to implement the functions needed to solve an optimization problem. 
+The \texttt{ParOptProblem} class is an abstract base class that is designed to implement the functions needed to solve an optimization problem.
 It is responsible for evaluating functions and constraints as well as allocating parallel design and sparse constraint vectors.
 The python-level implementation of this class uses a default vector implementation where the components of the vector are distributed across all processors in the communicator provided to ParOpt.
 
@@ -470,7 +470,7 @@ ParOptProblem( MPI_Comm _comm,
 
 The arguments to this constructor are:
 \begin{itemize}
-\item \texttt{comm} is the MPI communicator for the problem. 
+\item \texttt{comm} is the MPI communicator for the problem.
 This communicator will be passed to the corresponding \texttt{ParOpt} optimizer class.
 
 \item \texttt{nvars}: The local number of design variables that are owned by this processor.
@@ -495,11 +495,11 @@ The following functions are used to specify the structure of the design problem:
 The following evaluation member functions must be defined. Their arguments are omitted here, but can be found
 in the file \texttt{src/ParOptProblem.h}.
 \begin{enumerate}
-\item \texttt{getVarsAndBounds}: Get the design variables at the starting point as well as the lower and upper bounds for the variables. This is called when \texttt{ParOpt} is initialized. 
+\item \texttt{getVarsAndBounds}: Get the design variables at the starting point as well as the lower and upper bounds for the variables. This is called when \texttt{ParOpt} is initialized.
 
 \item \texttt{int evalObjCon}: Given the design variable values, evaluate the objective and dense constraint functions. This returns a fail flag. When the fail flag is non-zero, the function has failed.
 
-\item \texttt{int evalObjConGradient}: Given the design variable values, evaluate the objective and constraint gradients. The objective is a single \texttt{ParOptVec} instance. The dense constraint Jacobian is an array of \texttt{ParOptVec} instances. This function also returns a fail flag. 
+\item \texttt{int evalObjConGradient}: Given the design variable values, evaluate the objective and constraint gradients. The objective is a single \texttt{ParOptVec} instance. The dense constraint Jacobian is an array of \texttt{ParOptVec} instances. This function also returns a fail flag.
 
 \item \texttt{int evalHvecProduct}: Given the design variable values, the multipliers for the dense and sparse constraints, and a direction in the design space, compute the Hessian-vector product. Note that this function combines computations using the sparse and dense constraints. This function also returns a fail flag.
 \end{enumerate}
@@ -519,99 +519,379 @@ The following functions are used exclusively for the sparse constraints
 \end{enumerate}
 
 
-ParOpt implements a default vector class. 
+ParOpt implements a default vector class.
 It is often convenient or necessary to override this class for certain design problems.
 ParOptProblem can override the default implementation if the following two functions are provided:
 \begin{enumerate}
 \item \texttt{ParOptVec *createDesignVec()}: Create a vector with the right type and shape to store design variables/objective gradients.
 \item \texttt{ParOptVec *createConstraintVec()}: Create a vector with the right type and shape to store a sparse constraint vector
-\end{enumerate}  
+\end{enumerate}
 
 The function \texttt{void writeOutput( int iter, ParOptVec *x )} can be overridden to write out design-dependent data at a specified frequency.
-  
-\subsection{ParOpt class methods}
 
-The prototype for the constructor for the \texttt{ParOpt} class is:
-%
+\subsection{ParOptOptimizer interface class}
+
+\texttt{ParOptOptimizer} is a generic interface to all ParOpt optimization algorithms.
+This class should be used to initialize and run ParOpt optimizers.
+The process to initialize, optimize and retrieve results is as follows:
+
+\begin{enumerate}
+\item Retrieve the default options for all ParOpt optimizers by calling the static member function
+\texttt{static void addDefaultOptions( ParOptOptions *options );}.
+
+\item Instantiate the \texttt{ParOptOptimizer} class with a problem instance by calling \texttt{ParOptOptimizer( ParOptProblem *problem, ParOptOptions *options );}
+
+\item Perform the optimization by calling the member function \texttt{void optimize();}
+
+\item Get the optimized point and multiplier values by calling the member function
 \begin{verbatim}
-ParOptInteriorPoint( ParOptProblem *_prob,
-                     int _max_qn_subspace,
-                     QuasiNewtonType qn_type=BFGS,
-                     double _max_bound_val=1e20 );
+void getOptimizedPoint( ParOptVec **x, ParOptScalar **z,
+                        ParOptVec **zw, ParOptVec **zl, ParOptVec **zu );
+\end{verbatim}
+\end{enumerate}
+
+\subsection{Default values of ParOptOptions}
+
+The full list of ParOpt options can be obtained by using the python interface and entering the following command:
+\begin{verbatim}
+python -c 'from paropt import ParOpt; ParOpt.printOptionSummary()'
 \end{verbatim}
 %
-The \texttt{ParOptProblem} defines the problem size, structure, and serves as a factory for generating problem-specific vectors.
-The \texttt{max\_qn\_subspace} denotes the maximum size of the quasi-Newton subspace while \texttt{qn\_type} denotes the type of quasi-Newton method. Note that these parameters must be specified at initialization.
+Note that options with a prefix \texttt{tr\_} apply generally to the trust region method, while options with \texttt{mma\_} apply generally to the method of moving asymptotes.
+Options without either of these prefixes apply to the interior point method.
+The above command gives the following output:
 
-The following are the primary member functions used in \texttt{ParOpt}:
-\begin{enumerate}
-\item \texttt{int optimize( const char *checkpoint=NULL )} Begin the optimization algorithm and use the given checkpoint file. This binary file can be used to restart the optimization from the last iterate with the same design variables, barrier parameter and multipliers. This does not retain the same set of optimization parameters.
+{\footnotesize
+\begin{verbatim}
+Absolute stopping criterion
+abs_res_tol                              1e-06
+Range of values: lower limit 0  upper limit 1e+20
 
-\item \texttt{void checkGradients( double dh )}: Check the gradients of the objective and constraints as well as the Hessian-vector products if they are defined. This call should be made when debugging the optimization problem. This check uses finite-difference or complex-step method if the code is compiled in complex mode.
+Absolute stopping norm on the step size
+abs_step_tol                             0
+Range of values: lower limit 0  upper limit 1e+20
 
-\item \texttt{void setMaxMajorIterations( int iters )}: Set the maximum number of iterations to use during the optimization
+The type of optimization algorithm
+algorithm                                tr
+Range of values:                         ip
+                                         tr
+                                         mma
 
-\item \texttt{void setAbsOptimalityTol( double tol )}: Set the absolute optimality tolerance used within ParOpt. This is an absolute tolerance on the $\ell_{\infty}$ norm of the KKT conditions.
+The Armijo constant for the line search
+armijo_constant                          1e-05
+Range of values: lower limit 0  upper limit 1
 
-\item \texttt{void setRelFunctionTol( double tol )}: Set the relative function tolerance stopping criterion. ParOpt will terminate a barrier problem when the decrease in the objective function value falls below the specified tolerance. This defaults to zero, in which case the criteria is never satisfied.
+The type of barrier update strategy to use
+barrier_strategy                         monotone
+Range of values:                         monotone
+                                         mehrotra
+                                         mehrotra_predictor_corrector
+                                         complementarity_fraction
 
-\item \texttt{void setInitBarrierParameter( double mu )}: Set the initial barrier parameter
+The absolute precision of the design variables
+design_precision                         1e-14
+Range of values: lower limit 0  upper limit 1
 
-\item \texttt{void setMaxLineSearchIters( int iters )}: Set the maximum number of iterations before the line search fails
+Exponent in the Eisenstat-Walker INK forcing equation
+eisenstat_walker_alpha                   1.5
+Range of values: lower limit 0  upper limit 2
 
-\item \texttt{void setBacktrackingLineSearch( int truth )}: Use a backtracking line search rather than 
+Multiplier in the Eisenstat-Walker INK forcing equation
+eisenstat_walker_gamma                   1
+Range of values: lower limit 0  upper limit 1
 
-\item \texttt{void setArmijoParam( double c1 )}: Set the Armijo parameter in the line search acceptance criteria (first Wolfe condition).
+The absolute precision of the function and constraints
+function_precision                       1e-10
+Range of values: lower limit 0  upper limit 1
 
-\item \texttt{void setOutputFrequency( int freq )}: Set the output iteration frequency. This is the frequency at which the \texttt{writeOutput} function is called in \texttt{ParOptProblem}.
+The absolute GMRES tolerance (almost never relevant)
+gmres_atol                               1e-30
+Range of values: lower limit 0  upper limit 1
 
-\item \texttt{void setOutputFile( const char *filename )}: Set the output file name for the optimization summary file. This file is flushed at the same frequency as the \texttt{writeOutput} call.
+The subspace size for GMRES
+gmres_subspace_size                      0
+Range of values: lower limit 0  upper limit 1000
 
-\item \texttt{int writeSolutionFile( const char *filename )}: Write a binary solution file containing the multipliers/design variables
+Step length used to check the gradient
+gradient_check_step_length               1e-06
+Range of values: lower limit 0  upper limit 1
 
-\item \texttt{int readSolutionFile( const char *filename )}: Read a binary solution file and set the variables internally. This requires that the problem sizes are exactly the same as the original problem. A different number of processors may be used if the design variables and multipliers are numbered consistently. 
-\end{enumerate}
+Print to screen the output of the gradient check at this frequency during an optimization
+gradient_verification_frequency          -1
+Range of values: lower limit -1000000  upper limit 1000000
 
-\subsubsection{Advanced ParOpt functions}
+Do a hard reset of the Hessian at this specified major iteration frequency
+hessian_reset_freq                       1000000
+Range of values: lower limit 1  upper limit 1000000
 
-The following are more advanced options/member functions needed for specific applications
+The initial value of the barrier parameter
+init_barrier_param                       0.1
+Range of values: lower limit 0  upper limit 1e+20
 
-\begin{enumerate}
-\item \texttt{getInitMultipliers}: Get the multiplier vectors stored internally in ParOpt. This is needed if you have specific knowledge of what the best multiplier estimates should be before starting the optimization algorithm.
+Initial value of the line search penalty parameter
+init_rho_penalty_search                  0
+Range of values: lower limit 0  upper limit 1e+20
 
-\item \texttt{getOptimizedPoint}: Get the optimized point including the design variables and multipliers from ParOpt. This can be called at any time to return the current approximate solution from ParOpt. 
+Checkpoint file for the interior point method
+ip_checkpoint_file                       None
 
-\item \texttt{setMaxAbsVariableBound( doublee max\_bound )}: Set the maximum absolute value of the bound variables in the problem. Components of the $\mb{l}$ and $\mb{u}$ vector that are specified beyond this limit will be ignored by ParOpt.
+Maximum bound value at which bound constraints are omitted
+max_bound_value                          1e+20
+Range of values: lower limit 0  upper limit 1e+300
 
-\item \texttt{void setInitStartingPoint( int init )}: Tells ParOpt whether it should attempt to guess the initial multipliers or use the values that are set in ParOpt, possibly with a call to getInitMultipliers.
+The maximum relative tolerance used for GMRES, above this the quasi-Newton approximation is used
+max_gmres_rtol                           0.1
+Range of values: lower limit 0  upper limit 1
 
-\item \texttt{void setBarrierFraction( double frac )}: Set the fraction applied during the Fiacco--McCormick barrier parameter update scheme
-\item \texttt{void setBarrierPower( double power )}: Set the barrier power applied during the Fiacco--McCormick barrier parameter update scheme
+Maximum number of line search iterations
+max_line_iters                           10
+Range of values: lower limit 1  upper limit 100
 
-\item \texttt{double getBarrierParameter()}: Get the barrier parameter
-\item \texttt{ParOptScalar getComplementarity()}: Compute the average complementarity product at the current design point
+The maximum number of major iterations before quiting
+max_major_iters                          5000
+Range of values: lower limit 0  upper limit 1000000
 
-\item \texttt{void setUseLineSearch( int truth )}: Set a flag to indicate whether a line search will be performed. If false, then the new point is automatically accepted once the fraction-to-the-boundary rule is applied to the step (to ensure the multipliers/slacks remain positive). 
- 
-\item \texttt{void setHessianResetFreq( int freq )}: Set the frequency at which the Hessian will be reset to a diagonal matrix
-\item \texttt{void setBFGSUpdateType( LBFGS::BFGSUpdateType bfgs\_update )}: Set the type of BFGS update to use when a negative curvature condition is encountered. This will either skip or update the either damped or skip
+Minimum fraction to the boundary rule < 1
+min_fraction_to_boundary                 0.95
+Range of values: lower limit 0  upper limit 1
 
-\item \texttt{void setUseHvecProduct( int truth )}: Set the flag to either the Hessian-vector product code. This relies on the implementation of the Hessian-vector product code in the optimization class itself.
+Minimum value of the line search penalty parameter
+min_rho_penalty_search                   0
+Range of values: lower limit 0  upper limit 1e+20
 
-\item \texttt{void setUseQNGMRESPreCon( int truth )}: Use the BFGS or SR1 update as a preconditioner in the GMRES solver.
+Contraction factor applied to the asymptotes
+mma_asymptote_contract                   0.7
+Range of values: lower limit 0  upper limit 1
 
-\item \texttt{void setNKSwitchTolerance( double tol )}: Set the optimality tolerance at which to switch to the full Newton--Krylov method.
+Expansion factor applied to the asymptotes
+mma_asymptote_relax                      1.2
+Range of values: lower limit 1  upper limit 1e+20
 
-\item \texttt{void setEisenstatWalkerParameters( double gamma, double alpha )}: Set the Eisenstat--Walker parameters for the forcing term
+Relaxation bound for computing the error in the KKT conditions
+mma_bound_relax                          0
+Range of values: lower limit 0  upper limit 1e+20
 
-\item \texttt{void setGMRESSubspaceSize( int gmres\_subspace\_size )}: Set the size of the GMRES subspace to use during the optimization algorithm
+Regularization term applied in the MMA approximation
+mma_delta_regularization                 1e-05
+Range of values: lower limit 0  upper limit 1e+20
 
-\item \texttt{void setPenaltyDescentFraction( double frac )}: Set the penalty parameter 
+Regularization term applied in the MMA approximation
+mma_eps_regularization                   0.001
+Range of values: lower limit 0  upper limit 1e+20
 
-\item \texttt{void resetQuasiNewtonHessian()}: Force a reset of the quasi-Newton Hessian approximation
+Infeasibility tolerance
+mma_infeas_tol                           1e-05
+Range of values: lower limit 0  upper limit 1e+20
 
-\item \texttt{void resetDesignAndBounds()}: Force a reset the design variables and bounds within the problem
-\end{enumerate}
+Initial aymptote offset from the variable bounds
+mma_init_asymptote_offset                0.25
+Range of values: lower limit 0  upper limit 1
+
+l1 tolerance for the optimality tolerance
+mma_l1_tol                               1e-06
+Range of values: lower limit 0  upper limit 1e+20
+
+l-infinity tolerance for the optimality tolerance
+mma_linfty_tol                           1e-06
+Range of values: lower limit 0  upper limit 1e+20
+
+Maximum asymptote offset from the variable bounds
+mma_max_asymptote_offset                 10
+Range of values: lower limit 0  upper limit 1e+20
+
+Maximum number of iterations
+mma_max_iterations                       200
+Range of values: lower limit 0  upper limit 1000000
+
+Minimum asymptote offset from the variable bounds
+mma_min_asymptote_offset                 0.01
+Range of values: lower limit 0  upper limit 1e+20
+
+Ouput file name for MMA
+mma_output_file                          paropt.mma
+
+If false, linearized the constraints
+mma_use_constraint_linearization         True
+
+Factor applied to the barrier update < 1
+monotone_barrier_fraction                0.25
+Range of values: lower limit 0  upper limit 1
+
+Exponent for barrier parameter update > 1
+monotone_barrier_power                   1.1
+Range of values: lower limit 1  upper limit 10
+
+Switch to the Newton-Krylov method at this residual tolerance
+nk_switch_tol                            0.001
+Range of values: lower limit 0  upper limit 1e+20
+
+The type of norm to use in all computations
+norm_type                                infinity
+Range of values:                         infinity
+                                         l1
+                                         l2
+
+Output file name
+output_file                              paropt.out
+
+Output level indicating how verbose the output should be
+output_level                             0
+Range of values: lower limit 0  upper limit 1000000
+
+Fraction of infeasibility used to enforce a descent direction
+penalty_descent_fraction                 0.3
+Range of values: lower limit 1e-06  upper limit 1
+
+l1 penalty parameter applied to slack variables
+penalty_gamma                            1000
+Range of values: lower limit 0  upper limit 1e+20
+
+The problem name
+problem_name                             None
+
+Scalar added to the diagonal of the quasi-Newton approximation > 0
+qn_sigma                                 0
+Range of values: lower limit 0  upper limit 1e+20
+
+The maximum dimension of the quasi-Newton approximation
+qn_subspace_size                         10
+Range of values: lower limit 0  upper limit 1000
+
+The the of quasi-Newton approximation to use
+qn_type                                  bfgs
+Range of values:                         bfgs
+                                         sr1
+                                         none
+
+The type of BFGS update to apply when the curvature condition fails
+qn_update_type                           skip_negative_curvature
+Range of values:                         skip_negative_curvature
+                                         damped_update
+
+Relative factor applied to barrier parameter for bound constraints
+rel_bound_barrier                        1
+Range of values: lower limit 0  upper limit 1e+20
+
+Relative function value stopping criterion
+rel_func_tol                             0
+Range of values: lower limit 0  upper limit 1e+20
+
+Discard the quasi-Newton approximation (but not necessarily the exact Hessian)
+sequential_linear_method                 False
+
+Minimum multiplier for the affine step initialization strategy
+start_affine_multiplier_min              1
+Range of values: lower limit 0  upper limit 1e+20
+
+Initialize the Lagrange multiplier estimates and slack variables
+starting_point_strategy                  affine_step
+Range of values:                         least_squares_multipliers
+                                         affine_step
+                                         no_start_strategy
+
+The type of constraint to use for the adaptive penalty subproblem
+tr_adaptive_constraint                   linear_constraint
+Range of values:                         linear_constraint
+                                         subproblem_constraint
+
+Adaptive penalty parameter update
+tr_adaptive_gamma_update                 True
+
+The type of objective to use for the adaptive penalty subproblem
+tr_adaptive_objective                    linear_objective
+Range of values:                         constant_objective
+                                         linear_objective
+                                         subproblem_objective
+
+Upper and lower bound relaxing parameter
+tr_bound_relax                           0.0001
+Range of values: lower limit 0  upper limit 1e+20
+
+Trust region trial step acceptance ratio
+tr_eta                                   0.25
+Range of values: lower limit 0  upper limit 1
+
+Infeasibility tolerance
+tr_infeas_tol                            1e-05
+Range of values: lower limit 0  upper limit 1e+20
+
+The initial trust region radius
+tr_init_size                             0.1
+Range of values: lower limit 0  upper limit 1e+20
+
+l1 tolerance for the optimality tolerance
+tr_l1_tol                                1e-06
+Range of values: lower limit 0  upper limit 1e+20
+
+l-infinity tolerance for the optimality tolerance
+tr_linfty_tol                            1e-06
+Range of values: lower limit 0  upper limit 1e+20
+
+Maximum number of trust region iterations
+tr_max_iterations                        200
+Range of values: lower limit 0  upper limit 1000000
+
+The maximum trust region radius
+tr_max_size                              1
+Range of values: lower limit 0  upper limit 1e+20
+
+The minimum trust region radius
+tr_min_size                              0.001
+Range of values: lower limit 0  upper limit 1e+20
+
+Trust region output file
+tr_output_file                           paropt.tr
+
+Maximum value for the penalty parameter
+tr_penalty_gamma_max                     10000
+Range of values: lower limit 0  upper limit 1e+20
+
+Minimum value for the penalty parameter
+tr_penalty_gamma_min                     0
+Range of values: lower limit 0  upper limit 1e+20
+
+The barrier update strategy to use for the steering method subproblem
+tr_steering_barrier_strategy             mehrotra_predictor_corrector
+Range of values:                         monotone
+                                         mehrotra
+                                         mehrotra_predictor_corrector
+                                         complementarity_fraction
+                                         default
+
+The barrier update strategy to use for the steering method subproblem
+tr_steering_starting_point_strategy      affine_step
+Range of values:                         least_squares_multipliers
+                                         affine_step
+                                         no_start_strategy
+                                         default
+
+Write output frequency
+tr_write_output_frequency                10
+Range of values: lower limit 0  upper limit 1000000
+
+Perform a back-tracking line search
+use_backtracking_alpha                   False
+
+Use or do not use the diagonal Hessian computation
+use_diag_hessian                         False
+
+Use or do not use Hessian-vector products
+use_hvec_product                         False
+
+Perform or skip the line search
+use_line_search                          True
+
+Use or do not use the quasi-Newton method as a preconditioner
+use_qn_gmres_precon                      True
+
+Update the quasi-Newton approximation at each iteration
+use_quasi_newton_update                  True
+
+Write out the solution file and checkpoint file at this frequency
+write_output_frequency                   10
+Range of values: lower limit 0  upper limit 1000000
+\end{verbatim}}
+
 
 \bibliographystyle{abbrvnat}
 \bibliography{refs}

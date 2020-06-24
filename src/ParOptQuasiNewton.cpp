@@ -572,7 +572,7 @@ int ParOptLSR1::update( ParOptVec *x, const ParOptScalar *z,
                         ParOptVec *s, ParOptVec *y ){
   int update_type = 0;
 
-
+  // Compute the dot-products needed for the update
   ParOptScalar yTy = y->dot(y);
   ParOptScalar sTy = s->dot(y);
 

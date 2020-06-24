@@ -33,14 +33,14 @@ class ConvexProblem(ParOpt.Problem):
         return
 
     def getVarsAndBounds(self, x, lb, ub):
-        '''Set the values of the bounds'''
+        """Set the values of the bounds"""
         x[:] = 0.05 + 0.9*np.random.uniform(size=len(x))
         lb[:] = 0.0
         ub[:] = 1.0
         return
 
     def evalObjCon(self, x):
-        '''Evaluate the objective and constraint'''
+        """Evaluate the objective and constraint"""
         # Evaluate the objective and constraints
         fail = 0
         con = np.zeros(1, dtype=ParOpt.dtype)
@@ -63,7 +63,7 @@ class ConvexProblem(ParOpt.Problem):
         return fail, fobj, con
 
     def evalObjConGradient(self, x, g, A):
-        '''Evaluate the objective and constraint gradient'''
+        """Evaluate the objective and constraint gradient"""
         fail = 0
 
         # The objective gradient
@@ -75,10 +75,10 @@ class ConvexProblem(ParOpt.Problem):
         return fail
 
 def create_random_spd(n):
-    '''
+    """
     Create a random positive definite matrix with the given
     eigenvalues
-    '''
+    """
     # Create the eigenvalues for the matrix
     eigs = np.random.uniform(size=n)
 

@@ -540,7 +540,7 @@ void ParOptInteriorPoint::addDefaultOptions( ParOptOptions *options ){
     "Print to screen the output of the gradient check "
     "at this frequency during an optimization");
 
-  options->addIntOption("hessian_reset_freq", 0, 1000000, 1000000,
+  options->addIntOption("hessian_reset_freq", 1000000, 1, 1000000,
     "Do a hard reset of the Hessian at this specified major "
     "iteration frequency");
 
@@ -4236,11 +4236,15 @@ int ParOptInteriorPoint::computeStepAndUpdate( double alpha,
     computeStepVec(zu, alpha, pzu, NULL, &zero, NULL, NULL);
   }
 
-  computeStep(ncon, z, alpha, pz, NULL, &zero, NULL, NULL);
   if (dense_inequality){
+    computeStep(ncon, z, alpha, pz, NULL, &zero, NULL, NULL);
     computeStep(ncon, s, alpha, ps, NULL, &zero, NULL, NULL);
     computeStep(ncon, t, alpha, pt, NULL, &zero, NULL, NULL);
     computeStep(ncon, zt, alpha, pzt, NULL, &zero, NULL, NULL);
+  }
+  else {
+    // No limits on the multiplier values
+    computeStep(ncon, z, alpha, pz, NULL, NULL, NULL, NULL);
   }
 
   // Compute the negative gradient of the Lagrangian using the
@@ -4430,6 +4434,10 @@ void ParOptInteriorPoint::initAndCheckDesignAndBounds(){
    @param checkpoint the name of the checkpoint file (NULL if not needed)
 */
 int ParOptInteriorPoint::optimize( const char *checkpoint ){
+  // Retrieve the rank of the processor
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+
   // Set the stopping criteria constants
   const double abs_res_tol = options->getFloatOption("abs_res_tol");
   const double rel_func_tol = options->getFloatOption("rel_func_tol");
@@ -4552,8 +4560,10 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
 
   // If no quasi-Newton method is defined, use a sequential linear method instead
   if (!sequential_linear_method && !qn){
-    fprintf(stderr, "ParOpt Error: Must use a sequential linear method if no "
-            "quasi-Newton approximation is defined\n");
+    if (rank == 0){
+      fprintf(stderr, "ParOpt Error: Must use a sequential linear method if no "
+              "quasi-Newton approximation is defined\n");
+    }
     return 1;
   }
 
@@ -4591,10 +4601,6 @@ int ParOptInteriorPoint::optimize( const char *checkpoint ){
   if (qn && !use_quasi_newton_update){
     qn->update(x, z, zw);
   }
-
-  // Retrieve the rank of the processor
-  int rank;
-  MPI_Comm_rank(comm, &rank);
 
   // The previous value of the objective function
   ParOptScalar fobj_prev = 0.0;
