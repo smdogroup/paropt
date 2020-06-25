@@ -15,13 +15,6 @@ from openmdao.utils.general_utils import warn_deprecation
 
 from six import iteritems
 
-_optimizers = ['Interior Point', 'Trust Region']
-_qn_types = ['BFGS', 'SR1', 'No Hessian approx']
-_norm_types = ['Infinity', 'L1', 'L2']
-_barrier_types = ['Monotone', 'Mehrotra', 'Complementarity fraction']
-_start_types = ['None', 'Least squares multipliers', 'Affine step']
-_bfgs_updates = ['Skip negative', 'Damped']
-
 class ParOptDriver(Driver):
     """
     Driver wrapper for ParOpt

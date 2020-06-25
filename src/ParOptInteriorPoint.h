@@ -50,7 +50,8 @@ enum ParOptStartingPointStrategy { PAROPT_NO_START_STRATEGY,
   respectively. The perturbed KKT conditions for this problem are:
 
   g(x) - A(x)^{T}*z - Aw^{T}*zw - zl + zu = 0
-  gamma - z - zt = 0
+  gamma_s + z - zs = 0
+  gamma_t - z - zt = 0
   c(x) - s = 0
   cw(x) - sw = 0
   S*z - mu*e = 0
@@ -266,26 +267,29 @@ class ParOptInteriorPoint : public ParOptBase {
   void setUpKKTDiagSystem( ParOptVec *xt, ParOptVec *wt, int use_qn );
 
   // Solve the diagonal KKT system
-  void solveKKTDiagSystem( ParOptVec *bx, ParOptScalar *bt,
+  void solveKKTDiagSystem( ParOptVec *bx,
+                           ParOptScalar *bs, ParOptScalar *bt,
                            ParOptScalar *bc, ParOptVec *bcw,
-                           ParOptScalar *bs, ParOptVec *bsw,
-                           ParOptScalar *bzt,
+                           ParOptScalar *bzs, ParOptScalar *bzt,
+                           ParOptVec *bzw,
                            ParOptVec *bzl, ParOptVec *bzu,
-                           ParOptVec *yx, ParOptScalar *yt,
-                           ParOptScalar *yz, ParOptVec *yzw,
-                           ParOptScalar *ys, ParOptVec *ysw,
-                           ParOptScalar *yzt,
+                           ParOptVec *yx,
+                           ParOptScalar *ys, ParOptScalar *yt,
+                           ParOptVec *ysw, ParOptScalar *yz,
+                           ParOptScalar *yzs, ParOptScalar *yzt,
+                           ParOptVec *yzw,
                            ParOptVec *yzl, ParOptVec *yzu,
-                           ParOptVec *xt, ParOptVec *wt );
+                           ParOptVec *xtmp, ParOptVec *wtmp );
 
   // Solve the diagonal KKT system with a specific RHS structure
   void solveKKTDiagSystem( ParOptVec *bx,
-                           ParOptVec *yx, ParOptScalar *yt,
-                           ParOptScalar *yz, ParOptVec *yzw,
-                           ParOptScalar *ys, ParOptVec *ysw,
-                           ParOptScalar *yzt,
+                           ParOptVec *yx,
+                           ParOptScalar *ys, ParOptScalar *yt,
+                           ParOptVec *ysw, ParOptScalar *yz,
+                           ParOptScalar *yzs, ParOptScalar *yzt,
+                           ParOptVec *yzw,
                            ParOptVec *yzl, ParOptVec *yzu,
-                           ParOptVec *xt, ParOptVec *wt );
+                           ParOptVec *xtmp, ParOptVec *wtmp );
 
   // Solve the diagonal KKT system but only return the components
   // corresponding to the design variables
@@ -296,14 +300,15 @@ class ParOptInteriorPoint : public ParOptBase {
   // Solve the diagonal system
   void solveKKTDiagSystem( ParOptVec *bx,
                            ParOptScalar alpha,
-                           ParOptScalar *bt, ParOptScalar *bc,
-                           ParOptVec *bcw, ParOptScalar *bs,
-                           ParOptVec *bsw, ParOptScalar *bzt,
+                           ParOptScalar *bs, ParOptScalar *bt,
+                           ParOptScalar *bc, ParOptVec *bcw,
+                           ParOptScalar *bzs, ParOptScalar *bzt,
+                           ParOptVec *bzw,
                            ParOptVec *bzl, ParOptVec *bzu,
-                           ParOptVec *yx, ParOptScalar *yt,
-                           ParOptScalar *yz,
-                           ParOptScalar *ys, ParOptVec *ysw,
-                           ParOptVec *xt, ParOptVec *wt );
+                           ParOptVec *yx,
+                           ParOptScalar *ys, ParOptScalar *yt,
+                           ParOptVec *ysw, ParOptScalar *yz,
+                           ParOptVec *xtmp, ParOptVec *wtmp );
 
   // Set up the full KKT system
   void setUpKKTSystem( ParOptScalar *zt,
@@ -397,7 +402,9 @@ class ParOptInteriorPoint : public ParOptBase {
 
   // The number of variables and constraints in the problem
   int nvars; // The number of local (on-processor) variables
-  int ncon; // The number of inequality constraints in the problem
+  int ncon; // The number of constraints in the problem
+  int neqcon; // The number of equality constraints
+  int nineqcon; // The number of inequality constraints (neqcon + nineqcon = ncon)
   int nwcon; // The number of specially constructed weighting constraints
   int nwblock; // The nuber of constraints per block
   int nvars_total; // The total number of variables
@@ -411,23 +418,32 @@ class ParOptInteriorPoint : public ParOptBase {
   ParOptScalar *ztemp;
 
   // The variables in the optimization problem
-  ParOptVec *x, *zl, *zu, *zw, *sw;
-  ParOptScalar *z, *s, *zt, *t;
+  ParOptVec *x; // The design point
+  ParOptVec *zl, *zu; // Multipliers for the upper/lower bounds
+  ParOptScalar *z, *zs, *zt; // Multipliers for the dense constraints
+  ParOptVec *zw; // Multipliers for the sparse constraints
+  ParOptScalar *s, *t; // Slack variables
+  ParOptVec *sw; // Slack variables for the sparse constraints
 
   // The lower/upper bounds on the variables
   ParOptVec *lb, *ub;
 
   // The steps in the variables
   ParOptVec *px, *pzl, *pzu, *pzw, *psw;
-  ParOptScalar *pz, *ps, *pzt, *pt;
+  ParOptScalar *ps, *pt, *pz, *pzs, *pzt;
 
   // The residuals
-  ParOptVec *rx, *rzl, *rzu, *rcw, *rsw;
-  ParOptScalar *rc, *rs, *rzt, *rt;
+  ParOptVec *rx, *rzl, *rzu;
+  ParOptVec *rcw, *rzw;
+  ParOptScalar *rc, *rs, *rt, *rzs, *rzt;
 
   // The objective, gradient, constraints, and constraint gradients
   ParOptScalar fobj, *c;
   ParOptVec *g, **Ac;
+
+  // The l1-penalty parameters for the dense constraints
+  double *penalty_gamma_s;
+  double *penalty_gamma_t;
 
   // The data for the block-diagonal matrix
   ParOptScalar *Cw;
@@ -451,14 +467,8 @@ class ParOptInteriorPoint : public ParOptBase {
   // Sparse equalities or inequalities?
   int sparse_inequality;
 
-  // Dense equality of dense inequalities?
-  int dense_inequality;
-
   // Flags to indicate whether to use the upper/lower bounds
   int use_lower, use_upper;
-
-  // The l1-penalty parameter
-  double *penalty_gamma;
 
   // The barrier parameter
   double barrier_param;

@@ -1445,6 +1445,7 @@ void ParOptTrustRegion::computeKKTError( const ParOptScalar *z,
   }
 
   // Compute the maximum
+  zmax = max2(1.0, zmax);
   *l1 = *l1/ParOptRealPart(max2(gk->l1norm(), zmax));
   *linfty = *linfty/ParOptRealPart(max2(gk->maxabs(), zmax));
 }

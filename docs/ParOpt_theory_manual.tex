@@ -70,7 +70,8 @@ The barrier problem corresponding to~\eqref{eqn:opt-problem} is the following
 \begin{equation}
   \label{eqn:barrier-problem}
   \begin{aligned}
-    \min_{\mb{x}, \mb{s}, \mb{t}, \mb{s}_{w}} \qquad &  \varphi(\mb{x}, \mb{s}, \mb{t}, \mb{s}_{w}; \mu) = f(\mb{x}) + \gamma \mb{e}^{T}\mb{t} - \mu \left[ \log \mb{s} + \log \mb{t} + \log \mb{s}_{w} + \log (\mb{x} - \mb{l}) + \log (\mb{u} - \mb{x})  \right] \\
+    \min_{\mb{x}, \mb{s}, \mb{t}, \mb{s}_{w}} \qquad &  \varphi(\mb{x}, \mb{s}, \mb{t}, \mb{s}_{w}; \mu) = 
+    f(\mb{x}) + \gamma_{t}^{T}\mb{t} + \gamma_{s}^{T}\mb{s} - \mu \left[ \log \mb{s} + \log \mb{t} + \log \mb{s}_{w} + \log (\mb{x} - \mb{l}) + \log (\mb{u} - \mb{x})  \right] \\
     \text{such that} \qquad & \mb{c}(\mb{x}) = \mb{s} - \mb{t} \\
     & \mb{c}_{w}(\mb{x}) = \mb{s}_{w} \\
   \end{aligned}
@@ -85,13 +86,14 @@ Introducing dual variables for the dense constraints $\mb{z}$, the sparse constr
 \begin{equation}
   \label{eqn:perturbed-kkt}
   \begin{aligned}
-    \mb{r}_{x} \triangleq    & \mb{g} - \mb{A}^{T}\mb{z} - \mb{A}^{T}_{w} \mb{z}_{w} - \mb{z}_{l} + \mb{z}_{u} = 0 \\
-    \mb{r}_{t} \triangleq    & \gamma \mb{e} - \mb{z} - \mb{z}_{t} = 0 \\
-    \mb{r}_{z} \triangleq    & \mb{c} - \mb{s} + \mb{t} = 0 \\
-    \mb{r}_{z_{w}} \triangleq & \mb{c}_{w} - \mb{s}_{w} = 0 \\
-    \mb{r}_{s} \triangleq    & \mb{S} \mb{z} - \mu \mb{e} = 0 \\
+    \mb{r}_{x} \triangleq     & \mb{g} - \mb{A}^{T}\mb{z} - \mb{A}^{T}_{w} \mb{z}_{w} - \mb{z}_{l} + \mb{z}_{u} = 0 \\
+    \mb{r}_{s} \triangleq     & \gamma_{s} + \mb{z} - \mb{z}_{s} = 0 \\
+    \mb{r}_{t} \triangleq     & \gamma_{t} - \mb{z} - \mb{z}_{t} = 0 \\
+    \mb{r}_{c} \triangleq     & \mb{c} - \mb{s} + \mb{t} = 0 \\
+    \mb{r}_{c_{w}} \triangleq & \mb{c}_{w} - \mb{s}_{w} = 0 \\
+    \mb{r}_{z_{s}} \triangleq & \mb{S} \mb{z}_{s} - \mu \mb{e} = 0 \\
     \mb{r}_{z_{t}} \triangleq & \mb{T}\mb{z}_{t} - \mu \mb{e} = 0 \\
-    \mb{r}_{s_{w}} \triangleq & \mb{S}_{w} \mb{z}_{w} - \mu \mb{e} = 0 \\
+    \mb{r}_{z_{w}} \triangleq & \mb{S}_{w} \mb{z}_{w} - \mu \mb{e} = 0 \\
     \mb{r}_{z_{l}} \triangleq & (\mb{X} - \mb{L})\mb{z}_{l} - \mu \mb{e} = 0 \\
     \mb{r}_{z_{u}} \triangleq & (\mb{U} - \mb{X})\mb{z}_{u} - \mu \mb{e} = 0
   \end{aligned}
@@ -113,26 +115,28 @@ The approximate KKT matrix is
   \label{eqn:kkt-update}
   \mb{K}_{B}\mb{p} =
   \begin{bmatrix}
-      \mb{B}    &      0 & -\mb{A}^{T} & -\mb{A}^{T}_{w} &       0 &       0 &      0 & -\mb{I} & \mb{I} \\
-    0 &              0 &     -\mb{I} &          0 &       0 & -\mb{I} &      0 &      0 &  0 \\
-    \mb{A}    & \mb{I} &           0 &         0 & -\mb{I} &       0 &      0 &       0 & 0 \\
-    \mb{A}_{w} &      0 &           0 &         0 &      0 &        0 & -\mb{I} &       0 & 0 \\
-    0 &              0 &       \mb{S} &        0 & \mb{Z} &        0 &       0 &       0 & 0 \\
-    0 &      \mb{Z}_{t} &           0 &        0 &       0 &   \mb{T} &       0 &       0 & 0 \\
-    0 &              0 &                    0 & \mb{S}_{w} &      0 &       0 & \mb{Z}_{w} &  0 & 0 \\
-    \mb{Z}_{l}  &     0 &           0 &          0 &      0 &       0 & 0 & (\mb{X} - \mb{L}) & 0 \\
-    -\mb{Z}_{u} &     0 &          0 &          0 &      0 &       0 & 0 & 0 & (\mb{U} - \mb{X}) \\
+    \mb{B}     & 0          & 0          & 0          & -\mb{A}^{T} & 0       & 0       & -\mb{A}^{T}_{w} & -\mb{I} & \mb{I} \\
+    0          & 0          & 0          & 0          & \mb{I}      & -\mb{I} & 0       & 0               & 0       & 0 \\
+    0          & 0          & 0          & 0          & -\mb{I}     & 0       & -\mb{I} & 0               & 0       & 0 \\
+    \mb{A}     & -\mb{I}    & \mb{I}     & 0          & 0           & 0       & 0       & 0               & 0       & 0 \\
+    \mb{A}_{w} & 0          & 0          & -\mb{I}    & 0           & 0       & 0       & 0               & 0       & 0 \\
+    0          & \mb{Z}_{s} & 0          & 0          & 0           & \mb{S}  & 0       & 0               & 0       & 0 \\
+    0          & 0          & \mb{Z}_{t} & 0          & 0           & 0       & \mb{T}  & 0               & 0       & 0 \\
+    0          & 0          & 0          & \mb{Z}_{w} & 0           & 0       & 0       & \mb{S}_{w}      & 0       & 0 \\
+    \mb{Z}_{l} & 0          & 0          & 0          & 0           & 0       & 0       & 0               & (\mb{X} - \mb{L}) & 0 \\
+    -\mb{Z}_{u}& 0          & 0          & 0          & 0           & 0       & 0       & 0               & 0 & (\mb{U} - \mb{X}) \\
   \end{bmatrix}
   \begin{bmatrix}
     \mb{p}_{x} \\
-    \mb{p}_{t} \\
-    \mb{p}_{z} \\
-    \mb{p}_{z_{w}} \\
     \mb{p}_{s} \\
-    \mb{p}_{z_{t}} \\
+    \mb{p}_{t} \\
     \mb{p}_{s_{w}} \\
+    \mb{p}_{z} \\
+    \mb{p}_{z_{s}} \\
+    \mb{p}_{z_{t}} \\
+    \mb{p}_{z_{w}} \\
     \mb{p}_{z_{l}} \\
-    \mb{p}_{z_{u}}
+    \mb{p}_{z_{u}} 
   \end{bmatrix} = -\mb{r}.
 \end{equation}
 
@@ -164,7 +168,7 @@ The line search is based on the following $\ell_{2}$ merit function:
 \begin{equation}
   \label{eqn:merit-function}
   \begin{aligned}
-    \phi(\alpha) = & \varphi(\mb{x} + \alpha\mb{p}_{x}^{s}, \mb{s} + \alpha\mb{p}_{s}^{s}, \mb{s}_{w}^{s} + \alpha\mb{p}^{s}_{s_{w}}; \mu) + \\
+    \phi(\alpha) = & \varphi(\mb{x} + \alpha\mb{p}_{x}^{s}, \mb{s} + \alpha\mb{p}_{s}^{s}, \mb{t} + \alpha\mb{p}_{t}^{s}, \mb{s}_{w}^{s} + \alpha\mb{p}^{s}_{s_{w}}; \mu) + \\
     & \nu ||\mb{c}(\mb{x} + \alpha\mb{p}_{s}^{s}) - \mb{s} + \mb{t}  - \alpha (\mb{p}_{s}^{s} - \mb{p}_{t}^{s})||_{2} +
     \nu ||\mb{c}_{w}(\mb{x} + \alpha\mb{p}^{s}_{s_{w}}) - \mb{s}_{w} - \alpha\mb{p}_{s_{w}}^{s}||_{2},
   \end{aligned}
@@ -188,13 +192,14 @@ To ensure that the design variables remain within bounds and that the dual and s
       \mb{x} + \alpha \mb{p}_{x} - \mb{l} \ge (1 - \tau)(\mb{x} - \mb{l}) \right\}, \\
       %
       \alpha_{z} & = \max\left\{ \alpha \in (0, 1]\;|\;
-      \mb{z} + \alpha \mb{p}_{z} \ge (1 - \tau)\mb{z} \right\},
+      \mb{z}_{s} + \alpha \mb{p}_{s} \ge (1 - \tau)\mb{z}_{s} \right\},
   \end{aligned}
 \end{equation*}
 %
 with analogous expressions for the remaining components of the step length vector $\mb{p}$.
+Note that the sign of $\mb{z}$ is not directly constrained since it is treated as a multiplier for an equality constraint.
 The $\alpha_{x}$ and $\alpha_{z}$ parameters are then used to compute the step $\mb{p}^{s}$ such that $\mb{p}_{x}^{s} = \alpha_{x} \mb{p}_{x}$ and $\mb{p}_{z} = \alpha_{z}\mb{p}_{z}$.
-Note that $\alpha_{x}$ is the step length for the design and slack variables, and $\alpha_{z}$ is the step length for the Lagrange multipliers.
+Note that $\alpha_{x}$ is the step length for the design and slack variables, and $\alpha_{z}$ is the step length for all multipliers.
 Following~\citet{Wachter:2006:IPOPT}, ParOpt sets the parameter $\tau$ as follows
 %
 \begin{equation*}
@@ -226,7 +231,7 @@ To derive the proposed solution procedure, we first express the linearized KKT m
 where the matrix $\mb{Y}$ is
 %
 \begin{equation*}
-  \mb{Y}^{T} = \begin{bmatrix} \mb{W}^T & 0 & 0 &
+  \mb{Y}^{T} = \begin{bmatrix} \mb{W}^T & 0 & 0 & 0 &
     0 & 0 & 0 & 0 & 0 & 0 \end{bmatrix},
 \end{equation*}
 and the matrices $\mb{W}$ and $\mb{M}$ are from the compact BFGS representation.
@@ -265,8 +270,10 @@ The solution procedure begins by obtaining the solution for the slack variables 
   \begin{aligned}
     \mb{p}_{z_{l}} &= (\mb{X} - \mb{L})^{-1}(\mb{b}_{z_{l}} - \mb{Z}_{l} \mb{p}_{x} ), \\
     \mb{p}_{z_{u}} &= (\mb{U} - \mb{X})^{-1}(\mb{b}_{z_{u}} + \mb{Z}_{u} \mb{p}_{x} ), \\
-    \mb{p}_{s} &= \mb{Z}^{-1}(\mb{b}_{s} - \mb{S}\mb{p}_{z}), \\
-    \mb{p}_{t} &= \mb{Z}_{t}^{-1}(\mb{b}_{z_{t}} + \mb{T}(\mb{p}_{z} + \mb{b}_{t}))\\
+    \mb{p}_{z} - \mb{p}_{z_{s}} &= \mb{b}_{s}, \\
+    -\mb{p}_{z} - \mb{p}_{z_{t}} &= \mb{b}_{t}, \\
+    \mb{p}_{s} &= \mb{Z}_{s}^{-1}(\mb{b}_{z_{s}} - \mb{S}\mb{p}_{z_{s}}) = \mb{Z}_{s}^{-1}(\mb{b}_{z_{s}} - \mb{S}(\mb{p}_{z} - \mb{b}_{s})), \\
+    \mb{p}_{t} &= \mb{Z}_{t}^{-1}(\mb{b}_{z_{t}} - \mb{T}\mb{p}_{z_{t}}) = \mb{Z}_{t}^{-1}(\mb{b}_{z_{t}} + \mb{T}(\mb{p}_{z} + \mb{b}_{t})),, \\
     \mb{p}_{s_{w}} &= \mb{Z}_{w}^{-1}(\mb{b}_{s_{w}} - \mb{S}_{w} \mb{p}_{z_{w}}),
   \end{aligned}
 \end{equation}
@@ -275,7 +282,7 @@ Next, using the first three equations gives
   \label{eqn:kkt-first-elim}
   \begin{aligned}
     b_{0} \mb{p}_{x} - \mb{A}^{T}\mb{p}_{z} - \mb{A}_{w}^{T}\mb{p}_{z_{w}} - \mb{p}_{z_{l}} + \mb{p}_{z_{u}} & = \mb{b}_{x}, \\
-    \mb{A} \mb{p}_{x} - \mb{p}_{s} + \mb{p}_{t} &= \mb{b}_{z}, \\
+    \mb{A} \mb{p}_{x} - \mb{p}_{s} + \mb{p}_{t} &= \mb{b}_{c}, \\
     \mb{A}_{w} \mb{p}_{x} - \mb{p}_{s_{w}} & = \mb{b}_{z_{w}}.
   \end{aligned}
 \end{equation}
@@ -287,8 +294,11 @@ Substituting the expressions for the slack and Lagrange multiplier updates~\eqre
     \mb{D} \mb{p}_{x} - \mb{A}^{T}\mb{p}_{z} - \mb{A}_{w}^{T}\mb{p}_{z_{w}} &=
     \mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}}, \\
     %
-    \mb{A}\mb{p}_{x} + (\mb{Z}^{-1}\mb{S} + \mb{Z}_{t}^{-1}\mb{T}) \mb{p}_{z} &= \mb{b}_{z} + \mb{Z}^{-1}\mb{b}_{s} - \mb{Z}_{t}^{-1}(\mb{b}_{z_{t}} + \mb{T}\mb{b}_{t})\\
-    \mb{A}_{w} \mb{p}_{x} + \mb{Z}_{w}^{-1}\mb{S}_{w} \mb{p}_{z_{w}} & = \mb{b}_{z_{w}} + \mb{Z}_{w}^{-1}\mb{b}_{s_{w}} \\
+    \mb{A}\mb{p}_{x} + (\mb{Z}_{s}^{-1}\mb{S} + \mb{Z}_{t}^{-1}\mb{T}) \mb{p}_{z} &=
+    \mb{b}_{c} + \mb{Z}_{s}^{-1}(\mb{b}_{z_{s}} + \mb{S}\mb{b}_{s}) - \mb{Z}_{t}^{-1}(\mb{b}_{z_{t}} + \mb{T}\mb{b}_{t})\\
+    %
+    \mb{A}_{w} \mb{p}_{x} + \mb{Z}_{w}^{-1}\mb{S}_{w} \mb{p}_{z_{w}} & =
+    \mb{b}_{c_{w}} + \mb{Z}_{w}^{-1}\mb{b}_{s_{w}} \\
     \end{aligned}
 \end{equation}
 where the diagonal matrix $\mb{D}$ is defined as follows:
@@ -300,21 +310,22 @@ Finally, $\mb{p}_{x}$ can be eliminated for $\mb{p}_{z}$ and $\mb{p}_{z_{w}}$ as
 \begin{equation}
   \begin{aligned}
     (\mb{Z}_{w}^{-1}\mb{S}_{w} + \mb{A}_{w}\mb{D}^{-1}\mb{A}_{w}^{T})\mb{p}_{z_{w}} + \mb{A}_{w}\mb{D}^{-1}\mb{A}^{T}\mb{p}_{z} &= \mb{d}_{z_{w}}, \\
-    \mb{A}\mb{D}^{-1}\mb{A}_{w}^{T} \mb{p}_{z_{w}} + (\mb{Z}^{-1}\mb{S} + \mb{Z}_{t}^{-1}\mb{T} + \mb{A}\mb{D}^{-1}\mb{A}^{T})\mb{p}_{z} &= \mb{d}_{z}, \\
+    %
+    \mb{A}\mb{D}^{-1}\mb{A}_{w}^{T} \mb{p}_{z_{w}} + (\mb{Z}_{s}^{-1}\mb{S} + \mb{Z}_{t}^{-1}\mb{T} + \mb{A}\mb{D}^{-1}\mb{A}^{T})\mb{p}_{z} &= \mb{d}_{z}, \\
   \end{aligned}
 \end{equation}
 %
 The right hand sides, $\mb{d}_{z_{w}}$ and $\mb{d}_{z}$ are
 \begin{equation*}
   \begin{aligned}
-    \mb{d}_{z_{w}} &\triangleq \mb{b}_{z_{w}} + \mb{Z}_{w}^{-1}\mb{b}_{s_{w}} - \mb{A}_{w}\mb{D}^{-1}\left(\mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}} \right), \\
-    \mb{d}_{z} &\triangleq \mb{b}_{z} + \mb{Z}^{-1}\mb{b}_{s} - \mb{Z}_{t}^{-1}(\mb{b}_{z_{t}} + \mb{T}\mb{b}_{t}) - \mb{A}\mb{D}^{-1}\left(\mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}} \right). \\
+    \mb{d}_{z_{w}} &\triangleq \mb{b}_{c_{w}} + \mb{Z}_{w}^{-1}\mb{b}_{s_{w}} - \mb{A}_{w}\mb{D}^{-1}\left(\mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}} \right), \\
+    \mb{d}_{z} &\triangleq \mb{b}_{c} + \mb{Z}_{s}^{-1}(\mb{b}_{z_{s}} + \mb{S}\mb{b}_{s}) - \mb{Z}_{t}^{-1}(\mb{b}_{z_{t}} + \mb{T}\mb{b}_{t}) - \mb{A}\mb{D}^{-1}\left(\mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}} \right). \\
   \end{aligned}
 \end{equation*}
 %
 Finally, defining the matrix $\mb{E} \triangleq (\mb{Z}_{w}^{-1}\mb{S}_{w} + \mb{A}_{w}\mb{D}^{-1}\mb{A}_{w}^{T})$, which is block diagonal, and introducing $\mb{F} \triangleq \mb{A}\mb{D}^{-1}\mb{A}_{w}^{T}$, gives the following equation
 \begin{equation*}
-  \left[\mb{Z}^{-1}\mb{S} + \mb{Z}_{t}^{-1}\mb{T} + \mb{A}\mb{D}^{-1}\mb{A}^{T} - \mb{F}\mb{E}^{-1}\mb{F}^{T} \right]\mb{p}_{z} = \mb{d}_{z} - \mb{E}^{-1} \mb{d}_{z_{w}}
+  \left[\mb{Z}_{s}^{-1}\mb{S} + \mb{Z}_{t}^{-1}\mb{T} + \mb{A}\mb{D}^{-1}\mb{A}^{T} - \mb{F}\mb{E}^{-1}\mb{F}^{T} \right]\mb{p}_{z} = \mb{d}_{z} - \mb{F}\mb{E}^{-1} \mb{d}_{z_{w}}
 \end{equation*}
 
 This solution procedure is invoked each time a solution of the form $\mb{K}_{0}\mb{p} = \mb{b}$ is required.
@@ -341,7 +352,7 @@ The product of the Jacobian and precondition is
 Here $\mb{N}$ is a matrix that consists of an identity in the $\mb{x}$-component, and zero everywhere else such that
 %
 \begin{equation*}
-  \mb{N}^{T} = \begin{bmatrix} \mb{I} & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \end{bmatrix}
+  \mb{N}^{T} = \begin{bmatrix} \mb{I} & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \end{bmatrix}
 \end{equation*}
 The right-preconditioned operator $\mb{K}\mb{K}_{B}^{-1}$ only modifies the $\mb{x}$-components of the output vector directly.
 Since the Krylov subspace within GMRES is
