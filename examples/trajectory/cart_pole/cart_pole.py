@@ -77,11 +77,8 @@ class CartPole(ParOpt.Problem):
         ncon = 4
 
         # Initialize the base class
-        super(CartPole, self).__init__(MPI.COMM_WORLD, nvars, ncon)
-
-        # Set options for the inequality constraints
-        self.setInequalityOptions(dense_ineq=False,
-                                  use_lower=True, use_upper=True)
+        nineq = 0
+        super(CartPole, self).__init__(MPI.COMM_WORLD, nvars, ncon, nineq)
 
         return
 
