@@ -96,14 +96,15 @@ else:
 
     if algorithm == "tr":
         p.driver.opt_settings['algorithm'] = 'tr'
+        p.driver.opt_settings['tr_max_iterations'] = 400
+        p.driver.opt_settings['tr_max_size'] = 100.0
 
     else:
         p.driver.opt_settings['algorithm'] = 'ip'
         p.driver.opt_settings['norm_type'] = 'infinity'
         p.driver.opt_settings['max_major_iters'] = 1000
         p.driver.opt_settings['barrier_strategy'] = 'monotone'
-        p.driver.opt_settings['starting_point_strategy'] = 'least_square_multipliers'
-        p.driver.opt_settings['qn_type'] = 'bfgs'
+        p.driver.opt_settings['starting_point_strategy'] = 'affine_step'
 
 # Setup the problem
 p.setup(check=True)

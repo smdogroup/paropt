@@ -45,23 +45,29 @@ class ParOptProblem : public ParOptBase {
   */
   ParOptProblem( MPI_Comm _comm ){
     comm = _comm;
-    nvars = ncon = nwcon = nwblock = 0;
+    nvars = ncon = ninequality = nwcon = nwblock = 0;
   }
+
   /**
     Create a ParOptProblem class and define the problem layout.
 
     @param _comm is the MPI communicator
     @param _nvars the number of local design variables
     @param _ncon the global number of dense constraints
+    @param _ninequality the number of inequality constraints
     @param _nwcon the local number of sparse separable constraints
     @param _nwblock the block size of the separable constraints
   */
   ParOptProblem( MPI_Comm _comm,
-                 int _nvars, int _ncon,
+                 int _nvars, int _ncon, int _ninequality,
                  int _nwcon, int _nwblock ){
     comm = _comm;
     nvars = _nvars;
     ncon = _ncon;
+    ninequality = _ninequality;
+    if (ninequality > ncon){
+      ninequality = ncon;
+    }
     nwcon = _nwcon;
     nwblock = _nwblock;
   }
@@ -99,13 +105,18 @@ class ParOptProblem : public ParOptBase {
 
     @param _nvars the number of local design variables
     @param _ncon the global number of dense constraints
+    @param _ninequality the number of inequality constraints
     @param _nwcon the local number of sparse separable constraints
     @param _nwblock the block size of the separable constraints
   */
-  void setProblemSizes( int _nvars, int _ncon,
+  void setProblemSizes( int _nvars, int _ncon, int _ninequality,
                         int _nwcon, int _nwblock ){
     nvars = _nvars;
     ncon = _ncon;
+    ninequality = _ninequality;
+    if (ninequality > ncon){
+      ninequality = ncon;
+    }
     nwcon = _nwcon;
     nwblock = _nwblock;
   }
@@ -115,23 +126,18 @@ class ParOptProblem : public ParOptBase {
 
     @param _nvars the number of local design variables
     @param _ncon the global number of dense constraints
+    @param _ninequality the number of dense inequality constraints
     @param _nwcon the local number of sparse separable constraints
     @param _nwblock the block size of the separable constraints
   */
-  void getProblemSizes( int *_nvars, int *_ncon,
+  void getProblemSizes( int *_nvars, int *_ncon, int *_ninequality,
                         int *_nwcon, int *_nwblock ){
     if (_nvars){ *_nvars = nvars; }
     if (_ncon){ *_ncon = ncon; }
+    if (_ninequality){ *_ninequality = ninequality; }
     if (_nwcon){ *_nwcon = nwcon; }
     if (_nwblock){ *_nwblock = nwblock; }
   }
-
-  /**
-    Are the dense constraints inequalities? Default is true.
-
-    @return flag indicating if the dense constraints are inequalities
-  */
-  virtual int isDenseInequality(){ return 1; }
 
   /**
     Are the dense constraints inequalities? Default is true.
@@ -307,7 +313,7 @@ class ParOptProblem : public ParOptBase {
 
  protected:
   MPI_Comm comm;
-  int nvars, ncon, nwcon, nwblock;
+  int nvars, ncon, ninequality, nwcon, nwblock;
 };
 
 #endif // PAR_OPT_PROBLEM_H

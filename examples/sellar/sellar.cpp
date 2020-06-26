@@ -8,7 +8,7 @@ class Sellar : public ParOptProblem {
  public:
   static const int nvars = 4;
   static const int ncon = 1;
-  Sellar( MPI_Comm _comm ): ParOptProblem(_comm, nvars, ncon, 0, 0){}
+  Sellar( MPI_Comm _comm ): ParOptProblem(_comm, nvars, ncon, ncon, 0, 0){}
 
   //! Get the variables/bounds
   void getVarsAndBounds( ParOptVec *xvec,
@@ -27,12 +27,12 @@ class Sellar : public ParOptProblem {
     x[1] = 1.0;
     x[2] = 0.0;
     x[3] = 0.0;
-    
+
     // set lower and upper bounds to design variables
     lb[0] = 0.0;  lb[1]  = 0.0; lb[2] = -1.0; lb[3] = -1.0;
-    ub[0] = 10.0; ub[1] = 10.0; ub[2] = 3.16; ub[3] = 24.0; 
+    ub[0] = 10.0; ub[1] = 10.0; ub[2] = 3.16; ub[3] = 24.0;
   }
-  
+
   //! Evaluate the objective and constraints
   int evalObjCon( ParOptVec *xvec,
                   ParOptScalar *fobj, ParOptScalar *cons ){
@@ -47,7 +47,7 @@ class Sellar : public ParOptProblem {
 
     return 0;
   }
-  
+
   //! Evaluate the objective and constraint gradients
   int evalObjConGradient( ParOptVec *xvec, ParOptVec *gvec, ParOptVec **Ac ){
 
@@ -70,7 +70,7 @@ class Sellar : public ParOptProblem {
     Ac[0]->getArray(&g);
     g[0] = 1.0;
     g[1] = 1.0;
-    
+
     return 0;
   }
 };
@@ -81,13 +81,13 @@ int main( int argc, char* argv[] ){
   // Allocate the Sellar function
   Sellar *sellar = new Sellar(MPI_COMM_SELF);
   sellar->incref();
-  
+
   // Allocate the optimizer with default options
   ParOptInteriorPoint *opt = new ParOptInteriorPoint(sellar);
   opt->incref();
 
   opt->checkGradients(1e-6);
-  
+
   double start = MPI_Wtime();
   opt->optimize();
   double diff = MPI_Wtime() - start;

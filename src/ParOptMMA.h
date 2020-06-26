@@ -79,7 +79,6 @@ class ParOptMMA : public ParOptProblem {
   MPI_Comm getMPIComm();
 
   // Function to indicate the type of sparse constraints
-  int isDenseInequality();
   int isSparseInequality();
   int useLowerBounds();
   int useUpperBounds();

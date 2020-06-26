@@ -24,18 +24,17 @@ class CyParOptProblem : public ParOptProblem {
  public:
   CyParOptProblem( MPI_Comm _comm,
                    int _nvars, int _ncon,
+                   int _ninequality,
                    int _nwcon, int _nwblock );
   ~CyParOptProblem();
 
   // Set options associated with the inequality constraints
   // ------------------------------------------------------
-  void setInequalityOptions( int _isDenseInequal,
-                             int _isSparseInequal,
+  void setInequalityOptions( int _isSparseInequal,
                              int _useLower, int _useUpper );
 
   // Function to indicate the type of sparse constraints
   // ---------------------------------------------------
-  int isDenseInequality();
   int isSparseInequality();
   int useLowerBounds();
   int useUpperBounds();
@@ -163,7 +162,6 @@ class CyParOptProblem : public ParOptProblem {
                                  ParOptVec *c, ParOptScalar *A );
 
   // Store information about the type of problem to solve
-  int isDenseInequal;
   int isSparseInequal;
   int useLower;
   int useUpper;

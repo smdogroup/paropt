@@ -74,15 +74,13 @@ class Toy(ParOpt.Problem):
 comm = MPI.COMM_WORLD
 
 problem = Toy(comm)
-problem.setInequalityOptions(dense_ineq=True, sparse_ineq=False,
-                             use_lower=True, use_upper=True)
 
 options = {
     'algorithm': 'mma',
     'mma_init_asymptote_offset': 0.5,
     'mma_min_asymptote_offset': 0.01,
     'mma_bound_relax': 1e-4,
-    'max_mma_iterations': 100}
+    'mma_max_iterations': 100}
 
 # Create the ParOpt problem
 opt = ParOpt.Optimizer(problem, options)

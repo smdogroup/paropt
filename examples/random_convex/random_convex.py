@@ -27,9 +27,6 @@ class ConvexProblem(ParOpt.Problem):
         # Initialize the base class
         super(ConvexProblem, self).__init__(self.comm, self.nvars, self.ncon)
 
-        # Set the inequality options for this problem
-        self.setInequalityOptions(dense_ineq=True, sparse_ineq=True,
-                                  use_lower=True, use_upper=True)
         return
 
     def getVarsAndBounds(self, x, lb, ub):

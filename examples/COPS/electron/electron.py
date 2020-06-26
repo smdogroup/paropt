@@ -26,9 +26,6 @@ class Electron(ParOpt.Problem):
         # Initialize the base class
         super(Electron, self).__init__(self.comm, self.nvars, self.ncon)
 
-        self.setInequalityOptions(dense_ineq=True,
-            use_lower=True, use_upper=True)
-
         return
 
     def getVarsAndBounds(self, x, lb, ub):

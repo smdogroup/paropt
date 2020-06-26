@@ -11,15 +11,16 @@
   @param _comm the MPI communicator
   @param _nvars the local number of variables
   @param _ncon the number of global constraints
+  @param _ninequality the number of global inequality constraints
   @param _nwcon the number of sparse constraints
   @param _nwblock the size of the sparse constraint block
 */
 CyParOptProblem::CyParOptProblem( MPI_Comm _comm,
                                   int _nvars, int _ncon,
+                                  int _ninequality,
                                   int _nwcon, int _nwblock ):
-ParOptProblem(_comm, _nvars, _ncon, _nwcon, _nwblock){
+ParOptProblem(_comm, _nvars, _ncon, _ninequality, _nwcon, _nwblock){
   // Set the default options
-  isDenseInequal = 1;
   isSparseInequal = 1;
   useLower = 1;
   useUpper = 1;
@@ -42,16 +43,13 @@ CyParOptProblem::~CyParOptProblem(){}
 /**
   Set options associated with the inequality constraints
 
-  @param _isDenseInequal indicates the type of dense constraint
   @param _isSparseInequal indicates the type of sparse constraint
   @param _useLower indicates whether to use the lower bounds
   @param _useUpper indicates whether to use the upper boundss
 */
-void CyParOptProblem::setInequalityOptions( int _isDenseInequal,
-                                            int _isSparseInequal,
+void CyParOptProblem::setInequalityOptions( int _isSparseInequal,
                                             int _useLower,
                                             int _useUpper ){
-  isDenseInequal = _isDenseInequal;
   isSparseInequal = _isSparseInequal;
   useLower = _useLower;
   useUpper = _useUpper;
@@ -60,9 +58,6 @@ void CyParOptProblem::setInequalityOptions( int _isDenseInequal,
 /*
   Function to indicate the type of sparse constraints
 */
-int CyParOptProblem::isDenseInequality(){
-  return isDenseInequal;
-}
 int CyParOptProblem::isSparseInequality(){
   return isSparseInequal;
 }

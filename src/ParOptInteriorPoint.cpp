@@ -54,7 +54,7 @@ ParOptInteriorPoint::ParOptInteriorPoint( ParOptProblem *_prob,
   opt_root = 0;
 
   // Get the number of variables/constraints
-  prob->getProblemSizes(&nvars, &ncon, &nwcon, &nwblock);
+  prob->getProblemSizes(&nvars, &ncon, &ninequality, &nwcon, &nwblock);
 
   // Are these sparse inequalties or equalities?
   sparse_inequality = prob->isSparseInequality();
@@ -239,8 +239,14 @@ ParOptInteriorPoint::ParOptInteriorPoint( ParOptProblem *_prob,
   penalty_gamma_s = new double[ ncon ];
   penalty_gamma_t = new double[ ncon ];
   for ( int i = 0; i < ncon; i++ ){
-    penalty_gamma_s[i] = 0.0;
-    penalty_gamma_t[i] = gamma;
+    if (i < ninequality){
+      penalty_gamma_s[i] = 0.0;
+      penalty_gamma_t[i] = gamma;
+    }
+    else {
+      penalty_gamma_s[i] = gamma;
+      penalty_gamma_t[i] = gamma;
+    }
   }
 
   // Set parameters that will be over-written later
@@ -610,8 +616,8 @@ void ParOptInteriorPoint::resetProblemInstance( ParOptProblem *problem ){
   // Check to see if the new problem instance is congruent with
   // the previous problem instance - it has to be otherwise
   // we can't use it.
-  int _nvars, _ncon, _nwcon, _nwblock;
-  problem->getProblemSizes(&_nvars, &_ncon, &_nwcon, &_nwblock);
+  int _nvars, _ncon, _inequality, _nwcon, _nwblock;
+  problem->getProblemSizes(&_nvars, &_ncon, &_inequality, &_nwcon, &_nwblock);
 
   if (_nvars != nvars || _ncon != ncon ||
       _nwcon != nwcon || _nwblock != nwblock){
@@ -628,12 +634,14 @@ void ParOptInteriorPoint::resetProblemInstance( ParOptProblem *problem ){
 
    @param _nvars the local number of variables
    @param _ncon the number of global constraints
+   @param _inequality the number of global inequality constraints
    @param _nwcon the number of sparse constraints
    @param _nwblock the size of the sparse constraint block
 */
 void ParOptInteriorPoint::getProblemSizes( int *_nvars, int *_ncon,
+                                           int *_inequality,
                                            int *_nwcon, int *_nwblock ){
-  prob->getProblemSizes(_nvars, _ncon, _nwcon, _nwblock);
+  prob->getProblemSizes(_nvars, _ncon, _inequality, _nwcon, _nwblock);
 }
 
 /**
@@ -989,8 +997,14 @@ ParOptScalar ParOptInteriorPoint::getComplementarity(){
 void ParOptInteriorPoint::setPenaltyGamma( double gamma ){
   if (gamma >= 0.0){
     for ( int i = 0; i < ncon; i++ ){
-      penalty_gamma_s[i] = 0.0;
-      penalty_gamma_t[i] = gamma;
+      if (i < ninequality){
+        penalty_gamma_s[i] = 0.0;
+        penalty_gamma_t[i] = gamma;
+      }
+      else {
+        penalty_gamma_s[i] = gamma;
+        penalty_gamma_t[i] = gamma;
+      }
     }
   }
 }
@@ -1003,8 +1017,14 @@ void ParOptInteriorPoint::setPenaltyGamma( double gamma ){
 void ParOptInteriorPoint::setPenaltyGamma( const double *gamma ){
   for ( int i = 0; i < ncon; i++ ){
     if (gamma[i] >= 0.0){
-      penalty_gamma_s[i] = 0.0;
-      penalty_gamma_t[i] = gamma[i];
+      if (i < ninequality){
+        penalty_gamma_s[i] = 0.0;
+        penalty_gamma_t[i] = gamma[i];
+      }
+      else {
+        penalty_gamma_s[i] = gamma[i];
+        penalty_gamma_t[i] = gamma[i];
+      }
     }
   }
 }

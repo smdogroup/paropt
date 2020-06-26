@@ -11,7 +11,7 @@ class Rosenbrock : public ParOptProblem {
   Rosenbrock( MPI_Comm comm, int _nvars,
               int _nwcon, int _nwstart,
               int _nw, int _nwskip ):
-  ParOptProblem(comm, _nvars, 2, _nwcon, 1){
+  ParOptProblem(comm, _nvars, 2, 2, _nwcon, 1){
     nwcon = _nwcon;
     nwstart = _nwstart;
     nw = _nw;

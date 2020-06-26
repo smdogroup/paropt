@@ -125,8 +125,8 @@ else:
         p.driver.opt_settings['algorithm'] = 'ip'
         p.driver.opt_settings['norm_type'] = 'infinity'
         p.driver.opt_settings['max_major_iters'] = 1000
-        p.driver.opt_settings['barrier_strategy'] = 'monotone'
-        p.driver.opt_settings['starting_point_strategy'] = 'least_square_multipliers'
+        p.driver.opt_settings['barrier_strategy'] = 'mehrotra'
+        p.driver.opt_settings['starting_point_strategy'] = 'affine_step'
         p.driver.opt_settings['qn_type'] = 'bfgs'
 
 

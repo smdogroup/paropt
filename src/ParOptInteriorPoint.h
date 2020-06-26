@@ -157,7 +157,7 @@ class ParOptInteriorPoint : public ParOptBase {
 
   // Get the problem sizes from the underlying problem class
   // -------------------------------------------------------
-  void getProblemSizes( int *_nvars, int *_ncon,
+  void getProblemSizes( int *_nvars, int *_ncon, int *_inequality,
                         int *_nwcon, int *_nwblock );
 
   // Retrieve the values of the design variables and multipliers
@@ -403,8 +403,7 @@ class ParOptInteriorPoint : public ParOptBase {
   // The number of variables and constraints in the problem
   int nvars; // The number of local (on-processor) variables
   int ncon; // The number of constraints in the problem
-  int neqcon; // The number of equality constraints
-  int nineqcon; // The number of inequality constraints (neqcon + nineqcon = ncon)
+  int ninequality; // The number of inequality constraints
   int nwcon; // The number of specially constructed weighting constraints
   int nwblock; // The nuber of constraints per block
   int nvars_total; // The total number of variables

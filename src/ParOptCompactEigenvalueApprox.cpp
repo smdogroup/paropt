@@ -299,8 +299,8 @@ ParOptEigenSubproblem::ParOptEigenSubproblem( ParOptProblem *_prob,
   prob->incref();
 
   // Get and set the problem sizes
-  prob->getProblemSizes(&n, &m, &nwcon, &nwblock);
-  setProblemSizes(n, m, nwcon, nwblock);
+  prob->getProblemSizes(&n, &m, &ninequality, &nwcon, &nwblock);
+  setProblemSizes(n, m, ninequality, nwcon, nwblock);
 
   // Set the quasi-Newton method
   approx = _approx;
@@ -570,10 +570,6 @@ MPI_Comm ParOptEigenSubproblem::getMPIComm(){
 /*
   Functions to indicate the type of sparse constraints
 */
-int ParOptEigenSubproblem::isDenseInequality(){
-  return prob->isDenseInequality();
-}
-
 int ParOptEigenSubproblem::isSparseInequality(){
   return prob->isSparseInequality();
 }

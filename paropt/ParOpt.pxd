@@ -40,11 +40,11 @@ cdef extern from "ParOptProblem.h":
     cdef cppclass ParOptProblem(ParOptBase):
         ParOptProblem()
         ParOptProblem(MPI_Comm)
-        ParOptProblem(MPI_Comm, int, int, int, int)
+        ParOptProblem(MPI_Comm, int, int, int, int, int)
         MPI_Comm getMPIComm()
         ParOptVec *createDesignVec()
         ParOptVec *createConstraintVec()
-        void getProblemSizes(int*, int*, int*, int*)
+        void getProblemSizes(int*, int*, int*, int*, int*)
         void checkGradients(double, ParOptVec*, int)
 
 cdef extern from "ParOptQuasiNewton.h":
@@ -71,7 +71,6 @@ cdef class CompactQuasiNewton:
     cdef ParOptCompactQuasiNewton *ptr
 
 cdef extern from "CyParOptProblem.h":
-    # Define the callback types
     ctypedef void (*getvarsandbounds)(void *_self, int nvars, ParOptVec *x,
                                       ParOptVec *lb, ParOptVec *ub)
     ctypedef int (*evalobjcon)(void *_self, int nvars, int ncon,
@@ -107,14 +106,8 @@ cdef extern from "CyParOptProblem.h":
                                            ParOptScalar *out)
 
     cdef cppclass CyParOptProblem(ParOptProblem):
-        CyParOptProblem(MPI_Comm _comm, int _nvars, int _ncon,
-                        int _nwcon, int _nwblock)
-
-        # Set options for the inequality constraints
-        void setInequalityOptions(int _isSparseInequal,
-                                  int _isDenseInequal,
-                                  int _useLower, int _useUpper)
-        # Set the callback functions
+        CyParOptProblem(MPI_Comm, int, int, int, int, int)
+        void setInequalityOptions(int, int, int)
         void setSelfPointer(void *_self)
         void setGetVarsAndBounds(getvarsandbounds usr_func)
         void setEvalObjCon(evalobjcon usr_func)
@@ -156,7 +149,7 @@ cdef extern from "ParOptInteriorPoint.h":
     cppclass ParOptInteriorPoint(ParOptBase):
         ParOptInteriorPoint(ParOptProblem*, ParOptOptions*) except +
         int optimize(const char*)
-        void getProblemSizes(int*, int*, int*, int*)
+        void getProblemSizes(int*, int*, int*, int*, int*)
         void getOptimizedPoint(ParOptVec**,
                                ParOptScalar**, ParOptVec**,
                                ParOptVec**, ParOptVec**)

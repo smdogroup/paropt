@@ -684,13 +684,12 @@ cdef class ProblemBase:
 
 cdef class Problem(ProblemBase):
     cdef CyParOptProblem *me
-    def __init__(self, MPI.Comm comm, int nvars, int ncon,
+    def __init__(self, MPI.Comm comm, int nvars, int ncon, int nineq=-1,
                  int nwcon=0, int nwblock=0):
-        # Convert the communicator
         cdef MPI_Comm c_comm = comm.ob_mpi
-
-        # Create the pointer to the underlying C++ object
-        self.me = new CyParOptProblem(c_comm, nvars, ncon, nwcon, nwblock)
+        if nineq < 0:
+            nineq = ncon
+        self.me = new CyParOptProblem(c_comm, nvars, ncon, nineq, nwcon, nwblock)
         self.me.setSelfPointer(<void*>self)
         self.me.setGetVarsAndBounds(_getvarsandbounds)
         self.me.setEvalObjCon(_evalobjcon)
@@ -711,22 +710,20 @@ cdef class Problem(ProblemBase):
             self.ptr.decref()
         return
 
-    def setInequalityOptions(self, dense_ineq=True, sparse_ineq=True,
+    def setInequalityOptions(self, sparse_ineq=True,
                              use_lower=True, use_upper=True):
         # Assume that everything is false
-        cdef int dense = 0
         cdef int sparse = 0
         cdef int lower = 0
         cdef int upper = 0
 
         # Swap the integer values if the flags are set
-        if dense_ineq: dense = 1
         if sparse_ineq: sparse = 1
         if use_lower: lower = 1
         if use_upper: upper = 1
 
         # Set the options
-        self.me.setInequalityOptions(dense, sparse, lower, upper)
+        self.me.setInequalityOptions(sparse, lower, upper)
 
         return
 
@@ -1047,8 +1044,8 @@ cdef class InteriorPoint:
         cdef ParOptVec *_zu = NULL
 
         # Get the problem size/vector for the values
-        self.ptr.getProblemSizes(NULL, &ncon, NULL, NULL)
-        self.ptr.getOptimizedPoint(&_x, &_z, &_zw, &_zl, &_zu);
+        self.ptr.getProblemSizes(NULL, &ncon, NULL, NULL, NULL)
+        self.ptr.getOptimizedPoint(&_x, &_z, &_zw, &_zl, &_zu)
 
         # Set the default values
         z = None
@@ -1086,7 +1083,7 @@ cdef class InteriorPoint:
         cdef ParOptVec *_sw = NULL
 
         # Get the problem size/vector for the values
-        self.ptr.getProblemSizes(NULL, &ncon, NULL, NULL)
+        self.ptr.getProblemSizes(NULL, &ncon, NULL, NULL, NULL)
         self.ptr.getOptimizedSlacks(&_s, &_t, &_sw)
 
         s = None
@@ -1282,8 +1279,8 @@ cdef class Optimizer:
 
         # Get the problem size/vector for the values
         problem = self.ptr.getProblem()
-        problem.getProblemSizes(NULL, &ncon, NULL, NULL);
-        self.ptr.getOptimizedPoint(&_x, &_z, &_zw, &_zl, &_zu);
+        problem.getProblemSizes(NULL, &ncon, NULL, NULL, NULL)
+        self.ptr.getOptimizedPoint(&_x, &_z, &_zw, &_zl, &_zu)
 
         # Set the default values
         z = None

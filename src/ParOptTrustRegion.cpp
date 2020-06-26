@@ -31,8 +31,8 @@ ParOptQuadraticSubproblem::ParOptQuadraticSubproblem( ParOptProblem *_prob,
   prob->incref();
 
   // Get the problem sizes
-  prob->getProblemSizes(&n, &m, &nwcon, &nwblock);
-  setProblemSizes(n, m, nwcon, nwblock);
+  prob->getProblemSizes(&n, &m, &ninequality, &nwcon, &nwblock);
+  setProblemSizes(n, m, ninequality, nwcon, nwblock);
 
   // Set the quasi-Newton method
   if (_qn){
@@ -247,10 +247,6 @@ MPI_Comm ParOptQuadraticSubproblem::getMPIComm(){
 /*
   Functions to indicate the type of sparse constraints
 */
-int ParOptQuadraticSubproblem::isDenseInequality(){
-  return prob->isDenseInequality();
-}
-
 int ParOptQuadraticSubproblem::isSparseInequality(){
   return prob->isSparseInequality();
 }
@@ -407,8 +403,8 @@ ParOptInfeasSubproblem::ParOptInfeasSubproblem( ParOptTrustRegionSubproblem *_pr
   subproblem_constraint = _subproblem_constraint;
 
   // Get the problem sizes
-  prob->getProblemSizes(&n, &m, &nwcon, &nwblock);
-  setProblemSizes(n, m, nwcon, nwblock);
+  prob->getProblemSizes(&n, &m, &ninequality, &nwcon, &nwblock);
+  setProblemSizes(n, m, ninequality, nwcon, nwblock);
 }
 
 ParOptInfeasSubproblem::~ParOptInfeasSubproblem(){
@@ -439,10 +435,6 @@ MPI_Comm ParOptInfeasSubproblem::getMPIComm(){
 /*
   Functions to indicate the type of sparse constraints
 */
-int ParOptInfeasSubproblem::isDenseInequality(){
-  return prob->isDenseInequality();
-}
-
 int ParOptInfeasSubproblem::isSparseInequality(){
   return prob->isSparseInequality();
 }
@@ -607,7 +599,7 @@ ParOptTrustRegion::ParOptTrustRegion( ParOptTrustRegionSubproblem *_subproblem,
   options->incref();
 
   // Get the subproblem sizes
-  subproblem->getProblemSizes(&n, &m, &nwcon, &nwblock);
+  subproblem->getProblemSizes(&n, &m, &nineq, &nwcon, &nwblock);
 
   // Set the penalty parameters
   const double gamma = options->getFloatOption("penalty_gamma");
@@ -877,7 +869,12 @@ void ParOptTrustRegion::update( ParOptVec *step,
   // Compute the model infeasibility at x = xk
   ParOptScalar infeas_k = 0.0;
   for ( int i = 0; i < m; i++ ){
-    infeas_k += penalty_gamma[i]*max2(0.0, -ck[i]);
+    if (i < nineq){
+      infeas_k += penalty_gamma[i]*max2(0.0, -ck[i]);
+    }
+    else {
+      infeas_k += penalty_gamma[i]*fabs(ck[i]);
+    }
   }
 
   // Compute the value of the objective model and model
@@ -892,7 +889,12 @@ void ParOptTrustRegion::update( ParOptVec *step,
   // Compute the model infeasibility at the new point
   ParOptScalar infeas_model = 0.0;
   for ( int i = 0; i < m; i++ ){
-    infeas_model += penalty_gamma[i]*max2(0.0, -ct[i]);
+    if (i < nineq){
+      infeas_model += penalty_gamma[i]*max2(0.0, -ct[i]);
+    }
+    else {
+      infeas_model += penalty_gamma[i]*fabs(ct[i]);
+    }
   }
 
   // Evaluate the model at the trial point and update the trust region model
@@ -902,7 +904,12 @@ void ParOptTrustRegion::update( ParOptVec *step,
   // Compute the infeasibilities of the last two iterations
   ParOptScalar infeas_t = 0.0;
   for ( int i = 0; i < m; i++ ){
-    infeas_t += penalty_gamma[i]*max2(0.0, -ct[i]);
+    if (i < nineq){
+      infeas_t += penalty_gamma[i]*max2(0.0, -ct[i]);
+    }
+    else {
+      infeas_t += penalty_gamma[i]*fabs(ct[i]);
+    }
   }
 
   // Compute the actual reduction and the predicted reduction
@@ -944,7 +951,12 @@ void ParOptTrustRegion::update( ParOptVec *step,
   // Compute the infeasibility
   ParOptScalar infeas_new = 0.0;
   for ( int i = 0; i < m; i++ ){
-    infeas_new += max2(0.0, -ct[i]);
+    if (i < nineq){
+      infeas_new += max2(0.0, -ct[i]);
+    }
+    else {
+      infeas_new += fabs(ct[i]);
+    }
   }
   *infeas = ParOptRealPart(infeas_new);
 
@@ -984,10 +996,10 @@ void ParOptTrustRegion::update( ParOptVec *step,
   // Compute the max z/average z and max gamma/average gamma
   double zmax = 0.0, zav = 0.0, gmax = 0.0, gav = 0.0;
   for ( int i = 0; i < m; i++ ){
-    zav += ParOptRealPart(z[i]);
+    zav += ParOptRealPart(fabs(z[i]));
     gav += penalty_gamma[i];
-    if (ParOptRealPart(z[i]) > zmax){
-      zmax = ParOptRealPart(z[i]);
+    if (ParOptRealPart(fabs(z[i])) > zmax){
+      zmax = ParOptRealPart(fabs(z[i]));
     }
     if (penalty_gamma[i] > gmax){
       gmax = penalty_gamma[i];
@@ -1214,7 +1226,12 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
       // Compute the best-case infeasibility achieved by setting the
       // penalty parameters to a large value
       for ( int j = 0; j < m; j++ ){
-        best_con_infeas[j] = max2(0.0, -best_con_infeas[j]);
+        if (j < nineq){
+          best_con_infeas[j] = max2(0.0, -best_con_infeas[j]);
+        }
+        else {
+          best_con_infeas[j] = fabs(best_con_infeas[j]);
+        }
       }
 
       // Set the penalty parameters
@@ -1266,8 +1283,14 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
       ParOptScalar fmodel;
       subproblem->evalObjCon(step, &fmodel, model_con_infeas);
       for ( int j = 0; j < m; j++ ){
-        con_infeas[j] = max2(0.0, -con_infeas[j]);
-        model_con_infeas[j] = max2(0.0, -model_con_infeas[j]);
+        if (j < nineq){
+          con_infeas[j] = max2(0.0, -con_infeas[j]);
+          model_con_infeas[j] = max2(0.0, -model_con_infeas[j]);
+        }
+        else {
+          con_infeas[j] = fabs(con_infeas[j]);
+          model_con_infeas[j] = fabs(model_con_infeas[j]);
+        }
       }
     }
 
@@ -1312,12 +1335,12 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
         // and the constraints are satisfied, decrease the penalty
         // parameter. Otherwise, if the best case infeasibility is
         // significantly better, increase the penalty parameter.
-        if (ParOptRealPart(z[i]) > tr_infeas_tol &&
+        if (ParOptRealPart(fabs(z[i])) > tr_infeas_tol &&
             ParOptRealPart(con_infeas[i]) < tr_infeas_tol &&
             penalty_gamma[i] >= 2.0*ParOptRealPart(z[i])){
           // Reduce gamma
           penalty_gamma[i] =
-            ParOptRealPart(max2(0.5*(penalty_gamma[i] + z[i]),
+            ParOptRealPart(max2(0.5*(penalty_gamma[i] + fabs(z[i])),
                                 tr_penalty_gamma_min));
           if (output_level > 0){
             sprintf(info, "decr");
@@ -1439,8 +1462,8 @@ void ParOptTrustRegion::computeKKTError( const ParOptScalar *z,
     zmax = zw->maxabs();
   }
   for ( int i = 0; i < m; i++ ){
-    if (ParOptRealPart(z[i]) > ParOptRealPart(zmax)){
-      zmax = z[i];
+    if (ParOptRealPart(fabs(z[i])) > ParOptRealPart(zmax)){
+      zmax = fabs(z[i]);
     }
   }
 

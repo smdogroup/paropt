@@ -126,7 +126,6 @@ class ParOptQuadraticSubproblem : public ParOptTrustRegionSubproblem {
   MPI_Comm getMPIComm();
 
   // Function to indicate the type of sparse constraints
-  int isDenseInequality();
   int isSparseInequality();
   int useLowerBounds();
   int useUpperBounds();
@@ -246,7 +245,6 @@ class ParOptInfeasSubproblem : public ParOptProblem {
   MPI_Comm getMPIComm();
 
   // Function to indicate the type of sparse constraints
-  int isDenseInequality();
   int isSparseInequality();
   int useLowerBounds();
   int useUpperBounds();
@@ -357,6 +355,7 @@ class ParOptTrustRegion : public ParOptBase {
 
   int n; // The number of design variables (local)
   int m; // The number of dense constraints (global)
+  int nineq; // The number of inequality constraints
   int nwcon; // The number of sparse constraints
   int nwblock; // The block size
 

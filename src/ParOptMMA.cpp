@@ -59,9 +59,9 @@ ParOptProblem(_prob->getMPIComm()){
   setOutputFile(mma_output_file);
 
   // Get the problem sizes
-  int _nwcon, _nwblock;
-  prob->getProblemSizes(&n, &m, &_nwcon, &_nwblock);
-  setProblemSizes(n, m, _nwcon, _nwblock);
+  int nineq, _nwcon, _nwblock;
+  prob->getProblemSizes(&n, &m, &nineq, &_nwcon, &_nwblock);
+  setProblemSizes(n, m, nineq, _nwcon, _nwblock);
 
   // Set the iteration counter
   mma_iter = 0;
@@ -754,10 +754,6 @@ MPI_Comm ParOptMMA::getMPIComm(){
 /*
   Functions to indicate the type of sparse constraints
 */
-int ParOptMMA::isDenseInequality(){
-  return prob->isDenseInequality();
-}
-
 int ParOptMMA::isSparseInequality(){
   return prob->isSparseInequality();
 }
