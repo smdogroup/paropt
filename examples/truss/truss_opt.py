@@ -109,11 +109,6 @@ def setup_ground_struct(N, M, L=2.5, E=70e9, rho=2700.0,
                           E, rho, mass_fixed, A_min, A_max,
                           Area_scale=Area_scale)
 
-    # Set the options
-    truss.setInequalityOptions(dense_ineq=True,
-                               use_lower=True,
-                               use_upper=True)
-
     return truss
 
 def paropt_truss(truss, use_hessian=False, use_tr=False,
