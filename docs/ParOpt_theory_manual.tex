@@ -14,8 +14,8 @@ filecolor=black, urlcolor=blue]{hyperref}
 \newcommand{\mbs}{\boldsymbol}
 \newcommand{\f}{\frac}
 
-\title{ParOpt: A parallel interior-point optimizer}
-\author{Graeme J. Kennedy}
+\title{ParOpt: A parallel library of large-scale optimization algorithms}
+\author{Graeme J. Kennedy \and Yicong Fu}
 \date{}
 
 \begin{document}
@@ -42,9 +42,9 @@ A default ParOptVec class is implemented to provide generic functionality.
 
 The following document is divided into two sections: (1) a high-level description of the algorithms implemented in ParOpt, and (2) a detailed description of the implementation of ParOpt.
 
-\section{Algorithms}
+\section{Interior point algorithm}
 
-ParOpt uses an interior-point method to solve optimization problems formulated as follows:
+ParOpt implements an interior-point method to solve optimization problems formulated as follows:
 \begin{equation}
   \label{eqn:opt-problem}
   \begin{aligned}
@@ -70,7 +70,7 @@ The barrier problem corresponding to~\eqref{eqn:opt-problem} is the following
 \begin{equation}
   \label{eqn:barrier-problem}
   \begin{aligned}
-    \min_{\mb{x}, \mb{s}, \mb{t}, \mb{s}_{w}} \qquad &  \varphi(\mb{x}, \mb{s}, \mb{t}, \mb{s}_{w}; \mu) = 
+    \min_{\mb{x}, \mb{s}, \mb{t}, \mb{s}_{w}} \qquad &  \varphi(\mb{x}, \mb{s}, \mb{t}, \mb{s}_{w}; \mu) =
     f(\mb{x}) + \gamma_{t}^{T}\mb{t} + \gamma_{s}^{T}\mb{s} - \mu \left[ \log \mb{s} + \log \mb{t} + \log \mb{s}_{w} + \log (\mb{x} - \mb{l}) + \log (\mb{u} - \mb{x})  \right] \\
     \text{such that} \qquad & \mb{c}(\mb{x}) = \mb{s} - \mb{t} \\
     & \mb{c}_{w}(\mb{x}) = \mb{s}_{w} \\
@@ -136,7 +136,7 @@ The approximate KKT matrix is
     \mb{p}_{z_{t}} \\
     \mb{p}_{z_{w}} \\
     \mb{p}_{z_{l}} \\
-    \mb{p}_{z_{u}} 
+    \mb{p}_{z_{u}}
   \end{bmatrix} = -\mb{r}.
 \end{equation}
 
@@ -456,6 +456,223 @@ If GMRES fails to find an inexact solution that is also a descent direction, we 
   \end{algorithmic}
   \caption{GMRES with descent direction convergence criteria}
 \end{figure}
+
+\section{Trust region algorithm}
+
+ParOpt also implements a trust region method to solve optimization problems. For each trust region iteration, ParOpt constructs a quadratic model subproblem and solves the subproblem using the interior point solver. The general form of the optimization problem is same as the previous one:
+%
+\begin{equation}
+  \label{eqn:opt-problem-tr}
+  \begin{aligned}
+    \min_{\mb{x}} \qquad & f(\mb{x}) \\
+    \text{such that} \qquad
+    & \mb{c}(\mb{x}) \ge 0 \\
+    & \mb{c}_{w}(\mb{x}) \ge 0 \\
+    & \mb{l} \le \mb{x} \le \mb{u}
+  \end{aligned}
+\end{equation}
+
+Accordingly, the trust region quadratic subproblem with linearized constraints can be formulated as follows, notice that for the rest equations of this section, we drop the subscript $k$ (which indicates the current trust region iteration) to simplify the notation.
+%
+\begin{equation}
+  \label{eqn:quad-problem}
+  \begin{aligned}
+    \min_{\mb{p}} \qquad & f + \mb{g}^T\mb{p} + \frac{1}{2}\mb{p}^T\mb{B}\mb{p} \\
+    \text{such that} \qquad
+    & \mb{A}\mb{p} + \mb{c} \ge 0 \\
+    & \mb{A}_{w}\mb{p} + \mb{c}_{w} \ge 0 \\
+    & \mb{l} \le \mb{x}_k + \mb{p} \le \mb{u} \\
+    & ||\mb{p}||_\infty \le \Delta
+  \end{aligned}
+\end{equation}
+%
+where $\mb{p} = \mb{x}_{k+1} - \mb{x}_{k}$, which is the update step that we solve for. $f = f(\mb{x}_k)$, $\mb{g}_k = \nabla_x f(\mb{x}_k)$ are the function value and gradient, respectively. $\mb{B} = \nabla_x^2 (f(\mb{x}_k) - \mb{z}^T \mb{c}(\mb{x}_k)-\mb{z}_w^T \mb{c}_w(\mb{x}_k))$ is the approximation of the Hessian of the Lagrangian. $\mb{A}, \mb{c}, \mb{A}_w, \mb{c}_w$ are Jacobian and value for dense constraints and sparse constraints, respectively. $\Delta$ is the trust region radius.
+
+Next, we would like to convert this subproblem into a barrier problem so that it can be solved by ParOpt interior point solver. First, notice that we have the identity
+%
+\begin{equation}
+    \alpha = \max(0, \alpha) - \max(0, -\alpha)
+\end{equation}
+%
+and corresponding relations
+%
+\begin{equation}
+\label{max-relation}
+\begin{gathered}
+    \max(0, \alpha) \ge 0 \\
+    \max(0, -\alpha) \ge 0 \\
+    \max(0, \alpha)\cdot \max(0, -\alpha) = 0
+\end{gathered}
+\end{equation}
+%
+hold for arbitrary scalar variable $\alpha$. Then for the linearized constraints, we can define slack variables
+%
+\begin{equation}
+    \mb{A}\mb{p} + \mb{c} = \mb{s} - \mb{t}
+\end{equation}
+%
+such that
+%
+\begin{equation}
+\begin{aligned}
+    \mb{s} & = \max(\mb{0}, \mb{A}\mb{p} + \mb{c}) \\
+    \mb{t} & = \max(\mb{0}, -(\mb{A}\mb{p} + \mb{c}))
+\end{aligned}
+\end{equation}
+%
+where the $\max$ function is applied to vectors in the component-wise fashion. Due to the characteristics of the $\max$ function shown in equation (\ref{max-relation}), we will have additional conditions for the slack variable $\mb{s}$ and $\mb{t}$:
+%
+\begin{equation}
+\label{eqn:S}
+    \begin{gathered}
+    \mb{s} \ge \mb{0} \\
+    \mb{t} \ge \mb{0} \\
+    \mb{S} \mb{t} = \mb{0}
+    \end{gathered}
+\end{equation}
+%
+where $\mb{S}$ is the square matrix diagonalized from vector $\mb{s}$, note that this convention is used multiple times in the future.
+
+Go back to the subproblem (\ref{eqn:quad-problem}), now we can move the constraints into the objective function by using $l_1$ penalization and slack variables that we just defined:
+%
+\begin{equation}
+  \label{eqn:quad-problem-penalty}
+  \begin{aligned}
+    \min_{\mb{p}, \mb{s}, \mb{t}, \mb{s}_w} \qquad & f + \mb{g}^T\mb{p} + \frac{1}{2}\mb{p}^T\mb{B}\mb{p} + \gamma_t^T\mb{t} + \gamma_s^T\mb{s}\\
+    \text{such that} \qquad
+    & \mb{A}\mb{p} + \mb{c} = \mb{s} - \mb{t} \\
+    & \mb{A}_{w}\mb{p} + \mb{c}_{w} = \mb{s}_w \\
+    & \mb{l}_0 \le \mb{p} \le \mb{u}_0 \\
+    & \mb{s}_w \ge \mb{0} \\
+    & \mb{s} \ge \mb{0} \\
+    & \mb{t} \ge \mb{0} \\
+    & \mb{S} \mb{t} = \mb{0}
+  \end{aligned}
+\end{equation}
+%
+where $\mb{l}_0 = \max(\mb{l} - \mb{x}_k, -\Delta)$, $\mb{u}_0 = \min(\mb{u} - \mb{x}_k, \Delta)$. Here notice that we use both $\mb{s}$ and $\mb{t}$ as penalty terms, because this allows us to apply not only inequality constraints but also equality constraints for $\mb{c}$. If we want $\mb{c}$ to be equality constraints, then set $\gamma_t > 0, \gamma_s > 0$, and $\mb{s} + \mb{t} = |\mb{A}\mb{p} + \mb{c}|$ is the constraint violation to be added as penalty. Otherwise, if we want to keep $\mb{c}$ as inequality constraints, then set $\gamma_t > 0, \gamma_s = 0$, and only $\mb{t}$ will be added as penalty.
+
+Finally, by moving inequality constraints in equation (\ref{eqn:quad-problem-penalty}) into the objective function using log barrier function, the barrier problem can be formulated:
+%
+\begin{equation}
+  \label{eqn:quad-problem-barrier}
+  \begin{aligned}
+    \min_{\mb{p}, \mb{s}, \mb{t}, \mb{s}_w} \qquad & f + \mb{g}^T\mb{p} + \frac{1}{2}\mb{p}^T\mb{B}\mb{p} + \gamma_t^T\mb{t} + \gamma_s^T\mb{s} - \mu \left[ \log \mb{s} + \log \mb{t} + \log \mb{s}_{w} + \log (\mb{p} - \mb{l}_0) + \log (\mb{u}_0 - \mb{p})  \right] \\
+    \text{such that} \qquad
+    & \mb{A}\mb{p} + \mb{c} = \mb{s} - \mb{t} \\
+    & \mb{A}_{w}\mb{p} + \mb{c}_{w} = \mb{s}_w \\
+    & \mb{S} \mb{t} = \mb{0}
+  \end{aligned}
+\end{equation}
+
+Lastly, it can be shown that this problem can be further simplified by dropping the last constraint (see appendix \ref{section:proof} for proof):
+%
+\begin{equation}
+  \label{eqn:quad-problem-barrier-2}
+  \begin{aligned}
+    \min_{\mb{p}, \mb{s}, \mb{t}, \mb{s}_w} \qquad & f + \mb{g}^T\mb{p} + \frac{1}{2}\mb{p}^T\mb{B}\mb{p} + \gamma_t^T\mb{t} + \gamma_s^T\mb{s} - \mu \left[ \log \mb{s} + \log \mb{t} + \log \mb{s}_{w} + \log (\mb{p} - \mb{l}_0) + \log (\mb{u}_0 - \mb{p})  \right] \\
+    \text{such that} \qquad
+    & \mb{A}\mb{p} + \mb{c} = \mb{s} - \mb{t} \\
+    & \mb{A}_{w}\mb{p} + \mb{c}_{w} = \mb{s}_w
+  \end{aligned}
+\end{equation}
+
+This is the actual form of problem that ParOpt interior point optimizer will solve.
+
+In consistent with $l_1$ penalization, the $l_1$ merit function
+%
+\begin{equation}
+    \label{eqn:l1-merit-function}
+    \phi(\mb{x}) = f(\mb{x}) + \gamma_s^T \max(\mb{0}, \mb{c}(\mb{x})) + \gamma_t^T \max(\mb{0}, -\mb{c}(\mb{x}))
+\end{equation}
+%
+and model merit function
+%
+\begin{equation}
+    \label{eqn:model-merit-function}
+    q(\mb{p}) = f + \mb{g}^T\mb{p} + \frac{1}{2}\mb{p}^T\mb{B}\mb{p} + \gamma_s^T \max(\mb{0}, \mb{A}\mb{p} + \mb{c}) + \gamma_t^T \max(\mb{0}, -(\mb{A}\mb{p} + \mb{c}))
+\end{equation}
+%
+are used to decide if the solution $\mb{p}$ can be accepted or rejected. The step acceptance is determined by computing the ratio:
+\begin{equation}
+    \label{eqn:rho_k}
+    \rho = \frac{\mbox{actual reduction}}{\mbox{model reduction}} \\
+    = \frac{\phi(\mb{x}) - \phi(\mb{x} + \mb{p})}{q(\mb{0}) - q(\mb{p})}
+\end{equation}
+
+\subsection{Update penalty parameter}
+In order to obtain good performance, the penalty parameter $\gamma$ must be chosen carefully at each iteration. In ParOpt, the steering method is used to update $\gamma$ in an adaptive way. The idea of this steering method is to choose the penalty parameter $\gamma$ at each iteration such that it is small enough to make sure we are decreasing the objective function, and large enough to cause the step to make sufficient progress in the linearized feasibility. It is a strategy that ensures balanced progress toward feasibility and optimality.
+
+Define model constraint violation by:
+\begin{equation}
+    m_k(\mb{p}) = \gamma_s^T \max(\mb{0}, \mb{A}\mb{p} + \mb{c}) + \gamma_t^T \max(\mb{0}, -(\mb{A}\mb{p} + \mb{c}))
+\end{equation}
+
+Then, the objective of $l_1$ penalty problem (\ref{eqn:quad-problem-penalty}) can be written as
+\begin{equation}
+    q_k(\mb{p}) = f + \mb{g}^T\mb{p} + \frac{1}{2}\mb{p}^T\mb{B}\mb{p} + m_k(\mb{p})
+\end{equation}
+
+In every trust region iteration, besides the original $l_1$ penalty problem (\ref{eqn:quad-problem-penalty}), the following linear programming problem is also solved:
+\begin{equation}
+  \label{eqn:steering-linear}
+  \begin{aligned}
+    \min_{\mb{p}} \qquad & m_k(\mb{p})\\
+    \text{such that} \qquad
+    & \mb{l} \le \mb{x}_k + \mb{p} \le \mb{u} \\
+    & ||\mb{p}||_\infty \le \Delta_k
+  \end{aligned}
+\end{equation}
+
+In practice this is done by setting the penalty parameter $\gamma$ in the original problem (\ref{eqn:quad-problem-penalty}) to a very large value (e.g. $\gamma = 10^6$) and recall the optimization routine to approximately solve the linear problem (\ref{eqn:steering-linear}). The solutions to the original penalty problem and linear programming problem are denoted as $\mb{p}_k$ and $\mb{p}_\infty$, respectively. Then $m_k(0) - m_k(\mb{p}_\infty)$ is the best constraint infeasibility reduction that we can achieve within the trust region radius regardless the objective function, and $m_k(0) - m_k(\mb{p}_k)$ is the model infeasibility reduction at $\mb{p}_k$.
+
+Next, we may update $\gamma_{k+1}$ based on these results. The general ideas are: if $m_k(0) \approx 0$, meaning that we've already been in the feasible region, then we might want to decrease $\gamma_{k+1}$ such that we can decrease the objective function itself faster without worrying about constraint infeasibility because we are using interior point method. If $m_k(0) > 0$, and model infeasibility reduction is smaller than best reduction, meaning that the constraint penalization is not significant enough and we want to move faster towards feasible region. Thus we might want to increase $\gamma_{k+1}$.
+
+Finally, the complete trust region S$l_1$QP algorithm with adaptive $\gamma$ update is presented in figure (\ref{fig:trust-region-alg}).
+
+\begin{figure}
+  \begin{algorithmic}
+  \State{Choose stop criteria $\epsilon_{infeas}, \epsilon_{KKTerror} > 0$}
+  \State{Choose trust region acceptance ratio $\eta \in (0, 1)$, trust
+  region radii $\Delta_{max}, \Delta_{min}$}
+  \State{Choose penalty parameters $\gamma_{max}, \gamma_{min}$}
+  \State{Choose initial $\mb{x}_1, \Delta_1, \gamma_1$}
+  \For{$k=1,2,...,\mbox{max\_iter}$}
+  \State{Evaluate $f_k, \mb{c}_k, \mb{g}_k, \mb{B}_k, \mb{A}_k, \mb{z}_k$}
+  \If{$\mbox{infeasibility} < \epsilon_{infeas}$ and $\mbox{KKTerror} < \epsilon_{KKTerror}$}
+  \State{\textbf{break}}
+  \EndIf
+  \State{Solve the trust region subproblem to get update $\mb{p}_k$}
+  \State{Compute the ratio $\rho_k$ (equation \ref{eqn:rho_k})}
+  \If{$\rho_k \ge \eta$ or $\Delta_k = \Delta_{min}$}
+  \State{Accept the trust region update: set $\mb{x}_{k+1} = \mb{x}_k + \mb{p}_k$}
+  \Else{}
+  \State{Reject the trust region update: set $\mb{x}_{k+1} = \mb{x}_k$}
+  \EndIf
+  \If{$\rho_k < 0.25$}
+  \State{Set $\Delta_{k+1} = \max(0.25\Delta_k,\Delta_{min})$}
+  \ElsIf{$\rho_k > 0.75$}
+  \State{Set $\Delta_{k+1} = \min(1.5\Delta_k, \Delta_{max})$}
+  \Else{}
+  \State{$\Delta_{k+1} = \Delta_k$}
+  \EndIf
+  \State{Solve the linear programming problem (\ref{eqn:steering-linear}) to get $\mb{p}_{\infty}$}
+  \State{Compute $m_k(0) - m_k(\mb{p}_k)$ and $m_k(0) - m_k(\mb{p}_\infty)$}
+  \For{$i = 1, 2, ...$}
+  \If{$m_k(0)_i < \epsilon_{infeas}$ and $0.5{\gamma_k}_i \ge {\mb{z}_k}_i > \epsilon_{infeas}$}
+  \State{Reduce penalty parameter: ${\gamma_{(k+1)}}_i = 0.5({\gamma_k}_i + {\mb{z}_k}_i) + \gamma_{min}$}
+  \ElsIf{$m_k(0)_i > \epsilon_{infeas}$ and $0.995(m_k(0) - m_k(\mb{p}_\infty))_i > (m_k(0) - m_k(\mb{p}_k))_i$}
+  \State{Increase penalty parameter: ${\gamma_{(k+1)}}_i = \min({1.5\gamma_k}_i, \gamma_{max})$}
+  \Else{}
+  \State{${\gamma_{(k+1)}}_i = {\gamma_k}_i$}
+  \EndIf
+  \EndFor
+  \EndFor
+  \end{algorithmic}
+  \caption{Trust region S$l_1$QP algorithm with adaptive $\gamma$ update}
+  \label{fig:trust-region-alg}
+\end{figure}
+
 
 \section{Implementation details}
 
@@ -906,5 +1123,62 @@ Range of values: lower limit 0  upper limit 1000000
 
 \bibliographystyle{abbrvnat}
 \bibliography{refs}
+
+\appendix
+\section{Equivalency of the two barrier problems: proof}
+\label{section:proof}
+We would like to show that for the following two optimization problems, we can replace the first one by second one.
+%
+\begin{equation}
+  \label{eqn:barrier-1}
+  \begin{aligned}
+    \min_{\mb{x}, \mb{s}, \mb{t}} \qquad & f(\mb{x}) + \gamma \mb{e}^T \mb{t} - \mu [\log \mb{s} + \log \mb{t} ] \\
+    \text{such that} \qquad
+    & \mb{c}(\mb{x}) = \mb{s} - \mb{t} \\
+    & \mb{S} \mb{t} = 0
+  \end{aligned}
+\end{equation}
+%
+\begin{equation}
+  \label{eqn:barrier-2}
+  \begin{aligned}
+    \min_{\mb{x}, \mb{s}, \mb{t}} \qquad & f(\mb{x}) + \gamma \mb{e}^T \mb{t} - \mu [\log \mb{s} + \log \mb{t} ] \\
+    \text{such that} \qquad
+    & \mb{c}(\mb{x}) = \mb{s} - \mb{t}
+  \end{aligned}
+\end{equation}
+
+In fact, problem (\ref{eqn:barrier-1}) and problem (\ref{eqn:barrier-2}) have the equivalent KKT systems. For problem (\ref{eqn:barrier-1}), define the Lagrangian:
+%
+\begin{equation}
+\mathcal{L}_1(\mb{x}, \mb{s}, \mb{t}; \mb{y}, \mb{z}) = f(\mb{x}) + \gamma \mb{e}^T \mb{t} - \mu [\log \mb{s} + \log \mb{t} ] - \mb{y}^T [\mb{c}(\mb{x}) - \mb{s} + \mb{t}] - \mb{z}^T \mb{S} \mb{t}
+\end{equation}
+
+Then the KKT system is:
+%
+\begin{equation}
+  \label{eqn:KKT-1}
+  \begin{aligned}
+    \nabla_\mb{x}\mathcal{L}_1 &= \nabla f(\mb{x}) - \mb{A}^T(\mb{x}) \mb{y} &= 0\\
+    \nabla_\mb{s}\mathcal{L}_1 &= - \mu \mb{S}^{-1}\mb{e} + \mb{y} - \mb{Z} \mb{t} &=  0\\
+    \nabla_\mb{t}\mathcal{L}_1 &= \gamma \mb{e} - \mu \mb{T}^{-1} \mb{e} - \mb{y} - \mb{Z} \mb{s} &= 0 \\
+    \nabla_\mb{y}\mathcal{L}_1 &= \mb{c}(\mb{x}) - \mb{s} + \mb{t} &= 0\\
+    \nabla_\mb{z}^T\mathcal{L}_1 &= \mb{S} \mb{t} &= 0
+  \end{aligned}
+\end{equation}
+
+Note that here diagonal matrices $\mb{T}$ and $\mb{Z}$ are defined in the same way as in (\ref{eqn:S}). For the second and third equation, multiply through by $\mb{S}$ and $\mb{T}$, respectively, also notice that since $\mb{S}, \mb{T}$ and $\mb{Z}$ are diagonal matrices, we have $\mb{S} \mb{Z} \mb{t}= \mb{Z} \mb{S} \mb{t}, \mb{T}\mb{Z} \mb{s} = \mb{Z}\mb{S}\mb{t}$. Then we can eliminate the last terms in these two equations, because we have $\mb{S}\mb{t}=\mb{0}$. Finally, multiply through by $\mb{S}^{-1}$ and $\mb{T}^{-1}$, respectively, then the KKT system (\ref{eqn:KKT-1}) becomes:
+%
+\begin{equation}
+  \label{eqn:KKT-2}
+  \begin{aligned}
+    \nabla f(\mb{x}) - \mb{A}^T(\mb{x}) \mb{y} &= 0\\
+    - \mu \mb{S}^{-1} \mb{e} + \mb{y}  &=  0\\
+    \gamma \mb{e} - \mu \mb{T}^{-1} \mb{e} - \mb{y} &= 0 \\
+    \mb{c}(\mb{x}) - \mb{s} + \mb{t} &= 0\\
+  \end{aligned}
+\end{equation}
+
+And this turns out to be the KKT system for problem (\ref{eqn:barrier-2}), which means that we can get the solution to the problem (\ref{eqn:barrier-1}) by solving the problem (\ref{eqn:barrier-2}), thus these two optimization problems are equivalent in this sense. Also notice that from (\ref{eqn:KKT-1}) to (\ref{eqn:KKT-2}) we exclude the last equation $\mb{S}\mb{t} = \mb{0}$, this is because we have removed the multiplier $\mb{z}$ from the problem, then the last equation of (\ref{eqn:KKT-1}) is redundant for (\ref{eqn:KKT-2}).
 
 \end{document}
