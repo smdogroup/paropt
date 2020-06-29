@@ -524,6 +524,7 @@ if __name__ == '__main__':
         'penalty_gamma': 10.0,
         'qn_subspace_size': 10,
         'qn_type': 'bfgs',
+        'qn_diag_type': 'yts_over_sts',
         'abs_res_tol': 1e-8,
         'starting_point_strategy': 'affine_step',
         'barrier_strategy': 'mehrotra_predictor_corrector',

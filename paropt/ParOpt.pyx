@@ -53,6 +53,12 @@ cdef str convert_char_to_str(const char* s):
 SKIP_NEGATIVE_CURVATURE = PAROPT_SKIP_NEGATIVE_CURVATURE
 DAMPED_UPDATE = PAROPT_DAMPED_UPDATE
 
+# Set the diagonal initialization type
+YTY_OVER_YTS = PAROPT_YTY_OVER_YTS
+YTS_OVER_STS = PAROPT_YTS_OVER_STS
+INNER_PRODUCT_YTY_OVER_YTS = PAROPT_INNER_PRODUCT_YTY_OVER_YTS
+INNER_PRODUCT_YTS_OVER_STS = PAROPT_INNER_PRODUCT_YTS_OVER_STS
+
 def unpack_output(filename):
     """
     Unpack the parameters from the paropt output file and return them
@@ -998,16 +1004,20 @@ cdef class CompactQuasiNewton:
 
 cdef class LBFGS(CompactQuasiNewton):
     def __cinit__(self, ProblemBase prob, int subspace=10,
-                  ParOptBFGSUpdateType update_type=SKIP_NEGATIVE_CURVATURE):
+                  ParOptBFGSUpdateType update_type=SKIP_NEGATIVE_CURVATURE,
+                  ParOptQuasiNewtonDiagonalType diag_type=YTY_OVER_YTS):
         cdef ParOptLBFGS *lbfgs = NULL
         lbfgs = new ParOptLBFGS(prob.ptr, subspace)
         lbfgs.setBFGSUpdateType(update_type)
+        lbfgs.setInitDiagonalType(diag_type)
         self.ptr = lbfgs
         self.ptr.incref()
 
 cdef class LSR1(CompactQuasiNewton):
-    def __cinit__(self, ProblemBase prob, int subspace=10):
+    def __cinit__(self, ProblemBase prob, int subspace=10,
+                  ParOptQuasiNewtonDiagonalType diag_type=YTY_OVER_YTS):
         self.ptr = new ParOptLSR1(prob.ptr, subspace)
+        self.ptr.setInitDiagonalType(diag_type)
         self.ptr.incref()
 
 # Python class for corresponding instance ParOpt

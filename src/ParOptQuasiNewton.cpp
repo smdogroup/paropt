@@ -22,6 +22,7 @@ ParOptLBFGS::ParOptLBFGS( ParOptProblem *prob,
 
   // Set the default Hessian update
   hessian_update_type = PAROPT_SKIP_NEGATIVE_CURVATURE;
+  diagonal_type = PAROPT_YTY_OVER_YTS;
   epsilon_precision = 1e-12;
 
   // Allocate space for the vectors
@@ -108,6 +109,15 @@ void ParOptLBFGS::setBFGSUpdateType( ParOptBFGSUpdateType _hessian_update_type )
 }
 
 /**
+  Set the type of initial diagonal quasi-Newton Hessian approximation.
+
+  @param _diagonal_type The type of initial quasi-Newton approximation
+*/
+void ParOptLBFGS::setInitDiagonalType( ParOptQuasiNewtonDiagonalType _diagonal_type ){
+  diagonal_type = _diagonal_type;
+}
+
+/**
   Get the maximum size of the limited-memory BFGS update.
 
   @return the maximum limited memory size
@@ -160,7 +170,7 @@ int ParOptLBFGS::update( ParOptVec *x, const ParOptScalar *z,
   // Compute dot products that are required for the matrix
   // updating scheme
   ParOptScalar yTy = y->dot(y);
-  ParOptScalar sTy = s->dot(y);
+  ParOptScalar yTs = y->dot(s);
   ParOptScalar sTs = s->dot(s);
 
   if (hessian_update_type == PAROPT_SKIP_NEGATIVE_CURVATURE){
@@ -169,13 +179,18 @@ int ParOptLBFGS::update( ParOptVec *x, const ParOptScalar *z,
       update_type = 2;
       return update_type;
     }
-    else if (ParOptRealPart(sTy) <= epsilon_precision*sqrt(ParOptRealPart(yTy*yTy))){
+    else if (ParOptRealPart(yTs) <= epsilon_precision*sqrt(ParOptRealPart(yTy*yTy))){
       update_type = 2;
       return update_type;
     }
 
     // Compute the scalar parameter
-    b0 = yTy/sTy;
+    if (diagonal_type == PAROPT_YTS_OVER_STS){
+      b0 = yTs/sTs;
+    }
+    else {
+      b0 = yTy/yTs;
+    }
 
     // Set the pointer to the new y value
     new_y = y;
@@ -184,7 +199,7 @@ int ParOptLBFGS::update( ParOptVec *x, const ParOptScalar *z,
     // If the Hessian approximation has not been initialized,
     // guess an initial value for the b0 value
     if (msub == 0){
-      b0 = yTy/sTy;
+      b0 = yTy/yTs;
       if (ParOptRealPart(b0) <= 0.0){
         b0 = 1.0;
       }
@@ -200,11 +215,11 @@ int ParOptLBFGS::update( ParOptVec *x, const ParOptScalar *z,
 
     // Compute s^{T}*B*s
     ParOptScalar sTBs = r->dot(s);
-    if (ParOptRealPart(sTy) <= 0.2*ParOptRealPart(sTBs)){
+    if (ParOptRealPart(yTs) <= 0.2*ParOptRealPart(sTBs)){
       update_type = 1;
 
       // Compute the value of theta
-      ParOptScalar theta = 0.8*sTBs/(sTBs - sTy);
+      ParOptScalar theta = 0.8*sTBs/(sTBs - yTs);
 
       // Compute r = theta*y + (1 - theta)*B*s
       r->scale(1.0 - theta);
@@ -212,11 +227,16 @@ int ParOptLBFGS::update( ParOptVec *x, const ParOptScalar *z,
 
       new_y = r;
       yTy = new_y->dot(new_y);
-      sTy = s->dot(new_y);
+      yTs = s->dot(new_y);
     }
 
     // Set the new value of b0
-    b0 = yTy/sTy;
+    if (diagonal_type == PAROPT_YTS_OVER_STS){
+      b0 = yTs/sTs;
+    }
+    else {
+      b0 = yTy/yTs;
+    }
   }
 
   // Set up the new values
@@ -447,6 +467,9 @@ ParOptLSR1::ParOptLSR1( ParOptProblem *prob, int _msub_max ){
 
   b0 = 1.0;
 
+  // Set the default initial diagonal QN approximation
+  diagonal_type = PAROPT_YTY_OVER_YTS;
+
   // Allocate space for the vectors
   S = new ParOptVec*[ msub_max ];
   Y = new ParOptVec*[ msub_max ];
@@ -525,6 +548,15 @@ ParOptLSR1::~ParOptLSR1(){
   delete [] L;
   delete [] B;
   delete [] d0;
+}
+
+/**
+  Set the type of initial diagonal quasi-Newton Hessian approximation.
+
+  @param _diagonal_type The type of initial quasi-Newton approximation
+*/
+void ParOptLSR1::setInitDiagonalType( ParOptQuasiNewtonDiagonalType _diagonal_type ){
+  diagonal_type = _diagonal_type;
 }
 
 /**

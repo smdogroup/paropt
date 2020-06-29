@@ -28,8 +28,8 @@ enum ParOptStartingPointStrategy { PAROPT_NO_START_STRATEGY,
                                    PAROPT_AFFINE_STEP };
 
 /*
-  ParOpt is a parallel optimizer implemented in C++ for large-scale
-  constrained optimization.
+  ParOptInteriorPoint is a parallel interior-point optimizer
+  implemented in C++ for large-scale constrained optimization.
 
   This code uses an interior-point method to perform gradient-based
   design optimization. The KKT system is solved using a bordered
@@ -66,10 +66,10 @@ enum ParOptStartingPointStrategy { PAROPT_NO_START_STRATEGY,
   At each step of the optimization, we compute a solution to the
   linear system above, using:
 
-  ||J(q)*p + r(q)|| <= eta*||r(q)||
+  ||K(q)*p + r(q)|| <= eta*||r(q)||
 
   where q are all the optimization variables, r(q) are the perturbed
-  KKT residuals and J(q) is either an approximate or exact
+  KKT residuals and K(q) is either an approximate or exact
   linearization of r(q). The parameter eta is a forcing term that
   controls how tightly the linearization is solved. The inexact
   solution p is a search direction that is subsequently used in a line
@@ -88,20 +88,6 @@ enum ParOptStartingPointStrategy { PAROPT_NO_START_STRATEGY,
   small column dimension that is stored as a series of vectors. The
   form of these matrices depends on whether the limited-memory BFGS or
   SR1 technique is used.
-
-  The full KKT system can be written as follows:
-
-  [  B    0 -Ac^{T} -Aw^{T}   0   0   0  -I         I        ][ px  ]
-  [  0    0      -I       0   0  -I   0   0         0        ][ pt  ]
-  [  Ac   I       0       0  -I   0   0   0         0        ][ pz  ]
-  [  Aw   0       0       0   0   0  -I   0         0        ][ pzw ]
-  [  0    0       S       0   Z   0   0   0         0        ][ ps  ] = -r
-  [  0   Zt       0       0   0   T   0   0         0        ][ pzt ]
-  [  0    0       0       Sw  0   0  Zw   0         0        ][ psw ]
-  [  Zl   0       0       0   0   0  0    (X - Xl)  0        ][ pzl ]
-  [ -Zu   0       0       0   0   0  0    0         (Xu - X) ][ pzu ]
-
-  where B is a quasi-Newton Hessian approximation.
 
   After certain transition criteria are met, we employ an exact
   Hessian, accessible through Hessian-vector products, and instead
@@ -129,7 +115,7 @@ enum ParOptStartingPointStrategy { PAROPT_NO_START_STRATEGY,
   the exact linearization with right-preconditioned GMRES scheme. This
   method utilizes the limited-memory BFGS or SR1 quasi-Newton
   approximation as a preconditioner. The preconditioned operator,
-  J*J_{B}^{-1}, takes a special form where only entries associated
+  K*K_{B}^{-1}, takes a special form where only entries associated
   with the design vector need to be stored.
 */
 class ParOptInteriorPoint : public ParOptBase {

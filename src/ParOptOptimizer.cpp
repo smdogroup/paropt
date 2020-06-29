@@ -137,6 +137,22 @@ void ParOptOptimizer::optimize(){
         qn->incref();
       }
 
+      if (qn){
+        const char *diag_type = options->getEnumOption("qn_diag_type");
+        if (strcmp(diag_type, "yty_over_yts") == 0){
+          qn->setInitDiagonalType(PAROPT_YTY_OVER_YTS);
+        }
+        else if (strcmp(diag_type, "yts_over_sts") == 0){
+          qn->setInitDiagonalType(PAROPT_YTS_OVER_STS);
+        }
+        else if (strcmp(diag_type, "inner_yty_over_yts") == 0){
+          qn->setInitDiagonalType(PAROPT_INNER_PRODUCT_YTY_OVER_YTS);
+        }
+        else {
+          qn->setInitDiagonalType(PAROPT_INNER_PRODUCT_YTS_OVER_STS);
+        }
+      }
+
       subproblem = new ParOptQuadraticSubproblem(problem, qn);
       subproblem->incref();
     }

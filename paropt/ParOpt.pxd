@@ -52,8 +52,15 @@ cdef extern from "ParOptQuasiNewton.h":
         PAROPT_SKIP_NEGATIVE_CURVATURE
         PAROPT_DAMPED_UPDATE
 
+    enum ParOptQuasiNewtonDiagonalType:
+        PAROPT_YTY_OVER_YTS
+        PAROPT_YTS_OVER_STS
+        PAROPT_INNER_PRODUCT_YTY_OVER_YTS
+        PAROPT_INNER_PRODUCT_YTS_OVER_STS
+
     cdef cppclass ParOptCompactQuasiNewton(ParOptBase):
         ParOptCompactQuasiNewton()
+        void setInitDiagonalType(ParOptQuasiNewtonDiagonalType)
         void reset()
         int update(ParOptVec*, const double*, ParOptVec*,
                    ParOptVec*, ParOptVec*)

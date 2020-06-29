@@ -1467,7 +1467,9 @@ void ParOptTrustRegion::computeKKTError( const ParOptScalar *z,
     }
   }
 
-  // Compute the maximum
+  // Compute the stopping criterion:
+  // *l1 = ||g - A^{T}*z - Aw^{T}*zw||_{1}/max(1, zmax, ||g||_{1})
+  // *linfty = ||g - A^{T}*z - Aw^{T}*zw||_{infinity}/max(1, zmax, ||g||_{infinity})
   zmax = max2(1.0, zmax);
   *l1 = *l1/ParOptRealPart(max2(gk->l1norm(), zmax));
   *linfty = *linfty/ParOptRealPart(max2(gk->maxabs(), zmax));

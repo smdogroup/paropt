@@ -4,8 +4,19 @@
 #include "ParOptVec.h"
 #include "ParOptProblem.h"
 
+/*
+  The type of BFGS update to use
+*/
 enum ParOptBFGSUpdateType { PAROPT_SKIP_NEGATIVE_CURVATURE,
                             PAROPT_DAMPED_UPDATE };
+
+/*
+  The type of diagonal approximation to use in the BFGS update
+*/
+enum ParOptQuasiNewtonDiagonalType { PAROPT_YTY_OVER_YTS,
+                                     PAROPT_YTS_OVER_STS,
+                                     PAROPT_INNER_PRODUCT_YTY_OVER_YTS,
+                                     PAROPT_INNER_PRODUCT_YTS_OVER_STS };
 
 /**
   This is the abstract base class for compact limited-memory
@@ -18,6 +29,9 @@ class ParOptCompactQuasiNewton : public ParOptBase {
  public:
   ParOptCompactQuasiNewton(){}
   virtual ~ParOptCompactQuasiNewton(){}
+
+  // Set the type of diagonal to use
+  virtual void setInitDiagonalType( ParOptQuasiNewtonDiagonalType _diagonal_type ){}
 
   // Reset the internal data
   virtual void reset() = 0;
@@ -74,6 +88,7 @@ class ParOptLBFGS : public ParOptCompactQuasiNewton {
 
   // Set the curvature update type
   void setBFGSUpdateType( ParOptBFGSUpdateType _hessian_update_type );
+  void setInitDiagonalType( ParOptQuasiNewtonDiagonalType _diagonal_type );
 
   // Reset the internal data
   void reset();
@@ -96,6 +111,7 @@ class ParOptLBFGS : public ParOptCompactQuasiNewton {
  protected:
   // Store the type of curvature handling update
   ParOptBFGSUpdateType hessian_update_type;
+  ParOptQuasiNewtonDiagonalType diagonal_type;
 
   // Set the finite-precision tolerance
   double epsilon_precision;
@@ -144,6 +160,9 @@ class ParOptLSR1 : public ParOptCompactQuasiNewton {
   ParOptLSR1( ParOptProblem *prob, int _subspace_size );
   ~ParOptLSR1();
 
+  // Set the type of initial diagonal approximation to use
+  void setInitDiagonalType( ParOptQuasiNewtonDiagonalType _diagonal_type );
+
   // Reset the internal data
   void reset();
 
@@ -163,6 +182,9 @@ class ParOptLSR1 : public ParOptCompactQuasiNewton {
   int getMaxLimitedMemorySize();
 
  protected:
+  // The type of initial diagonal approximation to use
+  ParOptQuasiNewtonDiagonalType diagonal_type;
+
   // The size of the BFGS subspace
   int msub, msub_max;
 

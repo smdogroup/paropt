@@ -187,6 +187,22 @@ ParOptInteriorPoint::ParOptInteriorPoint( ParOptProblem *_prob,
     qn->incref();
   }
 
+  if (qn){
+    const char *diag_type = options->getEnumOption("qn_diag_type");
+    if (strcmp(diag_type, "yty_over_yts") == 0){
+      qn->setInitDiagonalType(PAROPT_YTY_OVER_YTS);
+    }
+    else if (strcmp(diag_type, "yts_over_sts") == 0){
+      qn->setInitDiagonalType(PAROPT_YTS_OVER_STS);
+    }
+    else if (strcmp(diag_type, "inner_yty_over_yts") == 0){
+      qn->setInitDiagonalType(PAROPT_INNER_PRODUCT_YTY_OVER_YTS);
+    }
+    else {
+      qn->setInitDiagonalType(PAROPT_INNER_PRODUCT_YTS_OVER_STS);
+    }
+  }
+
   hdiag = NULL;
 
   // Get the maximum subspace size
@@ -573,6 +589,14 @@ void ParOptInteriorPoint::addDefaultOptions( ParOptOptions *options ){
   options->addEnumOption("qn_update_type",
     "skip_negative_curvature", 2, bfgs_type,
     "The type of BFGS update to apply when the curvature condition fails");
+
+  const char *qn_diag_type[4] = {"yty_over_yts",
+                                 "yts_over_sts",
+                                 "inner_yty_over_yts",
+                                 "inner_yts_over_sts"};
+  options->addEnumOption("qn_diag_type",
+    "yty_over_yts", 4, qn_diag_type,
+    "The type of initial diagonal to use in the quasi-Newton approximation");
 
   const char *norm_options[3] = {"infinity", "l1", "l2"};
   options->addEnumOption("norm_type", "infinity", 3, norm_options,

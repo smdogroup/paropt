@@ -367,4 +367,3 @@ x, z, zw, zl, zu = opt.getOptimizedPoint()
 
 # Visualize the final design
 problem.visualize(x)
-

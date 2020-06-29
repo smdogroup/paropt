@@ -459,20 +459,10 @@ If GMRES fails to find an inexact solution that is also a descent direction, we 
 
 \section{Trust region algorithm}
 
-ParOpt also implements a trust region method to solve optimization problems. For each trust region iteration, ParOpt constructs a quadratic model subproblem and solves the subproblem using the interior point solver. The general form of the optimization problem is same as the previous one:
-%
-\begin{equation}
-  \label{eqn:opt-problem-tr}
-  \begin{aligned}
-    \min_{\mb{x}} \qquad & f(\mb{x}) \\
-    \text{such that} \qquad
-    & \mb{c}(\mb{x}) \ge 0 \\
-    & \mb{c}_{w}(\mb{x}) \ge 0 \\
-    & \mb{l} \le \mb{x} \le \mb{u}
-  \end{aligned}
-\end{equation}
-
-Accordingly, the trust region quadratic subproblem with linearized constraints can be formulated as follows, notice that for the rest equations of this section, we drop the subscript $k$ (which indicates the current trust region iteration) to simplify the notation.
+ParOpt also implements a trust region method to solve optimization problems. 
+For each trust region iteration, ParOpt constructs a quadratic model subproblem and solves the subproblem using the interior point solver.
+The general form of the optimization problem is same as Problem~\eqref{eqn:opt-problem}.
+Accordingly, the trust region quadratic subproblem with linearized constraints can be formulated as follows:
 %
 \begin{equation}
   \label{eqn:quad-problem}
@@ -486,13 +476,18 @@ Accordingly, the trust region quadratic subproblem with linearized constraints c
   \end{aligned}
 \end{equation}
 %
-where $\mb{p} = \mb{x}_{k+1} - \mb{x}_{k}$, which is the update step that we solve for. $f = f(\mb{x}_k)$, $\mb{g}_k = \nabla_x f(\mb{x}_k)$ are the function value and gradient, respectively. $\mb{B} = \nabla_x^2 (f(\mb{x}_k) - \mb{z}^T \mb{c}(\mb{x}_k)-\mb{z}_w^T \mb{c}_w(\mb{x}_k))$ is the approximation of the Hessian of the Lagrangian. $\mb{A}, \mb{c}, \mb{A}_w, \mb{c}_w$ are Jacobian and value for dense constraints and sparse constraints, respectively. $\Delta$ is the trust region radius.
+where $\mb{p} = \mb{x}_{k+1} - \mb{x}_{k}$ is the update step.
+Note that for the rest equations of this section, we drop the subscript $k$ (which indicates the current trust region iteration) to simplify the notation:
+Similarly, $f = f(\mb{x}_k)$, $\mb{g} = \nabla_x f(\mb{x}_k)$ are the function value and gradient, respectively and $\mb{B} = \nabla_x^2 (f(\mb{x}_k) - \mb{z}^T \mb{c}(\mb{x}_k)-\mb{z}_w^T \mb{c}_w(\mb{x}_k))$ is the approximation of the Hessian of the Lagrangian. 
+The general and sparse constraints are denoted $\mb{c}$ and $\mb{c}_{w}$, respectively, and $\mb{A}$ and $\mb{A}_w$ are the Jacobians for the dense and sparse constraints.
+The trust-region radius is given by $\Delta$.
 
-Next, we would like to convert this subproblem into a barrier problem so that it can be solved by ParOpt interior point solver. First, notice that we have the identity
+The subproblem~\eqref{eqn:quad-problem} can be reformulated so that it can be solved using the ParOpt interior point solver.
+First, notice that we have the identity for an arbitrary scalar variable $\alpha$
 %
-\begin{equation}
+\begin{equation*}
     \alpha = \max(0, \alpha) - \max(0, -\alpha)
-\end{equation}
+\end{equation*}
 %
 and corresponding relations
 %
@@ -505,20 +500,20 @@ and corresponding relations
 \end{gathered}
 \end{equation}
 %
-hold for arbitrary scalar variable $\alpha$. Then for the linearized constraints, we can define slack variables
+As a result, we can define slack variables
 %
-\begin{equation}
+\begin{equation*}
     \mb{A}\mb{p} + \mb{c} = \mb{s} - \mb{t}
-\end{equation}
+\end{equation*}
 %
 such that
 %
-\begin{equation}
+\begin{equation*}
 \begin{aligned}
     \mb{s} & = \max(\mb{0}, \mb{A}\mb{p} + \mb{c}) \\
     \mb{t} & = \max(\mb{0}, -(\mb{A}\mb{p} + \mb{c}))
 \end{aligned}
-\end{equation}
+\end{equation*}
 %
 where the $\max$ function is applied to vectors in the component-wise fashion. Due to the characteristics of the $\max$ function shown in equation (\ref{max-relation}), we will have additional conditions for the slack variable $\mb{s}$ and $\mb{t}$:
 %
@@ -533,7 +528,7 @@ where the $\max$ function is applied to vectors in the component-wise fashion. D
 %
 where $\mb{S}$ is the square matrix diagonalized from vector $\mb{s}$, note that this convention is used multiple times in the future.
 
-Go back to the subproblem (\ref{eqn:quad-problem}), now we can move the constraints into the objective function by using $l_1$ penalization and slack variables that we just defined:
+Returning to subproblem~\eqref{eqn:quad-problem}, we can now move the constraints into the objective function by using $l_1$ penalization and slack variables that we just defined:
 %
 \begin{equation}
   \label{eqn:quad-problem-penalty}
@@ -550,9 +545,13 @@ Go back to the subproblem (\ref{eqn:quad-problem}), now we can move the constrai
   \end{aligned}
 \end{equation}
 %
-where $\mb{l}_0 = \max(\mb{l} - \mb{x}_k, -\Delta)$, $\mb{u}_0 = \min(\mb{u} - \mb{x}_k, \Delta)$. Here notice that we use both $\mb{s}$ and $\mb{t}$ as penalty terms, because this allows us to apply not only inequality constraints but also equality constraints for $\mb{c}$. If we want $\mb{c}$ to be equality constraints, then set $\gamma_t > 0, \gamma_s > 0$, and $\mb{s} + \mb{t} = |\mb{A}\mb{p} + \mb{c}|$ is the constraint violation to be added as penalty. Otherwise, if we want to keep $\mb{c}$ as inequality constraints, then set $\gamma_t > 0, \gamma_s = 0$, and only $\mb{t}$ will be added as penalty.
+where $\mb{l}_0 = \max(\mb{l} - \mb{x}_k, -\Delta)$, $\mb{u}_0 = \min(\mb{u} - \mb{x}_k, \Delta)$.
 
-Finally, by moving inequality constraints in equation (\ref{eqn:quad-problem-penalty}) into the objective function using log barrier function, the barrier problem can be formulated:
+Here notice that we use both $\mb{s}$ and $\mb{t}$ as penalty terms, because this allows us to apply not only inequality constraints but also equality constraints for $\mb{c}$.
+If we want $\mb{c}$ to be an equality constraint, then we set $\gamma_t > 0$ and $\gamma_s > 0$, and $\mb{s} + \mb{t} = |\mb{A}\mb{p} + \mb{c}|$ is the constraint violation to be added as penalty.
+Otherwise, if we want to keep $\mb{c}$ as an inequality constraint, then set $\gamma_t > 0, \gamma_s = 0$, and only $\mb{t}$ will be added as penalty.
+
+Moving the inequality constraints in equation~\eqref{eqn:quad-problem-penalty} into the objective function using log barrier function, the barrier problem can be formulated:
 %
 \begin{equation}
   \label{eqn:quad-problem-barrier}
@@ -564,8 +563,8 @@ Finally, by moving inequality constraints in equation (\ref{eqn:quad-problem-pen
     & \mb{S} \mb{t} = \mb{0}
   \end{aligned}
 \end{equation}
-
-Lastly, it can be shown that this problem can be further simplified by dropping the last constraint (see appendix \ref{section:proof} for proof):
+%
+Finally, it can be shown that this problem can be further simplified by dropping the last constraint (see appendix \ref{section:proof} for proof):
 %
 \begin{equation}
   \label{eqn:quad-problem-barrier-2}
@@ -576,10 +575,9 @@ Lastly, it can be shown that this problem can be further simplified by dropping 
     & \mb{A}_{w}\mb{p} + \mb{c}_{w} = \mb{s}_w
   \end{aligned}
 \end{equation}
-
+%
 This is the actual form of problem that ParOpt interior point optimizer will solve.
-
-In consistent with $l_1$ penalization, the $l_1$ merit function
+To remain with the $l_1$ penalization, the $l_1$ merit function
 %
 \begin{equation}
     \label{eqn:l1-merit-function}

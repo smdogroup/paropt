@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 import math
 import argparse
 
+import numpy
+numpy.seterr(all='warn')
+
 class CartODE(om.ExplicitComponent):
 
     def initialize(self):
@@ -146,10 +149,10 @@ phase.set_time_options(fix_initial=True, fix_duration=True, duration_val=2.0)
 
 # Define state variable
 phase.add_state('q1', fix_initial=True, fix_final=True, rate_source='q1dot', lower=-2.0, upper=2.0)
-phase.add_state('q2', fix_initial=True, fix_final=True, rate_source='q2dot', targets='q2')
-phase.add_state('q3', fix_initial=True, fix_final=True, rate_source='q3dot', targets='q3')
-phase.add_state('q4', fix_initial=True, fix_final=True, rate_source='q4dot', targets='q4')
-phase.add_state('J', fix_initial=True, fix_final=False, rate_source='Jdot')
+phase.add_state('q2', fix_initial=True, fix_final=True, rate_source='q2dot', targets='q2', lower=-100.0, upper=100.0)
+phase.add_state('q3', fix_initial=True, fix_final=True, rate_source='q3dot', targets='q3', lower=-100.0, upper=100.0)
+phase.add_state('q4', fix_initial=True, fix_final=True, rate_source='q4dot', targets='q4', lower=-100.0, upper=100.0)
+phase.add_state('J', fix_initial=True, fix_final=False, rate_source='Jdot', lower=-100.0, upper=100.0)
 
 # Define control variable
 phase.add_control(name='u', lower=-20.0, upper=20.0, continuity=True, rate_continuity=True, targets='u')
@@ -176,12 +179,20 @@ if optimizer == "SLSQP":
 
 else:
     p.driver.options['optimizer'] = "ParOpt"
-    p.driver.opt_settings['algorithm'] = 'ip'
+    p.driver.opt_settings['algorithm'] = 'tr'
+    p.driver.opt_settings['output_level'] = 2
+    p.driver.opt_settings['tr_max_size'] = 1e2
+    p.driver.opt_settings['penalty_gamma'] = 1e2
+    p.driver.opt_settings['tr_penalty_gamma_min'] = 100.0
+    p.driver.opt_settings['tr_adaptive_gamma_update'] = False
+    p.driver.opt_settings['tr_max_iterations'] = 500
     p.driver.opt_settings['norm_type'] = 'infinity'
+    p.driver.opt_settings['abs_res_tol'] = 1e-8
     p.driver.opt_settings['max_major_iters'] = 1000
-    p.driver.opt_settings['barrier_strategy'] = 'monotone'
-    p.driver.opt_settings['starting_point_strategy'] = 'least_square_multipliers'
-    p.driver.opt_settings['qn_type'] = 'bfgs'
+    # p.driver.opt_settings['barrier_strategy'] = 'mehrotra'
+    p.driver.opt_settings['qn_type'] = 'none'
+    p.driver.opt_settings['sequential_linear_method'] = True
+#    p.driver.opt_settings['gradient_verification_frequency'] = 1
 
 
 # Allow OpenMDAO to automatically determine our sparsity pattern.
