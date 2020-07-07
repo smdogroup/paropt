@@ -106,12 +106,12 @@ class Electron(ParOpt.Problem):
 if __name__ == "__main__":
     # Parse the command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--optimizer', type=str, default='ip')
+    parser.add_argument('--algorithm', type=str, default='ip')
     parser.add_argument('--n', type=int, default=10, help='number of electron')
     args = parser.parse_args()
 
     use_tr = False
-    if args.optimizer != 'ip':
+    if args.algorithm != 'ip':
         use_tr = True
 
     # use interior point algorithm

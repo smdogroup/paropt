@@ -112,10 +112,10 @@ class Maratos(ParOpt.Problem):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--optimizer', type=str, default='tr')
+parser.add_argument('--algorithm', type=str, default='tr')
 parser.add_argument('--no_label', action='store_false', default=True)
 args = parser.parse_args()
-optimizer = args.optimizer
+algorithm = args.algorithm
 plot_label = args.no_label
 
 problem = Maratos(plot_label=plot_label)
@@ -129,8 +129,8 @@ options = {
     'use_backtracking_alpha': True,
     'max_major_iters': 100,
     'tr_init_size': 0.1,
-    'tr_min_size': 1e-6,
-    'tr_max_size': 1.0,
+    'tr_min_size': 1e-2,
+    'tr_max_size': 10.0,
     'tr_eta': 0.25,
     'penalty_gamma': 1.0,
     'tr_adaptive_gamma_update': True,
@@ -139,7 +139,7 @@ options = {
     'tr_max_iterations': 200,
     'use_line_search': False}
 
-if optimizer == 'ip':
+if algorithm == 'ip':
     options = {
             'algorithm': 'ip',
             'qn_subspace_size': 10,
