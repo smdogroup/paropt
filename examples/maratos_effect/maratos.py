@@ -33,10 +33,10 @@ class Maratos(ParOpt.Problem):
         return np.array([4.0*x[0]-1.0, 4.0*x[1]])
 
     def con(self, x):
-        return 1.0 - (x[0]**2 + x[1]**2)
+        return (x[0]**2 + x[1]**2) - 1.0
 
     def con_grad(self, x):
-        return np.array([-2.0*x[0], -2.0*x[1]])
+        return np.array([2.0*x[0], 2.0*x[1]])
 
     def plot_contour(self):
         n = 200
@@ -77,8 +77,8 @@ class Maratos(ParOpt.Problem):
 
     def getVarsAndBounds(self, x, lb, ub):
         """Set the values of the bounds"""
-        x[0] = -1.5
-        x[1] = 1.5
+        x[0] = 0.0
+        x[1] = 0.5
 
         lb[:] = -10.0
         ub[:] =  10.0
@@ -113,9 +113,11 @@ class Maratos(ParOpt.Problem):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--algorithm', type=str, default='tr')
+parser.add_argument('--no_plot', action='store_false', default=True)
 parser.add_argument('--no_label', action='store_false', default=True)
 args = parser.parse_args()
 algorithm = args.algorithm
+plot = args.no_plot
 plot_label = args.no_label
 
 problem = Maratos(plot_label=plot_label)
@@ -123,21 +125,24 @@ problem.plot_contour()
 
 options = {
     'algorithm': 'tr',
-    'qn_type': 'bfgs',
-    'abs_res_tol': 1e-8,
+    # 'abs_res_tol': 1e-30,
+    'tr_l1_tol': 1e-30,
+    'tr_linfty_tol': 1e-30,
     'output_level': 0,
-    'use_backtracking_alpha': True,
-    'max_major_iters': 100,
-    'tr_init_size': 0.1,
+    'tr_init_size': 1.0,
     'tr_min_size': 1e-2,
-    'tr_max_size': 10.0,
+    'tr_max_size': 1e2,
     'tr_eta': 0.25,
-    'penalty_gamma': 1.0,
-    'tr_adaptive_gamma_update': True,
+    'penalty_gamma': 1e2,
+    'tr_adaptive_gamma_update': False,
+    'tr_use_filter': True,
+    'tr_use_soc': True,
+    'tr_soc_use_quad_model': False,
     'tr_penalty_gamma_max': 1e5,
     'tr_penalty_gamma_min': 1e-5,
-    'tr_max_iterations': 200,
-    'use_line_search': False}
+    'tr_max_iterations': 20,
+    'max_major_iters': 100,
+    }
 
 if algorithm == 'ip':
     options = {
@@ -151,4 +156,5 @@ if algorithm == 'ip':
 
 opt = ParOpt.Optimizer(problem, options)
 opt.optimize()
-plt.show()
+if plot:
+    plt.show()

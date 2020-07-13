@@ -115,12 +115,30 @@ p.driver = om.pyOptSparseDriver()
 if optimizer == 'SLSQP':
     p.driver.options['optimizer'] = 'SLSQP'
 
+elif optimizer == 'SNOPT':
+    p.driver.options['optimizer'] = 'SNOPT'
+
+elif optimizer == 'IPOPT':
+        p.driver.options['optimizer'] = 'IPOPT'
+
 else:
     p.driver.options['optimizer'] = 'ParOpt'
 
-    if algorithm == "tr":
+    if algorithm == 'tr':
         p.driver.opt_settings['algorithm'] = 'tr'
-
+        p.driver.opt_settings['tr_linfty_tol'] = 1e-30
+        p.driver.opt_settings['tr_l1_tol'] = 1e-30
+        p.driver.opt_settings['output_level'] = 0
+        p.driver.opt_settings['tr_max_size'] = 1e3
+        p.driver.opt_settings['tr_min_size'] = 1e-2
+        p.driver.opt_settings['penalty_gamma'] = 1e2
+        p.driver.opt_settings['tr_adaptive_gamma_update'] = False
+        p.driver.opt_settings['tr_use_filter'] = True
+        p.driver.opt_settings['tr_use_soc'] = True
+        p.driver.opt_settings['tr_max_iterations'] = 200
+        p.driver.opt_settings['max_major_iters'] = 100
+        # p.driver.opt_settings['qn_type'] = 'none'
+        # p.driver.opt_settings['sequential_linear_method'] = True
     else:
         p.driver.opt_settings['algorithm'] = 'ip'
         p.driver.opt_settings['norm_type'] = 'infinity'

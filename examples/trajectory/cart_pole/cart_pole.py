@@ -63,6 +63,8 @@ class CartPole(ParOpt.Problem):
         self.g = 9.81
         self.t = t
 
+        self.iter_counter = 0
+
         # Compute the weights for the objective function
         self.h = np.zeros(t.shape[0] - 1)
         self.h = self.t[1:] - self.t[:-1]
@@ -109,7 +111,9 @@ class CartPole(ParOpt.Problem):
         con[3] = self.q[-1, 3] # qdot(q2) = 0
         con[:] *= self.con_scale
 
-        print('obj: %15g  infeas: %15g'%(fobj, np.sqrt(np.dot(con, con))))
+        print('iter: %d   obj: %15g  infeas: %15g'%
+              (self.iter_counter, fobj, np.sqrt(np.dot(con, con))))
+        self.iter_counter += 1
 
         return fail, fobj, con
 
@@ -341,7 +345,7 @@ class CartPole(ParOpt.Problem):
         plt.show()
 
 # Create the
-n = 251
+n = 40
 t = np.linspace(0, 2.0, n)
 problem = CartPole(t)
 
@@ -349,15 +353,26 @@ problem.checkGradients(1e-5)
 
 filename = 'paropt.out'
 options = {
-    'algorithm': 'ip',
-    'output_level': 2,
+    'algorithm': 'tr',
+    'output_level': 0,
+    'tr_l1_tol': 1e-30,
+    'tr_linfty_tol': 1e-30,
     'norm_type': 'infinity',
-    'max_major_iters': 1000,
-    'barrier_strategy': 'mehrotra',
-    'starting_point_strategy': 'affine_step',
+    'max_major_iters': 50,
+    # 'barrier_strategy': 'mehrotra',
+    # 'starting_point_strategy': 'affine_step',
     'qn_type': 'bfgs',
     'qn_update_type': 'damped_update',
-    'output_file': filename}
+    'output_file': filename,
+    'tr_min_size': 1e-6,
+    'tr_max_size': 1e3,
+    'tr_max_iterations': 500,
+    'tr_adaptive_gamma_update': False,
+    'tr_use_filter': True,
+    'tr_use_soc': True,
+    'tr_soc_use_quad_model': True,
+    'tr_max_iterations': 200
+    }
 
 opt = ParOpt.Optimizer(problem, options)
 
@@ -366,4 +381,4 @@ opt.optimize()
 x, z, zw, zl, zu = opt.getOptimizedPoint()
 
 # Visualize the final design
-problem.visualize(x)
+problem.visualize(x, skip=1)

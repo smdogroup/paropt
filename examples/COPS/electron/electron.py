@@ -33,6 +33,7 @@ class Electron(ParOpt.Problem):
         n = self.n
 
         # x = [x_1, ..., x_n, y_1, ..., y_n, z_1, ..., z_n]
+        np.random.seed(0)
         alpha = np.random.uniform(low=0., high=2*np.pi, size=n)
         beta  = np.random.uniform(low=-np.pi, high=np.pi, size=n)
         for i in range(n):
@@ -106,7 +107,7 @@ class Electron(ParOpt.Problem):
 if __name__ == "__main__":
     # Parse the command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--algorithm', type=str, default='ip')
+    parser.add_argument('--algorithm', type=str, default='tr')
     parser.add_argument('--n', type=int, default=10, help='number of electron')
     args = parser.parse_args()
 
@@ -128,17 +129,20 @@ if __name__ == "__main__":
     if use_tr:
         options = {
             'algorithm': 'tr',
-            'qn_subspace_size': 10,
-            'abs_res_tol': 1e-8,
-            'barrier_strategy': 'monotone',
+            'output_level': 0,
+            'tr_l1_tol': 1e-30,
+            'tr_linfty_tol': 1e-30,
             'tr_init_size': 0.05,
             'tr_min_size': 1e-6,
-            'tr_max_size': 10.0,
-            'tr_eta': 0.1,
-            'tr_adaptive_gamma_update': True,
-            'tr_max_iterations': 500,
-            'max_major_iters': 500,
-            'use_line_search': False}
+            'tr_max_size': 1e3,
+            'tr_eta': 0.25,
+            'tr_adaptive_gamma_update': False,
+            'tr_use_filter': True,
+            'tr_use_soc': True,
+            'tr_max_iterations': 200,
+            'max_major_iters': 100,
+            # 'use_line_search': False
+            }
 
     problem = Electron(args.n, 1e-15)
     problem.checkGradients()
