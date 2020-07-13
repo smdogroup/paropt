@@ -2,6 +2,8 @@
 #define PAR_OPT_TRUST_REGION_H
 
 #include "ParOptInteriorPoint.h"
+#include <utility>
+#include <vector>
 
 /*
   This class defines the trust region subproblem interface.
@@ -96,6 +98,30 @@ class ParOptTrustRegionSubproblem : public ParOptProblem {
                               ParOptScalar *fk=NULL, ParOptVec **gk=NULL,
                               const ParOptScalar **ck=NULL, ParOptVec ***Ak=NULL,
                               ParOptVec **lb=NULL, ParOptVec **ub=NULL ) = 0;
+
+  /**
+    Switch on second order correction, call this function
+    before soc iteration loop
+  */
+  virtual void startSecondOrderCorrection(){return;}
+
+  /**
+    Call this function after soc iteration loop
+  */
+  virtual void endSecondOrderCorrection(){return;}
+
+  /**
+    Update second order correction constraints
+  */
+  virtual void updateSocCon( ParOptVec *xt, ParOptScalar *ct ){return;}
+
+  /**
+    Evaluate trial point (f, h)
+  */
+  virtual int evalSocTrialPoint( ParOptVec *step, ParOptScalar *f,
+                                 ParOptScalar *h, int nineq, int m,
+                                 int soc_use_quad_model ){return 0;}
+  virtual int evalSocTrialGrad( ParOptVec *step, int soc_use_quad_model ){return 0;}
 };
 
 /*
@@ -178,6 +204,26 @@ class ParOptQuadraticSubproblem : public ParOptTrustRegionSubproblem {
                       const ParOptScalar **_ck=NULL, ParOptVec ***_Ak=NULL,
                       ParOptVec **_lb=NULL, ParOptVec **_ub=NULL );
 
+  // Switch on second order correction, call this function
+  // before soc iteration loop
+  void startSecondOrderCorrection(){ is_soc_step = 1; }
+
+  // Call this function after soc iteration loop
+  void endSecondOrderCorrection(){ is_soc_step = 0; }
+
+  // Update second order correction constraints
+  void updateSocCon( ParOptVec *step, ParOptScalar *ct ){
+    for ( int i = 0; i < m; i++ ){
+      c_soc[i] = ct[i] - Ak[i]->dot(step);
+    }
+  }
+
+  // Evaluate trial point (f, h)
+  int evalSocTrialPoint( ParOptVec *step, ParOptScalar *f,
+                         ParOptScalar *h, int nineq, int m,
+                         int soc_use_quad_model );
+  int evalSocTrialGrad( ParOptVec *step, int soc_use_quad_model );
+
  private:
   // Pointer to the optimization problem
   ParOptProblem *prob;
@@ -209,8 +255,14 @@ class ParOptQuadraticSubproblem : public ParOptTrustRegionSubproblem {
   ParOptVec *gt;
   ParOptVec **At;
 
+  // Temoprary constraint values used for second order correction
+  ParOptScalar *c_soc;
+
   // Temporary vectors
   ParOptVec *t, *xtemp;
+
+  // Variable indicating if second order correction is used
+  int is_soc_step;
 };
 
 /*
@@ -315,7 +367,8 @@ class ParOptTrustRegion : public ParOptBase {
 
   // Update the problem
   void update( ParOptVec *step, const ParOptScalar *z, ParOptVec *zw,
-               double *infeas, double *l1, double *linfty );
+               double *infeas, double *l1, double *linfty,
+               ParOptInteriorPoint *optimizer );
 
   // Set parameters for the trust region method
   void setPenaltyGamma( double gamma );
@@ -329,6 +382,15 @@ class ParOptTrustRegion : public ParOptBase {
 
   // Get the optimized point
   void getOptimizedPoint( ParOptVec **_x );
+
+  // If candidate point (f, h) is not dominated, then add it to filter set
+  void addToFilter( const ParOptScalar& f,
+                    const ParOptScalar& h );
+
+  // use filter to check if current design point can be accepted or
+  // rejected, if accepted, then add to filter
+  int isAcceptedByFilter( const ParOptScalar& f,
+                          const ParOptScalar& h );
 
  private:
   // The trust region optimization subproblem
@@ -364,6 +426,10 @@ class ParOptTrustRegion : public ParOptBase {
 
   // Temporary vectors
   ParOptVec *t;
+  ParOptVec *best_step;
+
+  // Filter, set element is the filter pair (fi, hi)
+  std::vector<std::pair<ParOptScalar, ParOptScalar> > *filter;
 };
 
 #endif // PAR_OPT_TRUST_REGION_H
