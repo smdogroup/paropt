@@ -96,7 +96,6 @@ class ParOptDriver(Driver):
             Pointer
         """
          # TODO:
-         # - logic for different opt algorithms
          # - treat equality constraints
 
         super(ParOptDriver, self)._setup_driver(problem)
@@ -151,13 +150,18 @@ class ParOptProblem(ParOpt.Problem):
         self.nvars = None
         self.ncon = None
 
-        # Get the design variable names
-        self.dvs = [name for name, meta in iteritems(self.problem.model.get_design_vars())]
+        # Get the design variable objects from OpenMDAO
+        self.om_dvs = self.problem.driver._designvars
+
+        # Get the objective and constraint objects from OpenMDAO
+        self.om_con = self.problem.driver._cons
+        self.om_obj = self.problem.driver._objs
 
         # Get the number of design vars from the openmdao problem
         self.nvars = 0
-        for name, meta in iteritems(self.problem.model.get_design_vars()):
-            self.nvars += meta['size']
+        for name, meta in self.om_dvs.items():
+            size = len(self.problem[name])
+            self.nvars += size)
 
         # Get the number of constraints from the openmdao problem
         self.ncon = 0
@@ -176,12 +180,9 @@ class ParOptProblem(ParOpt.Problem):
         # - make sure lb/ub are handled for the case where
         # they aren't set
 
-        # Get design vars from openmdao as a dictionary
-        desvars = self.problem.model.get_design_vars()
-
         i = 0
-        for name, meta in iteritems(desvars):
-            size = meta['size']
+        for name, meta in self.om_dvs.items():
+            size = len(self.problem[name])
             x[i:i + size] = self.problem[name]
             lb[i:i + size] = meta['lower']
             ub[i:i + size] = meta['upper']
@@ -194,9 +195,9 @@ class ParOptProblem(ParOpt.Problem):
         # Todo:
         # - add check that # of constraints are consistent
 
-        # Set the design variable values
+        # Pass the updated design variables back to OpenMDAO
         i = 0
-        for name, meta in iteritems(self.problem.model.get_design_vars()):
+        for name, meta in self.om_dvs.items():
             size = meta['size']
             self.problem[name] = x[i:i + size]
             i += size
@@ -208,14 +209,14 @@ class ParOptProblem(ParOpt.Problem):
         con = np.zeros(self.ncon)
 
         i = 0
-        for name, meta in iteritems(self.problem.model.get_constraints()):
+        for name, meta in self.om_con.items():
             size = meta['size']
             con[i:i + size] = self.problem[name]
             i += size
 
         # We only accept the first gradient
-        for name, meta in iteritems(self.problem.model.get_objectives()):
-            fobj = self.problem[name]
+        for name, meta in self.om_obj.items():
+            fobj = self.problem[name][0]
             break
 
         fail = 0
@@ -226,20 +227,21 @@ class ParOptProblem(ParOpt.Problem):
         """Evaluate the objective and constraint gradient"""
 
         # The objective gradient
-        for name, meta in iteritems(self.problem.model.get_objectives()):
-            grad = self.problem.compute_totals(of=[name], wrt=self.dvs,
+        for name, meta in self.om_obj.items():
+            grad = self.problem.compute_totals(of=[name], wrt=self.om_dvs,
                                                return_format='array')
-            g[:] = grad[0,:]
+            g[:] = grad[0, :]
             break
 
         # Extract the constraint gradients
         i = 0
-        for name, meta in iteritems(self.problem.model.get_constraints()):
-            cgrad = self.problem.compute_totals(of=[name], wrt=self.dvs,
+        for name, meta in self.om_con.items():
+            size = meta['size']
+            cgrad = self.problem.compute_totals(of=[name], wrt=self.om_dvs,
                                                 return_format='array')
-            for j in range(meta['size']):
-                A[i + j][:] = cgrad[j,:]
-            i += meta['size']
+            for j in range(size):
+                A[i + j][:] = cgrad[j, :]
+            i += size
 
         fail = 0
 
