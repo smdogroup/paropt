@@ -161,7 +161,7 @@ class ParOptProblem(ParOpt.Problem):
         self.nvars = 0
         for name, meta in self.om_dvs.items():
             size = len(self.problem[name])
-            self.nvars += size)
+            self.nvars += size
 
         # Get the number of constraints from the openmdao problem
         self.ncon = 0
