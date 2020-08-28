@@ -1,189 +1,88 @@
-import numpy as np
 import openmdao.api as om
+from openmdao.utils.assert_utils import assert_near_equal
 import dymos as dm
-import matplotlib
-matplotlib.use('tkAgg')
+from dymos.examples.plotting import plot_results
+from dymos.examples.brachistochrone import BrachistochroneODE
 import matplotlib.pyplot as plt
 import argparse
 
-class BrachistochroneODE(om.ExplicitComponent):
-
-    def initialize(self):
-        self.options.declare('num_nodes', types=int)
-
-    def setup(self):
-        nn = self.options['num_nodes']
-
-        # Inputs
-        self.add_input('v', val=np.zeros(nn), desc='velocity', units='m/s')
-        self.add_input('g', val=9.80665, desc='acceleration of gravity', units='m/s**2')
-        self.add_input('theta', val=np.zeros(nn), desc='angle of wire', units='rad')
-        self.add_output('xdot', val=np.zeros(nn), desc='horizontal velocity', units='m/s')
-        self.add_output('ydot', val=np.zeros(nn), desc='vertical velocity', units='m/s')
-        self.add_output('vdot', val=np.zeros(nn), desc='acceleration mag.', units='m/s**2')
-
-        # Setup partials
-        arange = np.arange(self.options['num_nodes'], dtype=int)
-
-        self.declare_partials(of='vdot', wrt='g', rows=arange, cols=np.zeros(nn, dtype=int))
-        self.declare_partials(of='vdot', wrt='theta', rows=arange, cols=arange)
-
-        self.declare_partials(of='xdot', wrt='v', rows=arange, cols=arange)
-        self.declare_partials(of='xdot', wrt='theta', rows=arange, cols=arange)
-
-        self.declare_partials(of='ydot', wrt='v', rows=arange, cols=arange)
-        self.declare_partials(of='ydot', wrt='theta', rows=arange, cols=arange)
-
-    def compute(self, inputs, outputs):
-        theta = inputs['theta']
-        cos_theta = np.cos(theta)
-        sin_theta = np.sin(theta)
-        g = inputs['g']
-        v = inputs['v']
-
-        outputs['vdot'] = g * cos_theta
-        outputs['xdot'] = v * sin_theta
-        outputs['ydot'] = -v * cos_theta
-
-    def compute_partials(self, inputs, jacobian):
-        theta = inputs['theta']
-        cos_theta = np.cos(theta)
-        sin_theta = np.sin(theta)
-        g = inputs['g']
-        v = inputs['v']
-
-        jacobian['vdot', 'g'] = cos_theta
-        jacobian['vdot', 'theta'] = -g * sin_theta
-
-        jacobian['xdot', 'v'] = sin_theta
-        jacobian['xdot', 'theta'] = v * cos_theta
-
-        jacobian['ydot', 'v'] = -cos_theta
-        jacobian['ydot', 'theta'] = v * sin_theta
-
-# Add options
+# Define options
 parser = argparse.ArgumentParser()
-parser.add_argument('--optimizer', default='ParOpt',
-                    help='Optimizer name from pyOptSparse')
-parser.add_argument('--algorithm', default='tr',
+parser.add_argument('--optimizer', default='paropt', choices=['paropt', 'scipy'],
                     help='Optimizer name from pyOptSparse')
 args = parser.parse_args()
-
 optimizer = args.optimizer
-algorithm = args.algorithm
 
-# Define the OpenMDAO problem
+# Initialize the Problem and the optimization driver
 p = om.Problem(model=om.Group())
-
-# Define a Trajectory object
-traj = dm.Trajectory()
-
-p.model.add_subsystem('traj', subsys=traj)
-
-# Define a Dymos Phase object with GaussLobatto Transcription
-phase = dm.Phase(ode_class=BrachistochroneODE,
-                 transcription=dm.GaussLobatto(num_segments=10, order=3))
-
-traj.add_phase(name='phase0', phase=phase)
-
-# Set the time options
-# Time has no targets in our ODE.
-# We fix the initial time so that the it is not a design variable in the optimization.
-# The duration of the phase is allowed to be optimized, but is bounded on [0.5, 10].
-phase.set_time_options(fix_initial=True, duration_bounds=(0.5, 10.0), units='s')
-
-# Set the time options
-# Initial values of positions and velocity are all fixed.
-# The final value of position are fixed, but the final velocity is a free variable.
-# The equations of motion are not functions of position, so 'x' and 'y' have no targets.
-# The rate source points to the output in the ODE which provides the time derivative of the
-# given state.
-phase.add_state('x', fix_initial=True, fix_final=True, units='m', rate_source='xdot')
-phase.add_state('y', fix_initial=True, fix_final=True, units='m', rate_source='ydot')
-phase.add_state('v', fix_initial=True, fix_final=False, units='m/s',
-                rate_source='vdot', targets=['v'])
-
-# Define theta as a control.
-phase.add_control(name='theta', units='rad', lower=0, upper=np.pi, targets=['theta'])
-
-# Minimize final time.
-phase.add_objective('time', loc='final')
-
-# Set the driver.
-p.driver = om.pyOptSparseDriver()
-
-if optimizer == 'SLSQP':
-    p.driver.options['optimizer'] = 'SLSQP'
-
-else:
+if optimizer == 'scipy':
+    p.driver = om.ScipyOptimizeDriver()
+elif optimizer == 'paropt':
+    p.driver = om.pyOptSparseDriver()
     p.driver.options['optimizer'] = 'ParOpt'
+    p.driver.opt_settings['algorithm'] = 'tr'
+p.driver.declare_coloring()
 
-    if algorithm == "tr":
-        p.driver.opt_settings['algorithm'] = 'tr'
+# Create a trajectory and add a phase to it
+traj = p.model.add_subsystem('traj', dm.Trajectory())
 
-    else:
-        p.driver.opt_settings['algorithm'] = 'ip'
-        p.driver.opt_settings['norm_type'] = 'infinity'
-        p.driver.opt_settings['max_major_iters'] = 1000
-        p.driver.opt_settings['barrier_strategy'] = 'mehrotra'
-        p.driver.opt_settings['starting_point_strategy'] = 'affine_step'
-        p.driver.opt_settings['qn_type'] = 'bfgs'
+phase = traj.add_phase('phase0',
+                       dm.Phase(ode_class=BrachistochroneODE,
+                                transcription=dm.GaussLobatto(num_segments=10)))
 
+# Set the variables
+phase.set_time_options(initial_bounds=(0, 0), duration_bounds=(.5, 10))
 
-# Setup the problem
-p.setup(check=True)
+phase.add_state('x', rate_source=BrachistochroneODE.states['x']['rate_source'],
+                units=BrachistochroneODE.states['x']['units'],
+                fix_initial=True, fix_final=True, solve_segments=False)
 
-# Now that the OpenMDAO problem is setup, we can set the values of the states.
-p.set_val('traj.phase0.states:x',
-          phase.interpolate(ys=[0, 10], nodes='state_input'),
-          units='m')
+phase.add_state('y', rate_source=BrachistochroneODE.states['y']['rate_source'],
+                units=BrachistochroneODE.states['y']['units'],
+                fix_initial=True, fix_final=True, solve_segments=False)
 
-p.set_val('traj.phase0.states:y',
-          phase.interpolate(ys=[10, 5], nodes='state_input'),
-          units='m')
+phase.add_state('v', rate_source=BrachistochroneODE.states['v']['rate_source'],
+                targets=BrachistochroneODE.states['v']['targets'],
+                units=BrachistochroneODE.states['v']['units'],
+                fix_initial=True, fix_final=False, solve_segments=False)
 
-p.set_val('traj.phase0.states:v',
-          phase.interpolate(ys=[0, 5], nodes='state_input'),
-          units='m/s')
+phase.add_control('theta', targets=BrachistochroneODE.parameters['theta']['targets'],
+                  continuity=True, rate_continuity=True,
+                  units='deg', lower=0.01, upper=179.9)
 
-p.set_val('traj.phase0.controls:theta',
-          phase.interpolate(ys=[90, 90], nodes='control_input'),
-          units='deg')
+phase.add_input_parameter('g', targets=BrachistochroneODE.parameters['g']['targets'],
+                    units='m/s**2', val=9.80665)
 
-# Run the driver to solve the problem
-p.run_driver()
+# Minimize time at the end of the phase
+phase.add_objective('time', loc='final', scaler=10)
+p.model.linear_solver = om.DirectSolver()
 
-# Check the validity of our results by using scipy.integrate.solve_ivp to
-# integrate the solution.
-sim_out = traj.simulate()
+# Setup the Problem
+p.setup()
 
-# Plot the results
-fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 4.5))
+# Set the initial values
+p['traj.phase0.t_initial'] = 0.0
+p['traj.phase0.t_duration'] = 2.0
 
-axes[0].plot(p.get_val('traj.phase0.timeseries.states:x'),
-             p.get_val('traj.phase0.timeseries.states:y'),
-             'ro', label='solution')
+p['traj.phase0.states:x'] = phase.interpolate(ys=[0, 10], nodes='state_input')
+p['traj.phase0.states:y'] = phase.interpolate(ys=[10, 5], nodes='state_input')
+p['traj.phase0.states:v'] = phase.interpolate(ys=[0, 9.9], nodes='state_input')
+p['traj.phase0.controls:theta'] = phase.interpolate(ys=[5, 100.5], nodes='control_input')
 
-axes[0].plot(sim_out.get_val('traj.phase0.timeseries.states:x'),
-             sim_out.get_val('traj.phase0.timeseries.states:y'),
-             'b-', label='simulation')
+# Solve for the optimal trajectory
+dm.run_problem(p)
 
-axes[0].set_xlabel('x (m)')
-axes[0].set_ylabel('y (m/s)')
-axes[0].legend()
-axes[0].grid()
+# Test the results
+assert_near_equal(p.get_val('traj.phase0.timeseries.time')[-1], 1.8016, tolerance=1.0E-3)
 
-axes[1].plot(p.get_val('traj.phase0.timeseries.time'),
-             p.get_val('traj.phase0.timeseries.controls:theta', units='deg'),
-             'ro', label='solution')
+# Generate the explicitly simulated trajectory
+exp_out = traj.simulate()
 
-axes[1].plot(sim_out.get_val('traj.phase0.timeseries.time'),
-             sim_out.get_val('traj.phase0.timeseries.controls:theta', units='deg'),
-             'b-', label='simulation')
-
-axes[1].set_xlabel('time (s)')
-axes[1].set_ylabel(r'$\theta$ (deg)')
-axes[1].legend()
-axes[1].grid()
+plot_results([('traj.phase0.timeseries.states:x', 'traj.phase0.timeseries.states:y',
+               'x (m)', 'y (m)'),
+              ('traj.phase0.timeseries.time', 'traj.phase0.timeseries.controls:theta',
+               'time (s)', 'theta (deg)')],
+             title='Brachistochrone Solution\nHigh-Order Gauss-Lobatto Method',
+             p_sol=p, p_sim=exp_out)
 
 plt.show()
