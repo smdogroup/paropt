@@ -95,9 +95,6 @@ class ParOptDriver(Driver):
         paropt_problem : <Problem>
             Pointer
         """
-         # TODO:
-         # - logic for different opt algorithms
-         # - treat equality constraints
 
         super(ParOptDriver, self)._setup_driver(problem)
 
@@ -145,60 +142,110 @@ class ParOptProblem(ParOpt.Problem):
         ParOptDriver.
         """
 
+        self.mycounter = 0
+        self.mycounterPrintInitial = 0
         self.problem = problem
 
         self.comm = self.problem.comm
         self.nvars = None
         self.ncon = None
+        self.nineq = None
+        self.constr_upper_limit = 1e20   # Discard constraints with upper bound larger than this
+        self.constr_lower_limit = -1e20  # Discard constraints with lower bound smaller than this
 
-        # Get the design variable names
-        self.dvs = [name for name, meta in iteritems(self.problem.model.get_design_vars())]
+        # Get the design variable, objective and constraint objects from OpenMDAO
+        self.om_dvs = self.problem.model.get_design_vars()
+        self.om_con = self.problem.model.get_constraints()
+        self.om_obj = self.problem.model.get_objectives()
 
         # Get the number of design vars from the openmdao problem
         self.nvars = 0
-        for name, meta in iteritems(self.problem.model.get_design_vars()):
-            self.nvars += meta['size']
+        for name, meta in self.om_dvs.items():
+            # size = len(self.problem[name])
+            size = self.om_dvs[name]['size']
+            self.nvars += size
 
         # Get the number of constraints from the openmdao problem
         self.ncon = 0
-        for name, meta in iteritems(self.problem.model.get_constraints()):
-            self.ncon += meta['size']
+        self.nineq = 0
+        for name, meta in self.om_con.items():
+            # If current constraint is equality constraint
+            if meta['equals'] is not None:
+                self.ncon += meta['size']
+            # Else, current constraint is inequality constraint
+            else:
+                if meta['lower'] > self.constr_lower_limit:
+                    self.ncon += meta['size']
+                    self.nineq += meta['size']
+                if meta['upper'] < self.constr_upper_limit:
+                    self.ncon += meta['size']
+                    self.nineq += meta['size']
 
         # Initialize the base class
-        super(ParOptProblem, self).__init__(self.comm, self.nvars, self.ncon)
+        super(ParOptProblem, self).__init__(self.comm, self.nvars, self.ncon, self.nineq)
 
+        print("num of total constrs:      ", self.ncon)
+        print("num of inequality constrs: ", self.nineq)
+        print("num of equality constrs:   ", self.ncon - self.nineq)
         return
 
     def getVarsAndBounds(self, x, lb, ub):
         """ Set the values of the bounds """
         # Todo:
-        # - add check that num dvs are consistent
         # - make sure lb/ub are handled for the case where
         # they aren't set
 
         # Get design vars from openmdao as a dictionary
-        desvars = self.problem.model.get_design_vars()
+        desvar_vals = self.problem.driver.get_design_var_values()
 
         i = 0
-        for name, meta in iteritems(desvars):
-            size = meta['size']
-            x[i:i + size] = self.problem[name]
+        for name, meta in self.om_dvs.items():
+            size = len(desvar_vals[name])
+            x[i:i + size] = desvar_vals[name]
             lb[i:i + size] = meta['lower']
             ub[i:i + size] = meta['upper']
             i += size
+
+        # Check if number of design variables consistent
+        if (i != self.nvars):
+            raise ValueError("Number of design variables get (%d) is not equal to the" \
+                             "number of design variables during initialzation (%d)" % (i, self.nvars))
+
+
+        # # Find the average distance between lower and upper bound
+        # bound_sum = 0.0
+        # for i in range(len(x)):
+        #     if lb[i] <= -1e20 or ub[i] >= 1e20:
+        #         bound_sum += 1.0
+        #     else:
+        #         bound_sum += lb[i] - ub[i]
+        # bound_sum = bound_sum / len(x)
+        #
+        # # Adjust initial values
+        # for i in range(len(x)):
+        #     if x[i] <= lb[i]:
+        #         x[i] = lb[i] + 0.5 * np.min((bound_sum, ub[i] - lb[i]))
+        #     elif x[i] >= ub[i]:
+        #         x[i] = ub[i] - 0.5 * np.min((bound_sum, ub[i] - lb[i]))
+
+        # # Print initial values and bounds
+        # if (self.mycounterPrintInitial == 0):
+        #     for i in range(len(x)):
+        #                     isConsistent = str(lb[i] <= x[i] <= ub[i])
+        #                     print("[%2d], x[i] = %.2e, lb[i] = %.2e, ub[i] = %.2e, lb <= x <= ub? %s" %
+        #                         (i, x[i], lb[i], ub[i], isConsistent))
+        # self.mycounterPrintInitial += 1
 
         return
 
     def evalObjCon(self, x):
         """Evaluate the objective and constraint"""
-        # Todo:
-        # - add check that # of constraints are consistent
 
-        # Set the design variable values
+        # Pass the updated design variables back to OpenMDAO
         i = 0
-        for name, meta in iteritems(self.problem.model.get_design_vars()):
+        for name, meta in self.om_dvs.items():
             size = meta['size']
-            self.problem[name] = x[i:i + size]
+            self.problem.driver.set_design_var(name, x[i:i + size])
             i += size
 
         # Solve the problem
@@ -206,16 +253,36 @@ class ParOptProblem(ParOpt.Problem):
 
         # Extract the values of the objectives and constraints
         con = np.zeros(self.ncon)
+        constr_vals = self.problem.driver.get_constraint_values()
 
         i = 0
-        for name, meta in iteritems(self.problem.model.get_constraints()):
-            size = meta['size']
-            con[i:i + size] = self.problem[name]
-            i += size
+        # First we extract all inequality constraints
+        for name, meta in self.om_con.items():
+            if meta['equals'] is None:
+                size = meta['size']
+                if meta['lower'] > self.constr_lower_limit:
+                    con[i:i + size] = constr_vals[name] - meta['lower']
+                    i += size
+                if meta['upper'] < self.constr_upper_limit:
+                    con[i:i + size] = meta['upper'] - constr_vals[name]
+                    i += size
 
-        # We only accept the first gradient
-        for name, meta in iteritems(self.problem.model.get_objectives()):
-            fobj = self.problem[name]
+        # Then, extract rest of the equality constraints:
+        for name, meta in self.om_con.items():
+            if meta['equals'] is not None:
+                size = meta['size']
+                con[i:i + size] = constr_vals[name] - meta['equals']
+                i += size
+
+        # Check if number of total constrainted counted is consistent
+        if (i != self.ncon):
+            raise ValueError("Number of constraints evaluated (%d) is not equal to the" \
+                             "number of constraints counted during initialzation (%d)" % (i, self.ncon))
+
+        # We only accept the first objective
+        obj_vals = self.problem.driver.get_objective_values()
+        for name, meta in self.om_obj.items():
+            fobj = obj_vals[name]
             break
 
         fail = 0
@@ -225,21 +292,50 @@ class ParOptProblem(ParOpt.Problem):
     def evalObjConGradient(self, x, g, A):
         """Evaluate the objective and constraint gradient"""
 
-        # The objective gradient
-        for name, meta in iteritems(self.problem.model.get_objectives()):
-            grad = self.problem.compute_totals(of=[name], wrt=self.dvs,
-                                               return_format='array')
-            g[:] = grad[0,:]
+        # Extract gradients of objective and constraints w.r.t. all design variables
+        objcon_grads = self.problem.compute_totals()
+
+        # Extract the objective gradient
+        for name, meta in self.om_obj.items():
+            i_dv = 0
+            for dv_name in self.om_dvs:
+                dv_subsize = self.om_dvs[dv_name]['size']
+                g[i_dv:i_dv + dv_subsize] = objcon_grads[(name, dv_name)][0]
+                i_dv += dv_subsize
             break
 
         # Extract the constraint gradients
+        # We first extract gradients of inequality constraints
         i = 0
-        for name, meta in iteritems(self.problem.model.get_constraints()):
-            cgrad = self.problem.compute_totals(of=[name], wrt=self.dvs,
-                                                return_format='array')
-            for j in range(meta['size']):
-                A[i + j][:] = cgrad[j,:]
-            i += meta['size']
+        for name, meta in self.om_con.items():
+            if meta['equals'] is None:
+                if meta['lower'] > self.constr_lower_limit:
+                    for j in range(meta['size']):
+                        i_dv = 0
+                        for dv_name in self.om_dvs:
+                            dv_subsize = self.om_dvs[dv_name]['size']
+                            A[i + j][i_dv:i_dv + dv_subsize] = objcon_grads[(name, dv_name)][j]
+                            i_dv += dv_subsize
+                    i += meta['size']
+                if meta['upper'] < self.constr_upper_limit:
+                    for j in range(meta['size']):
+                        i_dv = 0
+                        for dv_name in self.om_dvs:
+                            dv_subsize = self.om_dvs[dv_name]['size']
+                            A[i + j][i_dv:i_dv + dv_subsize] = -objcon_grads[(name, dv_name)][j]
+                            i_dv += dv_subsize
+                    i += meta['size']
+
+        # Then, extract equality constraint gradients
+        for name, meta in self.om_con.items():
+            if meta['equals'] is not None:
+                for j in range(meta['size']):
+                    i_dv = 0
+                    for dv_name in self.om_dvs:
+                        dv_subsize = self.om_dvs[dv_name]['size']
+                        A[i + j][i_dv:i_dv + dv_subsize] = objcon_grads[(name, dv_name)][j]
+                        i_dv += dv_subsize
+                i += meta['size']
 
         fail = 0
 
