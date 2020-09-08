@@ -180,14 +180,15 @@ if optimizer == "SLSQP":
 else:
     p.driver.options['optimizer'] = "ParOpt"
     p.driver.opt_settings['algorithm'] = 'tr'
-    p.driver.opt_settings['output_level'] = 2
+    p.driver.opt_settings['output_level'] = 0
     p.driver.opt_settings['tr_max_size'] = 1e2
+    p.driver.opt_settings['tr_min_size'] = 5.0
     p.driver.opt_settings['penalty_gamma'] = 1e2
     p.driver.opt_settings['tr_penalty_gamma_min'] = 100.0
     p.driver.opt_settings['tr_adaptive_gamma_update'] = False
     p.driver.opt_settings['tr_max_iterations'] = 500
     p.driver.opt_settings['norm_type'] = 'infinity'
-    p.driver.opt_settings['abs_res_tol'] = 1e-8
+    p.driver.opt_settings['abs_res_tol'] = 1e-10
     p.driver.opt_settings['max_major_iters'] = 1000
     # p.driver.opt_settings['barrier_strategy'] = 'mehrotra'
     p.driver.opt_settings['qn_type'] = 'none'
