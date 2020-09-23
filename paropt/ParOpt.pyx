@@ -742,31 +742,40 @@ cdef class PVec:
         if self.ptr:
             self.ptr.decref()
 
+    def _toArray(self):
+        cdef int size = 0
+        cdef ParOptScalar *array = NULL
+        size = self.ptr.getArray(&array)
+        arr = np.zeros(size, dtype=dtype)
+        for i in range(size):
+            arr[i] = array[i]
+        return arr
+
     def __len__(self):
         cdef int size = 0
         size = self.ptr.getArray(NULL)
         return size
 
     def __add__(self, b):
-        return self[:] + b
+        return self._toArray() + b
 
     def __sub__(self, b):
-        return self[:] - b
+        return self._toArray() - b
 
     def __mul__(self, b):
-        return self[:]*b
+        return self._toArray() * b
 
     def __radd__(self, b):
-        return b + self[:]
+        return b + self._toArray()
 
     def __rsub__(self, b):
-        return b - self[:]
+        return b - self._toArray()
 
     def __rmul__(self, b):
-        return b * self[:]
+        return b * self._toArray()
 
     def __truediv__(self, b):
-        return self[:]/b
+        return self._toArray()/b
 
     def __iadd__(self, b):
         cdef int size = 0

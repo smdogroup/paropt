@@ -999,6 +999,7 @@ void ParOptTrustRegion::update( ParOptInteriorPoint *optimizer,
   const double tr_infeas_tol = options->getFloatOption("tr_infeas_tol");
   const int tr_adaptive_gamma_update =
     options->getBoolOption("tr_adaptive_gamma_update");
+  const double tr_infeas_tol = options->getFloatOption("tr_infeas_tol");
 
   const int output_level = options->getIntOption("output_level");
   const double function_precision =
@@ -1104,16 +1105,6 @@ void ParOptTrustRegion::update( ParOptInteriorPoint *optimizer,
             ParOptRealPart(infeas_k - infeas_model));
   }
 
-  // Compute the ratio of the actual reduction
-  ParOptScalar rho = 1.0;
-  if (fabs(ParOptRealPart(model_reduc)) <= function_precision &&
-      fabs(ParOptRealPart(actual_reduc)) <= function_precision){
-    rho = 1.0;
-  }
-  else {
-    rho = actual_reduc/model_reduc;
-  }
-
   // Compute the infeasibility
   ParOptScalar infeas_new = 0.0;
   for ( int i = 0; i < m; i++ ){
@@ -1125,6 +1116,26 @@ void ParOptTrustRegion::update( ParOptInteriorPoint *optimizer,
     }
   }
   *infeas = ParOptRealPart(infeas_new);
+
+  // Compute the ratio of the actual reduction
+  ParOptScalar rho_model = 1.0;
+  if (fabs(ParOptRealPart(model_reduc)) <= function_precision &&
+      fabs(ParOptRealPart(actual_reduc)) <= function_precision){
+    rho_model = 1.0;
+  }
+  else {
+    rho_model = actual_reduc/model_reduc;
+  }
+
+  // Compute the ratio of the actual reduction in infeasibility vs. the
+  // model reduction in infeasibility
+  ParOptScalar rho_infeas = (infeas_k - infeas_t)/(infeas_k - infeas_model);
+
+  // Compute rho as the max of the two ratios
+  ParOptScalar rho = rho_model;
+  if (*infeas > tr_infeas_tol){
+    rho = ParOptRealPart(max2(rho_model, rho_infeas));
+  }
 
   delete [] ck;
   delete [] ct;
