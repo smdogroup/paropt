@@ -37,6 +37,7 @@ class Polygon(ParOpt.Problem):
         """Set the values of the bounds"""
         nv = self.nv
 
+        np.random.seed(0)
         x[:nv] = np.random.uniform(low=0.1, high=9.9, size=nv)
         lb[:nv] = 0.0
         ub[:nv] = 10.0
@@ -145,8 +146,8 @@ if __name__ == "__main__":
             'tr_eta': 0.25,
             'penalty_gamma': 1e2,
             'tr_adaptive_gamma_update': False,
-            'tr_use_filter': True,
-            'tr_use_soc': True,
+            'tr_accept_step_strategy': 'penalty_method',
+            'tr_use_soc': False,
             'tr_penalty_gamma_max': 1e5,
             'tr_penalty_gamma_min': 1e-5,
             'tr_max_iterations': 200,

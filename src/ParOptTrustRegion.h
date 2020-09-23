@@ -100,28 +100,60 @@ class ParOptTrustRegionSubproblem : public ParOptProblem {
                               ParOptVec **lb=NULL, ParOptVec **ub=NULL ) = 0;
 
   /**
-    Switch on second order correction, call this function
-    before soc iteration loop
+    Switch on second order correction. This function sets flag is_soc_step to 1,
+    and needs to be called right before performing optimization for second order
+    correction.
   */
-  virtual void startSecondOrderCorrection(){return;}
+  virtual void startSecondOrderCorrection(){
+    return;
+  }
 
   /**
-    Call this function after soc iteration loop
+    Switch off second order correction. This function sets flag is_soc_step to 0,
+    and needs to be called right after performing optimization for second order
+    correction.
   */
-  virtual void endSecondOrderCorrection(){return;}
+  virtual void endSecondOrderCorrection(){
+    return;
+  }
 
   /**
-    Update second order correction constraints
+    Update second order correction constraints. When performing second order
+    correction, a modified quadratic programming problem is solved by re-using
+    the trust region subproblem optimizer object. This helper function updates
+    the problem formulation to prepare for the second order correction step.
+
+    @param xt [in] The candidate design point
+    @param ct [in] The constraint values at candidate design point
   */
-  virtual void updateSocCon( ParOptVec *xt, ParOptScalar *ct ){return;}
+  virtual void updateSocCon( ParOptVec *xt, ParOptScalar *ct ){
+    return;
+  }
 
   /**
-    Evaluate trial point (f, h)
+    Evaluate (f, h) at the second order correction trial point xt
+
+    @param xt [in] The candidate design point
+    @param soc_use_quad_model [in] decide whether to use quadratic model or original
+                                   problem for function and constraint evaluation
+    @param f [out] function value at candidate design point
+    @param h [out] constraint violation value at candidate design point
   */
-  virtual int evalSocTrialPoint( ParOptVec *step, ParOptScalar *f,
-                                 ParOptScalar *h, int nineq, int m,
-                                 int soc_use_quad_model ){return 0;}
-  virtual int evalSocTrialGrad( ParOptVec *step, int soc_use_quad_model ){return 0;}
+  virtual int evalSocTrialPoint( ParOptVec *xt, int soc_use_quad_model,
+                                 ParOptScalar *f, ParOptScalar *h){
+    return 0;
+  }
+
+  /**
+    Evaluate gradients at the second order correction trial point xt
+
+    @param xt [in] The candidate design point
+    @param soc_use_quad_model [in] decide whether to use quadratic model or original
+                                   problem for function and constraint evaluation
+  */
+  virtual int evalSocTrialGrad( ParOptVec *xt, int soc_use_quad_model ){
+    return 0;
+  }
 };
 
 /*
@@ -204,12 +236,15 @@ class ParOptQuadraticSubproblem : public ParOptTrustRegionSubproblem {
                       const ParOptScalar **_ck=NULL, ParOptVec ***_Ak=NULL,
                       ParOptVec **_lb=NULL, ParOptVec **_ub=NULL );
 
-  // Switch on second order correction, call this function
-  // before soc iteration loop
-  void startSecondOrderCorrection(){ is_soc_step = 1; }
+  // Call this function before soc iteration loop
+  void startSecondOrderCorrection(){
+    is_soc_step = 1;
+  }
 
   // Call this function after soc iteration loop
-  void endSecondOrderCorrection(){ is_soc_step = 0; }
+  void endSecondOrderCorrection(){
+    is_soc_step = 0;
+  }
 
   // Update second order correction constraints
   void updateSocCon( ParOptVec *step, ParOptScalar *ct ){
@@ -218,11 +253,12 @@ class ParOptQuadraticSubproblem : public ParOptTrustRegionSubproblem {
     }
   }
 
-  // Evaluate trial point (f, h)
-  int evalSocTrialPoint( ParOptVec *step, ParOptScalar *f,
-                         ParOptScalar *h, int nineq, int m,
-                         int soc_use_quad_model );
-  int evalSocTrialGrad( ParOptVec *step, int soc_use_quad_model );
+  // Evaluate (f, h) at the second order correction trial point xt
+  int evalSocTrialPoint( ParOptVec *xt, int soc_use_quad_model,
+                         ParOptScalar *f, ParOptScalar *h );
+
+  // Evaluate gradients at the second order correction trial point xt
+  int evalSocTrialGrad( ParOptVec *xt, int soc_use_quad_model );
 
  private:
   // Pointer to the optimization problem
@@ -365,11 +401,6 @@ class ParOptTrustRegion : public ParOptBase {
   // Initialize the subproblem
   void initialize();
 
-  // Update the problem
-  void update( ParOptVec *step, const ParOptScalar *z, ParOptVec *zw,
-               double *infeas, double *l1, double *linfty,
-               ParOptInteriorPoint *optimizer );
-
   // Set parameters for the trust region method
   void setPenaltyGamma( double gamma );
   void setPenaltyGamma( const double *gamma );
@@ -383,21 +414,26 @@ class ParOptTrustRegion : public ParOptBase {
   // Get the optimized point
   void getOptimizedPoint( ParOptVec **_x );
 
-  // If candidate point (f, h) is not dominated, then add it to filter set
-  void addToFilter( const ParOptScalar& f,
-                    const ParOptScalar& h );
-
-  // use filter to check if current design point can be accepted or
-  // rejected, if accepted, then add to filter
-  int isAcceptedByFilter( const ParOptScalar& f,
-                          const ParOptScalar& h );
-
  private:
   // The trust region optimization subproblem
   ParOptTrustRegionSubproblem *subproblem;
 
   // The options object for the trust-region method
   ParOptOptions *options;
+
+  // Update the problem
+  void update( ParOptInteriorPoint *optimizer, ParOptVec *step,
+               const ParOptScalar *z, ParOptVec *zw,
+               double *infeas, double *l1, double *linfty );
+
+  // If candidate point (f, h) is not dominated, then add it to filter set
+  void addToFilter( const ParOptScalar f,
+                    const ParOptScalar h );
+
+  // use filter to check if current design point can be accepted or
+  // rejected, if accepted, then add to filter
+  int isAcceptedByFilter( const ParOptScalar f,
+                          const ParOptScalar h );
 
   // Set the output file
   void setOutputFile( const char *filename );

@@ -137,8 +137,8 @@ if __name__ == "__main__":
             'tr_max_size': 1e3,
             'tr_eta': 0.25,
             'tr_adaptive_gamma_update': False,
-            'tr_use_filter': True,
-            'tr_use_soc': True,
+            'tr_accept_step_strategy': 'penalty_method',
+            'tr_use_soc': False,
             'tr_max_iterations': 200,
             'max_major_iters': 100,
             # 'use_line_search': False

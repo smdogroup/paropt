@@ -133,8 +133,8 @@ else:
         p.driver.opt_settings['tr_min_size'] = 1e-2
         p.driver.opt_settings['penalty_gamma'] = 1e2
         p.driver.opt_settings['tr_adaptive_gamma_update'] = False
-        p.driver.opt_settings['tr_use_filter'] = True
-        p.driver.opt_settings['tr_use_soc'] = True
+        p.driver.opt_settings['tr_accept_step_strategy'] = 'penalty_method'
+        p.driver.opt_settings['tr_use_soc'] = False
         p.driver.opt_settings['tr_max_iterations'] = 200
         p.driver.opt_settings['max_major_iters'] = 100
         # p.driver.opt_settings['qn_type'] = 'none'
