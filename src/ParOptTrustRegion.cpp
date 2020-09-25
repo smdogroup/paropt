@@ -883,7 +883,8 @@ void ParOptTrustRegion::addToFilter( const ParOptScalar f,
   // Delete dominated pairs
   for ( std::vector<std::pair<ParOptScalar, ParOptScalar> >::iterator i
         = filter->begin(); i != filter->end(); i++ ){
-    if ( i->first > f && i->second > h){
+    if ( ParOptRealPart(i->first) > ParOptRealPart(f) &&
+         ParOptRealPart(i->second) > ParOptRealPart(h) ){
       filter->erase(i);
       filter_size -= 1;
     }
@@ -904,7 +905,8 @@ int ParOptTrustRegion::isAcceptedByFilter( const ParOptScalar f,
   // Check if candidate pair (f, h) is dominated or not
   for ( std::vector<std::pair<ParOptScalar, ParOptScalar> >::iterator i
         = filter->begin(); i != filter->end(); i++ ){
-    if ( f > i->first && h > i->second ){
+    if ( ParOptRealPart(f) > ParOptRealPart(i->first) &&
+         ParOptRealPart(h) > ParOptRealPart(i->second) ){
       // (f, h) is dominated, rejected
       return 0;
     }
@@ -1225,8 +1227,9 @@ void ParOptTrustRegion::update( ParOptInteriorPoint *optimizer,
       // an almost feasible point is generated, or
       // hit the maximum number of iteration,
       // then SOC phase fails, reject the step and reduce trust region step
-      else if ( r > 0.25 || ParOptRealPart(infeas_new) < tr_infeas_tol
-                || i >= tr_max_soc_iterations - 1 ){
+      else if ( ParOptRealPart(r) > 0.25 ||
+                ParOptRealPart(infeas_new) < tr_infeas_tol ||
+                i >= tr_max_soc_iterations - 1 ){
         soc_is_accepted = 0;
         force_reduce_tr_size = 1;
         break;
