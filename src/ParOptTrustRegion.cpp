@@ -1134,24 +1134,6 @@ void ParOptTrustRegion::update( ParOptInteriorPoint *optimizer,
   delete [] ck;
   delete [] ct;
 
-  // Compute the KKT error at the current point
-  computeKKTError(z, zw, l1, linfty);
-
-  // Compute the max z/average z and max gamma/average gamma
-  double zmax = 0.0, zav = 0.0, gmax = 0.0, gav = 0.0;
-  for ( int i = 0; i < m; i++ ){
-    zav += ParOptRealPart(fabs(z[i]));
-    gav += penalty_gamma[i];
-    if (ParOptRealPart(fabs(z[i])) > zmax){
-      zmax = ParOptRealPart(fabs(z[i]));
-    }
-    if (penalty_gamma[i] > gmax){
-      gmax = penalty_gamma[i];
-    }
-  }
-  zav = zav/m;
-  gav = gav/m;
-
   // Compute the max absolute value
   double smax = 0.0;
 
@@ -1265,6 +1247,24 @@ void ParOptTrustRegion::update( ParOptInteriorPoint *optimizer,
 
   // Reset the trust region radius bounds
   subproblem->setTrustRegionBounds(tr_size);
+
+  // Compute the KKT error at the current point
+  computeKKTError(z, zw, l1, linfty);
+
+  // Compute the max z/average z and max gamma/average gamma
+  double zmax = 0.0, zav = 0.0, gmax = 0.0, gav = 0.0;
+  for ( int i = 0; i < m; i++ ){
+    zav += ParOptRealPart(fabs(z[i]));
+    gav += penalty_gamma[i];
+    if (ParOptRealPart(fabs(z[i])) > zmax){
+      zmax = ParOptRealPart(fabs(z[i]));
+    }
+    if (penalty_gamma[i] > gmax){
+      gmax = penalty_gamma[i];
+    }
+  }
+  zav = zav/m;
+  gav = gav/m;
 
   // Create an info string for the update type
   int update_type = subproblem->getQuasiNewtonUpdateType();
