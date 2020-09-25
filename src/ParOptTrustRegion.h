@@ -466,6 +466,8 @@ class ParOptTrustRegion : public ParOptBase {
 
   // Filter, set element is the filter pair (fi, hi)
   std::vector<std::pair<ParOptScalar, ParOptScalar> > *filter;
+
+  int filter_size;  // size of filter set
 };
 
 #endif // PAR_OPT_TRUST_REGION_H
