@@ -37,6 +37,7 @@ class Polygon(ParOpt.Problem):
         """Set the values of the bounds"""
         nv = self.nv
 
+        np.random.seed(0)
         x[:nv] = np.random.uniform(low=0.1, high=9.9, size=nv)
         lb[:nv] = 0.0
         ub[:nv] = 10.0
@@ -110,8 +111,8 @@ class Polygon(ParOpt.Problem):
 if __name__ == "__main__":
     # Parse the command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--algorithm', type=str, default='ip')
-    parser.add_argument('--n', type=int, default=6, help='number of vertices')
+    parser.add_argument('--algorithm', type=str, default='tr')
+    parser.add_argument('--n', type=int, default=10, help='number of vertices')
     args = parser.parse_args()
 
     use_tr = False
@@ -135,20 +136,24 @@ if __name__ == "__main__":
         options = {
             'algorithm': 'tr',
             'qn_type': 'bfgs',
-            'abs_res_tol': 1e-8,
+            'tr_l1_tol': 1e-30,
+            'tr_linfty_tol': 1e-30,
             'output_level': 0,
-            'use_backtracking_alpha': True,
             'max_major_iters': 100,
             'tr_init_size': 0.1,
             'tr_min_size': 1e-6,
-            'tr_max_size': 1.0,
+            'tr_max_size': 1e2,
             'tr_eta': 0.25,
-            'penalty_gamma': 1.0,
-            'tr_adaptive_gamma_update': True,
+            'penalty_gamma': 1e2,
+            'tr_adaptive_gamma_update': False,
+            'tr_accept_step_strategy': 'penalty_method',
+            'tr_use_soc': False,
             'tr_penalty_gamma_max': 1e5,
             'tr_penalty_gamma_min': 1e-5,
-            'tr_max_iterations': 500,
-            'use_line_search': False}
+            'tr_max_iterations': 200,
+            # 'use_backtracking_alpha': True,
+            # 'use_line_search': False
+            }
 
     polygon = Polygon(args.n)
     polygon.checkGradients()

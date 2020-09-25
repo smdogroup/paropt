@@ -1,8 +1,6 @@
 import numpy as np
 import openmdao.api as om
 import dymos as dm
-import matplotlib
-matplotlib.use('tkAgg')
 import matplotlib.pyplot as plt
 import argparse
 
@@ -50,11 +48,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--optimizer', default='ParOpt',
                     help='Optimizer name from pyOptSparse')
 parser.add_argument('--algorithm', default='tr',
-                    help='Optimizer name from pyOptSparse')
+                    help='algorithm used in ParOpt')
+parser.add_argument('--less_force', action='store_true', default=False)
+
 args = parser.parse_args()
 
 optimizer = args.optimizer
 algorithm = args.algorithm
+less_force = args.less_force
 
 # Define the OpenMDAO problem
 p = om.Problem(model=om.Group())
@@ -74,12 +75,23 @@ traj.add_phase(name='phase0', phase=phase)
 phase.set_time_options(fix_initial=True, fix_duration=True, duration_val=5.0, units='s')
 
 # Define state variables
-phase.add_state('x', fix_initial=True, fix_final=True, units='m', rate_source='xdot')
-phase.add_state('J', fix_initial=True, fix_final=False, units='N*N*s', rate_source='Jdot')
-phase.add_state('v', fix_initial=True, fix_final=True, units='m/s', rate_source='vdot', targets=['v'])
+phase.add_state('x', units='m', rate_source='xdot')
+phase.add_state('J', units='N*N*s', rate_source='Jdot')
+phase.add_state('v', units='m/s', rate_source='vdot', targets=['v'])
+
+# Add constraints
+phase.add_boundary_constraint('x', loc='initial', equals=0.0)
+phase.add_boundary_constraint('x', loc='final', equals=5.0)
+phase.add_boundary_constraint('v', loc='initial', equals=0.0)
+phase.add_boundary_constraint('v', loc='final', equals=0.0)
+phase.add_boundary_constraint('J', loc='initial', equals=0.0)
 
 # Define control variable
-phase.add_control(name='u', units='N', lower=-10.0, upper=10.0, targets=['u'],
+if less_force:
+    max_force = 0.5
+else:
+    max_force = 10.0
+phase.add_control(name='u', units='N', lower=-max_force, upper=max_force, targets=['u'],
                   fix_initial=False, fix_final=False)
 
 # Minimize final time.
@@ -91,13 +103,30 @@ p.driver = om.pyOptSparseDriver()
 if optimizer == 'SLSQP':
     p.driver.options['optimizer'] = 'SLSQP'
 
+elif optimizer == 'SNOPT':
+    p.driver.options['optimizer'] = 'SNOPT'
+
+elif optimizer == 'IPOPT':
+        p.driver.options['optimizer'] = 'IPOPT'
+
 else:
     p.driver.options['optimizer'] = 'ParOpt'
 
-    if algorithm == "tr":
+    if algorithm == 'tr':
         p.driver.opt_settings['algorithm'] = 'tr'
-        p.driver.opt_settings['tr_max_iterations'] = 400
-        p.driver.opt_settings['tr_max_size'] = 100.0
+        p.driver.opt_settings['tr_linfty_tol'] = 1e-30
+        p.driver.opt_settings['tr_l1_tol'] = 1e-30
+        p.driver.opt_settings['output_level'] = 0
+        p.driver.opt_settings['tr_max_size'] = 1e3
+        p.driver.opt_settings['tr_min_size'] = 1e-2
+        p.driver.opt_settings['penalty_gamma'] = 1e2
+        p.driver.opt_settings['tr_adaptive_gamma_update'] = False
+        p.driver.opt_settings['tr_accept_step_strategy'] = 'penalty_method'
+        p.driver.opt_settings['tr_use_soc'] = False
+        p.driver.opt_settings['tr_max_iterations'] = 100
+        p.driver.opt_settings['max_major_iters'] = 100
+        # p.driver.opt_settings['qn_type'] = 'none'
+        # p.driver.opt_settings['sequential_linear_method'] = True
 
     else:
         p.driver.opt_settings['algorithm'] = 'ip'
@@ -111,7 +140,7 @@ p.setup(check=True)
 
 # Now that the OpenMDAO problem is setup, we can set the values of the states.
 p.set_val('traj.phase0.states:x',
-          phase.interpolate(ys=[0, 5], nodes='state_input'),
+          phase.interpolate(ys=[0, 0], nodes='state_input'),
           units='m')
 
 p.set_val('traj.phase0.states:v',
