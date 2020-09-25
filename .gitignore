@@ -21,3 +21,8 @@ paropt/*.pxi
 *.tr
 *.blg
 *.bbl
+.idea/*
+.vscode/*
+*.in
+*.pkl
+*.a
