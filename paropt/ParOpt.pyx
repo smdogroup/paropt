@@ -206,6 +206,46 @@ def unpack_tr_output(filename):
 
     return args, objs
 
+def unpack_tr_2nd_output(filename):
+    """
+    Unpack actual/predicted reduction of function and
+    constraint, note that this will only work when
+    output_level > 0, which need to be checked by user
+    """
+
+    args = ['ared(f)', 'pred(f)', 'ared(c)', 'pred(c)']
+
+    content = []
+    for f in args:
+        content.append([])
+
+    # Read entire tr output files
+    with open(filename, 'r') as fp:
+        lines = fp.readlines()
+
+    # Parse data
+    index = 0
+    for line in lines:
+        if 'Model                ared(f)      ' \
+            'pred(f)      ared(c)      pred(c)' in line:
+            data = lines[index+1].split()
+            i = 0
+            for _ in args:
+                try:
+                    content[i].append(float(data[i]))
+                except:
+                    content[i].append(0.0)
+                i+= 1
+
+        index += 1
+
+    # Convert the lists to numpy arrays
+    objs = []
+    for idx in range(len(args)):
+            objs.append(np.array(content[idx]))
+
+    return args, objs
+
 def unpack_mma_output(filename):
     """
     Unpack the parameters from a file output from MMA

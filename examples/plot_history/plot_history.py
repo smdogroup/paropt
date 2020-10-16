@@ -3,6 +3,13 @@ import matplotlib.pylab as plt
 import numpy as np
 import argparse
 
+# This is used for multiple y axis in same plot
+def make_patch_spines_invisible(ax):
+    ax.set_frame_on(True)
+    ax.patch.set_visible(False)
+    for sp in ax.spines.values():
+        sp.set_visible(False)
+
 # Import ParOpt so that we can read the ParOpt output file
 from paropt import ParOpt
 
@@ -51,6 +58,10 @@ else:
     # Unpack the output file
     header, values = ParOpt.unpack_tr_output(args.filename)
 
+    # Try to unpack and plot secondary tr outputs
+    header2, values2 = ParOpt.unpack_tr_2nd_output(args.filename)
+    have_2nd_tr_data = (len(values2[0]) > 0)
+
     if len(values[0]) > 0:
         # You can get more stuff out of this array
         iteration = np.linspace(1, len(values[0]), len(values[0]))
@@ -66,6 +77,12 @@ else:
 
         # Make the subplots
         fig, ax1 = plt.subplots()
+
+        # Change fig size if we need to plot the third axis
+        if have_2nd_tr_data:
+            fig.subplots_adjust(right=0.75)
+            fig.set_size_inches(7.9, 4.8)
+
         l1 = ax1.plot(iteration, objective, color=colors[0], label='objective')
         ax1.set_xlabel('Iteration')
         ax1.set_ylabel('Function value')
@@ -78,10 +95,34 @@ else:
         l6 = ax2.semilogy(iteration, tr, color=colors[5], label='tr')
         ax2.set_ylabel('Optimality and Feasibility')
 
+        if have_2nd_tr_data:
+            aredf = values2[header2.index('ared(f)')]
+            predf = values2[header2.index('pred(f)')]
+            aredc = values2[header2.index('ared(c)')]
+            predc = values2[header2.index('pred(c)')]
+            rho = values[header.index('rho')]
+
+            # Compute rho for function and constraint
+            rhof = aredf/predf
+            rhoc = aredc/predc
+
+            ax3 = ax1.twinx()
+            ax3.spines["right"].set_position(("axes", 1.2))
+            make_patch_spines_invisible(ax3)
+            ax3.spines["right"].set_visible(True)
+            l7 = ax3.plot(iteration, rhof, ':', color=colors[0], label='rho(f)')
+            l8 = ax3.plot(iteration, rhoc, ':', color=colors[4], label='rho(c)')
+            l9 = ax3.plot(iteration, rho, ':', color=colors[-1], label='rho')
+            lns2 = l7 + l8 + l9
+            ax3.set_ylabel('Model prediction ratios')
+            ax3.set_ylim([-2.0,2.0])
+
         # Manually add all the lines to the legend
         lns = l1+l2+l3+l4+l5+l6
+        if have_2nd_tr_data:
+            lns += lns2
         labs = [l.get_label() for l in lns]
-        ax1.legend(lns, labs, loc=0)
+        ax2.legend(lns, labs, loc='upper right')
         plt.title(args.filename)
 
     else:
