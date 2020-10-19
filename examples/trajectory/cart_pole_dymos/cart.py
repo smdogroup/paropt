@@ -178,23 +178,31 @@ p.driver = om.pyOptSparseDriver()
 if optimizer == 'SLSQP':
     p.driver.options['optimizer'] = 'SLSQP'
 
+elif optimizer == 'SNOPT':
+    p.driver.options['optimizer'] = 'SNOPT'
+
+elif optimizer == 'IPOPT':
+        p.driver.options['optimizer'] = 'IPOPT'
+
 else:
     p.driver.options['optimizer'] = 'ParOpt'
 
     if algorithm == 'tr':
         p.driver.opt_settings['algorithm'] = 'tr'
-        p.driver.opt_settings['qn_type'] = 'none'
-        p.driver.opt_settings['abs_res_tol'] = 1e-6
+        p.driver.opt_settings['qn_update_type'] = 'damped_update'
+        p.driver.opt_settings['abs_res_tol'] = 1e-8
+        p.driver.opt_settings['tr_linfty_tol'] = 1e-30
+        p.driver.opt_settings['tr_l1_tol'] = 1e-30
         p.driver.opt_settings['output_level'] = 0
         p.driver.opt_settings['tr_max_size'] = 1e2
-        p.driver.opt_settings['tr_min_size'] = 0.5
+        p.driver.opt_settings['tr_min_size'] = 1e-2
         p.driver.opt_settings['penalty_gamma'] = 1e2
-        p.driver.opt_settings['tr_penalty_gamma_max'] = 1e5
-        p.driver.opt_settings['tr_penalty_gamma_min'] = 1e-5
-        p.driver.opt_settings['tr_adaptive_gamma_update'] = False
-        p.driver.opt_settings['tr_max_iterations'] = 200
-        p.driver.opt_settings['norm_type'] = 'infinity'
+        p.driver.opt_settings['tr_adaptive_gamma_update'] = True
+        p.driver.opt_settings['tr_accept_step_strategy'] = 'penalty_method'
+        p.driver.opt_settings['tr_use_soc'] = False
+        p.driver.opt_settings['tr_max_iterations'] = 500
         p.driver.opt_settings['max_major_iters'] = 200
+        p.driver.opt_settings['qn_type'] = 'none'
         p.driver.opt_settings['sequential_linear_method'] = True
         # p.driver.opt_settings['barrier_strategy'] = 'mehrotra'
         # p.driver.opt_settings['gradient_verification_frequency'] = 1
@@ -202,12 +210,12 @@ else:
     else:
         p.driver.opt_settings['algorithm'] = 'ip'
         p.driver.opt_settings['qn_subspace_size'] = 10
-        p.driver.opt_settings['qn_update_type'] = 'damped_update'
+        # p.driver.opt_settings['qn_update_type'] = 'damped_update'
         p.driver.opt_settings['abs_res_tol'] = 1e-6
         p.driver.opt_settings['barrier_strategy'] = 'monotone'
         p.driver.opt_settings['output_level'] = 0
         p.driver.opt_settings['armijo_constant'] = 1e-5
-        p.driver.opt_settings['max_major_iters'] = 100
+        p.driver.opt_settings['max_major_iters'] = 500
 
 # Allow OpenMDAO to automatically determine our sparsity pattern.
 # Doing so can significant speed up the execution of Dymos.
