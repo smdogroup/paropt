@@ -421,8 +421,13 @@ class ParOptTrustRegion : public ParOptBase {
   // The options object for the trust-region method
   ParOptOptions *options;
 
-  // Update the problem
-  void update( ParOptInteriorPoint *optimizer, ParOptVec *step,
+  // Update the subproblem using SL1QP method
+  void sl1qp_update( ParOptInteriorPoint *optimizer, ParOptVec *step,
+               const ParOptScalar *z, ParOptVec *zw,
+               double *infeas, double *l1, double *linfty );
+
+  // Update the subproblem using filterSQP method
+  void filtersqp_update( ParOptInteriorPoint *optimizer, ParOptVec *step,
                const ParOptScalar *z, ParOptVec *zw,
                double *infeas, double *l1, double *linfty );
 

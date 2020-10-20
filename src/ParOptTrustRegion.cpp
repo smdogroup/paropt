@@ -988,9 +988,384 @@ void ParOptTrustRegion::initialize(){
 }
 
 /**
-  Update the trust region problem
+  Update the subproblem using SL1QP method
 */
-void ParOptTrustRegion::update( ParOptInteriorPoint *optimizer,
+void ParOptTrustRegion::sl1qp_update( ParOptInteriorPoint *optimizer,
+                                ParOptVec *step,
+                                const ParOptScalar *z,
+                                ParOptVec *zw,
+                                double *infeas,
+                                double *l1,
+                                double *linfty ){
+  // Extract options from the options object
+  const double tr_eta = options->getFloatOption("tr_eta");
+  const double tr_min_size = options->getFloatOption("tr_min_size");
+  const double tr_max_size = options->getFloatOption("tr_max_size");
+  const double tr_infeas_tol = options->getFloatOption("tr_infeas_tol");
+  const int tr_adaptive_gamma_update =
+    options->getBoolOption("tr_adaptive_gamma_update");
+  const int output_level = options->getIntOption("output_level");
+  const double function_precision =
+    options->getFloatOption("function_precision");
+
+  const char *accept_step_option = options->getEnumOption("tr_accept_step_strategy");
+  int tr_use_filter = 0; // By default, we use penalty method
+  if (strcmp(accept_step_option, "filter_method") == 0){
+    tr_use_filter = 1; // If filter method is specified, switch it on
+  }
+  const int tr_use_soc = options->getBoolOption("tr_use_soc");
+  const int tr_soc_use_quad_model = options->getBoolOption("tr_soc_use_quad_model");
+  const int tr_max_soc_iterations = options->getIntOption("tr_max_soc_iterations");
+
+  // Get the mpi rank for printing
+  int mpi_rank;
+  MPI_Comm_rank(subproblem->getMPIComm(), &mpi_rank);
+
+  // Compute the value of the objective model and model
+  // constraints at the current iterate
+  ParOptScalar fk;
+  ParOptScalar *ck = new ParOptScalar[ m ];
+  subproblem->evalObjCon(NULL, &fk, ck);
+
+  // Compute the model infeasibility at x = xk
+  ParOptScalar infeas_k = 0.0;
+  ParOptScalar infeas_k_constr_only = 0.0;
+  for ( int i = 0; i < m; i++ ){
+    if (i < nineq){
+      infeas_k += penalty_gamma[i]*max2(0.0, -ck[i]);
+      infeas_k_constr_only += max2(0.0, -ck[i]);
+    }
+    else {
+      infeas_k += penalty_gamma[i]*fabs(ck[i]);
+      infeas_k_constr_only += fabs(ck[i]);
+    }
+  }
+
+  // Store the (f, h) for initial point to filter set
+  if (tr_use_filter && iter_count == 0){
+    addToFilter(fk, infeas_k_constr_only);
+    addToFilter(fk, max2(100, 1.25*infeas_k_constr_only));
+  }
+
+  // Compute the value of the objective model and model
+  // constraints at the trial step location
+  ParOptScalar ft;
+  ParOptScalar *ct = new ParOptScalar[ m ];
+  subproblem->evalObjCon(step, &ft, ct);
+
+  // Compute the reduction in the objective value
+  ParOptScalar obj_reduc = fk - ft;
+
+  // Compute the model infeasibility at the new point
+  ParOptScalar infeas_model = 0.0;
+  for ( int i = 0; i < m; i++ ){
+    if (i < nineq){
+      infeas_model += penalty_gamma[i]*max2(0.0, -ct[i]);
+    }
+    else {
+      infeas_model += penalty_gamma[i]*fabs(ct[i]);
+    }
+  }
+
+  // Evaluate the model at the trial point and update the trust region model
+  // Hessian and bounds. Note that here, we're re-using the ft/ct memory.
+  subproblem->evalTrialStepAndUpdate(step, z, zw, &ft, ct);
+
+  // Compute the infeasibilities of the last two iterations
+  ParOptScalar infeas_t = 0.0;
+  for ( int i = 0; i < m; i++ ){
+    if (i < nineq){
+      infeas_t += penalty_gamma[i]*max2(0.0, -ct[i]);
+    }
+    else {
+      infeas_t += penalty_gamma[i]*fabs(ct[i]);
+    }
+  }
+
+  // Compute the actual reduction and the predicted reduction
+  ParOptScalar actual_reduc =
+    (fk - ft + (infeas_k - infeas_t));
+  ParOptScalar model_reduc =
+    obj_reduc + (infeas_k - infeas_model);
+
+  if (mpi_rank == 0 && output_level > 0){
+    FILE *fp = stdout;
+    if (outfp){
+      fp = outfp;
+    }
+    fprintf(fp, "%-12s %2s %12s %12s %12s\n",
+            "Constraints", "i", "c(x)", "c(x+p)", "gamma");
+    for ( int i = 0; i < m; i++ ){
+      fprintf(fp, "%12s %2d %12.5e %12.5e %12.5e\n",
+              " ", i, ParOptRealPart(ck[i]), ParOptRealPart(ct[i]),
+              penalty_gamma[i]);
+    }
+    fprintf(fp, "\n%-15s %12s %12s %12s %12s\n",
+            "Model", "ared(f)", "pred(f)", "ared(c)", "pred(c)");
+    fprintf(fp, "%15s %12.5e %12.5e %12.5e %12.5e\n",
+            " ", ParOptRealPart(fk - ft), ParOptRealPart(obj_reduc),
+            ParOptRealPart(infeas_k - infeas_t),
+            ParOptRealPart(infeas_k - infeas_model));
+  }
+
+  // Compute the infeasibility
+  ParOptScalar infeas_new = 0.0;
+  for ( int i = 0; i < m; i++ ){
+    if (i < nineq){
+      infeas_new += max2(0.0, -ct[i]);
+    }
+    else {
+      infeas_new += fabs(ct[i]);
+    }
+  }
+  *infeas = ParOptRealPart(infeas_new);
+
+  // Compute the ratio of the actual reduction
+  ParOptScalar rho = 1.0;
+  if (fabs(ParOptRealPart(model_reduc)) <= function_precision &&
+      fabs(ParOptRealPart(actual_reduc)) <= function_precision){
+    rho = 1.0;
+  }
+  else {
+    rho = actual_reduc/model_reduc;
+  }
+
+
+  delete [] ck;
+  delete [] ct;
+
+  // Compute the max absolute value
+  double smax = 0.0;
+
+  // Check whether to accept the new point or not. This check can be
+  // done using filter method or penalty method. If the trust region
+  // radius size is at the lower bound, the step is always accepted
+  int step_is_accepted = 0;
+  int enter_soc_phase = 0;
+  int soc_is_accepted = 0;
+  int filter_increase_tr_size = 0;
+  int filter_reduce_tr_size = 0;
+  double step_length_equals_tr_radius = 1e-10;
+  // If filter method is used, then the step will be accepted if either:
+  //   - trust region radius <= minimum trust region radius, or
+  //   - the candidate pair (f, h) is accepted by filter
+  if (tr_use_filter){
+    step_is_accepted = (tr_size <= tr_min_size) || isAcceptedByFilter(ft, infeas_new);
+  }
+  // Otherwise, penalty method is used, the step will be accepted if:
+  //   - trust region radius <= minimum trust region radius, or
+  //   - quadratic model is close enough to original problem, i.e. rho >= eta
+  else {
+    step_is_accepted = (tr_size <= tr_min_size) || (ParOptRealPart(rho) >= tr_eta);
+    // Even we are not using filter method as step acceptance strategy,
+    // we still maintain a filter set for potential future use
+    addToFilter(ft, infeas_new);
+  }
+
+  // If step is accepted, update design
+  if (step_is_accepted){
+    smax = ParOptRealPart(step->maxabs());
+    subproblem->acceptTrialStep(step, z, zw);
+    // If also the new step is at the trust region bound,
+    // We increase the trust region radius for next iteration
+    if (abs(smax - tr_size) < step_length_equals_tr_radius){
+      filter_increase_tr_size = 1;
+    }
+  }
+  // Otherwise, the step is not yet acceptable, but:
+  // if second order correction is switched on, then enter SOC phase
+  else if (tr_use_soc){
+    enter_soc_phase = 1;
+    ParOptScalar r = 0; // rate of convergence of the SOC steps
+    for ( int i = 0; i < tr_max_soc_iterations; i++ ){
+      // update quadratic model and optimize
+      subproblem->updateSocCon(step, ct);
+      optimizer->resetDesignAndBounds();
+
+      // Call this right before optimization to switch to SOC problem
+      subproblem->startSecondOrderCorrection();
+
+      optimizer->optimize();
+
+      // Call this right after optimization to switch back to original problem
+      subproblem->endSecondOrderCorrection();
+
+      // Get the new trial point
+      optimizer->getOptimizedPoint(&step, NULL, NULL, NULL, NULL);
+
+      // Compute (f, h) and SOC convergence rate at new trial point
+      r = 1.0/infeas_new;
+      subproblem->evalSocTrialPoint(step, tr_soc_use_quad_model, &ft, &infeas_new);
+      r *= infeas_new;
+
+      // If the new trial is acceptable, accept the step
+      if ( isAcceptedByFilter(ft, infeas_new) ){
+        soc_is_accepted = 1;
+        break;
+      }
+      // Else if rate of SOC convergence step is slow, or
+      // an almost feasible point is generated, or
+      // hit the maximum number of iteration,
+      // then SOC phase fails, reject the step and reduce trust region step
+      else if ( ParOptRealPart(r) > 0.25 ||
+                ParOptRealPart(infeas_new) < tr_infeas_tol ||
+                i >= tr_max_soc_iterations - 1 ){
+        soc_is_accepted = 0;
+        filter_reduce_tr_size = 1;
+        break;
+      }
+      // Otherwise, continue for next SOC iteration
+      else{
+        continue;
+      }
+    }
+    // If second order step is accepted
+    if (soc_is_accepted){
+      smax = ParOptRealPart(step->maxabs());
+      subproblem->evalSocTrialGrad(step, tr_soc_use_quad_model);
+      subproblem->acceptTrialStep(step, z, zw);
+      step_is_accepted = 1;
+      // If the rate of convergence of the SOC step is sufficiently
+      // good, we increase the trust region step
+      if (r < 0.1){
+        filter_increase_tr_size = 1;
+      }
+    }
+   // Otherwise, reject the second order step
+    else {
+        smax = 0.0;
+        subproblem->rejectTrialStep();
+        step_is_accepted = 0;
+        filter_reduce_tr_size = 1;
+      }
+    }
+  // Otherwise, the step is directly rejected without considering SOC
+  else {
+    subproblem->rejectTrialStep();
+    smax = 0.0;
+    step_is_accepted = 0;
+    filter_reduce_tr_size = 1;
+  }
+
+  // After figuring out the new optimization step,
+  // we update the trust region radius
+
+  // If filter method is used, an alternative metric is needed other
+  // than rho because we don't have penalty parameter now
+  if (tr_use_filter){
+    if (filter_increase_tr_size){
+      // Increase trust region radius
+      tr_size = ParOptRealPart(min2(1.5*tr_size, tr_max_size));
+    }
+    else if(filter_reduce_tr_size){
+      // Reduce trust region radius
+      tr_size = ParOptRealPart(max2(0.25*tr_size, tr_min_size));
+    }
+  }
+  // Otherwise, we use rho to decide the new trust region radius
+  else{
+    if (ParOptRealPart(rho) < 0.25){
+      // Reduce trust region radius
+      tr_size = ParOptRealPart(max2(0.25*tr_size, tr_min_size));
+    }
+    else if (ParOptRealPart(rho) > 0.75){
+      // Increase trust region radius
+      tr_size = ParOptRealPart(min2(1.5*tr_size, tr_max_size));
+    }
+  }
+
+  // Update infeasibility for output because it may change by SOC
+  *infeas = ParOptRealPart(infeas_new);
+
+  // Reset the trust region radius bounds
+  subproblem->setTrustRegionBounds(tr_size);
+
+  // Compute the KKT error at the current point
+  computeKKTError(z, zw, l1, linfty);
+
+  // Compute the max z/average z and max gamma/average gamma
+  double zmax = 0.0, zav = 0.0, gmax = 0.0, gav = 0.0;
+  for ( int i = 0; i < m; i++ ){
+    zav += ParOptRealPart(fabs(z[i]));
+    gav += penalty_gamma[i];
+    if (ParOptRealPart(fabs(z[i])) > zmax){
+      zmax = ParOptRealPart(fabs(z[i]));
+    }
+    if (penalty_gamma[i] > gmax){
+      gmax = penalty_gamma[i];
+    }
+  }
+  zav = zav/m;
+  gav = gav/m;
+
+  // Create an info string for the update type
+  int update_type = subproblem->getQuasiNewtonUpdateType();
+  char info[64];
+  info[0] = '\0';
+  if (update_type == 1){
+    // Damped BFGS update
+    sprintf(&info[strlen(info)], "%s ", "dampH");
+  }
+  else if (update_type == 2){
+    // Skipped update
+    sprintf(&info[strlen(info)], "%s ", "skipH");
+  }
+  // Write out the number of subproblem iterations
+  if (tr_adaptive_gamma_update){
+    sprintf(&info[strlen(info)], "%d/%d ", subproblem_iters,
+            adaptive_subproblem_iters);
+  }
+  else {
+    sprintf(&info[strlen(info)], "%d ", subproblem_iters);
+  }
+
+  // Write out the size of filter set
+  sprintf(&info[strlen(info)], "f%d ", filter_size);
+
+  // Write information about whether the step is accepted or rejected
+  if (!step_is_accepted){
+    sprintf(&info[strlen(info)], "%s ", "rej");
+  }
+
+  // Write information about whether the SOC step is accepted or rejected
+  if (enter_soc_phase){
+    if (!soc_is_accepted){
+      sprintf(&info[strlen(info)], "%s ", "socFail");
+    }
+    else{
+      sprintf(&info[strlen(info)], "%s ", "socSucc");
+    }
+  }
+
+  if (mpi_rank == 0){
+    FILE *fp = stdout;
+    if (outfp){
+      fp = outfp;
+    }
+    if (iter_count % 10 == 0 || output_level > 0){
+      fprintf(fp,
+              "\n%5s %12s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %-12s\n",
+              "iter", "fobj", "infeas", "l1", "linfty", "|x - xk|", "tr",
+              "rho", "mod red.", "avg z", "max z", "avg pen.", "max pen.", "info");
+      fflush(fp);
+    }
+    fprintf(fp,
+            "%5d %12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e "
+            "%9.2e %9.2e %9.2e %9.2e %-12s\n",
+            iter_count, ParOptRealPart(fk), *infeas, *l1, *linfty, smax, tr_size,
+            ParOptRealPart(rho), ParOptRealPart(model_reduc),
+            zav, zmax, gav, gmax, info);
+    fflush(fp);
+  }
+
+  // Update the iteration counter
+  iter_count++;
+}
+
+/**
+  Update the subproblem using filterSQP method
+*/
+void ParOptTrustRegion::filtersqp_update( ParOptInteriorPoint *optimizer,
                                 ParOptVec *step,
                                 const ParOptScalar *z,
                                 ParOptVec *zw,
@@ -1605,7 +1980,7 @@ void ParOptTrustRegion::optimize( ParOptInteriorPoint *optimizer ){
     // Update the trust region based on the performance at the new
     // point.
     double infeas, l1, linfty;
-    update(optimizer, step, z, zw, &infeas, &l1, &linfty);
+    filtersqp_update(optimizer, step, z, zw, &infeas, &l1, &linfty);
 
     // Check for convergence of the trust region problem
     if (infeas < tr_infeas_tol){
