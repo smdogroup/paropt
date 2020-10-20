@@ -1143,7 +1143,9 @@ void ParOptTrustRegion::update( ParOptInteriorPoint *optimizer,
   int step_is_accepted = 0;
   int enter_soc_phase = 0;
   int soc_is_accepted = 0;
-  int force_reduce_tr_size = 0;
+  int filter_increase_tr_size = 0;
+  int filter_reduce_tr_size = 0;
+  double step_length_equals_tr_radius = 1e-10;
   // If filter method is used, then the step will be accepted if either:
   //   - trust region radius <= minimum trust region radius, or
   //   - the candidate pair (f, h) is accepted by filter
@@ -1164,6 +1166,11 @@ void ParOptTrustRegion::update( ParOptInteriorPoint *optimizer,
   if (step_is_accepted){
     smax = ParOptRealPart(step->maxabs());
     subproblem->acceptTrialStep(step, z, zw);
+    // If also the new step is at the trust region bound,
+    // We increase the trust region radius for next iteration
+    if (abs(smax - tr_size) < step_length_equals_tr_radius){
+      filter_increase_tr_size = 1;
+    }
   }
   // Otherwise, the step is not yet acceptable, but:
   // if second order correction is switched on, then enter SOC phase
@@ -1204,7 +1211,7 @@ void ParOptTrustRegion::update( ParOptInteriorPoint *optimizer,
                 ParOptRealPart(infeas_new) < tr_infeas_tol ||
                 i >= tr_max_soc_iterations - 1 ){
         soc_is_accepted = 0;
-        force_reduce_tr_size = 1;
+        filter_reduce_tr_size = 1;
         break;
       }
       // Otherwise, continue for next SOC iteration
@@ -1218,12 +1225,18 @@ void ParOptTrustRegion::update( ParOptInteriorPoint *optimizer,
       subproblem->evalSocTrialGrad(step, tr_soc_use_quad_model);
       subproblem->acceptTrialStep(step, z, zw);
       step_is_accepted = 1;
+      // If the rate of convergence of the SOC step is sufficiently
+      // good, we increase the trust region step
+      if (r < 0.1){
+        filter_increase_tr_size = 1;
+      }
     }
    // Otherwise, reject the second order step
     else {
         smax = 0.0;
         subproblem->rejectTrialStep();
         step_is_accepted = 0;
+        filter_reduce_tr_size = 1;
       }
     }
   // Otherwise, the step is directly rejected without considering SOC
@@ -1231,16 +1244,34 @@ void ParOptTrustRegion::update( ParOptInteriorPoint *optimizer,
     subproblem->rejectTrialStep();
     smax = 0.0;
     step_is_accepted = 0;
+    filter_reduce_tr_size = 1;
   }
 
-  // Set the new trust region radius
-  if (ParOptRealPart(rho) < 0.25 || force_reduce_tr_size){
-    // Reduce trust region radius
-    tr_size = ParOptRealPart(max2(0.25*tr_size, tr_min_size));
+  // After figuring out the new optimization step,
+  // we update the trust region radius
+
+  // If filter method is used, an alternative metric is needed other
+  // than rho because we don't have penalty parameter now
+  if (tr_use_filter){
+    if (filter_increase_tr_size){
+      // Increase trust region radius
+      tr_size = ParOptRealPart(min2(1.5*tr_size, tr_max_size));
+    }
+    else if(filter_reduce_tr_size){
+      // Reduce trust region radius
+      tr_size = ParOptRealPart(max2(0.25*tr_size, tr_min_size));
+    }
   }
-  else if (ParOptRealPart(rho) > 0.75){
-    // Increase trust region radius
-    tr_size = ParOptRealPart(min2(1.5*tr_size, tr_max_size));
+  // Otherwise, we use rho to decide the new trust region radius
+  else{
+    if (ParOptRealPart(rho) < 0.25){
+      // Reduce trust region radius
+      tr_size = ParOptRealPart(max2(0.25*tr_size, tr_min_size));
+    }
+    else if (ParOptRealPart(rho) > 0.75){
+      // Increase trust region radius
+      tr_size = ParOptRealPart(min2(1.5*tr_size, tr_max_size));
+    }
   }
 
   // Update infeasibility for output because it may change by SOC
