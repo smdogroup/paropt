@@ -1217,6 +1217,7 @@ void ParOptTrustRegion::update( ParOptInteriorPoint *optimizer,
       smax = ParOptRealPart(step->maxabs());
       subproblem->evalSocTrialGrad(step, tr_soc_use_quad_model);
       subproblem->acceptTrialStep(step, z, zw);
+      step_is_accepted = 1;
     }
    // Otherwise, reject the second order step
     else {
