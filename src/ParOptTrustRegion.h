@@ -140,7 +140,7 @@ class ParOptTrustRegionSubproblem : public ParOptProblem {
     @param h [out] constraint violation value at candidate design point
   */
   virtual int evalSocTrialPoint( ParOptVec *xt, int soc_use_quad_model,
-                                 ParOptScalar *f, ParOptScalar *h){
+                                 ParOptScalar *f, ParOptScalar *h ){
     return 0;
   }
 

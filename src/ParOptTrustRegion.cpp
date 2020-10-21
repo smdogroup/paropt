@@ -400,7 +400,7 @@ int ParOptQuadraticSubproblem::getLinearModel( ParOptVec **_xk,
 /**
   Evaluate SOC trial point and get data pair (func val, constr val)
 */
-int ParOptQuadraticSubproblem::evalSocTrialPoint( ParOptVec *xt,
+int ParOptQuadraticSubproblem::evalSocTrialPoint( ParOptVec *step,
                                                   int soc_use_quad_model,
                                                   ParOptScalar *f,
                                                   ParOptScalar *h ){
@@ -409,12 +409,12 @@ int ParOptQuadraticSubproblem::evalSocTrialPoint( ParOptVec *xt,
   int m = this->m;
   // Compute f
   xtemp->copyValues(xk);
-  xtemp->axpy(1.0, xt);
+  xtemp->axpy(1.0, step);
   int fail = 0;
   if (soc_use_quad_model){
     // Evaluate the function and constraint values
     // of the quadratic model
-    fail = this->evalObjCon(xtemp, f, ct);
+    fail = this->evalObjCon(step, f, ct);
   }
   else{
     // Evaluate the function and constraint values
@@ -1364,7 +1364,9 @@ void ParOptTrustRegion::filtersqp_update( ParOptInteriorPoint *optimizer,
     enter_soc_phase = 1;
     ParOptScalar r = 0.0; // rate of convergence of the SOC steps
     for ( int i = 0; i < tr_max_soc_iterations; i++ ){
-      // update quadratic model and optimize
+      // Update quadratic model and optimize
+      // Note that since ct already stores constraint values
+      // at current trial point, we directly use it
       subproblem->updateSocCon(step, ct);
       optimizer->resetDesignAndBounds();
 
@@ -1380,8 +1382,11 @@ void ParOptTrustRegion::filtersqp_update( ParOptInteriorPoint *optimizer,
       optimizer->getOptimizedPoint(&step, NULL, NULL, NULL, NULL);
 
       // Compute (f, h) and SOC convergence rate at new trial point
+      // Note that here we store the latest constraint values
+      // in ct, this is done inside evalSocTrialPoint()
       r = 1.0/infeas_new;
-      subproblem->evalSocTrialPoint(step, tr_soc_use_quad_model, &ft, &infeas_new);
+      subproblem->evalSocTrialPoint(step, tr_soc_use_quad_model,
+                                    &ft, &infeas_new);
       r *= infeas_new;
 
       // If the new trial is acceptable, accept the step
