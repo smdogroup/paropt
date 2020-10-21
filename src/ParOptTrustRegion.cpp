@@ -1362,7 +1362,7 @@ void ParOptTrustRegion::filtersqp_update( ParOptInteriorPoint *optimizer,
   // if second order correction is switched on, then enter SOC phase
   else if (tr_use_soc){
     enter_soc_phase = 1;
-    ParOptScalar r = 0; // rate of convergence of the SOC steps
+    ParOptScalar r = 0.0; // rate of convergence of the SOC steps
     for ( int i = 0; i < tr_max_soc_iterations; i++ ){
       // update quadratic model and optimize
       subproblem->updateSocCon(step, ct);
