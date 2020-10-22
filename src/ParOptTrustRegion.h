@@ -409,7 +409,7 @@ class ParOptTrustRegion : public ParOptBase {
   void setPenaltyGammaMin( double _gamma_min );
 
   // Optimization loop using the trust region subproblem
-  void optimize( ParOptInteriorPoint *optimize );
+  void optimize( ParOptInteriorPoint *optimizer );
 
   // Get the optimized point
   void getOptimizedPoint( ParOptVec **_x );
@@ -421,12 +421,16 @@ class ParOptTrustRegion : public ParOptBase {
   // The options object for the trust-region method
   ParOptOptions *options;
 
-  // solve the subproblem using SL1QP method
-  void sl1qp_update( ParOptVec *step, const ParOptScalar *z, ParOptVec *zw,
+  // Perform a feasibility restoration update
+  void feasRestoreOptimize( ParOptInteriorPoint *optimizer,
+                        ParOptInfeasSubproblem *infeas_problem );
+
+  // Solve the subproblem using SL1QP method
+  void sl1qpUpdate( ParOptVec *step, const ParOptScalar *z, ParOptVec *zw,
                      double *infeas, double *l1, double *linfty );
 
-  // solve the subproblem using filterSQP method
-  void filtersqp_update( ParOptInteriorPoint *optimizer, ParOptVec *step,
+  // Solve the subproblem using filterSQP method
+  void filtersqpUpdate( ParOptInteriorPoint *optimizer, ParOptVec *step,
                const ParOptScalar *z, ParOptVec *zw,
                double *infeas, double *l1, double *linfty );
 
