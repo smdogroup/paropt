@@ -443,6 +443,9 @@ class ParOptTrustRegion : public ParOptBase {
   // rejected, if accepted, then add to filter
   int isAcceptedByFilter( ParOptScalar f, ParOptScalar h );
 
+  // Clear the blocking elements from the filter
+  void clearBlockingFilter( ParOptScalar f, ParOptScalar h );
+
   // Set the output file
   void setOutputFile( const char *filename );
 

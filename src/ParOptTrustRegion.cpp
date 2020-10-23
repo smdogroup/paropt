@@ -966,6 +966,37 @@ int ParOptTrustRegion::isAcceptedByFilter( ParOptScalar f,
 }
 
 /**
+  Clear the blocking elements from the filter
+
+  Elements of the filter that block the candidate pair (f, h) are removed.
+  As a last step, the element (f, h) is added to the filter.
+
+  @param f [in] Candidate function value
+  @param h [in] Candidate constraint violation
+*/
+void ParOptTrustRegion::clearBlockingFilter( ParOptScalar f,
+                                             ParOptScalar h ){
+  const double tr_infeas_tol = options->getFloatOption("tr_infeas_tol");
+  const double beta = 1e-5;
+
+  // Check if candidate pair (f, h) is dominated
+  for ( auto entry = filter.begin(); entry != filter.end(); entry++ ){
+    ParOptScalar fk = entry->first;
+    ParOptScalar hk = entry->second;
+
+    // Check whether the point is acceptable to the filter
+    int acceptable = acceptableToFilter(f, h, fk, hk, beta, tr_infeas_tol);
+
+    // Check if the point is not acceptable to the filter
+    if (!acceptable){
+      filter.erase(entry);
+    }
+  }
+
+  addToFilter(f, h);
+}
+
+/**
   Write the parameters to the output file
 
   @param fp an open file handle
@@ -1586,6 +1617,14 @@ void ParOptTrustRegion::sl1qpOptimize( ParOptInteriorPoint *optimizer ){
   delete [] start_option;
 }
 
+/**
+  Perform the optimization using the filter globalization algorithm.
+
+  This optimization algorithm is executed if the tr_accept_step_strategy is
+  set to filter_method.
+
+  @param optimizer An instance of the ParOptInteriorPoint optimizer class
+*/
 void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
   // Extract options
   const int tr_max_iterations = options->getIntOption("tr_max_iterations");
@@ -1644,7 +1683,13 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
 
   // Add the initial point to the filter
   addToFilter(fobj_init, infeas_init);
-  addToFilter(-1e20, max2(1e3, 1.5*infeas_init));
+
+  // Add the constraint
+  ParOptScalar max_constr_violation = max2(100.0, 1.25*infeas_init);
+  addToFilter(-1e20, max_constr_violation);
+
+  // Keep track of whether we are in a feasibility restoration phase or not
+  int feasibility_restoration_phase = 0;
 
   // Iterate over the trust region subproblem until convergence
   for ( int iteration = 0; iteration < tr_max_iterations; iteration++ ){
@@ -1668,11 +1713,6 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       }
     }
 
-    // We hit an infeasibile step. Reset the quasi-Newton Hessian approximation.
-    if (infeas_step){
-      qn->reset();
-    }
-
     // Evaluate the model at the trial point and update the trust region model
     // Hessian and bounds. Note that here, we're re-using the ft/ct memory.
     int update_flag = !infeas_step;
@@ -1689,6 +1729,14 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       else {
         infeas_trial += fabs(con_trial[i]);
       }
+    }
+
+    // If we hit an infeasible step, trigger the feasibility restoration phase
+    if (infeas_step){
+      feasibility_restoration_phase = 1;
+
+      // We hit an infeasibile step. Reset the quasi-Newton Hessian approximation.
+      qn->reset();
     }
 
     // Find the maximum step length
@@ -1765,7 +1813,31 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
     }
     else {
       // Check whether the point is acceptable for the filter
-      if (isAcceptedByFilter(fobj_trial, infeas_trial)){
+      if (feasibility_restoration_phase){
+        // We just exited the feasibility restoration phase. Remove
+        // blocking constraints from the filter and add the current pair.
+        clearBlockingFilter(fobj_trial, infeas_trial);
+
+        // Turn off the feasibility restoration phase. We found a feasible
+        // QP but the feasibility restoration phase is still active until
+        // this point.
+        feasibility_restoration_phase = 0;
+
+        // Add the max constraint violation to the filter as an
+        // upper bound. This prevents cycling.
+        max_constr_violation = max2(infeas_trial, max_constr_violation/10.0);
+        addToFilter(-1e20, max_constr_violation);
+
+        // Accept the trial step
+        step_is_accepted = 1;
+        subproblem->acceptTrialStep(step, z, zw);
+
+        // Check whether we should expand the trust region radius
+        if (smax >= 0.99*tr_size){
+          increase_tr_size = 1;
+        }
+      }
+      else if (isAcceptedByFilter(fobj_trial, infeas_trial)){
         step_is_accepted = 1;
         subproblem->acceptTrialStep(step, z, zw);
 
