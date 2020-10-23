@@ -1335,7 +1335,6 @@ void ParOptTrustRegion::sl1qpOptimize( ParOptInteriorPoint *optimizer ){
   // Set the initial values for the penalty parameter
   optimizer->setPenaltyGamma(penalty_gamma);
 
-<<<<<<< HEAD
   // If needed, allocate a subproblem instance
   ParOptInfeasSubproblem *infeas_problem = NULL;
   if (tr_adaptive_gamma_update){
@@ -1344,45 +1343,6 @@ void ParOptTrustRegion::sl1qpOptimize( ParOptInteriorPoint *optimizer ){
                                                 adaptive_constraint_flag);
     infeas_problem->incref();
   }
-=======
-  // Check whether to accept the new point or not. This check can be
-  // done using filter method or penalty method. If the trust region
-  // radius size is at the lower bound, the step is always accepted
-  int step_is_accepted                = 0;
-  int enter_soc_phase                 = 0;
-  int soc_is_accepted                 = 0;
-  int filter_increase_tr_size         = 0;
-  int filter_reduce_tr_size           = 0;
-  double step_length_equals_tr_radius = 1e-10;
-
-  // When filter method is used, then the step will be accepted if either:
-  //   - trust region radius <= minimum trust region radius, or
-  //   - the candidate pair (f, h) is accepted by filter
-  step_is_accepted = (tr_size <= tr_min_size) || isAcceptedByFilter(ft, infeas_new);
-
-  // If step is accepted, update design
-  if (step_is_accepted){
-    smax = ParOptRealPart(step->maxabs());
-    subproblem->acceptTrialStep(step, z, zw);
-    // If also the new step is at the trust region bound,
-    // We increase the trust region radius for next iteration
-    if (fabs(smax - tr_size) < step_length_equals_tr_radius){
-      filter_increase_tr_size = 1;
-    }
-  }
-
-  // Otherwise, the step is not yet acceptable, but:
-  // if second order correction is switched on, then enter SOC phase
-  else if (tr_use_soc){
-    enter_soc_phase = 1;
-    ParOptScalar r = 0.0; // rate of convergence of the SOC steps
-    for ( int i = 0; i < tr_max_soc_iterations; i++ ){
-      // Update quadratic model and optimize
-      // Note that since ct already stores constraint values
-      // at current trial point, we directly use it
-      subproblem->updateSocCon(step, ct);
-      optimizer->resetDesignAndBounds();
->>>>>>> d53a14258feb256931b08e0e6f4a444b93835120
 
   // Allocate arrays to store infeasibility information
   ParOptScalar *con_infeas = NULL;
