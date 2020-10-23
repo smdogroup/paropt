@@ -1469,7 +1469,7 @@ void ParOptTrustRegion::filtersqpUpdate( ParOptInteriorPoint *optimizer,
     subproblem->acceptTrialStep(step, z, zw);
     // If also the new step is at the trust region bound,
     // We increase the trust region radius for next iteration
-    if (abs(smax - tr_size) < step_length_equals_tr_radius){
+    if (fabs(smax - tr_size) < step_length_equals_tr_radius){
       filter_increase_tr_size = 1;
     }
   }
