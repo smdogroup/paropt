@@ -447,7 +447,8 @@ void ParOptEigenSubproblem::setTrustRegionBounds( double tr_size ){
   }
 }
 
-int ParOptEigenSubproblem::evalTrialStepAndUpdate( ParOptVec *step,
+int ParOptEigenSubproblem::evalTrialStepAndUpdate( int update_flag,
+                                                   ParOptVec *step,
                                                    const ParOptScalar *z,
                                                    ParOptVec *zw,
                                                    ParOptScalar *fobj,

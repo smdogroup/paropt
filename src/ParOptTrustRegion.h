@@ -2,8 +2,7 @@
 #define PAR_OPT_TRUST_REGION_H
 
 #include "ParOptInteriorPoint.h"
-#include <utility>
-#include <vector>
+#include <list>
 
 /*
   This class defines the trust region subproblem interface.
@@ -42,6 +41,7 @@ class ParOptTrustRegionSubproblem : public ParOptProblem {
     Evaluate the objective and constraints (and often their gradients)
     at the specified trial point and update the model.
 
+    @param update_flag Perform a quasi-Newton update (or model update) or not
     @param step The trial step
     @param z The multipliers for the dense constraints
     @param zw The multipliers for the sparse constraints
@@ -49,7 +49,8 @@ class ParOptTrustRegionSubproblem : public ParOptProblem {
     @param cons The dense constraint values at the trial point
     @return Flag indicating whether the objective evaluation failed
   */
-  virtual int evalTrialStepAndUpdate( ParOptVec *step,
+  virtual int evalTrialStepAndUpdate( int update_flag,
+                                      ParOptVec *step,
                                       const ParOptScalar *z,
                                       ParOptVec *zw,
                                       ParOptScalar *fobj,
@@ -169,8 +170,8 @@ class ParOptQuadraticSubproblem : public ParOptTrustRegionSubproblem {
   ParOptCompactQuasiNewton* getQuasiNewton();
   void initModelAndBounds( double tr_size );
   void setTrustRegionBounds( double tr_size );
-  int evalTrialStepAndUpdate( ParOptVec *step, const ParOptScalar *z,
-                              ParOptVec *zw,
+  int evalTrialStepAndUpdate( int update_flag, ParOptVec *step,
+                              const ParOptScalar *z, ParOptVec *zw,
                               ParOptScalar *fobj, ParOptScalar *cons );
   int acceptTrialStep( ParOptVec *xt, const ParOptScalar *z, ParOptVec *zw );
   void rejectTrialStep();
@@ -421,27 +422,26 @@ class ParOptTrustRegion : public ParOptBase {
   // The options object for the trust-region method
   ParOptOptions *options;
 
-  // Perform a feasibility restoration update
-  void feasRestoreOptimize( ParOptInteriorPoint *optimizer,
-                        ParOptInfeasSubproblem *infeas_problem );
-
   // Solve the subproblem using SL1QP method
   void sl1qpUpdate( ParOptVec *step, const ParOptScalar *z, ParOptVec *zw,
                      double *infeas, double *l1, double *linfty );
 
-  // Solve the subproblem using filterSQP method
-  void filtersqpUpdate( ParOptInteriorPoint *optimizer, ParOptVec *step,
-               const ParOptScalar *z, ParOptVec *zw,
-               double *infeas, double *l1, double *linfty );
+  // Optimization-specific code for the filter and sl1qp strategies
+  void filterOptimize( ParOptInteriorPoint *optimizer );
+  void sl1qpOptimize( ParOptInteriorPoint *optimizer );
+
+  // Test whether a candidate point is acceptable to a single element
+  // of the filter
+  int acceptableToFilter( ParOptScalar f, ParOptScalar h,
+                          ParOptScalar fk, ParOptScalar hk,
+                          const double beta, const double tol );
 
   // If candidate point (f, h) is not dominated, then add it to filter set
-  void addToFilter( const ParOptScalar f,
-                    const ParOptScalar h );
+  void addToFilter( ParOptScalar f, ParOptScalar h );
 
   // use filter to check if current design point can be accepted or
   // rejected, if accepted, then add to filter
-  int isAcceptedByFilter( const ParOptScalar f,
-                          const ParOptScalar h );
+  int isAcceptedByFilter( ParOptScalar f, ParOptScalar h );
 
   // Set the output file
   void setOutputFile( const char *filename );
@@ -473,7 +473,7 @@ class ParOptTrustRegion : public ParOptBase {
   ParOptVec *best_step;
 
   // Filter, set element is the filter pair (fi, hi)
-  std::vector<std::pair<ParOptScalar, ParOptScalar> > *filter;
+  std::list< std::pair<ParOptScalar, ParOptScalar> > filter;
 
   int filter_size;  // size of filter set
 };
