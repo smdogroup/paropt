@@ -914,15 +914,18 @@ void ParOptTrustRegion::addToFilter( ParOptScalar f,
   const double beta = 1e-5;
 
   // Delete dominated pairs from the list
-  for ( auto entry = filter.begin(); entry != filter.end(); entry++ ){
+  for ( auto entry = filter.begin(); entry != filter.end(); ){
     ParOptScalar fk = entry->first;
     ParOptScalar hk = entry->second;
 
     // Check whether the filter point is acceptable to the pair (f, k)
     int acceptable = acceptableToFilter(fk, hk, f, h, beta, tr_infeas_tol);
     if (!acceptable){
-      filter.erase(entry);
+      entry = filter.erase(entry);
       filter_size -= 1;
+    }
+    else{
+      ++entry;
     }
   }
 
@@ -935,7 +938,7 @@ void ParOptTrustRegion::addToFilter( ParOptScalar f,
 
 /**
   Use the filter to check if current design point can be accepted or
-  rejected. If the current design is accepted, then add is to filter set.
+  rejected. If the current design is accepted, then add it to filter set.
 
   @param f [in] Candidate function value
   @param h [in] Candidate constraint violation
@@ -980,7 +983,7 @@ void ParOptTrustRegion::clearBlockingFilter( ParOptScalar f,
   const double beta = 1e-5;
 
   // Check if candidate pair (f, h) is dominated
-  for ( auto entry = filter.begin(); entry != filter.end(); entry++ ){
+  for ( auto entry = filter.begin(); entry != filter.end(); ){
     ParOptScalar fk = entry->first;
     ParOptScalar hk = entry->second;
 
@@ -989,7 +992,11 @@ void ParOptTrustRegion::clearBlockingFilter( ParOptScalar f,
 
     // Check if the point is not acceptable to the filter
     if (!acceptable){
-      filter.erase(entry);
+      entry = filter.erase(entry);
+      filter_size -= 1;
+    }
+    else{
+      ++entry;
     }
   }
 
@@ -1905,6 +1912,9 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
     }
     // Write out the number of subproblem iterations
     sprintf(&info[strlen(info)], "%d ", qp_iters);
+
+    // Write out the size of filter set
+    sprintf(&info[strlen(info)], "f%d ", filter_size);
 
     // Put an "R" in info, indicating that this is a restoration step
     if (infeas_step){
