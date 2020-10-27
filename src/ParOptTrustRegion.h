@@ -3,6 +3,7 @@
 
 #include "ParOptInteriorPoint.h"
 #include <list>
+#include <math.h>
 
 /*
   This class defines the trust region subproblem interface.
@@ -430,21 +431,37 @@ class ParOptTrustRegion : public ParOptBase {
   void filterOptimize( ParOptInteriorPoint *optimizer );
   void sl1qpOptimize( ParOptInteriorPoint *optimizer );
 
+  // Perform second order correction if trial step is rejected,
+  // note that this is only useful for filterOptimize function
+  int isAcceptedBySoc( ParOptInteriorPoint *optimizer,
+                       ParOptVec *step,
+                       ParOptScalar *fobj_trial,
+                       ParOptScalar *con_trial,
+                       int *niters,
+                       ParOptScalar *r );
+
   // Test whether a candidate point is acceptable to a single element
   // of the filter
   int acceptableToFilter( ParOptScalar f, ParOptScalar h,
                           ParOptScalar fk, ParOptScalar hk,
-                          const double beta, const double tol );
+                          double qk, double muk, const double beta,
+                          const double alpha1, const double alpha2,
+                          const double tol );
 
   // If candidate point (f, h) is not dominated, then add it to filter set
-  void addToFilter( ParOptScalar f, ParOptScalar h );
+  void addToFilter( ParOptScalar f, ParOptScalar h,
+                    double q, double mu );
 
   // use filter to check if current design point can be accepted or
   // rejected, if accepted, then add to filter
-  int isAcceptedByFilter( ParOptScalar f, ParOptScalar h );
+  int isAcceptedByFilter( ParOptScalar f, ParOptScalar h,
+                          double q, double mu );
 
   // Clear the blocking elements from the filter
-  void clearBlockingFilter( ParOptScalar f, ParOptScalar h );
+  void clearBlockingFilter( ParOptScalar f, ParOptScalar h,
+                            double q, double mu );
+
+  void printFilter();
 
   // Set the output file
   void setOutputFile( const char *filename );
@@ -475,8 +492,9 @@ class ParOptTrustRegion : public ParOptBase {
   ParOptVec *t;
   ParOptVec *best_step;
 
-  // Filter, set element is the filter pair (fi, hi)
-  std::list< std::pair<ParOptScalar, ParOptScalar> > filter;
+  // Filter, set element is the filter pair (fi, hi, qi, mui)
+  std::list< std::tuple<ParOptScalar, ParOptScalar,
+                        double, double> > filter;
 
   int filter_size;  // size of filter set
 };
