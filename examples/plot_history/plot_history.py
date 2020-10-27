@@ -2,6 +2,7 @@ import matplotlib
 import matplotlib.pylab as plt
 import numpy as np
 import argparse
+import os
 
 # This is used for multiple y axis in same plot
 def make_patch_spines_invisible(ax):
@@ -16,6 +17,7 @@ from paropt import ParOpt
 p = argparse.ArgumentParser('Plot values from a paropt output file')
 p.add_argument('filename', metavar='paropt.out', type=str,
                help='ParOpt output file name')
+p.add_argument('--save', action='store_true')
 args = p.parse_args()
 
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728',
@@ -156,4 +158,9 @@ else:
         ax1.legend(lns, labs, loc=0)
         plt.title(args.filename)
 
-plt.show()
+if (args.save):
+    fname = os.path.splitext(args.filename)[0] # Delete suffix
+    fname += '-history'
+    plt.savefig(fname+'.png')
+else:
+    plt.show()
