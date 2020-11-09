@@ -35,6 +35,7 @@ class TopoAnalysis(ParOpt.Problem):
         self.nelems = self.nxelems*self.nyelems
         self.xfilter = None
         self.draw_figure = draw_figure
+        self.obj_scale = 1e-4
 
         if self.thermal_problem:
             # Set the element variables and boundary conditions
@@ -160,7 +161,52 @@ class TopoAnalysis(ParOpt.Problem):
             self.analyze_structure(E)
 
         # Return the compliance
-        return 0.5*np.dot(self.f, self.u)
+        return self.obj_scale*0.5*np.dot(self.f, self.u)
+
+    def compliance_grad(self, x):
+        """
+        Compute the gradient of the compliance using the adjoint
+        method.
+
+        Since the governing equations are self-adjoint, and the
+        function itself takes a special form:
+
+        K*psi = 0.5*f => psi = 0.5*u
+
+        So we can skip the adjoint computation itself since we have
+        the displacement vector u from the solution.
+
+        d(compliance)/dx = - 0.5*u^{T}*d(K*u - f)/dx = - 0.5*u^{T}*dK/dx*u
+        """
+
+        # Compute the filtered variables
+        self.xfilter = self.F.dot(x)
+
+        # First compute the derivative with respect to the filtered
+        # variables
+        dcdxf = np.zeros(x.shape)
+
+        if self.thermal_problem:
+            # Sum up the contributions from each
+            kelem = self.compute_element_thermal()
+
+            for i in range(self.nelems):
+                evars = self.u[self.elem_vars[i, :]]
+                dxfdE = self.kappa0*self.p*self.xfilter[i]**(self.p - 1.0)
+                dcdxf[i] = -0.5*np.dot(evars, np.dot(kelem, evars))*dxfdE
+        else:
+            # Sum up the contributions from each
+            kelem = self.compute_element_stiffness()
+
+            for i in range(self.nelems):
+                evars = self.u[self.elem_vars[i, :]]
+                dxfdE = self.E0*self.p*self.xfilter[i]**(self.p - 1.0)
+                dcdxf[i] = -0.5*np.dot(evars, np.dot(kelem, evars))*dxfdE
+
+        # Now evaluate the effect of the filter
+        dcdx = self.obj_scale*(self.F.transpose()).dot(dcdxf)
+
+        return dcdx
 
     def analyze_structure(self, E):
         """
@@ -337,51 +383,6 @@ class TopoAnalysis(ParOpt.Problem):
 
         return kelem
 
-    def compliance_grad(self, x):
-        """
-        Compute the gradient of the compliance using the adjoint
-        method.
-
-        Since the governing equations are self-adjoint, and the
-        function itself takes a special form:
-
-        K*psi = 0.5*f => psi = 0.5*u
-
-        So we can skip the adjoint computation itself since we have
-        the displacement vector u from the solution.
-
-        d(compliance)/dx = - 0.5*u^{T}*d(K*u - f)/dx = - 0.5*u^{T}*dK/dx*u
-        """
-
-        # Compute the filtered variables
-        self.xfilter = self.F.dot(x)
-
-        # First compute the derivative with respect to the filtered
-        # variables
-        dcdxf = np.zeros(x.shape)
-
-        if self.thermal_problem:
-            # Sum up the contributions from each
-            kelem = self.compute_element_thermal()
-
-            for i in range(self.nelems):
-                evars = self.u[self.elem_vars[i, :]]
-                dxfdE = self.kappa0*self.p*self.xfilter[i]**(self.p - 1.0)
-                dcdxf[i] = -0.5*np.dot(evars, np.dot(kelem, evars))*dxfdE
-        else:
-            # Sum up the contributions from each
-            kelem = self.compute_element_stiffness()
-
-            for i in range(self.nelems):
-                evars = self.u[self.elem_vars[i, :]]
-                dxfdE = self.E0*self.p*self.xfilter[i]**(self.p - 1.0)
-                dcdxf[i] = -0.5*np.dot(evars, np.dot(kelem, evars))*dxfdE
-
-        # Now evaluate the effect of the filter
-        dcdx = (self.F.transpose()).dot(dcdxf)
-
-        return dcdx
-
     def compliance_negative_hessian(self, s):
         """
         Compute the product of the negative
@@ -436,8 +437,8 @@ class TopoAnalysis(ParOpt.Problem):
 
         ymod ~ P*s = (H + N)*s ~ y + N*s
         """
-        Ns = self.compliance_negative_hessian(s[:])
-        y[:] += Ns[:]
+        # Ns = self.compliance_negative_hessian(s[:])
+        # y[:] += Ns[:]
         return
 
     def getVarsAndBounds(self, x, lb, ub):
@@ -512,6 +513,7 @@ if __name__ == '__main__':
 
     options = {
         'algorithm': 'tr',
+        'tr_accept_step_strategy': 'filter_method',
         'tr_init_size': 0.05,
         'tr_min_size': 1e-6,
         'tr_max_size': 10.0,
@@ -521,16 +523,13 @@ if __name__ == '__main__':
         'tr_linfty_tol': 0.0,
         'tr_adaptive_gamma_update': True,
         'tr_max_iterations': 1000,
-        'penalty_gamma': 10.0,
+        'max_major_iters': 100,
+        'penalty_gamma': 1e3,
         'qn_subspace_size': 10,
         'qn_type': 'bfgs',
-        'qn_diag_type': 'yts_over_sts',
         'abs_res_tol': 1e-8,
         'starting_point_strategy': 'affine_step',
         'barrier_strategy': 'mehrotra_predictor_corrector',
-        'tr_steering_barrier_strategy':
-            'mehrotra_predictor_corrector',
-        'tr_steering_starting_point_strategy': 'affine_step',
         'use_line_search': False}
 
     # Set up the optimizer

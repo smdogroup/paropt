@@ -1,9 +1,8 @@
 #ifndef PAR_OPT_TRUST_REGION_H
 #define PAR_OPT_TRUST_REGION_H
 
-#include "ParOptInteriorPoint.h"
 #include <list>
-#include <math.h>
+#include "ParOptInteriorPoint.h"
 
 /*
   This class defines the trust region subproblem interface.
@@ -493,8 +492,17 @@ class ParOptTrustRegion : public ParOptBase {
   ParOptVec *best_step;
 
   // Filter, set element is the filter pair (fi, hi, qi, mui)
-  std::list< std::tuple<ParOptScalar, ParOptScalar,
-                        double, double> > filter;
+  class FilterElement {
+   public:
+    FilterElement( ParOptScalar fk, ParOptScalar hk,
+                   double qk, double muk ){
+      f = fk;  h = hk;
+      q = qk;  mu = muk;
+    }
+    ParOptScalar f, h;
+    double q, mu;
+  };
+  std::list<FilterElement> filter;
 
   int filter_size;  // size of filter set
 };

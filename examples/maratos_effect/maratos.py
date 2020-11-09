@@ -1,4 +1,4 @@
-'''
+"""
 This is example 15.4 in Numerical Optimization by Nocedal Et al.
 which might be able to show the Maratos effect that prevents
 the optimizer to converge rapidly.
@@ -7,7 +7,7 @@ Problem:
 
 min f(x1, x2) = 2(x1^2 + x2^2 - 1) - x1
 s.t. 1 - (x1^2 + x2^2)  = 0
-'''
+"""
 
 import numpy as np
 import mpi4py.MPI as MPI
@@ -27,13 +27,13 @@ class Maratos(ParOpt.Problem):
         self.plot_label = plot_label
 
     def fun(self, x):
-        return 2.0*(x[0]**2 + x[1]**2 - 1.0) - x[0]
+        return 2.0*(x[0] - 0.5)**2 + 2.0*x[1]**2
 
     def fun_grad(self, x):
-        return np.array([4.0*x[0]-1.0, 4.0*x[1]])
+        return np.array([4.0*x[0] - 1.0, 4.0*x[1]])
 
     def con(self, x):
-        return (x[0]**2 + x[1]**2) - 1.0
+        return (x[0]**2 + x[1]**2) - 2.0
 
     def con_grad(self, x):
         return np.array([2.0*x[0], 2.0*x[1]])
@@ -77,19 +77,12 @@ class Maratos(ParOpt.Problem):
 
     def getVarsAndBounds(self, x, lb, ub):
         """Set the values of the bounds"""
-        x[0] = 0.0
-        x[1] = 0.5
+        x[0] = 1.0
+        x[1] = 1.0
 
         lb[:] = -10.0
         ub[:] =  10.0
 
-        '''
-        We actually don't need lb and ub in this case
-        because we only have equality constraint,
-        However, this doesn't work for ip solver (tr works fine)
-        '''
-        # lb = None
-        # ub = None
         return
 
     def evalObjCon(self, x):
@@ -125,22 +118,18 @@ problem.plot_contour()
 
 options = {
     'algorithm': 'tr',
-    # 'abs_res_tol': 1e-30,
-    'tr_l1_tol': 1e-30,
-    'tr_linfty_tol': 1e-30,
-    'output_level': 0,
+    'output_level': 2,
     'tr_init_size': 1.0,
-    'tr_min_size': 1e-2,
+    'tr_min_size': 1e-6,
     'tr_max_size': 1e2,
     'tr_eta': 0.25,
     'penalty_gamma': 1e2,
     'tr_adaptive_gamma_update': False,
-    'tr_accept_step_strategy': 'penalty_method',
+    'tr_accept_step_strategy': 'filter_method',
     'tr_use_soc': False,
-    'tr_soc_use_quad_model': True,
     'tr_penalty_gamma_max': 1e5,
     'tr_penalty_gamma_min': 1e-5,
-    'tr_max_iterations': 20,
+    'tr_max_iterations': 50,
     'max_major_iters': 100,
     }
 

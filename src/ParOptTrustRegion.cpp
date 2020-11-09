@@ -931,7 +931,8 @@ int ParOptTrustRegion::acceptableToFilter( ParOptScalar f, ParOptScalar h,
 */
 void ParOptTrustRegion::addToFilter( ParOptScalar f,
                                      ParOptScalar h,
-                                     double q, double mu ){
+                                     double q,
+                                     double mu ){
   const double tr_infeas_tol = options->getFloatOption("tr_infeas_tol");
   const double beta = 0.99;
   const double alpha1 = 0.25;
@@ -939,10 +940,8 @@ void ParOptTrustRegion::addToFilter( ParOptScalar f,
 
   // Delete dominated pairs from the list
   for ( auto entry = filter.begin(); entry != filter.end(); ){
-    ParOptScalar fk = std::get<0>(*entry);
-    ParOptScalar hk = std::get<1>(*entry);
-    double qk = std::get<2>(*entry);
-    double muk = std::get<3>(*entry);
+    ParOptScalar fk = entry->f;
+    ParOptScalar hk = entry->h;
 
     // Check whether the filter point is acceptable to the pair (f, k)
     int acceptable = acceptableToFilter(fk, hk, f, h, q, mu, beta, alpha1,
@@ -957,8 +956,7 @@ void ParOptTrustRegion::addToFilter( ParOptScalar f,
   }
 
   // Add current pair (f, h) to filter set
-  filter.push_back(std::tuple<ParOptScalar, ParOptScalar,
-                              double, double>(f, h, q, mu));
+  filter.push_back(FilterElement(f, h, q, mu));
   filter_size += 1;
 
   return;
@@ -984,10 +982,10 @@ int ParOptTrustRegion::isAcceptedByFilter( ParOptScalar f,
 
   // Check if candidate pair (f, h) is dominated
   for ( auto entry = filter.begin(); entry != filter.end(); entry++ ){
-    ParOptScalar fk = std::get<0>(*entry);
-    ParOptScalar hk = std::get<1>(*entry);
-    double qk = std::get<2>(*entry);
-    double muk = std::get<3>(*entry);
+    ParOptScalar fk = entry->f;
+    ParOptScalar hk = entry->h;
+    double qk = entry->q;
+    double muk = entry->mu;
 
     // Check whether the point is acceptable to the filter
     int acceptable = acceptableToFilter(f, h, fk, hk, qk, muk, beta,
@@ -1027,10 +1025,10 @@ void ParOptTrustRegion::clearBlockingFilter( ParOptScalar f,
 
   // Check if candidate pair (f, h) is dominated
   for ( auto entry = filter.begin(); entry != filter.end(); ){
-    ParOptScalar fk = std::get<0>(*entry);
-    ParOptScalar hk = std::get<1>(*entry);
-    double qk = std::get<2>(*entry);
-    double muk = std::get<3>(*entry);
+    ParOptScalar fk = entry->f;
+    ParOptScalar hk = entry->h;
+    double qk = entry->q;
+    double muk = entry->mu;
 
     // Check whether the point is acceptable to the filter
     int acceptable = acceptableToFilter(f, h, fk, hk, qk, muk, beta,
@@ -1051,10 +1049,14 @@ void ParOptTrustRegion::clearBlockingFilter( ParOptScalar f,
 }
 
 void ParOptTrustRegion::printFilter(){
-  printf("[%d], filter size: %d\n", iter_count, filter_size);
-  for ( auto entry = filter.begin(); entry != filter.end(); entry++ ){
-    printf(("(f, h) = (%.3e, %.3e)\n"), ParOptRealPart(std::get<0>(*entry)),
-      ParOptRealPart(std::get<1>(*entry)));
+  int rank;
+  MPI_Comm_rank(subproblem->getMPIComm(), &rank);
+  if (rank == 0){
+    printf("[%d], filter size: %d\n", iter_count, filter_size);
+    for ( auto entry = filter.begin(); entry != filter.end(); entry++ ){
+      printf(("(f, h) = (%.3e, %.3e)\n"),
+            ParOptRealPart(entry->f), ParOptRealPart(entry->h));
+    }
   }
 }
 
@@ -1725,6 +1727,12 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
   int mpi_rank;
   MPI_Comm_rank(subproblem->getMPIComm(), &mpi_rank);
 
+  ParOptInfeasSubproblem *infeas_problem =
+    new ParOptInfeasSubproblem(subproblem,
+      ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE,
+      ParOptInfeasSubproblem::PAROPT_LINEAR_CONSTRAINT);
+  infeas_problem->incref();
+
   // Initialize the trust region problem for the first iteration
   initialize();
 
@@ -1745,8 +1753,8 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
   }
 
   // Add the initial point to the filter
-  ParOptScalar q = 0.0;
-  ParOptScalar mu = 0.0;
+  double q = 0.0;
+  double mu = 0.0;
   addToFilter(fobj_init, infeas_init, q, mu);
 
   // Add the constraint
@@ -1784,6 +1792,26 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       }
     }
 
+    // If the step is infeasible, then recompute the step using a problem
+    // that uses a linear objective approximation, minimizing the constraint
+    // violation
+    if (infeas_step){
+      optimizer->resetProblemInstance(infeas_problem);
+
+      // Reset the initial design point
+      optimizer->resetDesignAndBounds();
+
+      // Optimize the subproblem
+      optimizer->optimize();
+
+      // Get the design variables
+      ParOptVec *step;
+      optimizer->getOptimizedPoint(&step, &z, &zw, NULL, NULL);
+
+      // Reset the optimizer to use to the subproblem instance
+      optimizer->resetProblemInstance(subproblem);
+    }
+
     // Evaluate the model at the trial point and update the trust region model
     // Hessian and bounds. Note that here, we're re-using the ft/ct memory.
     int update_flag = !infeas_step;
@@ -1794,12 +1822,12 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
     // Compute predicted decrease q and least power of 10 mu
     double q = ParOptRealPart(fk - fobj_trial);
     ParOptScalar zinfty = 0.0;
-    for (int i = 0; i < m; i++){
-      if (z[i] > zinfty){
+    for ( int i = 0; i < m; i++ ){
+      if (ParOptRealPart(z[i]) > ParOptRealPart(zinfty)){
         zinfty = z[i];
       }
     }
-    double mu = ceil(log10(ParOptScalar(zinfty)));
+    double mu = ceil(log10(ParOptRealPart(zinfty)));
     if (mu > 6.0){
       mu = 6.0;
     }
@@ -1886,7 +1914,7 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       // Compute the ratio of the actual/expected improvement
       rho = (f0 - fk)/(f0 - mk);
 
-      if (rho > tr_eta || tr_size <= tr_min_size){
+      if (ParOptRealPart(rho) > tr_eta || ParOptRealPart(tr_size) <= tr_min_size){
         step_is_accepted = 1;
         subproblem->acceptTrialStep(step, z, zw);
       }
@@ -1978,8 +2006,8 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
           }
 
           // Check whether we should expand the trust region radius
-          if (smax >= 0.99*tr_size && r < 0.1){
-          increase_tr_size = 1;
+          if (smax >= 0.99*tr_size && ParOptRealPart(r) < 0.1){
+            increase_tr_size = 1;
           }
         }
         else{
@@ -2046,6 +2074,7 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       // Skipped update
       sprintf(&info[strlen(info)], "%s ", "skipH");
     }
+
     // Write out the number of subproblem iterations
     sprintf(&info[strlen(info)], "%d ", qp_iters);
 
@@ -2072,7 +2101,6 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       }
     }
 
-
     // Update output file
     if (mpi_rank == 0){
       FILE *fp = stdout;
@@ -2089,9 +2117,9 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       fprintf(fp,
               "%5d %12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e "
               "%9.2e %9.2e %9.2e %9.2e %-12s\n",
-              iter_count, ParOptRealPart(fobj_trial), infeas_trial,
+              iter_count, ParOptRealPart(fobj_trial), ParOptRealPart(infeas_trial),
               l1, linfty, smax, tr_size,
-              rho, 0.0, zav, zmax, gav, gmax, info);
+              ParOptRealPart(rho), 0.0, zav, zmax, gav, gmax, info);
       fflush(fp);
     }
 
@@ -2115,7 +2143,7 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
     iter_count++;
 
     // Check for convergence of the trust region problem
-    if (infeas_trial < tr_infeas_tol){
+    if (ParOptRealPart(infeas_trial) < ParOptRealPart(tr_infeas_tol)){
       if (l1 < tr_l1_tol ||
           linfty < tr_linfty_tol){
         // Success!
@@ -2123,6 +2151,8 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       }
     }
   }
+
+  infeas_problem->decref();
 
   delete [] con_trial;
 }
@@ -2216,7 +2246,7 @@ int ParOptTrustRegion::isAcceptedBySoc( ParOptInteriorPoint *optimizer,
     infeas_old = infeas_new;
 
     // Update best soc step
-    if (merit_new < merit_old){
+    if (ParOptRealPart(merit_new) < ParOptRealPart(merit_old)){
       best_step->copyValues(step);
       merit_old = merit_new;
     }
@@ -2239,11 +2269,11 @@ int ParOptTrustRegion::isAcceptedBySoc( ParOptInteriorPoint *optimizer,
     double q = ParOptRealPart(fk - fobj_new);
     ParOptScalar zinfty = 0.0;
     for (int i = 0; i < m; i++){
-      if (z[i] > zinfty){
+      if (ParOptRealPart(z[i]) > ParOptRealPart(zinfty)){
         zinfty = z[i];
       }
     }
-    double mu = ceil(log10(ParOptScalar(zinfty)));
+    double mu = ceil(log10(ParOptRealPart(zinfty)));
     if (mu > 6.0){
       mu = 6.0;
     }
