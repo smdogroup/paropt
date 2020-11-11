@@ -691,9 +691,6 @@ ParOptTrustRegion::ParOptTrustRegion( ParOptTrustRegionSubproblem *_subproblem,
   t = subproblem->createDesignVec();
   t->incref();
 
-  // Allocate memory and initialize filters
-  filter_size = 0;
-
   // If second order correction is used, create another temporary vector
   int tr_use_soc = options->getBoolOption("tr_use_soc");
   if (tr_use_soc){
@@ -772,8 +769,11 @@ void ParOptTrustRegion::addDefaultOptions( ParOptOptions *options ){
     "penalty_method", 2, accept_step_options,
     "Which strategy to use to decide if a trial point can be accepted or not");
 
-  options->addBoolOption("filter_sufficient_reduction", 0,
+  options->addBoolOption("filter_sufficient_reduction", 1,
     "Use sufficient reduction criteria for filter");
+
+  options->addBoolOption("filter_has_feas_restore_phase", 1,
+    "Use feasibility restoration for filter method");
 
   options->addBoolOption("tr_use_soc", 0,
     "Use second order correction when trial step is rejeccted");
@@ -948,7 +948,6 @@ void ParOptTrustRegion::addToFilter( ParOptScalar f,
                                         alpha2, tr_infeas_tol);
     if (!acceptable){
       entry = filter.erase(entry);
-      filter_size -= 1;
     }
     else{
       ++entry;
@@ -957,7 +956,6 @@ void ParOptTrustRegion::addToFilter( ParOptScalar f,
 
   // Add current pair (f, h) to filter set
   filter.push_back(FilterElement(f, h, q, mu));
-  filter_size += 1;
 
   return;
 }
@@ -1038,7 +1036,6 @@ void ParOptTrustRegion::clearBlockingFilter( ParOptScalar f,
     // Check if the point is not acceptable to the filter
     if (!acceptable){
       entry = filter.erase(entry);
-      filter_size -= 1;
     }
     else{
       ++entry;
@@ -1052,7 +1049,7 @@ void ParOptTrustRegion::printFilter(){
   int rank;
   MPI_Comm_rank(subproblem->getMPIComm(), &rank);
   if (rank == 0){
-    printf("[%d], filter size: %d\n", iter_count, filter_size);
+    printf("[%d], filter size: %ld\n", iter_count, filter.size());
     for ( auto entry = filter.begin(); entry != filter.end(); entry++ ){
       printf(("(f, h) = (%.3e, %.3e)\n"),
             ParOptRealPart(entry->f), ParOptRealPart(entry->h));
@@ -1785,10 +1782,13 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
     // of the multipliers. If the absolute value of the multipliers exceeds
     // the penalty parameter, then the constraint is infeasibile.
     int infeas_step = 0;
-    for ( int i = 0; i < m; i++ ){
-      // Check if we have an infeasible subproblem or not
-      if (fabs(ParOptRealPart(z[i])) + tr_infeas_tol >= penalty_gamma[i]){
-        infeas_step = 1;
+    // We may enter feasibility restoration only it is specified
+    if (options->getBoolOption("filter_has_feas_restore_phase")){
+      for ( int i = 0; i < m; i++ ){
+        // Check if we have an infeasible subproblem or not
+        if (fabs(ParOptRealPart(z[i])) + tr_infeas_tol >= penalty_gamma[i]){
+          infeas_step = 1;
+        }
       }
     }
 
@@ -2079,7 +2079,7 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
     sprintf(&info[strlen(info)], "%d ", qp_iters);
 
     // Write out the size of filter set
-    sprintf(&info[strlen(info)], "f%d ", filter_size);
+    sprintf(&info[strlen(info)], "f%ld ", filter.size());
 
     // Put an "R" in info, indicating that this is a restoration step
     if (infeas_step){
@@ -2121,6 +2121,25 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
               l1, linfty, smax, tr_size,
               ParOptRealPart(rho), 0.0, zav, zmax, gav, gmax, info);
       fflush(fp);
+    }
+
+    // Output additional information
+    if (mpi_rank == 0 && output_level > 0){
+      FILE *fp = stdout;
+      if (outfp){
+        fp = outfp;
+      }
+      fprintf(fp,
+              "\n%15s %12s %12s\n","No.", "filter(f)", "filter(h)");
+      fflush(fp);
+      int index = 1;
+      for (auto entry = filter.begin(); entry != filter.end();entry++ ){
+      fprintf(fp,
+              "%15d %12.5e %12.5e\n", index,
+              ParOptRealPart(entry->f), ParOptRealPart(entry->h));
+      fflush(fp);
+      index++;
+      }
     }
 
     // After figuring out the new optimization step,
