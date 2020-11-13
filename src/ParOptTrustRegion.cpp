@@ -1768,9 +1768,16 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
   for ( int iteration = 0; iteration < tr_max_iterations; iteration++ ){
     // Compute fk
     ParOptScalar fk;
-    ParOptScalar *_ck = new ParOptScalar [m];
+    ParOptScalar *_ck = new ParOptScalar[ m ];
     subproblem->evalObjCon(NULL, &fk, _ck);
     delete [] _ck;
+
+    // Reset the optimizer to use to the subproblem instance
+    optimizer->resetProblemInstance(subproblem);
+
+    // The subproblem is quadratic so set the interior point method
+    // to use the quasi-Newton Hessian approximation
+    ip_options->setOption("sequential_linear_method", 0);
 
     // Optimize the subproblem
     optimizer->resetDesignAndBounds();
@@ -1796,7 +1803,13 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
     // that uses a linear objective approximation, minimizing the constraint
     // violation
     if (infeas_step){
+      // Set the problem instance to the infeasibility subproblem that
+      // we're going to solve
       optimizer->resetProblemInstance(infeas_problem);
+
+      // The subproblem is linear, so set the interior point method to
+      // a linear problem that will ignore the quasi-Newton Hessian
+      ip_options->setOption("sequential_linear_method", 1);
 
       // Reset the initial design point
       optimizer->resetDesignAndBounds();
@@ -1805,11 +1818,7 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       optimizer->optimize();
 
       // Get the design variables
-      ParOptVec *step;
       optimizer->getOptimizedPoint(&step, &z, &zw, NULL, NULL);
-
-      // Reset the optimizer to use to the subproblem instance
-      optimizer->resetProblemInstance(subproblem);
     }
 
     // Evaluate the model at the trial point and update the trust region model
@@ -1879,37 +1888,36 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       // First compute the value of the objective model and model
       // constraints at the current iterate
       ParOptScalar f0;
-      ParOptScalar *ck = new ParOptScalar[ m ];
-      subproblem->evalObjCon(NULL, &f0, ck);
+      ParOptScalar *c0 = new ParOptScalar[ m ];
+      infeas_problem->evalObjCon(NULL, &f0, c0);
 
       ParOptScalar fk = fobj_trial;
       for ( int i = 0; i < m; i++ ){
         if (i < nineq){
           fk += penalty_gamma[i]*max2(0.0, -con_trial[i]);
-          f0 += penalty_gamma[i]*max2(0.0, -ck[i]);
+          f0 += penalty_gamma[i]*max2(0.0, -c0[i]);
         }
         else {
-          fk += penalty_gamma[i]*max2(0.0, -con_trial[i]);
-          f0 += penalty_gamma[i]*fabs(ck[i]);
+          fk += penalty_gamma[i]*fabs(con_trial[i]);
+          f0 += penalty_gamma[i]*fabs(c0[i]);
         }
       }
 
       // Compute the value of the objective model and model
       // constraints at the trial step location
       ParOptScalar mk;
-      subproblem->evalObjCon(step, &mk, ck);
-
+      infeas_problem->evalObjCon(step, &mk, c0);
       for ( int i = 0; i < m; i++ ){
         if (i < nineq){
-          mk += penalty_gamma[i]*max2(0.0, -ck[i]);
+          mk += penalty_gamma[i]*max2(0.0, -c0[i]);
         }
         else {
-          mk += penalty_gamma[i]*fabs(ck[i]);
+          mk += penalty_gamma[i]*fabs(c0[i]);
         }
       }
 
       // Free the allocated data
-      delete [] ck;
+      delete [] c0;
 
       // Compute the ratio of the actual/expected improvement
       rho = (f0 - fk)/(f0 - mk);
