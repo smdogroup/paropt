@@ -504,7 +504,6 @@ class ParOptTrustRegion : public ParOptBase {
   };
   std::list<FilterElement> filter;
 
-  int filter_size;  // size of filter set
 };
 
 #endif // PAR_OPT_TRUST_REGION_H
