@@ -37,3 +37,8 @@ def get_libraries():
     	lib_dirs.append(os.path.join(root_path, path))
 
     return lib_dirs, libs
+
+try:
+    from paropt.plot_history import plot_history
+except:
+    pass
