@@ -46,6 +46,7 @@ class ParOptDriver(Driver):
         self._dvlist = None
         self.fail = False
         self.iter_count = 0
+        self.paropt_use_qn_correction = False
 
         return
 
@@ -106,6 +107,11 @@ class ParOptDriver(Driver):
         # Create the ParOptProblem from the OpenMDAO problem
         self.paropt_problem = ParOptProblem(problem)
 
+        # We may bind the external method for quasi-newton update correction
+        # if specified
+        if self.paropt_use_qn_correction:
+            self.paropt_problem.computeQuasiNewtonUpdateCorrection = self.computeQuasiNewtonUpdateCorrection.__get__(self.paropt_problem)
+
         # Take only the options declared from ParOpt
         info = ParOpt.getOptionsInfo()
         paropt_options = {}
@@ -130,6 +136,16 @@ class ParOptDriver(Driver):
         self.opt.optimize()
 
         return False
+
+    def use_qn_correction(self, method):
+        """
+        Bind an external function which handles the quasi-newton update
+        correction to the paropt problem instance
+        """
+
+        self.paropt_use_qn_correction = True
+        self.computeQuasiNewtonUpdateCorrection = method
+        return
 
 
 class ParOptProblem(ParOpt.Problem):
