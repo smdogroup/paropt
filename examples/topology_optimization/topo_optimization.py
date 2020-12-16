@@ -419,7 +419,7 @@ class TopoAnalysis(ParOpt.Problem):
 
         return Hs
 
-    def computeQuasiNewtonUpdateCorrection(self, s, y):
+    def computeQuasiNewtonUpdateCorrection(self, x, z, zw, s, y):
         """
         The exact Hessian of the compliance is composed of the difference
         between two contributions:

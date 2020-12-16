@@ -55,7 +55,10 @@ class CyParOptProblem : public ParOptProblem {
   void setEvalHessianDiag( int (*func)(void*, int, int, int, ParOptVec*,
                                        ParOptScalar*, ParOptVec*,
                                        ParOptVec*) );
-  void setComputeQuasiNewtonUpdateCorrection( void (*func)(void*, int,
+  void setComputeQuasiNewtonUpdateCorrection( void (*func)(void*, int, int,
+                                                           ParOptVec*,
+                                                           ParOptScalar*,
+                                                           ParOptVec*,
                                                            ParOptVec*,
                                                            ParOptVec*) );
   void setEvalSparseCon( void (*func)(void*, int, int,
@@ -103,7 +106,9 @@ class CyParOptProblem : public ParOptProblem {
 
   // Compute a quasi-Newton update correction/modification
   // -----------------------------------------------------
-  void computeQuasiNewtonUpdateCorrection( ParOptVec *s, ParOptVec*y );
+  void computeQuasiNewtonUpdateCorrection( ParOptVec *x,
+                                           ParOptScalar *z, ParOptVec *zw,
+                                           ParOptVec *s, ParOptVec*y );
 
   // Evaluate the constraints
   // ------------------------
@@ -146,7 +151,9 @@ class CyParOptProblem : public ParOptProblem {
   int (*evalhessiandiag)( void *self, int nvars, int ncon, int nwcon,
                           ParOptVec *x, ParOptScalar *z,
                           ParOptVec *zw, ParOptVec *hdiag );
-  void (*computequasinewtonupdatecorrection)( void *self, int,
+  void (*computequasinewtonupdatecorrection)( void *self, int, int,
+                                              ParOptVec *x, ParOptScalar *z,
+                                              ParOptVec *zw,
                                               ParOptVec *s, ParOptVec*y );
   void (*evalsparsecon)( void *self, int nvars, int nwcon,
                          ParOptVec *x, ParOptVec *out );

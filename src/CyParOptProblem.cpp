@@ -36,6 +36,7 @@ ParOptProblem(_comm, _nvars, _ncon, _ninequality, _nwcon, _nwblock){
   addsparsejacobian = NULL;
   addsparsejacobiantranspose = NULL;
   addsparseinnerproduct = NULL;
+  computequasinewtonupdatecorrection = NULL;
 }
 
 CyParOptProblem::~CyParOptProblem(){}
@@ -113,7 +114,10 @@ void CyParOptProblem::setEvalHessianDiag( int (*func)(void *, int, int, int,
   evalhessiandiag = func;
 }
 
-void CyParOptProblem::setComputeQuasiNewtonUpdateCorrection( void (*func)(void*, int,
+void CyParOptProblem::setComputeQuasiNewtonUpdateCorrection( void (*func)(void*, int, int,
+                                                                          ParOptVec*,
+                                                                          ParOptScalar*,
+                                                                          ParOptVec*,
                                                                           ParOptVec*,
                                                                           ParOptVec*) ){
   computequasinewtonupdatecorrection = func;
@@ -237,14 +241,17 @@ int CyParOptProblem::evalHessianDiag( ParOptVec *x,
 /*
   Apply the quasi-Newton update correction
 */
-void CyParOptProblem::computeQuasiNewtonUpdateCorrection( ParOptVec *s,
+void CyParOptProblem::computeQuasiNewtonUpdateCorrection( ParOptVec *x,
+                                                          ParOptScalar *z,
+                                                          ParOptVec *zw,
+                                                          ParOptVec *s,
                                                           ParOptVec *y ){
   if (!computequasinewtonupdatecorrection){
     fprintf(stderr, "computequasinewtonupdatecorrection callback not defined\n");
   }
 
   // Evaluate the Hessian-vector callback
-  computequasinewtonupdatecorrection(self, nvars, s, y);
+  computequasinewtonupdatecorrection(self, nvars, ncon, x, z, zw, s, y);
 }
 
 /*

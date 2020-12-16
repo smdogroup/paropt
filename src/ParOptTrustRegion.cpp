@@ -160,7 +160,7 @@ void ParOptQuadraticSubproblem::setTrustRegionBounds( double tr_size ){
 
 int ParOptQuadraticSubproblem::evalTrialStepAndUpdate( int update_flag,
                                                        ParOptVec *step,
-                                                       const ParOptScalar *z,
+                                                       ParOptScalar *z,
                                                        ParOptVec *zw,
                                                        ParOptScalar *fobj,
                                                        ParOptScalar *cons ){
@@ -196,7 +196,7 @@ int ParOptQuadraticSubproblem::evalTrialStepAndUpdate( int update_flag,
     }
 
     // Perform an update of the quasi-Newton approximation
-    prob->computeQuasiNewtonUpdateCorrection(step, t);
+    prob->computeQuasiNewtonUpdateCorrection(xk, z, zw, step, t);
     qn_update_type = qn->update(xk, z, zw, step, t);
   }
 
@@ -204,7 +204,7 @@ int ParOptQuadraticSubproblem::evalTrialStepAndUpdate( int update_flag,
 }
 
 int ParOptQuadraticSubproblem::acceptTrialStep( ParOptVec *step,
-                                                const ParOptScalar *z,
+                                                ParOptScalar *z,
                                                 ParOptVec *zw ){
   int fail = 0;
 
@@ -1131,7 +1131,7 @@ void ParOptTrustRegion::initialize(){
   Update the subproblem using SL1QP method
 */
 void ParOptTrustRegion::sl1qpUpdate( ParOptVec *step,
-                                      const ParOptScalar *z,
+                                      ParOptScalar *z,
                                       ParOptVec *zw,
                                       double *infeas,
                                       double *l1,

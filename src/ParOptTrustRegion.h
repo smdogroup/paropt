@@ -51,7 +51,7 @@ class ParOptTrustRegionSubproblem : public ParOptProblem {
   */
   virtual int evalTrialStepAndUpdate( int update_flag,
                                       ParOptVec *step,
-                                      const ParOptScalar *z,
+                                      ParOptScalar *z,
                                       ParOptVec *zw,
                                       ParOptScalar *fobj,
                                       ParOptScalar *cons ) = 0;
@@ -66,7 +66,7 @@ class ParOptTrustRegionSubproblem : public ParOptProblem {
     @return Flag indicating whether the objective evaluation failed
   */
   virtual int acceptTrialStep( ParOptVec *xt,
-                               const ParOptScalar *z,
+                               ParOptScalar *z,
                                ParOptVec *zw ) = 0;
 
   /**
@@ -171,9 +171,9 @@ class ParOptQuadraticSubproblem : public ParOptTrustRegionSubproblem {
   void initModelAndBounds( double tr_size );
   void setTrustRegionBounds( double tr_size );
   int evalTrialStepAndUpdate( int update_flag, ParOptVec *step,
-                              const ParOptScalar *z, ParOptVec *zw,
+                              ParOptScalar *z, ParOptVec *zw,
                               ParOptScalar *fobj, ParOptScalar *cons );
-  int acceptTrialStep( ParOptVec *xt, const ParOptScalar *z, ParOptVec *zw );
+  int acceptTrialStep( ParOptVec *xt, ParOptScalar *z, ParOptVec *zw );
   void rejectTrialStep();
   int getQuasiNewtonUpdateType();
 
@@ -423,7 +423,7 @@ class ParOptTrustRegion : public ParOptBase {
   ParOptOptions *options;
 
   // Solve the subproblem using SL1QP method
-  void sl1qpUpdate( ParOptVec *step, const ParOptScalar *z, ParOptVec *zw,
+  void sl1qpUpdate( ParOptVec *step, ParOptScalar *z, ParOptVec *zw,
                      double *infeas, double *l1, double *linfty );
 
   // Optimization-specific code for the filter and sl1qp strategies

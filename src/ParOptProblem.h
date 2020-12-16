@@ -240,10 +240,16 @@ class ParOptProblem : public ParOptBase {
     modification is performed. However, some problems may benefit by
     modifying the gradient difference term.
 
+    @param x is the design variable vector
+    @param z is the array of multipliers for the dense constraints
+    @param zw is the vector of multipliers for the sparse constraints
     @param s The step in the quasi-Newton update
     @param y The gradient difference in the quasi-Newton update
   */
-  virtual void computeQuasiNewtonUpdateCorrection( ParOptVec *s,
+  virtual void computeQuasiNewtonUpdateCorrection( ParOptVec *x,
+                                                   ParOptScalar *z,
+                                                   ParOptVec *zw,
+                                                   ParOptVec *s,
                                                    ParOptVec *y ){}
 
   /**

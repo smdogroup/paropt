@@ -4310,7 +4310,7 @@ int ParOptInteriorPoint::computeStepAndUpdate( double alpha,
         prob->addSparseJacobianTranspose(-1.0, x, zw, y_qn);
       }
 
-      prob->computeQuasiNewtonUpdateCorrection(s_qn, y_qn);
+      prob->computeQuasiNewtonUpdateCorrection(x, z, zw, s_qn, y_qn);
       update_type = qn->update(x, z, zw, s_qn, y_qn);
     }
     else {
