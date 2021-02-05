@@ -5,6 +5,7 @@ syntax: glob
 *.so
 *.out
 *.pdf
+*.png
 *.dat
 *.pyc
 *.aux
