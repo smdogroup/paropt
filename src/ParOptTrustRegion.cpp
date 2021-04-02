@@ -196,8 +196,8 @@ int ParOptQuadraticSubproblem::evalTrialStepAndUpdate( int update_flag,
     }
 
     // Perform an update of the quasi-Newton approximation
-    prob->computeQuasiNewtonUpdateCorrection(xk, z, zw, step, t);
-    qn_update_type = qn->update(xk, z, zw, step, t);
+    prob->computeQuasiNewtonUpdateCorrection(xtemp, z, zw, step, t);
+    qn_update_type = qn->update(xtemp, z, zw, step, t);
   }
 
   return fail;
