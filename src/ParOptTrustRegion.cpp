@@ -736,7 +736,6 @@ void ParOptTrustRegion::addDefaultOptions( ParOptOptions *options ){
   options->addIntOption("output_level", 0, 0, 1000000,
     "Output level indicating how verbose the output should be");
 
-  // Float options
   options->addFloatOption("tr_init_size", 0.1, 0.0, 1e20,
     "The initial trust region radius");
 
@@ -771,6 +770,9 @@ void ParOptTrustRegion::addDefaultOptions( ParOptOptions *options ){
 
   options->addBoolOption("filter_sufficient_reduction", 1,
     "Use sufficient reduction criteria for filter");
+
+  options->addFloatOption("filter_gamma", 1e-5, 0.0, 1.0,
+    "A small value that controls slanting envelope of the filter");
 
   options->addBoolOption("filter_has_feas_restore_phase", 1,
     "Use feasibility restoration for filter method");
@@ -871,82 +873,74 @@ void ParOptTrustRegion::getOptimizedPoint( ParOptVec **_x ){
 }
 
 /**
-  Test whether the pair (f, h) is acceptable to the filter element (fk, hk)
+  Test that if (f_new, h_new) is acceptable by pair (f_old, h_old)
 
-  This utilizes a stricter filter with parameters beta and the feasibility
-  tolerance tol.
+  It uses either the simple envelope or slanting envelope that controled by
+  option filter_sufficient_reduction
 
-  @param f The candidate objective value
-  @param h The candidate infeasibility value
-  @param fk The filter element objective value
-  @param hk The filter element infeasibility value
-  @param qk The predicted reduction (positive if a decrease of f is predicted)
-  @param muk The least power of ten larger than |lambda|_infty
-  @param beta The sufficient decrease tolerance (close to 1)
-  @param alpha1 A positive constant
-  @param alpha2 A positive constant
-  @param tol The feasibility tolerance
+  @param f_new The candidate objective value
+  @param h_new The candidate infeasibility value
+  @param f_old The element objective value
+  @param h_old The element infeasibility value
   @return A boolean indicating whether the candidate is acceptable or not
 */
-int ParOptTrustRegion::acceptableToFilter( ParOptScalar f, ParOptScalar h,
-                                           ParOptScalar fk, ParOptScalar hk,
-                                           double qk, double muk, const double beta,
-                                           const double alpha1, const double alpha2,
-                                           const double tol ){
+int ParOptTrustRegion::acceptableByPair( ParOptScalar f_new, ParOptScalar h_new,
+                                         ParOptScalar f_old, ParOptScalar h_old){
   const int filter_sufficient_reduction =
     options->getBoolOption("filter_sufficient_reduction");
-  double _hk, _fk;
+  const double gamma = options->getFloatOption("filter_gamma");
+  const double beta = 1.0 - gamma;
+  double _f_old, _h_old;
+
+  // If specified, using slanting envelope
   if (filter_sufficient_reduction){
-    _hk = beta*ParOptRealPart(hk);
-    _fk = ParOptRealPart(fk - max2(alpha1*qk, alpha2*hk*muk));
+    _h_old = beta*ParOptRealPart(h_old);
+    _f_old = ParOptRealPart(f_old-gamma*h_new);
   }
+  // Otherwise, use simple envelope
   else{
-    _hk = ParOptRealPart(hk);
-    _fk = ParOptRealPart(fk);
+    _h_old = ParOptRealPart(h_old);
+    _f_old = ParOptRealPart(f_old);
   }
 
-  if (ParOptRealPart(h) < tol && _hk < tol){
-    if (ParOptRealPart(f) < _fk){
-      return 1;
-    }
-  }
-  else {
-    if (ParOptRealPart(h) <= _hk ||
-        ParOptRealPart(f) <= _fk){
-      return 1;
-    }
+  // Test if the candidate pair is acceptable
+  if (ParOptRealPart(h_new) < _h_old ||
+      ParOptRealPart(f_new) < _f_old){
+    return 1;
   }
 
   return 0;
 }
 
 /**
-  Add pair (f, h) to filter set, and then remove dominated pairs
+  Test if the candidate point (f, h) is acceptable to the current filter set
 
-  @param f [in] Candidate function value
-  @param h [in] Candidate constraint violation
-  @param q [in] The predicted reduction of candidate point
-  @param mu [in] the least power of ten larger than
-            |lambda|_infty of candidate point
+  @param f The candidate objective value
+  @param h The candidate infeasibility value
+  @return A boolean indicating whether the candidate is acceptable or not
+*/
+int ParOptTrustRegion::acceptableByFilter( ParOptScalar f, ParOptScalar h){
+  // Check (f, h) against all pairs in the filter set
+  for ( auto entry = filter.begin(); entry != filter.end(); entry++ ){
+    if (!acceptableByPair(f, h, entry->f, entry->h)){
+      return 0;
+    }
+  }
+  return 1;
+}
+
+/**
+  Add pair (f, h) to filter set, meanwhile remove dominated pairs
+
+  @param f Candidate function value
+  @param h Candidate constraint violation
 */
 void ParOptTrustRegion::addToFilter( ParOptScalar f,
-                                     ParOptScalar h,
-                                     double q,
-                                     double mu ){
-  const double tr_infeas_tol = options->getFloatOption("tr_infeas_tol");
-  const double beta = 0.99;
-  const double alpha1 = 0.25;
-  const double alpha2 = 1e-4;
-
-  // Delete dominated pairs from the list
+                                     ParOptScalar h ){
+  // Delete filter pairs dominated by (f, h)
   for ( auto entry = filter.begin(); entry != filter.end(); ){
-    ParOptScalar fk = entry->f;
-    ParOptScalar hk = entry->h;
-
-    // Check whether the filter point is acceptable to the pair (f, k)
-    int acceptable = acceptableToFilter(fk, hk, f, h, q, mu, beta, alpha1,
-                                        alpha2, tr_infeas_tol);
-    if (!acceptable){
+    // Note that here we always use the simple rule, not the slanting envelope
+    if (f <= entry->f && h <= entry->h){
       entry = filter.erase(entry);
     }
     else{
@@ -955,50 +949,9 @@ void ParOptTrustRegion::addToFilter( ParOptScalar f,
   }
 
   // Add current pair (f, h) to filter set
-  filter.push_back(FilterElement(f, h, q, mu));
+  filter.push_back(FilterElement(f, h));
 
   return;
-}
-
-/**
-  Use the filter to check if current design point can be accepted or
-  rejected. If the current design is accepted, then add it to filter set.
-
-  @param f [in] Candidate function value
-  @param h [in] Candidate constraint violation
-  @param q [in] The predicted reduction of candidate point
-  @param mu [in] the least power of ten larger than
-            |lambda|_infty of candidate point
-*/
-int ParOptTrustRegion::isAcceptedByFilter( ParOptScalar f,
-                                           ParOptScalar h,
-                                           double q, double mu ){
-  const double tr_infeas_tol = options->getFloatOption("tr_infeas_tol");
-  const double beta = 0.99;
-  const double alpha1 = 0.25;
-  const double alpha2 = 1e-4;
-
-  // Check if candidate pair (f, h) is dominated
-  for ( auto entry = filter.begin(); entry != filter.end(); entry++ ){
-    ParOptScalar fk = entry->f;
-    ParOptScalar hk = entry->h;
-    double qk = entry->q;
-    double muk = entry->mu;
-
-    // Check whether the point is acceptable to the filter
-    int acceptable = acceptableToFilter(f, h, fk, hk, qk, muk, beta,
-                                        alpha1, alpha2, tr_infeas_tol);
-
-    // Check if the point is not acceptable to the filter
-    if (!acceptable){
-      return 0;
-    }
-  }
-
-  // (f, h) is not dominated, add the pair to filter set, and delete
-  // new dominated points
-  addToFilter(f, h, q, mu);
-  return 1;
 }
 
 /**
@@ -1013,37 +966,37 @@ int ParOptTrustRegion::isAcceptedByFilter( ParOptScalar f,
   @param mu [in] the least power of ten larger than
             |lambda|_infty of candidate point
 */
-void ParOptTrustRegion::clearBlockingFilter( ParOptScalar f,
-                                             ParOptScalar h,
-                                             double q, double mu ){
-  const double tr_infeas_tol = options->getFloatOption("tr_infeas_tol");
-  const double beta = 0.99;
-  const double alpha1 = 0.25;
-  const double alpha2 = 1e-4;
+// void ParOptTrustRegion::clearBlockingFilter( ParOptScalar f,
+//                                              ParOptScalar h,
+//                                              double q, double mu ){
+//   const double tr_infeas_tol = options->getFloatOption("tr_infeas_tol");
+//   const double beta = 0.99;
+//   const double alpha1 = 0.25;
+//   const double alpha2 = 1e-4;
 
-  // Check if candidate pair (f, h) is dominated
-  for ( auto entry = filter.begin(); entry != filter.end(); ){
-    ParOptScalar fk = entry->f;
-    ParOptScalar hk = entry->h;
-    double qk = entry->q;
-    double muk = entry->mu;
+//   // Check if candidate pair (f, h) is dominated
+//   for ( auto entry = filter.begin(); entry != filter.end(); ){
+//     ParOptScalar fk = entry->f;
+//     ParOptScalar hk = entry->h;
+//     double qk = entry->q;
+//     double muk = entry->mu;
 
-    // Check whether the point is acceptable to the filter
-    int acceptable = acceptableToFilter(f, h, fk, hk, qk, muk, beta,
-                                        alpha1, alpha2, tr_infeas_tol);
+//     // Check whether the point is acceptable to the filter
+//     int acceptable = acceptableToFilter(f, h, fk, hk, qk, muk, beta,
+//                                         alpha1, alpha2, tr_infeas_tol);
 
 
-    // Check if the point is not acceptable to the filter
-    if (!acceptable){
-      entry = filter.erase(entry);
-    }
-    else{
-      ++entry;
-    }
-  }
+//     // Check if the point is not acceptable to the filter
+//     if (!acceptable){
+//       entry = filter.erase(entry);
+//     }
+//     else{
+//       ++entry;
+//     }
+//   }
 
-  addToFilter(f, h, q, mu);
-}
+//   addToFilter(f, h, q, mu);
+// }
 
 void ParOptTrustRegion::printFilter(){
   int rank;
@@ -1749,25 +1702,26 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
     }
   }
 
-  // Add the initial point to the filter
-  double q = 0.0;
-  double mu = 0.0;
-  addToFilter(fobj_init, infeas_init, q, mu);
-
-  // Add the constraint
-  ParOptScalar max_constr_violation = max2(100.0, 1.25*infeas_init);
-  addToFilter(-1e20, max_constr_violation, q, mu);
-
-  // Keep track of whether we are in a feasibility restoration phase or not
-  int feasibility_restoration_phase = 0;
+  // Add (u, -infty) to the filter, where u is the upper infeasibility bound
+  ParOptScalar max_constr_violation = max2(1e4, 1.25*infeas_init);
+  addToFilter(-1e20, max_constr_violation);
 
   // Iterate over the trust region subproblem until convergence
   for ( int iteration = 0; iteration < tr_max_iterations; iteration++ ){
-    // Compute fk
+    // Compute fk and hk
     ParOptScalar fk;
-    ParOptScalar *_ck = new ParOptScalar[ m ];
-    subproblem->evalObjCon(NULL, &fk, _ck);
-    delete [] _ck;
+    ParOptScalar *ck = new ParOptScalar[ m ];
+    subproblem->evalObjCon(NULL, &fk, ck);
+    ParOptScalar hk = 0.0;
+    for ( int i = 0; i < m; i++ ){
+      if (i < nineq){
+        hk += max2(0.0, -ck[i]);
+      }
+      else {
+        hk += fabs(ck[i]);
+      }
+    }
+    delete [] ck;
 
     // Reset the optimizer to use to the subproblem instance
     optimizer->resetProblemInstance(subproblem);
@@ -1785,26 +1739,72 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
     ParOptScalar *z;
     optimizer->getOptimizedPoint(&step, &z, &zw, NULL, NULL);
 
-    // Check if any of the constraints are infeasible based on the values
-    // of the multipliers. If the absolute value of the multipliers exceeds
-    // the penalty parameter, then the constraint is infeasibile.
-    int infeas_step = 0;
+    /*
+      Check if the QP subproblem we just solved is incompatible, where incompatible
+      means the QP subproblem solution violates the linear constraint, i.e. there exists
+      an index i such that:
+        c[i] + A[i]*step < 0
+      This can be checked using multiplier and penalty parameter, because at the solution
+      to QP subproblem, we have the following conditions hold from the interior point solver:
+        - c[i] + A[i]*step = s[i] - t[i]
+        - mu/s[i] = gamma_s[i] + z[i]
+        - mu/t[i] = gamma_t[i] - z[i]
+        - s[i], z[i] > 0
+      Then, we only need to check if:
+        s[i] - t[i] < 0
+      or:
+        gamma_s[i] + z[i] > gamma_t[i] - z[i] - tol
+      Actually, we could also directly evaluate:
+        c[i] + A[i]*step
+    */
+    int incompatible_step = 0;
     // We may enter feasibility restoration only it is specified
     if (options->getBoolOption("filter_has_feas_restore_phase")){
+      double penalty_gamma_s, penalty_gamma_t;
+
+      // Evaluate linear constraint values
+      ParOptScalar dummy;
+      ParOptScalar *cm = new ParOptScalar[ m ];
+      double infeas;
+      subproblem->evalObjCon(step, &dummy, cm);
       for ( int i = 0; i < m; i++ ){
-        // Check if we have an infeasible subproblem or not
-        if (fabs(ParOptRealPart(z[i])) + tr_infeas_tol >= penalty_gamma[i]){
-          infeas_step = 1;
+        if (i < nineq){
+          penalty_gamma_s = 0.0;
+          penalty_gamma_t = penalty_gamma[i];
+          infeas = max2(0.0, -cm[i]);
+        }
+        else{
+          penalty_gamma_s = penalty_gamma[i];
+          penalty_gamma_t = penalty_gamma[i];
+          infeas = fabs(cm[i]);
+        }
+        if (mpi_rank == 0){
+          printf("[Note] the following should have different sign!\n");
+          printf("2z[%d]+gs[%d]-gt[%d] = %.5e\n", i, i, i,
+            2*ParOptRealPart(z[i]) + penalty_gamma_s - penalty_gamma_t);
+          printf("c[%d]+A[%d]*step   = %.5e\n",i, i, cm[i]);
+          printf("infeas           = %.5e\n", infeas);
+        }
+        // if (2*ParOptRealPart(z[i]) + penalty_gamma_s - penalty_gamma_t + tr_infeas_tol > 0){
+        if (infeas > tr_infeas_tol ){
+          incompatible_step = 1;
+          // We include (fk, hk) in to the filter
+          // as the h-type iteration
+          addToFilter(fk, hk);
         }
       }
+      delete [] cm;
     }
 
-    // If the step is infeasible, then recompute the step using a problem
-    // that uses a linear objective approximation, minimizing the constraint
-    // violation
-    if (infeas_step){
-      // Set the problem instance to the infeasibility subproblem that
-      // we're going to solve
+    /*
+      If we hit an incompatible step after solving the QP subproblem, we will
+      enter restoration phase. In the restoration phase, we want to find a
+      point xk that is acceptable to the filter with some tr_size such that
+      QP(xk, tr_size) is compatible with such tr_size.
+      Note that the restoration phase can last for multiple tr steps until
+      a compatible point is found.
+    */
+    if (incompatible_step){
       optimizer->resetProblemInstance(infeas_problem);
 
       // The subproblem is linear, so set the interior point method to
@@ -1819,31 +1819,24 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
 
       // Get the design variables
       optimizer->getOptimizedPoint(&step, &z, &zw, NULL, NULL);
+
+      // Reset the quasi-Newton Hessian approximation because
+      // we just lost second order information
+      qn->reset();
     }
+
+    // Evaluate model objective value
+    ParOptScalar fobj_model;
+    ParOptScalar *dummy = new ParOptScalar[ m ];
+    subproblem->evalObjCon(step, &fobj_model, dummy);
+    delete [] dummy;
 
     // Evaluate the model at the trial point and update the trust region model
     // Hessian and bounds. Note that here, we're re-using the ft/ct memory.
-    int update_flag = !infeas_step;
+    int qn_update_flag = !incompatible_step;
     ParOptScalar fobj_trial;
-    subproblem->evalTrialStepAndUpdate(update_flag, step, z, zw,
+    subproblem->evalTrialStepAndUpdate(qn_update_flag, step, z, zw,
                                        &fobj_trial, con_trial);
-
-    // Compute predicted decrease q and least power of 10 mu
-    double q = ParOptRealPart(fk - fobj_trial);
-    ParOptScalar zinfty = 0.0;
-    for ( int i = 0; i < m; i++ ){
-      if (ParOptRealPart(z[i]) > ParOptRealPart(zinfty)){
-        zinfty = z[i];
-      }
-    }
-    double mu = ceil(log10(ParOptRealPart(zinfty)));
-    if (mu > 6.0){
-      mu = 6.0;
-    }
-    if (mu < -6.0){
-      mu = -6.0;
-    }
-    mu = pow(10.0, mu);
 
     // Compute the infeasibility at the trial point
     ParOptScalar infeas_trial = 0.0;
@@ -1856,22 +1849,17 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       }
     }
 
-    // If we hit an infeasible step, trigger the feasibility restoration phase
-    if (infeas_step){
-      feasibility_restoration_phase = 1;
-
-      // We hit an infeasibile step. Reset the quasi-Newton Hessian approximation.
-      qn->reset();
-    }
-
     // Find the maximum step length
     double smax = ParOptRealPart(step->maxabs());
 
     // Keep track of whether we should increase or decrease the
     // trust region radius
+    int init_tr_size = 0;
     int increase_tr_size = 0;
     int decrease_tr_size = 0;
     int step_is_accepted = 0;
+    char rej_info[64];
+    rej_info[0] = '\0';
 
     // Track the status for output purpose
     int soc_step = 0;
@@ -1879,163 +1867,156 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
     int soc_niters = -1;
 
     // The ratio of actual to model reduction
-    ParOptScalar rho = 1.0;
+    ParOptScalar model_red = fk - fobj_model;
+    ParOptScalar actual_red = fk - fobj_trial;
+    ParOptScalar rho = actual_red/model_red;
 
     // If we're in the infeasibility restoration phase, invoke different
     // logic for whether we accept a step or not
-    if (infeas_step){
-      // Compute the actual/predicted reduction in the infeasibility.
-      // First compute the value of the objective model and model
-      // constraints at the current iterate
-      ParOptScalar f0;
-      ParOptScalar *c0 = new ParOptScalar[ m ];
-      infeas_problem->evalObjCon(NULL, &f0, c0);
+    if (incompatible_step){
 
-      ParOptScalar fk = fobj_trial;
-      for ( int i = 0; i < m; i++ ){
-        if (i < nineq){
-          fk += penalty_gamma[i]*max2(0.0, -con_trial[i]);
-          f0 += penalty_gamma[i]*max2(0.0, -c0[i]);
-        }
-        else {
-          fk += penalty_gamma[i]*fabs(con_trial[i]);
-          f0 += penalty_gamma[i]*fabs(c0[i]);
-        }
-      }
-
-      // Compute the value of the objective model and model
-      // constraints at the trial step location
-      ParOptScalar mk;
-      infeas_problem->evalObjCon(step, &mk, c0);
-      for ( int i = 0; i < m; i++ ){
-        if (i < nineq){
-          mk += penalty_gamma[i]*max2(0.0, -c0[i]);
-        }
-        else {
-          mk += penalty_gamma[i]*fabs(c0[i]);
-        }
-      }
-
-      // Free the allocated data
-      delete [] c0;
-
-      // Compute the ratio of the actual/expected improvement
-      rho = (f0 - fk)/(f0 - mk);
-
-      if (ParOptRealPart(rho) > tr_eta || ParOptRealPart(tr_size) <= tr_min_size){
-        step_is_accepted = 1;
-        subproblem->acceptTrialStep(step, z, zw);
-      }
-      else {
+      // Check if the trial pair (f, h) can be acceptable to filter
+      int restore_acceptable = acceptableByFilter(fobj_trial, infeas_trial);
+      if (!restore_acceptable){
         subproblem->rejectTrialStep();
         smax = 0.0;
+        decrease_tr_size = 1;
       }
-
-      if (ParOptRealPart(rho) > 0.75){
-        // Check whether we should expand the trust region radius
+      else{
+        subproblem->acceptTrialStep(step, NULL, NULL);
+        step_is_accepted = 1;
         if (smax >= 0.99*tr_size){
           increase_tr_size = 1;
         }
-      }
-      else if (ParOptRealPart(rho) < 0.25){
-        decrease_tr_size = 1;
       }
     }
     else {
-      // Check whether the point is acceptable for the filter
-      if (feasibility_restoration_phase){
-        // We just exited the feasibility restoration phase. Remove
-        // blocking constraints from the filter and add the current pair.
-        clearBlockingFilter(fobj_trial, infeas_trial, q, mu);
+      int acceptable_by_filter = acceptableByFilter(fobj_trial, infeas_trial);
+      int acceptable_by_pair = acceptableByPair(fobj_trial, infeas_trial, fk, hk);
+      if (acceptable_by_filter && acceptable_by_pair) {
+        // Print exact differences
+        // if (mpi_rank == 0 && output_level > 0){
+        //   FILE *fp = stdout;
+        //   if (outfp){
+        //     fp = outfp;
+        //   }
+        //   fprintf(fp, "\ncandidate point (f, h) is accepted by filter and (fk, hk)\n");
+        //   fprintf(fp, "(f, h) = (%20.10e,%20.10e)\n", fobj_trial, infeas_trial);
+        //   fprintf(fp, "f - fk =  %20.10e\n", fobj_trial - fk);
+        //   fprintf(fp, "h - hk =  %20.10e\n", infeas_trial - hk);
+        //   fflush(fp);
 
-        // Turn off the feasibility restoration phase. We found a feasible
-        // QP but the feasibility restoration phase is still active until
-        // this point.
-        feasibility_restoration_phase = 0;
-
-        // Add the max constraint violation to the filter as an
-        // upper bound. This prevents cycling.
-        max_constr_violation = max2(infeas_trial, max_constr_violation/10.0);
-        addToFilter(-1e20, max_constr_violation, q, mu);
-
-        // Accept the trial step
-        step_is_accepted = 1;
-        subproblem->acceptTrialStep(step, z, zw);
-
-        // Check whether we should expand the trust region radius
-        if (smax >= 0.99*tr_size){
-          increase_tr_size = 1;
-        }
-      }
-      else if (isAcceptedByFilter(fobj_trial, infeas_trial, q, mu)){
-        step_is_accepted = 1;
-        subproblem->acceptTrialStep(step, z, zw);
-
-        // Check whether we should expand the trust region radius
-        if (smax >= 0.99*tr_size){
-          increase_tr_size = 1;
-        }
-      }
-      else if (tr_size <= tr_min_size){
-        // The trust region radius is at the minimum acceptable
-        // size and cannot be shrunk further. Accept the trial step.
-        step_is_accepted = 1;
-        subproblem->acceptTrialStep(step, z, zw);
-      }
-      else if (tr_use_soc){
-        soc_step = 1;
-        // Store current multiplier values
-        ParOptScalar *z_old = new ParOptScalar[ m ];
-        for (int i = 0; i < m; i++){
-          z_old[i] = z[i];
-        }
-
-        // Perform soc optimizations
-        ParOptScalar r;
-        soc_succ = isAcceptedBySoc(optimizer, step, &fobj_trial,
-                                   con_trial, &soc_niters, &r);
-
-        // Update smax
-        smax = ParOptRealPart(step->maxabs());
-
-        if (soc_succ){
-          optimizer->getOptimizedPoint(&step, &z, &zw, NULL, NULL);
-          subproblem->acceptTrialStep(step, z, zw);
-
-          // Update infeas_trial
-          infeas_trial = 0.0;
-          for ( int i = 0; i < m; i++ ){
-            if (i < nineq){
-              infeas_trial += max2(0.0, -con_trial[i]);
-            }
-            else {
-              infeas_trial += fabs(con_trial[i]);
-            }
-          }
-
-          // Check whether we should expand the trust region radius
-          if (smax >= 0.99*tr_size && ParOptRealPart(r) < 0.1){
-            increase_tr_size = 1;
-          }
-        }
-        else{
+        // }
+        if ( actual_red < tr_eta*model_red && model_red > 0.0 ){
           subproblem->rejectTrialStep();
           smax = 0.0;
           decrease_tr_size = 1;
-
-          // Restore multiplier values
-          for (int i = 0; i < m; i++){
-            z[i] = z_old[i];
-          }
+        sprintf(&rej_info[strlen(rej_info)], "%s", "rej:rho");
         }
-        delete [] z_old;
+        else{
+          subproblem->acceptTrialStep(step, NULL, NULL);
+          step_is_accepted = 1;
+          if ( model_red <= 0.0 ){
+            // if (infeas_trial > tr_infeas_tol){
+            //    addToFilter(fobj_trial, infeas_trial);
+            // }
+            addToFilter(fobj_trial, infeas_trial);
+          }
+          init_tr_size = 1;
+        }
+      }
+      else if (tr_size <= tr_min_size){
+        subproblem->acceptTrialStep(step, NULL, NULL);
+        step_is_accepted = 1;
+        if (smax >= 0.99*tr_size){
+          increase_tr_size = 1;
+        }
       }
       else {
-        // Reject the trial step
         subproblem->rejectTrialStep();
         smax = 0.0;
         decrease_tr_size = 1;
+        sprintf(&rej_info[strlen(rej_info)], "%s", "rej:");
+        if (!acceptable_by_filter){
+          sprintf(&rej_info[strlen(rej_info)], "%s", "F");
+        }
+        if (!acceptable_by_pair){
+          sprintf(&rej_info[strlen(rej_info)], "%s", "xk");
+        }
       }
+
+      //-----------------------------------------------------//
+
+    //   // Check whether the point is acceptable for the filter
+    //   if (isAcceptedByFilter(fobj_trial, infeas_trial, q, mu)){
+    //     step_is_accepted = 1;
+    //     subproblem->acceptTrialStep(step, z, zw);
+
+    //     // Check whether we should expand the trust region radius
+    //     if (smax >= 0.99*tr_size){
+    //       increase_tr_size = 1;
+    //     }
+    //   }
+    //   else if (tr_size <= tr_min_size){
+    //     // The trust region radius is at the minimum acceptable
+    //     // size and cannot be shrunk further. Accept the trial step.
+    //     step_is_accepted = 1;
+    //     subproblem->acceptTrialStep(step, z, zw);
+    //   }
+    //   else if (tr_use_soc){
+    //     soc_step = 1;
+    //     // Store current multiplier values
+    //     ParOptScalar *z_old = new ParOptScalar[ m ];
+    //     for (int i = 0; i < m; i++){
+    //       z_old[i] = z[i];
+    //     }
+
+    //     // Perform soc optimizations
+    //     ParOptScalar r;
+    //     soc_succ = isAcceptedBySoc(optimizer, step, &fobj_trial,
+    //                                con_trial, &soc_niters, &r);
+
+    //     // Update smax
+    //     smax = ParOptRealPart(step->maxabs());
+
+    //     if (soc_succ){
+    //       optimizer->getOptimizedPoint(&step, &z, &zw, NULL, NULL);
+    //       subproblem->acceptTrialStep(step, z, zw);
+
+    //       // Update infeas_trial
+    //       infeas_trial = 0.0;
+    //       for ( int i = 0; i < m; i++ ){
+    //         if (i < nineq){
+    //           infeas_trial += max2(0.0, -con_trial[i]);
+    //         }
+    //         else {
+    //           infeas_trial += fabs(con_trial[i]);
+    //         }
+    //       }
+
+    //       // Check whether we should expand the trust region radius
+    //       if (smax >= 0.99*tr_size && ParOptRealPart(r) < 0.1){
+    //         increase_tr_size = 1;
+    //       }
+    //     }
+    //     else{
+    //       subproblem->rejectTrialStep();
+    //       smax = 0.0;
+    //       decrease_tr_size = 1;
+
+    //       // Restore multiplier values
+    //       for (int i = 0; i < m; i++){
+    //         z[i] = z_old[i];
+    //       }
+    //     }
+    //     delete [] z_old;
+    //   }
+    //   else {
+    //     // Reject the trial step
+    //     subproblem->rejectTrialStep();
+    //     smax = 0.0;
+    //     decrease_tr_size = 1;
+    //   }
     }
 
     // Print out the current solution progress using the
@@ -2090,13 +2071,18 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
     sprintf(&info[strlen(info)], "f%ld ", filter.size());
 
     // Put an "R" in info, indicating that this is a restoration step
-    if (infeas_step){
+    if (incompatible_step){
       sprintf(&info[strlen(info)], "R ");
     }
 
     // Write information about whether the step is accepted or rejected
     if (!step_is_accepted){
-      sprintf(&info[strlen(info)], "%s ", "rej");
+      if (strlen(rej_info) != 0){
+        sprintf(&info[strlen(info)], "%s ", rej_info);
+      }
+      else{
+        sprintf(&info[strlen(info)], "%s ", "rej");
+      }
     }
 
     // Write information about second order correction
@@ -2127,7 +2113,7 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
               "%9.2e %9.2e %9.2e %9.2e %-12s\n",
               iter_count, ParOptRealPart(fobj_trial), ParOptRealPart(infeas_trial),
               l1, linfty, smax, tr_size,
-              ParOptRealPart(rho), 0.0, zav, zmax, gav, gmax, info);
+              ParOptRealPart(rho), model_red, zav, zmax, gav, gmax, info);
       fflush(fp);
     }
 
@@ -2160,7 +2146,11 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
     }
     else if (decrease_tr_size){
       // Reduce trust region radius
-      tr_size = ParOptRealPart(max2(0.25*tr_size, tr_min_size));
+      tr_size = ParOptRealPart(max2(0.5*tr_size, tr_min_size));
+    }
+
+    if (init_tr_size){
+      tr_size = tr_max_size;
     }
 
     // Reset the trust region radius bounds
@@ -2311,7 +2301,8 @@ int ParOptTrustRegion::isAcceptedBySoc( ParOptInteriorPoint *optimizer,
 
     // Check if the current design can be accepted, if so, SOC phase
     // succeeds and return
-    if (isAcceptedByFilter(fobj_new, infeas_new, q, mu)){
+    if (acceptableByFilter(fobj_new, infeas_new)){
+      addToFilter(fobj_new, infeas_new);
       *fobj_trial = fobj_new;
       return 1;
     }

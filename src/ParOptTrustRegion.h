@@ -439,27 +439,21 @@ class ParOptTrustRegion : public ParOptBase {
                        int *niters,
                        ParOptScalar *r );
 
-  // Test whether a candidate point is acceptable to a single element
-  // of the filter
-  int acceptableToFilter( ParOptScalar f, ParOptScalar h,
-                          ParOptScalar fk, ParOptScalar hk,
-                          double qk, double muk, const double beta,
-                          const double alpha1, const double alpha2,
-                          const double tol );
+  // Test that if (f_new, h_new) is acceptable by pair (f_old, h_old)
+  int acceptableByPair( ParOptScalar f_new, ParOptScalar h_new,
+                        ParOptScalar f_old, ParOptScalar h_old);
 
-  // If candidate point (f, h) is not dominated, then add it to filter set
-  void addToFilter( ParOptScalar f, ParOptScalar h,
-                    double q, double mu );
+  // Test that if (f, h) is acceptable by the current filter set
+  int acceptableByFilter( ParOptScalar f, ParOptScalar h);
 
-  // use filter to check if current design point can be accepted or
-  // rejected, if accepted, then add to filter
-  int isAcceptedByFilter( ParOptScalar f, ParOptScalar h,
-                          double q, double mu );
+  // Add pair (f, h) to the filter set, meanwhile remove dominated pairs
+  void addToFilter( ParOptScalar f, ParOptScalar h);
 
   // Clear the blocking elements from the filter
-  void clearBlockingFilter( ParOptScalar f, ParOptScalar h,
-                            double q, double mu );
+  // void clearBlockingFilter( ParOptScalar f, ParOptScalar h,
+  //                           double q, double mu );
 
+  // Print filter entries
   void printFilter();
 
   // Set the output file
@@ -494,13 +488,10 @@ class ParOptTrustRegion : public ParOptBase {
   // Filter, set element is the filter pair (fi, hi, qi, mui)
   class FilterElement {
    public:
-    FilterElement( ParOptScalar fk, ParOptScalar hk,
-                   double qk, double muk ){
+    FilterElement( ParOptScalar fk, ParOptScalar hk ){
       f = fk;  h = hk;
-      q = qk;  mu = muk;
     }
     ParOptScalar f, h;
-    double q, mu;
   };
   std::list<FilterElement> filter;
 
