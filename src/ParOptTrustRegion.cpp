@@ -1837,9 +1837,9 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       // Get the design variables
       optimizer->getOptimizedPoint(&step, &z, &zw, NULL, NULL);
 
-      // Reset the quasi-Newton Hessian approximation because
-      // we just lost second order information
-      qn->reset();
+      // // Reset the quasi-Newton Hessian approximation because
+      // // we just lost second order information
+      // qn->reset();
 
       // Reset the penalty parameters
       optimizer->setPenaltyGamma(penalty_gamma);
