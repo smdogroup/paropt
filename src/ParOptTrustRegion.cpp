@@ -1807,9 +1807,12 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
     if (incompatible_step){
       optimizer->resetProblemInstance(infeas_problem);
 
-      // The subproblem is linear, so set the interior point method to
-      // a linear problem that will ignore the quasi-Newton Hessian
-      ip_options->setOption("sequential_linear_method", 1);
+      // // The subproblem is linear, so set the interior point method to
+      // // a linear problem that will ignore the quasi-Newton Hessian
+      // ip_options->setOption("sequential_linear_method", 1);
+
+      // We want to use quadratic information of the subproblem
+      ip_options->setOption("sequential_linear_method", 0);
 
       // Set the penalty parameter to a large value
       double gamma = 1e6;
