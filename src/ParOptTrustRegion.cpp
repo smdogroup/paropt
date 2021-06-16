@@ -1811,6 +1811,20 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       // a linear problem that will ignore the quasi-Newton Hessian
       ip_options->setOption("sequential_linear_method", 1);
 
+      // Set the penalty parameter to a large value
+      double gamma = 1e6;
+      double tr_penalty_gamma_max = options->getFloatOption("tr_penalty_gamma_max");
+      if (1e2*tr_penalty_gamma_max > gamma){
+        gamma = 1e2*tr_penalty_gamma_max;
+      }
+
+      // Set the objective scaling to 1.0/gamma so that the contribution from
+      // the objective is small
+      infeas_problem->setObjectiveScaling(1.0/gamma);
+
+      // Set the penalty parameters to 1.0
+      optimizer->setPenaltyGamma(1.0);
+
       // Reset the initial design point
       optimizer->resetDesignAndBounds();
 
@@ -1823,6 +1837,9 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       // Reset the quasi-Newton Hessian approximation because
       // we just lost second order information
       qn->reset();
+
+      // Reset the penalty parameters
+      optimizer->setPenaltyGamma(penalty_gamma);
     }
 
     // Evaluate model objective value
