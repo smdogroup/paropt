@@ -1677,6 +1677,7 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
   int mpi_rank;
   MPI_Comm_rank(subproblem->getMPIComm(), &mpi_rank);
 
+  // Allocate an subproblem instance for feasibility restoration phase
   ParOptInfeasSubproblem *infeas_problem =
     new ParOptInfeasSubproblem(subproblem,
       ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE,
@@ -1705,6 +1706,10 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
   // Add (u, -infty) to the filter, where u is the upper infeasibility bound
   ParOptScalar max_constr_violation = max2(1e4, 1.25*infeas_init);
   addToFilter(-1e20, max_constr_violation);
+
+  // Keep tracking the feasibility (compatibility) restoration phase
+  int this_step_is_resto = 0;
+  int last_step_is_resto = 0;
 
   // Iterate over the trust region subproblem until convergence
   for ( int iteration = 0; iteration < tr_max_iterations; iteration++ ){
@@ -1757,7 +1762,7 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       Actually, we could also directly evaluate:
         c[i] + A[i]*step
     */
-    int incompatible_step = 0;
+
     // We may enter feasibility restoration only it is specified
     if (options->getBoolOption("filter_has_feas_restore_phase")){
       double penalty_gamma_s, penalty_gamma_t;
@@ -1787,10 +1792,19 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
         }
         // if (2*ParOptRealPart(z[i]) + penalty_gamma_s - penalty_gamma_t + tr_infeas_tol > 0){
         if (infeas > tr_infeas_tol ){
-          incompatible_step = 1;
+          this_step_is_resto = 1;
           // We include (fk, hk) in to the filter
           // as the h-type iteration
           addToFilter(fk, hk);
+        }
+        else{
+          this_step_is_resto = 0;
+
+          // If we just exit restoration phase, i.e., last step is
+          // an incompatible step but this step is not, then reset qn
+          if (last_step_is_resto){
+            qn->reset();
+          }
         }
       }
       delete [] cm;
@@ -1804,8 +1818,13 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       Note that the restoration phase can last for multiple tr steps until
       a compatible point is found.
     */
-    if (incompatible_step){
+    if (this_step_is_resto){
       optimizer->resetProblemInstance(infeas_problem);
+
+      // If last step is not incompatible step, reset qn
+      if (!last_step_is_resto){
+        qn->reset();
+      }
 
       // // The subproblem is linear, so set the interior point method to
       // // a linear problem that will ignore the quasi-Newton Hessian
@@ -1837,10 +1856,6 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       // Get the design variables
       optimizer->getOptimizedPoint(&step, &z, &zw, NULL, NULL);
 
-      // // Reset the quasi-Newton Hessian approximation because
-      // // we just lost second order information
-      // qn->reset();
-
       // Reset the penalty parameters
       optimizer->setPenaltyGamma(penalty_gamma);
     }
@@ -1853,7 +1868,8 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
 
     // Evaluate the model at the trial point and update the trust region model
     // Hessian and bounds. Note that here, we're re-using the ft/ct memory.
-    int qn_update_flag = !incompatible_step;
+    int qn_update_flag = 1;
+    // int qn_update_flag = !this_step_is_resto;
     ParOptScalar fobj_trial;
     subproblem->evalTrialStepAndUpdate(qn_update_flag, step, z, zw,
                                        &fobj_trial, con_trial);
@@ -1893,7 +1909,7 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
 
     // If we're in the infeasibility restoration phase, invoke different
     // logic for whether we accept a step or not
-    if (incompatible_step){
+    if (this_step_is_resto){
 
       // Check if the trial pair (f, h) can be acceptable to filter
       int restore_acceptable = acceptableByFilter(fobj_trial, infeas_trial);
@@ -2091,7 +2107,7 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
     sprintf(&info[strlen(info)], "f%ld ", filter.size());
 
     // Put an "R" in info, indicating that this is a restoration step
-    if (incompatible_step){
+    if (this_step_is_resto){
       sprintf(&info[strlen(info)], "R ");
     }
 
@@ -2178,6 +2194,9 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
 
     // Update the iteration counter
     iter_count++;
+
+    // Update restoration phase flags for next iteration
+    last_step_is_resto = this_step_is_resto;
 
     // Check for convergence of the trust region problem
     if (ParOptRealPart(infeas_trial) < ParOptRealPart(tr_infeas_tol)){
