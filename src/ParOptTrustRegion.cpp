@@ -1713,6 +1713,7 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
 
   // Iterate over the trust region subproblem until convergence
   for ( int iteration = 0; iteration < tr_max_iterations; iteration++ ){
+
     // Compute fk and hk
     ParOptScalar fk;
     ParOptScalar *ck = new ParOptScalar[ m ];
@@ -1765,49 +1766,38 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
 
     // We may enter feasibility restoration only it is specified
     if (options->getBoolOption("filter_has_feas_restore_phase")){
-      double penalty_gamma_s, penalty_gamma_t;
 
-      // Evaluate linear constraint values
+      // Compute feasibility
+      double infeas;
       ParOptScalar dummy;
       ParOptScalar *cm = new ParOptScalar[ m ];
-      double infeas;
       subproblem->evalObjCon(step, &dummy, cm);
       for ( int i = 0; i < m; i++ ){
         if (i < nineq){
-          penalty_gamma_s = 0.0;
-          penalty_gamma_t = penalty_gamma[i];
           infeas = max2(0.0, -cm[i]);
         }
         else{
-          penalty_gamma_s = penalty_gamma[i];
-          penalty_gamma_t = penalty_gamma[i];
           infeas = fabs(cm[i]);
-        }
-        if (mpi_rank == 0){
-          printf("[Note] the following should have different sign!\n");
-          printf("2z[%d]+gs[%d]-gt[%d] = %.5e\n", i, i, i,
-            2*ParOptRealPart(z[i]) + penalty_gamma_s - penalty_gamma_t);
-          printf("c[%d]+A[%d]*step   = %.5e\n",i, i, cm[i]);
-          printf("infeas           = %.5e\n", infeas);
-        }
-        // if (2*ParOptRealPart(z[i]) + penalty_gamma_s - penalty_gamma_t + tr_infeas_tol > 0){
-        if (infeas > tr_infeas_tol ){
-          this_step_is_resto = 1;
-          // We include (fk, hk) in to the filter
-          // as the h-type iteration
-          addToFilter(fk, hk);
-        }
-        else{
-          this_step_is_resto = 0;
-
-          // If we just exit restoration phase, i.e., last step is
-          // an incompatible step but this step is not, then reset qn
-          if (last_step_is_resto){
-            qn->reset();
-          }
         }
       }
       delete [] cm;
+
+      // If infeasibility is effectively > 0, then we have an
+      // incompatible problem
+      if (infeas > tr_infeas_tol ){
+        this_step_is_resto = 1;
+        // We include (fk, hk) in to the filter
+        // as the h-type iteration
+        addToFilter(fk, hk);
+      }
+      else{
+        this_step_is_resto = 0;
+        // If we just exit restoration phase, i.e., last step is
+        // an incompatible step but this step is not, then reset qn
+        if (last_step_is_resto){
+          qn->reset();
+        }
+      }
     }
 
     /*
@@ -1907,23 +1897,14 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
     ParOptScalar actual_red = fk - fobj_trial;
     ParOptScalar rho = actual_red/model_red;
 
-    // If we're in the infeasibility restoration phase, invoke different
-    // logic for whether we accept a step or not
+    // We always accept the step for infeasibility restoration phase,
+    // and conditionally increase trust region radius to accelerate
+    // the restoration
     if (this_step_is_resto){
-
-      // Check if the trial pair (f, h) can be acceptable to filter
-      int restore_acceptable = acceptableByFilter(fobj_trial, infeas_trial);
-      if (!restore_acceptable){
-        subproblem->rejectTrialStep();
-        smax = 0.0;
-        decrease_tr_size = 1;
-      }
-      else{
-        subproblem->acceptTrialStep(step, NULL, NULL);
-        step_is_accepted = 1;
-        if (smax >= 0.99*tr_size){
-          increase_tr_size = 1;
-        }
+      subproblem->acceptTrialStep(step, NULL, NULL);
+      step_is_accepted = 1;
+      if (smax >= 0.99*tr_size){
+        increase_tr_size = 1;
       }
     }
     else {
