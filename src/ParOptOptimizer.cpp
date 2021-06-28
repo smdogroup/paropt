@@ -119,9 +119,26 @@ void ParOptOptimizer::optimize(){
 
     if (!subproblem){
       ParOptCompactQuasiNewton *qn = NULL;
-      if (strcmp(qn_type, "bfgs") == 0){
+      if (strcmp(qn_type, "bfgs") == 0 || strcmp(qn_type, "scaled_bfgs") == 0){
         ParOptLBFGS *bfgs = new ParOptLBFGS(problem, qn_subspace_size);
-        qn = bfgs;
+          if (strcmp(qn_type, "scaled_bfgs") == 0){
+            // This very specific type of bfgs is only used when ncon = 1
+            int nvars, ncon, nineq, nwcon, nwblock;
+            problem->getProblemSizes(&nvars, &ncon, &nineq, &nwcon, &nwblock);
+            if (ncon != 1){
+              if (rank == 0){
+                fprintf(stderr, "Can't use scaled_bfgs with more than one constraint!, ncon = %d\n",
+                        ncon);
+              }
+            }
+            else {
+              ParOptScaledQuasiNewton *scaled_bfgs = new ParOptScaledQuasiNewton(problem, bfgs);
+              qn = scaled_bfgs;
+            }
+          }
+          else{
+            qn = bfgs;
+          }
         qn->incref();
 
         const char *update_type = options->getEnumOption("qn_update_type");

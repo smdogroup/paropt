@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "ParOptVec.h"
 #include "ParOptQuasiNewton.h"
+#include "ParOptScaledQuasiNewton.h"
 #include "ParOptProblem.h"
 #include "ParOptOptions.h"
 
