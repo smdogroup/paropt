@@ -651,6 +651,8 @@ void ParOptInteriorPoint::resetProblemInstance( ParOptProblem *problem ){
     problem = NULL;
   }
   else {
+    problem->incref();
+    prob->decref();
     prob = problem;
   }
 }
