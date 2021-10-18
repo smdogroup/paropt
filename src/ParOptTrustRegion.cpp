@@ -1080,6 +1080,130 @@ void ParOptTrustRegion::initialize(){
   }
 }
 
+/*
+ Minimize the infeasibility, this can be used for either
+ adaptive penalty gamma update or in the filterSQP method
+*/
+void ParOptTrustRegion::minimizeInfeas( ParOptInteriorPoint *optimizer,
+                                        ParOptInfeasSubproblem *infeas_problem,
+                                        ParOptOptions *ip_options,
+                                        ParOptVec *step,
+                                        ParOptScalar *best_con_infeas,
+                                        int infeas_objective_type_flag,
+                                        int infeas_constraint_type_flag ){
+  // Get options
+  const char* tr_barrier_strategy =
+    options->getEnumOption("tr_steering_barrier_strategy");
+  const char* tr_starting_strategy =
+    options->getEnumOption("tr_steering_starting_point_strategy");
+  const double tr_penalty_gamma_max =
+    options->getFloatOption("tr_penalty_gamma_max");
+
+  const char *start_strategy = ip_options->getEnumOption("starting_point_strategy");
+  char *start_option = new char[ strlen(start_strategy)+1 ];
+  strcpy(start_option, start_strategy);
+
+  const char *barrier_strategy = ip_options->getEnumOption("barrier_strategy");
+  char *barrier_option = new char[ strlen(barrier_strategy)+1 ];
+  strcpy(barrier_option, barrier_strategy);
+  
+  const char *tr_accept_step_strategy =
+    options->getEnumOption("tr_accept_step_strategy");
+  const int tr_adaptive_gamma_update =
+    options->getBoolOption("tr_adaptive_gamma_update");
+
+  // Reset the problem instance
+  optimizer->resetProblemInstance(infeas_problem);
+
+  // Set the starting point strategy
+  if (strcmp(tr_barrier_strategy, "default") != 0){
+    ip_options->setOption("barrier_strategy", tr_barrier_strategy);
+  }
+  if (strcmp(tr_starting_strategy, "default") != 0){
+    ip_options->setOption("starting_point_strategy", tr_starting_strategy);
+  }
+
+  // Check if this is an compact representation using the eigenvalue Hessian
+  ParOptCompactQuasiNewton *qn = subproblem->getQuasiNewton();
+  ParOptEigenQuasiNewton *eig_qn = dynamic_cast<ParOptEigenQuasiNewton*>(qn);
+
+  // Check what type of infeasible subproblem
+  int is_seq = ip_options->getBoolOption("sequential_linear_method");
+  if (infeas_objective_type_flag == ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE ||
+      infeas_objective_type_flag == ParOptInfeasSubproblem::PAROPT_CONSTANT_OBJECTIVE){
+    if (eig_qn){
+      eig_qn->setUseQuasiNewtonObjective(0);
+    }
+
+    // Linear (or constant) objective and linear constraints - sequential linear problem
+    if (infeas_constraint_type_flag == ParOptInfeasSubproblem::PAROPT_LINEAR_CONSTRAINT){
+      ip_options->setOption("sequential_linear_method", 1);
+    }
+  }
+
+  // Set the penalty parameter to a large value
+  double gamma = 1e6;
+  if (1e2*tr_penalty_gamma_max > gamma){
+    gamma = 1e2*tr_penalty_gamma_max;
+  }
+
+  // Set the objective scaling to 1.0/gamma so that the contribution from
+  // the objective is small
+  infeas_problem->setObjectiveScaling(1.0/gamma);
+
+  // Set the penalty parameters to zero
+  optimizer->setPenaltyGamma(1.0);
+
+  // Initialize the barrier parameter
+  optimizer->resetDesignAndBounds();
+
+  // Optimize the subproblem
+  optimizer->optimize();
+
+  // Get the design variables
+  optimizer->getOptimizedPoint(&step, NULL, NULL, NULL, NULL);
+
+  // Get the number of subproblem iterations
+  if (strcmp(tr_accept_step_strategy, "penalty_method") == 0){
+    if (tr_adaptive_gamma_update){
+      optimizer->getIterationCounters(&adaptive_subproblem_iters);
+    }
+  }
+
+  // Evaluate the model at the best point to obtain the infeasibility
+  if (best_con_infeas){
+    ParOptScalar dummy; 
+    subproblem->evalObjCon(step, &dummy, best_con_infeas);
+
+    // Compute the best-case infeasibility achieved by setting the
+    // penalty parameters to a large value
+    for ( int j = 0; j < m; j++ ){
+      if (j < nineq){
+        best_con_infeas[j] = max2(0.0, -best_con_infeas[j]);
+      }
+      else {
+        best_con_infeas[j] = fabs(best_con_infeas[j]);
+      }
+    }
+  }
+
+  // Set the penalty parameters
+  optimizer->setPenaltyGamma(penalty_gamma);
+
+  // Reset the problem instance and turn off the sequential linear method
+  optimizer->resetProblemInstance(subproblem);
+
+  // Set the quasi-Newton method so that it uses the objective again
+  if (eig_qn){
+    eig_qn->setUseQuasiNewtonObjective(1);
+  }
+
+  // Reset the options
+  ip_options->setOption("starting_point_strategy", start_option);
+  ip_options->setOption("barrier_strategy", barrier_option);
+  ip_options->setOption("sequential_linear_method", is_seq);
+}
+
 /**
   Update the subproblem using SL1QP method
 */
@@ -1409,6 +1533,15 @@ void ParOptTrustRegion::sl1qpOptimize( ParOptInteriorPoint *optimizer ){
   // Iterate over the trust region subproblem until convergence
   for ( int i = 0; i < tr_max_iterations; i++ ){
     if (tr_adaptive_gamma_update){
+
+      // Compute an update step within the trust region that minimizes
+      // infeasibility only (regardless the objective at the moment)
+      ParOptVec *step;
+      minimizeInfeas(optimizer, infeas_problem, ip_options, step, 
+      best_con_infeas, adaptive_objective_flag, adaptive_constraint_flag);
+
+      // The block below is moved to the function minimizeInfeas() and is commented out
+#if 0
       // Reset the problem instance
       optimizer->resetProblemInstance(infeas_problem);
 
@@ -1464,7 +1597,7 @@ void ParOptTrustRegion::sl1qpOptimize( ParOptInteriorPoint *optimizer ){
       optimizer->getIterationCounters(&adaptive_subproblem_iters);
 
       // Evaluate the model at the best point to obtain the infeasibility
-      ParOptScalar fbest;
+      ParOptScalar fbest; //dummy variable
       subproblem->evalObjCon(step, &fbest, best_con_infeas);
 
       // Compute the best-case infeasibility achieved by setting the
@@ -1493,6 +1626,7 @@ void ParOptTrustRegion::sl1qpOptimize( ParOptInteriorPoint *optimizer ){
       ip_options->setOption("starting_point_strategy", start_option);
       ip_options->setOption("barrier_strategy", barrier_option);
       ip_options->setOption("sequential_linear_method", is_seq);
+#endif // if 0
     }
 
     // Print out the current solution progress using the
@@ -1809,6 +1943,17 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       a compatible point is found.
     */
     if (this_step_is_resto){
+      // If last step is not incompatible step, reset qn
+      if (!last_step_is_resto){
+        qn->reset();
+      }
+
+      // minimize the constraint violation
+      minimizeInfeas(optimizer, infeas_problem, ip_options, step, NULL, 
+                     ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE,
+                     ParOptInfeasSubproblem::PAROPT_LINEAR_CONSTRAINT);
+
+#if 0
       optimizer->resetProblemInstance(infeas_problem);
 
       // If last step is not incompatible step, reset qn
@@ -1848,6 +1993,7 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
 
       // Reset the penalty parameters
       optimizer->setPenaltyGamma(penalty_gamma);
+#endif // if 0
     }
 
     // Evaluate model objective value
