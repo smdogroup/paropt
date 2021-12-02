@@ -40,10 +40,10 @@ class TopoAnalysis(ParOpt.Problem):
         if self.thermal_problem:
             # Set the element variables and boundary conditions
             self.nvars = (self.nxelems+1)*(self.nyelems+1)
-            self.tvars = np.arange(0, self.nvars, dtype=np.int).reshape(self.nyelems+1, -1)
+            self.tvars = np.arange(0, self.nvars, dtype=int).reshape(self.nyelems+1, -1)
 
             # Set the element variable values
-            self.elem_vars = np.zeros((self.nelems, 4), dtype=np.int)
+            self.elem_vars = np.zeros((self.nelems, 4), dtype=int)
 
             for j in range(self.nyelems):
                 for i in range(self.nxelems):
@@ -65,11 +65,11 @@ class TopoAnalysis(ParOpt.Problem):
         else:
             # Set the element variables and boundary conditions
             self.nvars = 2*(self.nxelems+1)*(self.nyelems+1)
-            self.uvars = np.arange(0, self.nvars, 2, dtype=np.int).reshape(self.nyelems+1, -1)
-            self.vvars = np.arange(1, self.nvars, 2, dtype=np.int).reshape(self.nyelems+1, -1)
+            self.uvars = np.arange(0, self.nvars, 2, dtype=int).reshape(self.nyelems+1, -1)
+            self.vvars = np.arange(1, self.nvars, 2, dtype=int).reshape(self.nyelems+1, -1)
 
             # Set the element variable values
-            self.elem_vars = np.zeros((self.nelems, 8), dtype=np.int)
+            self.elem_vars = np.zeros((self.nelems, 8), dtype=int)
 
             for j in range(self.nyelems):
                 for i in range(self.nxelems):
@@ -227,8 +227,8 @@ class TopoAnalysis(ParOpt.Problem):
 
         # Set all the values, (duplicate entries are added together)
         data = np.zeros((self.nelems, 8, 8))
-        i = np.zeros((self.nelems, 8, 8), dtype=np.int)
-        j = np.zeros((self.nelems, 8, 8), dtype=np.int)
+        i = np.zeros((self.nelems, 8, 8), dtype=int)
+        j = np.zeros((self.nelems, 8, 8), dtype=int)
         for k in range(self.nelems):
             data[k] = E[k]*kelem
             for kk in range(8):
@@ -318,8 +318,8 @@ class TopoAnalysis(ParOpt.Problem):
 
         # Set all the values, (duplicate entries are added together)
         data = np.zeros((self.nelems, 4, 4))
-        i = np.zeros((self.nelems, 4, 4), dtype=np.int)
-        j = np.zeros((self.nelems, 4, 4), dtype=np.int)
+        i = np.zeros((self.nelems, 4, 4), dtype=int)
+        j = np.zeros((self.nelems, 4, 4), dtype=int)
         for k in range(self.nelems):
             data[k] = kappa[k]*kelem
             for kk in range(4):
@@ -502,18 +502,17 @@ class TopoAnalysis(ParOpt.Problem):
         return
 
 if __name__ == '__main__':
-    nxelems = 128
-    nyelems = 128
+    nxelems = 96
+    nyelems = 96
     Lx = 8.0
     Ly = 8.0
     problem = TopoAnalysis(nxelems, nyelems,
                            Lx, Ly, E0=70e3, r0=3, kappa=70e3,
-                           thermal_problem=True, draw_figure=False)
+                           thermal_problem=True, draw_figure=True)
     problem.checkGradients()
 
     options = {
         'algorithm': 'tr',
-        'tr_accept_step_strategy': 'filter_method',
         'tr_init_size': 0.05,
         'tr_min_size': 1e-6,
         'tr_max_size': 10.0,
