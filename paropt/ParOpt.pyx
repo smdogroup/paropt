@@ -357,7 +357,7 @@ def unpack_checkpoint(filename):
 
 # This wraps a C++ array with a numpy array for later useage
 cdef inplace_array_1d(int nptype, int dim1, void *data_ptr,
-                             object base=None):
+                      object base=None):
     """Return a numpy version of the array"""
     # Set the shape of the array
     cdef int size = 1

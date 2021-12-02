@@ -10,7 +10,7 @@ The implementation of the optimizer is in C++ and uses MPI. ParOpt is also wrapp
 
 The ParOpt theory manual is located here: [ParOpt_theory_manual](docs/ParOpt_theory_manual.pdf)
 
-Online documentation for ParOpt is located here: [https://gjkennedy.github.io/paropt/](https://gjkennedy.github.io/paropt/)
+Online documentation for ParOpt is located here: [https://smdogroup.github.io/paropt/](https://smdogroup.github.io/paropt/)
 
 If you use ParOpt, please cite our paper:
 
