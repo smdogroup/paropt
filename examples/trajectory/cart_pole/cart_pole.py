@@ -359,8 +359,8 @@ options = {
     'tr_linfty_tol': 1e-30,
     'norm_type': 'infinity',
     'max_major_iters': 50,
-    # 'barrier_strategy': 'mehrotra',
-    # 'starting_point_strategy': 'affine_step',
+    'barrier_strategy': 'mehrotra',
+    'starting_point_strategy': 'affine_step',
     'qn_type': 'bfgs',
     'qn_update_type': 'damped_update',
     'output_file': filename,
@@ -369,8 +369,6 @@ options = {
     'tr_max_iterations': 500,
     'tr_adaptive_gamma_update': False,
     'tr_accept_step_strategy': 'penalty_method',
-    'tr_use_soc': False,
-    'tr_soc_use_quad_model': True,
     'tr_max_iterations': 200
     }
 

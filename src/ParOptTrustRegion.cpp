@@ -1065,7 +1065,7 @@ int ParOptTrustRegion::getPenaltyGamma( const double **_penalty_gamma ){
   Initialize the problem
 */
 void ParOptTrustRegion::initialize(){
-  tr_size = options->getFloatOption("tr_init_size");
+  // tr_size = options->getFloatOption("tr_init_size");
   subproblem->initModelAndBounds(tr_size);
 
   // Set the iteration count to zero

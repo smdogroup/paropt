@@ -17,6 +17,7 @@ from ParOpt cimport *
 
 # Import tracebacks for callbacks
 import traceback
+from sys import exit
 
 # Import numpy
 import numpy as np
@@ -127,7 +128,7 @@ def unpack_output(filename):
     objs = []
     for idx in range(len(args)):
         if fmt[idx][1] == 'd':
-            objs.append(np.array(content[idx], dtype=np.int))
+            objs.append(np.array(content[idx], dtype=np.int32))
         else:
             objs.append(np.array(content[idx]))
 
@@ -200,7 +201,7 @@ def unpack_tr_output(filename):
     objs = []
     for idx in range(len(args)):
         if fmt[idx][1] == 'd':
-            objs.append(np.array(content[idx], dtype=np.int))
+            objs.append(np.array(content[idx], dtype=np.int32))
         else:
             objs.append(np.array(content[idx]))
 
@@ -309,7 +310,7 @@ def unpack_mma_output(filename):
     objs = []
     for idx in range(len(args)):
         if fmt[idx][1] == 'd':
-            objs.append(np.array(content[idx], dtype=np.int))
+            objs.append(np.array(content[idx], dtype=np.int32))
         else:
             objs.append(np.array(content[idx]))
 
