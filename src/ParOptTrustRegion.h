@@ -430,6 +430,16 @@ class ParOptTrustRegion : public ParOptBase {
   void filterOptimize( ParOptInteriorPoint *optimizer );
   void sl1qpOptimize( ParOptInteriorPoint *optimizer );
 
+  // Minimize the infeasibility, this can be used for either
+  // adaptive penalty gamma update or in the filterSQP method
+  void minimizeInfeas ( ParOptInteriorPoint *optimizer,
+                        ParOptInfeasSubproblem *infeas_problem,
+                        ParOptOptions *ip_options,
+                        ParOptVec *step,
+                        ParOptScalar *best_con_infeas,
+                        int infeas_objective_type_flag,
+                        int infeas_constraint_type_flag );
+
   // Perform second order correction if trial step is rejected,
   // note that this is only useful for filterOptimize function
   int isAcceptedBySoc( ParOptInteriorPoint *optimizer,
