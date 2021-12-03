@@ -447,8 +447,9 @@ void ParOptEigenSubproblem::setTrustRegionBounds( double tr_size ){
   }
 }
 
-int ParOptEigenSubproblem::evalTrialStepAndUpdate( ParOptVec *step,
-                                                   const ParOptScalar *z,
+int ParOptEigenSubproblem::evalTrialStepAndUpdate( int update_flag,
+                                                   ParOptVec *step,
+                                                   ParOptScalar *z,
                                                    ParOptVec *zw,
                                                    ParOptScalar *fobj,
                                                    ParOptScalar *cons ){
@@ -467,7 +468,7 @@ int ParOptEigenSubproblem::evalTrialStepAndUpdate( ParOptVec *step,
 }
 
 int ParOptEigenSubproblem::acceptTrialStep( ParOptVec *step,
-                                            const ParOptScalar *z,
+                                            ParOptScalar *z,
                                             ParOptVec *zw ){
   int fail = 0;
 
@@ -520,7 +521,7 @@ int ParOptEigenSubproblem::acceptTrialStep( ParOptVec *step,
     }
 
     // Perform an update of the quasi-Newton approximation
-    prob->computeQuasiNewtonUpdateCorrection(step, t);
+    prob->computeQuasiNewtonUpdateCorrection(xtemp, z, zw, step, t);
     qn->update(xtemp, z, zw, step, t);
   }
 

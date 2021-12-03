@@ -3,17 +3,12 @@ OpenMDAO Wrapper for ParOpt
 """
 
 from __future__ import print_function
-import sys
 import numpy as np
 import mpi4py.MPI as MPI
+
 from paropt import ParOpt
-
 import openmdao
-import openmdao.utils.coloring as coloring_mod
-from openmdao.core.driver import Driver, RecordingDebugging
-from openmdao.utils.general_utils import warn_deprecation
-
-from six import iteritems
+from openmdao.core.driver import Driver
 
 class ParOptDriver(Driver):
     """
@@ -26,7 +21,7 @@ class ParOptDriver(Driver):
     iter_count : int
         Counter for function evaluations.
     result : OptimizeResult
-        Result returned from scipy.optimize call.
+        Result returned from optimize call.
     opt_settings : dict
         Dictionary of solver-specific options. See the ParOpt documentation.
     """
@@ -46,6 +41,7 @@ class ParOptDriver(Driver):
         self._dvlist = None
         self.fail = False
         self.iter_count = 0
+        self.paropt_use_qn_correction = False
 
         return
 
@@ -106,6 +102,11 @@ class ParOptDriver(Driver):
         # Create the ParOptProblem from the OpenMDAO problem
         self.paropt_problem = ParOptProblem(problem)
 
+        # We may bind the external method for quasi-newton update correction
+        # if specified
+        if self.paropt_use_qn_correction:
+            self.paropt_problem.computeQuasiNewtonUpdateCorrection = self.computeQuasiNewtonUpdateCorrection.__get__(self.paropt_problem)
+
         # Take only the options declared from ParOpt
         info = ParOpt.getOptionsInfo()
         paropt_options = {}
@@ -131,6 +132,16 @@ class ParOptDriver(Driver):
 
         return False
 
+    def use_qn_correction(self, method):
+        """
+        Bind an external function which handles the quasi-newton update
+        correction to the paropt problem instance
+        """
+
+        self.paropt_use_qn_correction = True
+        self.computeQuasiNewtonUpdateCorrection = method
+        return
+
 
 class ParOptProblem(ParOpt.Problem):
 
@@ -142,8 +153,6 @@ class ParOptProblem(ParOpt.Problem):
         ParOptDriver.
         """
 
-        self.mycounter = 0
-        self.mycounterPrintInitial = 0
         self.problem = problem
 
         self.comm = self.problem.comm
@@ -161,8 +170,7 @@ class ParOptProblem(ParOpt.Problem):
         # Get the number of design vars from the openmdao problem
         self.nvars = 0
         for name, meta in self.om_dvs.items():
-            # size = len(self.problem[name])
-            size = self.om_dvs[name]['size']
+            size = meta['size']
             self.nvars += size
 
         # Get the number of constraints from the openmdao problem
@@ -184,57 +192,26 @@ class ParOptProblem(ParOpt.Problem):
         # Initialize the base class
         super(ParOptProblem, self).__init__(self.comm, self.nvars, self.ncon, self.nineq)
 
-        print("num of total constrs:      ", self.ncon)
-        print("num of inequality constrs: ", self.nineq)
-        print("num of equality constrs:   ", self.ncon - self.nineq)
         return
 
     def getVarsAndBounds(self, x, lb, ub):
         """ Set the values of the bounds """
-        # Todo:
-        # - make sure lb/ub are handled for the case where
-        # they aren't set
 
         # Get design vars from openmdao as a dictionary
         desvar_vals = self.problem.driver.get_design_var_values()
 
         i = 0
         for name, meta in self.om_dvs.items():
-            size = len(desvar_vals[name])
-            x[i:i + size] = desvar_vals[name]
-            lb[i:i + size] = meta['lower']
-            ub[i:i + size] = meta['upper']
+            size = meta['size']
+            x[i:i+size] = desvar_vals[name]
+            lb[i:i+size] = meta['lower']
+            ub[i:i+size] = meta['upper']
             i += size
 
         # Check if number of design variables consistent
         if (i != self.nvars):
             raise ValueError("Number of design variables get (%d) is not equal to the" \
                              "number of design variables during initialzation (%d)" % (i, self.nvars))
-
-
-        # # Find the average distance between lower and upper bound
-        # bound_sum = 0.0
-        # for i in range(len(x)):
-        #     if lb[i] <= -1e20 or ub[i] >= 1e20:
-        #         bound_sum += 1.0
-        #     else:
-        #         bound_sum += lb[i] - ub[i]
-        # bound_sum = bound_sum / len(x)
-        #
-        # # Adjust initial values
-        # for i in range(len(x)):
-        #     if x[i] <= lb[i]:
-        #         x[i] = lb[i] + 0.5 * np.min((bound_sum, ub[i] - lb[i]))
-        #     elif x[i] >= ub[i]:
-        #         x[i] = ub[i] - 0.5 * np.min((bound_sum, ub[i] - lb[i]))
-
-        # # Print initial values and bounds
-        # if (self.mycounterPrintInitial == 0):
-        #     for i in range(len(x)):
-        #                     isConsistent = str(lb[i] <= x[i] <= ub[i])
-        #                     print("[%2d], x[i] = %.2e, lb[i] = %.2e, ub[i] = %.2e, lb <= x <= ub? %s" %
-        #                         (i, x[i], lb[i], ub[i], isConsistent))
-        # self.mycounterPrintInitial += 1
 
         return
 
@@ -245,7 +222,7 @@ class ParOptProblem(ParOpt.Problem):
         i = 0
         for name, meta in self.om_dvs.items():
             size = meta['size']
-            self.problem.driver.set_design_var(name, x[i:i + size])
+            self.problem.driver.set_design_var(name, x[i:i+size], set_remote=False)
             i += size
 
         # Solve the problem
@@ -253,36 +230,40 @@ class ParOptProblem(ParOpt.Problem):
 
         # Extract the values of the objectives and constraints
         con = np.zeros(self.ncon)
-        constr_vals = self.problem.driver.get_constraint_values()
+        constr_vals = self.problem.driver.get_constraint_values()  # Returns the global array
 
         i = 0
         # First we extract all inequality constraints
         for name, meta in self.om_con.items():
             if meta['equals'] is None:
                 size = meta['size']
+                om_con_vals = np.zeros(size)
+                om_con_vals[:] = constr_vals[name][0:size]  # Get the local values
                 if meta['lower'] > self.constr_lower_limit:
-                    con[i:i + size] = constr_vals[name] - meta['lower']
+                    con[i:i+size] = om_con_vals - meta['lower']
                     i += size
                 if meta['upper'] < self.constr_upper_limit:
-                    con[i:i + size] = meta['upper'] - constr_vals[name]
+                    con[i:i+size] = meta['upper'] - om_con_vals
                     i += size
 
         # Then, extract rest of the equality constraints:
         for name, meta in self.om_con.items():
             if meta['equals'] is not None:
                 size = meta['size']
-                con[i:i + size] = constr_vals[name] - meta['equals']
+                om_con_vals = np.zeros(size)
+                om_con_vals[:] = constr_vals[name][0:size]  # Get the local values
+                con[i:i+size] = om_con_vals - meta['equals']
                 i += size
-
-        # Check if number of total constrainted counted is consistent
-        if (i != self.ncon):
-            raise ValueError("Number of constraints evaluated (%d) is not equal to the" \
-                             "number of constraints counted during initialzation (%d)" % (i, self.ncon))
 
         # We only accept the first objective
         obj_vals = self.problem.driver.get_objective_values()
         for name, meta in self.om_obj.items():
-            fobj = obj_vals[name]
+            if isinstance(obj_vals[name], float):
+                fobj = obj_vals[name]
+            else:
+                # In parallel, obj_vals will be array w/ len=nprocs,
+                # so just take the first value
+                fobj = obj_vals[name][0]
             break
 
         fail = 0
@@ -293,7 +274,7 @@ class ParOptProblem(ParOpt.Problem):
         """Evaluate the objective and constraint gradient"""
 
         # Extract gradients of objective and constraints w.r.t. all design variables
-        objcon_grads = self.problem.compute_totals()
+        objcon_grads = self.problem.compute_totals(get_remote=False)
 
         # Extract the objective gradient
         for name, meta in self.om_obj.items():

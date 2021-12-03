@@ -580,9 +580,11 @@ void ParOptInteriorPoint::addDefaultOptions( ParOptOptions *options ){
     "Output level indicating how verbose the output should be");
 
   // Set the enumerated options
-  const char *qn_type[3] = {"bfgs", "sr1", "none"};
-  options->addEnumOption("qn_type", "bfgs", 3, qn_type,
-    "The the of quasi-Newton approximation to use");
+  const char *qn_type[4] = {"bfgs", "scaled_bfgs", "sr1", "none"};
+  options->addEnumOption("qn_type", "bfgs", 4, qn_type,
+    "The type of quasi-Newton approximation to use, note that "
+    "scaled_bfgs should be only used when there's single constraint "
+    "and objective is linear");
 
   const char *bfgs_type[2] = {"skip_negative_curvature",
                               "damped_update"};
@@ -649,6 +651,8 @@ void ParOptInteriorPoint::resetProblemInstance( ParOptProblem *problem ){
     problem = NULL;
   }
   else {
+    problem->incref();
+    prob->decref();
     prob = problem;
   }
 }
@@ -4310,7 +4314,7 @@ int ParOptInteriorPoint::computeStepAndUpdate( double alpha,
         prob->addSparseJacobianTranspose(-1.0, x, zw, y_qn);
       }
 
-      prob->computeQuasiNewtonUpdateCorrection(s_qn, y_qn);
+      prob->computeQuasiNewtonUpdateCorrection(x, z, zw, s_qn, y_qn);
       update_type = qn->update(x, z, zw, s_qn, y_qn);
     }
     else {

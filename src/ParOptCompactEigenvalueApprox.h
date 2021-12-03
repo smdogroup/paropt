@@ -100,10 +100,10 @@ class ParOptEigenSubproblem : public ParOptTrustRegionSubproblem {
   ParOptCompactQuasiNewton* getQuasiNewton();
   void initModelAndBounds( double tr_size );
   void setTrustRegionBounds( double tr_size );
-  int evalTrialStepAndUpdate( ParOptVec *step, const ParOptScalar *z,
-                              ParOptVec *zw,
+  int evalTrialStepAndUpdate( int update_flag, ParOptVec *step,
+                              ParOptScalar *z, ParOptVec *zw,
                               ParOptScalar *fobj, ParOptScalar *cons );
-  int acceptTrialStep( ParOptVec *step, const ParOptScalar *z, ParOptVec *zw );
+  int acceptTrialStep( ParOptVec *step, ParOptScalar *z, ParOptVec *zw );
   void rejectTrialStep();
   int getQuasiNewtonUpdateType();
 

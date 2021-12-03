@@ -17,6 +17,7 @@ from ParOpt cimport *
 
 # Import tracebacks for callbacks
 import traceback
+from sys import exit
 
 # Import numpy
 import numpy as np
@@ -127,7 +128,7 @@ def unpack_output(filename):
     objs = []
     for idx in range(len(args)):
         if fmt[idx][1] == 'd':
-            objs.append(np.array(content[idx], dtype=np.int))
+            objs.append(np.array(content[idx], dtype=np.int32))
         else:
             objs.append(np.array(content[idx]))
 
@@ -200,7 +201,7 @@ def unpack_tr_output(filename):
     objs = []
     for idx in range(len(args)):
         if fmt[idx][1] == 'd':
-            objs.append(np.array(content[idx], dtype=np.int))
+            objs.append(np.array(content[idx], dtype=np.int32))
         else:
             objs.append(np.array(content[idx]))
 
@@ -309,7 +310,7 @@ def unpack_mma_output(filename):
     objs = []
     for idx in range(len(args)):
         if fmt[idx][1] == 'd':
-            objs.append(np.array(content[idx], dtype=np.int))
+            objs.append(np.array(content[idx], dtype=np.int32))
         else:
             objs.append(np.array(content[idx]))
 
@@ -356,7 +357,7 @@ def unpack_checkpoint(filename):
 
 # This wraps a C++ array with a numpy array for later useage
 cdef inplace_array_1d(int nptype, int dim1, void *data_ptr,
-                             object base=None):
+                      object base=None):
     """Return a numpy version of the array"""
     # Set the shape of the array
     cdef int size = 1
@@ -622,14 +623,23 @@ cdef int _evalhessiandiag(void *_self, int nvars, int ncon, int nwcon,
 
     return fail
 
-cdef void _computequasinewtonupdatecorrection(void *_self, int nvars,
+cdef void _computequasinewtonupdatecorrection(void *_self, int nvars, int ncon,
+                                              ParOptVec *_x, ParOptScalar *_z,
+                                              ParOptVec *_zw,
                                               ParOptVec *_s, ParOptVec *_y):
     try:
         # Call the objective function
         if hasattr(<object>_self, 'computeQuasiNewtonUpdateCorrection'):
+            x = _init_PVec(_x)
+            z = inplace_array_1d(PAROPT_NPY_SCALAR, ncon, <void*>_z)
+            zw = None
+            if _zw != NULL:
+                zw = _init_PVec(_zw)
+
             s = _init_PVec(_s)
             y = _init_PVec(_y)
-            (<object>_self).computeQuasiNewtonUpdateCorrection(s, y)
+
+            (<object>_self).computeQuasiNewtonUpdateCorrection(x, z, zw, s, y)
     except:
         tb = traceback.format_exc()
         print(tb)
