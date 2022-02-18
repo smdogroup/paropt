@@ -1106,7 +1106,7 @@ void ParOptTrustRegion::minimizeInfeas( ParOptInteriorPoint *optimizer,
   const char *barrier_strategy = ip_options->getEnumOption("barrier_strategy");
   char *barrier_option = new char[ strlen(barrier_strategy)+1 ];
   strcpy(barrier_option, barrier_strategy);
-  
+
   const char *tr_accept_step_strategy =
     options->getEnumOption("tr_accept_step_strategy");
   const int tr_adaptive_gamma_update =
@@ -1172,7 +1172,7 @@ void ParOptTrustRegion::minimizeInfeas( ParOptInteriorPoint *optimizer,
 
   // Evaluate the model at the best point to obtain the infeasibility
   if (best_con_infeas){
-    ParOptScalar dummy; 
+    ParOptScalar dummy;
     subproblem->evalObjCon(step, &dummy, best_con_infeas);
 
     // Compute the best-case infeasibility achieved by setting the
@@ -1213,6 +1213,9 @@ void ParOptTrustRegion::sl1qpUpdate( ParOptVec *step,
                                       double *infeas,
                                       double *l1,
                                       double *linfty ){
+  // Start timer
+  double t_total = MPI_Wtime();
+
   // Extract options from the options object
   const double tr_eta = options->getFloatOption("tr_eta");
   const double tr_min_size = options->getFloatOption("tr_min_size");
@@ -1404,6 +1407,9 @@ void ParOptTrustRegion::sl1qpUpdate( ParOptVec *step,
     sprintf(&info[strlen(info)], "%s ", "rej");
   }
 
+  // End timer
+  t_total = MPI_Wtime() - t_total;
+
   if (mpi_rank == 0){
     FILE *fp = stdout;
     if (outfp){
@@ -1411,17 +1417,17 @@ void ParOptTrustRegion::sl1qpUpdate( ParOptVec *step,
     }
     if (iter_count % 10 == 0 || output_level > 0){
       fprintf(fp,
-              "\n%5s %12s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %-12s\n",
+              "\n%5s %12s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %-12s\n",
               "iter", "fobj", "infeas", "l1", "linfty", "|x - xk|", "tr",
-              "rho", "mod red.", "avg z", "max z", "avg pen.", "max pen.", "info");
+              "rho", "mod red.", "avg z", "max z", "avg pen.", "max pen.", "time(s)", "info");
       fflush(fp);
     }
     fprintf(fp,
             "%5d %12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e "
-            "%9.2e %9.2e %9.2e %9.2e %-12s\n",
+            "%9.2e %9.2e %9.2e %9.2e %9.2e %-12s\n",
             iter_count, ParOptRealPart(fk), *infeas, *l1, *linfty, smax, tr_size,
             ParOptRealPart(rho), ParOptRealPart(model_reduc),
-            zav, zmax, gav, gmax, info);
+            zav, zmax, gav, gmax, t_total, info);
     fflush(fp);
   }
 
@@ -1537,7 +1543,7 @@ void ParOptTrustRegion::sl1qpOptimize( ParOptInteriorPoint *optimizer ){
       // Compute an update step within the trust region that minimizes
       // infeasibility only (regardless the objective at the moment)
       ParOptVec *step;
-      minimizeInfeas(optimizer, infeas_problem, ip_options, step, 
+      minimizeInfeas(optimizer, infeas_problem, ip_options, step,
       best_con_infeas, adaptive_objective_flag, adaptive_constraint_flag);
 
       // The block below is moved to the function minimizeInfeas() and is commented out
@@ -1774,6 +1780,9 @@ void ParOptTrustRegion::sl1qpOptimize( ParOptInteriorPoint *optimizer ){
   @param optimizer An instance of the ParOptInteriorPoint optimizer class
 */
 void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
+  // Start timer
+  double t_total = MPI_Wtime();
+
   // Extract options
   const int tr_max_iterations = options->getIntOption("tr_max_iterations");
   const double tr_eta = options->getFloatOption("tr_eta");
@@ -1949,7 +1958,7 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       }
 
       // minimize the constraint violation
-      minimizeInfeas(optimizer, infeas_problem, ip_options, step, NULL, 
+      minimizeInfeas(optimizer, infeas_problem, ip_options, step, NULL,
                      ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE,
                      ParOptInfeasSubproblem::PAROPT_LINEAR_CONSTRAINT);
 
@@ -2258,6 +2267,9 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       }
     }
 
+    // End timer
+    t_total = MPI_Wtime() - t_total;
+
     // Update output file
     if (mpi_rank == 0){
       FILE *fp = stdout;
@@ -2266,17 +2278,17 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       }
       if (iter_count % 10 == 0 || output_level > 0){
         fprintf(fp,
-                "\n%5s %12s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %-12s\n",
+                "\n%5s %12s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %9s %-12s\n",
                 "iter", "fobj", "infeas", "l1", "linfty", "|x - xk|", "tr",
-                "rho", "mod red.", "avg z", "max z", "avg pen.", "max pen.", "info");
+                "rho", "mod red.", "avg z", "max z", "avg pen.", "max pen.", "time(s)", "info");
         fflush(fp);
       }
       fprintf(fp,
               "%5d %12.5e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e %9.2e "
-              "%9.2e %9.2e %9.2e %9.2e %-12s\n",
+              "%9.2e %9.2e %9.2e %9.2e %9.2e %-12s\n",
               iter_count, ParOptRealPart(fobj_trial), ParOptRealPart(infeas_trial),
               l1, linfty, smax, tr_size,
-              ParOptRealPart(rho), model_red, zav, zmax, gav, gmax, info);
+              ParOptRealPart(rho), model_red, zav, zmax, gav, gmax, t_total, info);
       fflush(fp);
     }
 
