@@ -27,3 +27,4 @@ paropt/*.pxi
 *.in
 *.pkl
 *.a
+.DS_Store
