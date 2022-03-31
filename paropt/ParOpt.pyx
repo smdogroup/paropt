@@ -960,6 +960,14 @@ cdef class PVec:
                 errmsg = 'Index %d out of range [0,%d)'%(k, size)
                 raise IndexError(errmsg)
             return array[k]
+        elif isinstance(k, list):
+            if min(k) < 0 or max(k) >= size:
+                errmsg = 'Invalid indices, out of range [0, %d)'%(size)
+                raise IndexError(errmsg)
+            arr = np.zeros(len(k), dtype=dtype)
+            for i, idx in enumerate(k):
+                arr[i] = array[idx]
+            return arr
         elif isinstance(k, slice):
             start, stop, step = k.indices(size)
             d = (stop-1 - start)//step + 1
@@ -975,7 +983,7 @@ cdef class PVec:
                 index += 1
             return arr
         else:
-            errmsg = 'Index must be of type int or slice'
+            errmsg = 'Index must be of type int, list of int or slice'
             raise ValueError(errmsg)
 
     def __setitem__(self, k, values):
@@ -987,6 +995,16 @@ cdef class PVec:
                 errmsg = 'Index %d out of range [0,%d)'%(k, size)
                 raise IndexError(errmsg)
             array[k] = values
+        elif isinstance(k, list):
+            if min(k) < 0 or max(k) >= size:
+                errmsg = 'Invalid indices, out of range [0, %d)'%(size)
+                raise IndexError(errmsg)
+            if hasattr(values, '__len__'):
+                for i, idx in enumerate(k):
+                    array[idx] = values[i]
+            else:
+                for idx in k:
+                    array[idx] = values
         elif isinstance(k, slice):
             start, stop, step = k.indices(size)
             if hasattr(values, '__len__'):
@@ -1008,7 +1026,7 @@ cdef class PVec:
                     else:
                         raise IndexError('Index %d out of range [0,%d)'%(i, size))
         else:
-            errmsg = 'Index must be of type int or slice'
+            errmsg = 'Index must be of type int, list of int or slice'
             raise ValueError(errmsg)
         return
 
