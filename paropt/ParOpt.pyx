@@ -144,8 +144,8 @@ def unpack_tr_output(filename):
 
     # The arguments that we're looking for
     args = ['iter', 'fobj', 'infes', 'l1', 'linfty', '|x - xk|', 'tr',
-            'rho', 'mod red.', 'avg z', 'max z', 'avg pen.', 'max pen.']
-    fmt = '5d 12e 9e 9e 9e 9e 9e 9e 9e 9e 9e 9e 9e'.split()
+            'rho', 'mod red.', 'avg z', 'max z', 'avg pen.', 'max pen.', 'time(s)']
+    fmt = '5d 12e 9e 9e 9e 9e 9e 9e 9e 9e 9e 9e 9e 9e'.split()
 
     # Loop over the file until the end
     content = []
