@@ -940,7 +940,8 @@ void ParOptTrustRegion::addToFilter( ParOptScalar f,
   // Delete filter pairs dominated by (f, h)
   for ( auto entry = filter.begin(); entry != filter.end(); ){
     // Note that here we always use the simple rule, not the slanting envelope
-    if (f <= entry->f && h <= entry->h){
+    if (ParOptRealPart(f) <= ParOptRealPart(entry->f) &&
+        ParOptRealPart(h) <= ParOptRealPart(entry->h)){
       entry = filter.erase(entry);
     }
     else{
@@ -1917,10 +1918,10 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
       subproblem->evalObjCon(step, &dummy, cm);
       for ( int i = 0; i < m; i++ ){
         if (i < nineq){
-          infeas = max2(0.0, -cm[i]);
+          infeas = ParOptRealPart(max2(0.0, fabs(-cm[i])));
         }
         else{
-          infeas = fabs(cm[i]);
+          infeas = ParOptRealPart(fabs(cm[i]));
         }
       }
       delete [] cm;
@@ -2079,7 +2080,8 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
         //   fflush(fp);
 
         // }
-        if ( actual_red < tr_eta*model_red && model_red > 0.0 ){
+        if ( ParOptRealPart(actual_red) < ParOptRealPart(tr_eta*model_red) &&
+             ParOptRealPart(model_red) > 0.0 ){
           subproblem->rejectTrialStep();
           smax = 0.0;
           decrease_tr_size = 1;
@@ -2088,7 +2090,7 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
         else{
           subproblem->acceptTrialStep(step, NULL, NULL);
           step_is_accepted = 1;
-          if ( model_red <= 0.0 ){
+          if ( ParOptRealPart(model_red) <= 0.0 ){
             // if (infeas_trial > tr_infeas_tol){
             //    addToFilter(fobj_trial, infeas_trial);
             // }
@@ -2288,7 +2290,8 @@ void ParOptTrustRegion::filterOptimize( ParOptInteriorPoint *optimizer ){
               "%9.2e %9.2e %9.2e %9.2e %9.2e %-12s\n",
               iter_count, ParOptRealPart(fobj_trial), ParOptRealPart(infeas_trial),
               l1, linfty, smax, tr_size,
-              ParOptRealPart(rho), model_red, zav, zmax, gav, gmax, t_total, info);
+              ParOptRealPart(rho), ParOptRealPart(model_red), zav, zmax, gav,
+              gmax, t_total, info);
       fflush(fp);
     }
 
