@@ -260,6 +260,9 @@ void ParOptMMA::addDefaultOptions( ParOptOptions *options ){
 
   options->addFloatOption("mma_delta_regularization", 1e-5, 0.0, 1e20,
     "Regularization term applied in the MMA approximation");
+
+  options->addFloatOption("mma_move_limit", 0.2, 0.0, 1e20,
+    "Move limit for design variables to prevent oscillation");
 }
 
 ParOptOptions* ParOptMMA::getOptions(){
@@ -321,6 +324,14 @@ void ParOptMMA::optimize( ParOptInteriorPoint *optimizer ){
   initializeSubProblem(xvec);
   optimizer->resetDesignAndBounds();
 
+  // Get the x bounds of the original problem
+  ParOptVec *lbvec_orig = prob->createDesignVec(); lbvec_orig->incref();
+  ParOptVec *ubvec_orig = prob->createDesignVec(); ubvec_orig->incref();
+  prob->getVarsAndBounds(NULL, lbvec_orig, ubvec_orig);
+  ParOptScalar *lbvals_orig, *ubvals_orig;
+  lbvec_orig->getArray(&lbvals_orig);
+  ubvec_orig->getArray(&ubvals_orig);
+
   for ( int i = 0; i < max_iterations; i++ ){
     // Optimize the sub-problem
     optimizer->optimize();
@@ -332,6 +343,17 @@ void ParOptMMA::optimize( ParOptInteriorPoint *optimizer ){
 
     // Set the multipliers
     setMultipliers(z, zw, zl, zu);
+
+    // Apply move limit for the design variables
+    const double movlim = options->getFloatOption("mma_move_limit");
+    ParOptScalar *lbval, *ubval, *xval;
+    lbvec->getArray(&lbval);
+    ubvec->getArray(&ubval);
+    x->getArray(&xval);
+    for ( int j = 0; j < n; j++ ){
+      lbval[j] = max2(lbvals_orig[j], xval[j] - movlim);
+      ubval[j] = min2(ubvals_orig[j], xval[j] + movlim);
+    }
 
     // Initialize the subproblem about the new point
     initializeSubProblem(x);
@@ -352,6 +374,9 @@ void ParOptMMA::optimize( ParOptInteriorPoint *optimizer ){
       }
     }
   }
+
+  lbvec_orig->decref();
+  ubvec_orig->decref();
 }
 
 /*
