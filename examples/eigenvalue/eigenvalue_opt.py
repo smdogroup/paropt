@@ -181,18 +181,11 @@ class SpectralAggregate(ParOpt.Problem):
         # but not more than nhv/2. These will be included
         nmv = 0
 
-        # Include terms that exceed a specified tolerance. In practice,
-        # these are rarely included.
-        tol = 0.01
-        for i in range(nhv // 2):
-            if self.M[i, i] >= tol:
-                nmv += 1
-
-        # Fill in the values of the approximation matrix from M
+        # # Fill in the values of the approximation matrix from M
         npv = nhv - nmv
-        for i in range(nmv):
-            hvecs[i][:] = self.W[:, i]
-            M[i, :nmv] = self.M[i, :nmv]
+        # for i in range(nmv):
+        #     hvecs[i][:] = self.W[:, i]
+        #     M[i, :nmv] = self.M[i, :nmv]
 
         # Calculate the vectors with the largest contributions
         indices = range(npv)

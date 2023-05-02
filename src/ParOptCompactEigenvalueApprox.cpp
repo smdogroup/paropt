@@ -202,7 +202,13 @@ void ParOptEigenQuasiNewton::multAdd(ParOptScalar alpha, ParOptVec *x,
   eigh->multAdd(-alpha * z0, x, y);
 }
 
-// Get the compact representation of the quasi-Newton method
+/*
+  Get the compact representation of the quasi-Newton method
+
+  The compact quasi-Newton Hessian takes the form:
+
+  b0*I - Z*diag{d)*M^{-1}*diag{d}*Z^{T}
+*/
 int ParOptEigenQuasiNewton::getCompactMat(ParOptScalar *b0,
                                           const ParOptScalar **_d,
                                           const ParOptScalar **_M,
@@ -494,6 +500,7 @@ int ParOptEigenSubproblem::acceptTrialStep(ParOptVec *step, ParOptScalar *z,
   if (qn) {
     // Compute the difference between the gradient of the
     // Lagrangian between the current point and the previous point
+    int index = approx->getMultiplierIndex();
     t->copyValues(gt);
     for (int i = 0; i < m; i++) {
       t->axpy(-z[i], At[i]);
@@ -508,13 +515,6 @@ int ParOptEigenSubproblem::acceptTrialStep(ParOptVec *step, ParOptScalar *z,
     }
     if (nwcon > 0) {
       prob->addSparseJacobianTranspose(1.0, xk, zw, t);
-    }
-
-    // Now add the contribution t = y + z*H*s
-    int index = approx->getMultiplierIndex();
-    ParOptCompactEigenApprox *eigh = approx->getCompactEigenApprox();
-    if (eigh) {
-      eigh->multAdd(z[index], step, t);
     }
 
     // Perform an update of the quasi-Newton approximation
