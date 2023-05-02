@@ -234,8 +234,8 @@ void ParOptMMA::addDefaultOptions( ParOptOptions *options ){
   options->addIntOption("output_level", 0, 0, 1000000,
     "Output level indicating how verbose the output should be");
 
-  options->addBoolOption("mma_use_constraint_linearization", 1,
-    "If false, linearized the constraints");
+  options->addBoolOption("mma_use_constraint_linearization", 0,
+    "Use a linearization of the constraints in the MMA subproblem");
 
   options->addFloatOption("mma_asymptote_contract", 0.7, 0.0, 1.0,
     "Contraction factor applied to the asymptotes");
@@ -243,8 +243,8 @@ void ParOptMMA::addDefaultOptions( ParOptOptions *options ){
   options->addFloatOption("mma_asymptote_relax", 1.2, 1.0, 1e20,
     "Expansion factor applied to the asymptotes");
 
-  options->addFloatOption("mma_init_asymptote_offset", 0.25, 0.0, 1.0,
-    "Initial aymptote offset from the variable bounds");
+  options->addFloatOption("mma_init_asymptote_offset", 0.5, 0.0, 1.0,
+    "Initial asymptote offset from the variable bounds");
 
   options->addFloatOption("mma_min_asymptote_offset", 0.01, 0.0, 1e20,
     "Minimum asymptote offset from the variable bounds");
@@ -255,10 +255,10 @@ void ParOptMMA::addDefaultOptions( ParOptOptions *options ){
   options->addFloatOption("mma_bound_relax", 0.0, 0.0, 1e20,
     "Relaxation bound for computing the error in the KKT conditions");
 
-  options->addFloatOption("mma_eps_regularization", 1e-3, 0.0, 1e20,
+  options->addFloatOption("mma_eps_regularization", 1e-5, 0.0, 1e20,
     "Regularization term applied in the MMA approximation");
 
-  options->addFloatOption("mma_delta_regularization", 1e-5, 0.0, 1e20,
+  options->addFloatOption("mma_delta_regularization", 1e-3, 0.0, 1e20,
     "Regularization term applied in the MMA approximation");
 
   options->addFloatOption("mma_move_limit", 0.2, 0.0, 1e20,
@@ -324,14 +324,6 @@ void ParOptMMA::optimize( ParOptInteriorPoint *optimizer ){
   initializeSubProblem(xvec);
   optimizer->resetDesignAndBounds();
 
-  // Get the x bounds of the original problem
-  ParOptVec *lbvec_orig = prob->createDesignVec(); lbvec_orig->incref();
-  ParOptVec *ubvec_orig = prob->createDesignVec(); ubvec_orig->incref();
-  prob->getVarsAndBounds(NULL, lbvec_orig, ubvec_orig);
-  ParOptScalar *lbvals_orig, *ubvals_orig;
-  lbvec_orig->getArray(&lbvals_orig);
-  ubvec_orig->getArray(&ubvals_orig);
-
   for ( int i = 0; i < max_iterations; i++ ){
     // Optimize the sub-problem
     optimizer->optimize();
@@ -343,17 +335,6 @@ void ParOptMMA::optimize( ParOptInteriorPoint *optimizer ){
 
     // Set the multipliers
     setMultipliers(z, zw, zl, zu);
-
-    // Apply move limit for the design variables
-    const double movlim = options->getFloatOption("mma_move_limit");
-    ParOptScalar *lbval, *ubval, *xval;
-    lbvec->getArray(&lbval);
-    ubvec->getArray(&ubval);
-    x->getArray(&xval);
-    for ( int j = 0; j < n; j++ ){
-      lbval[j] = max2(lbvals_orig[j], xval[j] - movlim);
-      ubval[j] = min2(ubvals_orig[j], xval[j] + movlim);
-    }
 
     // Initialize the subproblem about the new point
     initializeSubProblem(x);
@@ -374,9 +355,6 @@ void ParOptMMA::optimize( ParOptInteriorPoint *optimizer ){
       }
     }
   }
-
-  lbvec_orig->decref();
-  ubvec_orig->decref();
 }
 
 /*
@@ -545,6 +523,9 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
   // Get the output level
   const int output_level = options->getIntOption("output_level");
 
+  // Move limit for the design variables
+  const double movlim = options->getFloatOption("mma_move_limit");
+
   x2vec->copyValues(x1vec);
   x1vec->copyValues(xvec);
   if (xv && xv != xvec){
@@ -619,12 +600,20 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
   // Set all of the asymptote values
   if (mma_iter < 2){
     for ( int j = 0; j < n; j++ ){
-      L[j] = x[j] - init_asymptote_offset*(ub[j] - lb[j]);
-      U[j] = x[j] + init_asymptote_offset*(ub[j] - lb[j]);
+      // Apply move limit for the design variables
+      ParOptScalar lower = max2(lb[j], x[j] - movlim);
+      ParOptScalar upper = min2(ub[j], x[j] + movlim);
+
+      L[j] = x[j] - init_asymptote_offset*(upper - lower);
+      U[j] = x[j] + init_asymptote_offset*(upper - lower);
     }
   }
   else {
     for ( int j = 0; j < n; j++ ){
+      // Apply move limit for the design variables
+      ParOptScalar lower = max2(lb[j], x[j] - movlim);
+      ParOptScalar upper = min2(ub[j], x[j] + movlim);
+
       // Compute the product of the difference of the two previous
       // updates to determine how to update the move limits. If the
       // signs are different, then indc < 0.0 and we contract the
@@ -636,7 +625,7 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
       ParOptScalar Uprev = U[j];
 
       // Compute the interval length
-      ParOptScalar intrvl = max2(ub[j] - lb[j], 0.01);
+      ParOptScalar intrvl = max2(upper - lower, 0.01);
       intrvl = min2(intrvl, 100.0);
 
       if (ParOptRealPart(indc) < 0.0){
@@ -686,19 +675,23 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
 
   // Compute the values of the lower/upper assymptotes
   for ( int j = 0; j < n; j++ ){
+    // Apply move limit for the design variables
+    ParOptScalar lower = max2(lb[j], x[j] - movlim);
+    ParOptScalar upper = min2(ub[j], x[j] + movlim);
+
     // Compute the move limits to avoid division by zero
-    alpha[j] = max2(max2(lb[j], 0.9*L[j] + 0.1*x[j]),
-                    x[j] - 0.5*(ub[j] - lb[j]));
-    beta[j] = min2(min2(ub[j], 0.9*U[j] + 0.1*x[j]),
-                   x[j] + 0.5*(ub[j] - lb[j]));
+    alpha[j] = max2(max2(lower, 0.9*L[j] + 0.1*x[j]),
+                    x[j] - 0.5*(upper - lower));
+    beta[j] = min2(min2(upper, 0.9*U[j] + 0.1*x[j]),
+                   x[j] + 0.5*(upper - lower));
 
     // Compute the coefficients for the objective
     ParOptScalar gpos = max2(0.0, g[j]);
     ParOptScalar gneg = max2(0.0, -g[j]);
     p0[j] = (U[j] - x[j])*(U[j] - x[j])*((1.0 + eta)*gpos +
-                                         eta*gneg + eps/(ub[j] - lb[j]));
+                                         eta*gneg + eps/(U[j] - L[j]));
     q0[j] = (x[j] - L[j])*(x[j] - L[j])*((1.0 + eta)*gneg +
-                                         eta*gpos + eps/(ub[j] - lb[j]));
+                                         eta*gpos + eps/(U[j] - L[j]));
   }
 
   if (use_true_mma){
@@ -714,10 +707,8 @@ int ParOptMMA::initializeSubProblem( ParOptVec *xv ){
       for ( int j = 0; j < n; j++ ){
         ParOptScalar gpos = max2(0.0, -A[i][j]);
         ParOptScalar gneg = max2(0.0, A[i][j]);
-        pi[j] = (U[j] - x[j])*(U[j] - x[j])*((1.0 + eta)*gpos +
-                                             eta*gneg + eps/(ub[j] - lb[j]));
-        qi[j] = (x[j] - L[j])*(x[j] - L[j])*((1.0 + eta)*gneg +
-                                             eta*gpos + eps/(ub[j] - lb[j]));
+        pi[j] = (U[j] - x[j])*(U[j] - x[j])*gpos;
+        qi[j] = (x[j] - L[j])*(x[j] - L[j])*gneg;
         b[i] += pi[j]/(U[j] - x[j]) + qi[j]/(x[j] - L[j]);
       }
     }
