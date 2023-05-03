@@ -76,19 +76,10 @@ requirements:
     - mpi4py
 
 test:
-  requires:
-    - testflo
-
-  source_files:
-    - tests
-
   imports:
     - paropt
     - paropt.ParOpt
     - paropt.ParOptEig
-
-  commands:
-    - |
 
 about:
   home: https://github.com/smdogroup/paropt
