@@ -1,0 +1,129 @@
+name: Build, unit tests, and docs
+
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  # Remove push when finally merging.
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab.
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
+
+jobs:
+  # This job is called test_docs.
+  unit_test_and_docs:
+    # Run on Ubuntu
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Necessary to prevent mpi tests failing due to lack of slots
+    env:
+      OMPI_MCA_btl: self,tcp
+      OMPI_MCA_rmaps_base_oversubscribe: 1
+    # Ensures conda environment is initialized for all steps
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # real versions
+          - NAME: Real
+            OPTIONAL: 'debug'
+            INTERFACE: 'interface'
+            PUBLISH_DOCS: true
+
+          # complex versions
+          - NAME: Complex
+            OPTIONAL: 'complex_debug'
+            INTERFACE: 'complex_interface'
+            PUBLISH_DOCS: false
+
+    name: TACS ${{ matrix.NAME }} Build/Test/Docs
+
+    # Recommended if you intend to make multiple deployments in quick succession.
+    # This will kill any currently running CI from previous commits to the same branch
+    concurrency:
+      group: ci-${{ github.ref }}-${{ matrix.NAME }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Display run details
+        run: |
+          echo "=============================================================";
+          echo "Run #${GITHUB_RUN_NUMBER}";
+          echo "Run ID: ${GITHUB_RUN_ID}";
+          lscpu;
+          echo "Testing: ${GITHUB_REPOSITORY}";
+          echo "Triggered by: ${GITHUB_EVENT_NAME}";
+          echo "Initiated by: ${GITHUB_ACTOR}";
+          echo "=============================================================";
+
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it.
+      - uses: actions/checkout@v2
+      - name: Setup miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: 3.8
+
+      - name: Install ParOpt
+        run: |
+          export PAROPT_DIR=${GITHUB_WORKSPACE};
+          echo "PAROPT_DIR=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
+          conda install -c anaconda openmpi -q -y;
+          conda install gxx_linux-64=9.3.0 -q -y;
+          conda install -c anaconda openblas -q -y;
+          conda install -c conda-forge lapack -q -y;
+          cd $PAROPT_DIR;
+          cp Makefile.in.info Makefile.in;
+          make ${{ matrix.OPTIONAL }} PAROPT_DIR=$PAROPT_DIR";
+          cd $PAROPT_DIR;
+          make ${{ matrix.INTERFACE }};
+          cd $PAROPT_DIR/examples;
+          make ${{ matrix.OPTIONAL }} PAROPT_DIR=$PAROPT_DIR";
+      - name: Run unit tests
+        run: |
+          # Reload ESP/CAPS environment variables if in real mode
+          if [[ ${{ matrix.NAME }} == 'Real' ]]; then
+            source ${TACS_DIR}/extern/ESP122/ESPenv.sh
+          fi
+          testflo --timeout 120 .;
+      - name: Build docs
+        run: |
+          cd $PAROPT_DIR/docs;
+          make html BUILDDIR=.;
+          cd html;
+          zip -r ../paropt-docs.zip .;
+      - name: 'Upload docs'
+        if: ${{ matrix.PUBLISH_DOCS }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: paropt-docs
+          path: docs/paropt-docs.zip
+          retention-days: 7
+      - name: 'Deploy docs'
+        if: ${{ github.event_name == 'push' && matrix.PUBLISH_DOCS }}
+        uses: JamesIves/github-pages-deploy-action@v4.2.5
+        with:
+          branch: gh-pages # The branch the action should deploy to.
+          folder: docs/html/ # The folder the action should deploy.
+      # This allows the user to ssh into the github runner and debug a job upon failure
+      # This will only trigger if the job was run using workflow_dispatch and debug_enabled input flag was set to true
+      - name: Setup interactive debug session on failure
+        if: ${{ failure() && github.event.inputs.debug_enabled }}
+        uses: mxschmitt/action-tmate@v3
+        # To access the terminal through the web-interface:
+        #   1. Click on the web-browser link printed out in this action from the github workkflow terminal
+        #   2. Press cntrl + c in the new tab that opens up to reveal the terminal
+        #   3. To activate the conda environment used to build TACS run:
+        #       $ source $CONDA/etc/profile.d/conda.sh
+        #       $ conda activate test
