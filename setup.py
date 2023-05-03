@@ -96,6 +96,15 @@ optional_dependencies = {
     "docs": ["sphinx", "breathe", "sphinxcontrib-programoutput"],
 }
 
+# Add an optional dependency that concatenates all others
+optional_dependencies["all"] = sorted(
+    [
+        dependency
+        for dependencies in optional_dependencies.values()
+        for dependency in dependencies
+    ]
+)
+
 setup(
     name="paropt",
     version=0.1,
