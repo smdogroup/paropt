@@ -112,7 +112,7 @@ optional_dependencies["all"] = sorted(
 
 setup(
     name="paropt",
-    version=0.1,
+    version="2.1.0",
     description="Parallel interior-point optimizer",
     author="Graeme J. Kennedy",
     author_email="graeme.kennedy@ae.gatech.edu",
