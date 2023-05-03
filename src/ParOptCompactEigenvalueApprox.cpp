@@ -500,7 +500,6 @@ int ParOptEigenSubproblem::acceptTrialStep(ParOptVec *step, ParOptScalar *z,
   if (qn) {
     // Compute the difference between the gradient of the
     // Lagrangian between the current point and the previous point
-    int index = approx->getMultiplierIndex();
     t->copyValues(gt);
     for (int i = 0; i < m; i++) {
       t->axpy(-z[i], At[i]);

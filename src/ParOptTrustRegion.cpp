@@ -837,6 +837,20 @@ void ParOptTrustRegion::setOutputFile(const char *filename) {
   }
 }
 
+/*
+  Add to the info string
+*/
+void ParOptTrustRegion::addToInfo(size_t info_size, char *info,
+                                  const char *format, ...) {
+  va_list args;
+  size_t offset = strlen(info);
+  size_t buff_size = info_size - offset;
+
+  va_start(args, format);
+  vsnprintf(&info[offset], buff_size, format, args);
+  va_end(args);
+}
+
 /**
   Get the optimized point from the subproblem class
 
@@ -1351,22 +1365,22 @@ void ParOptTrustRegion::sl1qpUpdate(ParOptVec *step, ParOptScalar *z,
   info[0] = '\0';
   if (update_type == 1) {
     // Damped BFGS update
-    sprintf(&info[strlen(info)], "%s ", "dampH");
+    addToInfo(sizeof(info), info, "%s ", "dampH");
   } else if (update_type == 2) {
     // Skipped update
-    sprintf(&info[strlen(info)], "%s ", "skipH");
+    addToInfo(sizeof(info), info, "%s ", "skipH");
   }
   // Write out the number of subproblem iterations
   if (tr_adaptive_gamma_update) {
-    sprintf(&info[strlen(info)], "%d/%d ", subproblem_iters,
-            adaptive_subproblem_iters);
+    addToInfo(sizeof(info), info, "%d/%d ", subproblem_iters,
+              adaptive_subproblem_iters);
   } else {
-    sprintf(&info[strlen(info)], "%d ", subproblem_iters);
+    addToInfo(sizeof(info), info, "%d ", subproblem_iters);
   }
 
   // Write information about whether the step is accepted or rejected
   if (!step_is_accepted) {
-    sprintf(&info[strlen(info)], "%s ", "rej");
+    addToInfo(sizeof(info), info, "%s ", "rej");
   }
 
   // End timer
@@ -1441,12 +1455,6 @@ void ParOptTrustRegion::sl1qpOptimize(ParOptInteriorPoint *optimizer) {
         ParOptInfeasSubproblem::PAROPT_SUBPROBLEM_CONSTRAINT;
   }
 
-  // Set the starting point strategy for the subproblem
-  const char *tr_barrier_strategy =
-      options->getEnumOption("tr_steering_barrier_strategy");
-  const char *tr_starting_strategy =
-      options->getEnumOption("tr_steering_starting_point_strategy");
-
   // Set up the optimizer so that it uses the quasi-Newton approximation
   ParOptCompactQuasiNewton *qn = subproblem->getQuasiNewton();
   optimizer->setQuasiNewton(qn);
@@ -1507,99 +1515,10 @@ void ParOptTrustRegion::sl1qpOptimize(ParOptInteriorPoint *optimizer) {
     if (tr_adaptive_gamma_update) {
       // Compute an update step within the trust region that minimizes
       // infeasibility only (regardless the objective at the moment)
-      ParOptVec *step;
+      ParOptVec *step = NULL;
       minimizeInfeas(optimizer, infeas_problem, ip_options, step,
                      best_con_infeas, adaptive_objective_flag,
                      adaptive_constraint_flag);
-
-      // The block below is moved to the function minimizeInfeas() and is
-      // commented out
-#if 0
-      // Reset the problem instance
-      optimizer->resetProblemInstance(infeas_problem);
-
-      // Set the starting point strategy
-      if (strcmp(tr_barrier_strategy, "default") != 0){
-        ip_options->setOption("barrier_strategy", tr_barrier_strategy);
-      }
-      if (strcmp(tr_starting_strategy, "default") != 0){
-        ip_options->setOption("starting_point_strategy", tr_starting_strategy);
-      }
-
-      // Check if this is an compact representation using the eigenvalue Hessian
-      ParOptEigenQuasiNewton *eig_qn = dynamic_cast<ParOptEigenQuasiNewton*>(qn);
-
-      // Check what type of infeasible subproblem
-      int is_seq = ip_options->getBoolOption("sequential_linear_method");
-      if (adaptive_objective_flag == ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE ||
-          adaptive_objective_flag == ParOptInfeasSubproblem::PAROPT_CONSTANT_OBJECTIVE){
-        if (eig_qn){
-          eig_qn->setUseQuasiNewtonObjective(0);
-        }
-
-        // Linear (or constant) objective and linear constraints - sequential linear problem
-        if (adaptive_constraint_flag == ParOptInfeasSubproblem::PAROPT_LINEAR_CONSTRAINT){
-          ip_options->setOption("sequential_linear_method", 1);
-        }
-      }
-
-      // Set the penalty parameter to a large value
-      double gamma = 1e6;
-      if (1e2*tr_penalty_gamma_max > gamma){
-        gamma = 1e2*tr_penalty_gamma_max;
-      }
-
-      // Set the objective scaling to 1.0/gamma so that the contribution from
-      // the objective is small
-      infeas_problem->setObjectiveScaling(1.0/gamma);
-
-      // Set the penalty parameters to zero
-      optimizer->setPenaltyGamma(1.0);
-
-      // Initialize the barrier parameter
-      optimizer->resetDesignAndBounds();
-
-      // Optimize the subproblem
-      optimizer->optimize();
-
-      // Get the design variables
-      ParOptVec *step;
-      optimizer->getOptimizedPoint(&step, NULL, NULL, NULL, NULL);
-
-      // Get the number of subproblem iterations
-      optimizer->getIterationCounters(&adaptive_subproblem_iters);
-
-      // Evaluate the model at the best point to obtain the infeasibility
-      ParOptScalar fbest; //dummy variable
-      subproblem->evalObjCon(step, &fbest, best_con_infeas);
-
-      // Compute the best-case infeasibility achieved by setting the
-      // penalty parameters to a large value
-      for ( int j = 0; j < m; j++ ){
-        if (j < nineq){
-          best_con_infeas[j] = max2(0.0, -best_con_infeas[j]);
-        }
-        else {
-          best_con_infeas[j] = fabs(best_con_infeas[j]);
-        }
-      }
-
-      // Set the penalty parameters
-      optimizer->setPenaltyGamma(penalty_gamma);
-
-      // Reset the problem instance and turn off the sequential linear method
-      optimizer->resetProblemInstance(subproblem);
-
-      // Set the quasi-Newton method so that it uses the objective again
-      if (eig_qn){
-        eig_qn->setUseQuasiNewtonObjective(1);
-      }
-
-      // Reset the options
-      ip_options->setOption("starting_point_strategy", start_option);
-      ip_options->setOption("barrier_strategy", barrier_option);
-      ip_options->setOption("sequential_linear_method", is_seq);
-#endif  // if 0
     }
 
     // Print out the current solution progress using the
@@ -1676,9 +1595,10 @@ void ParOptTrustRegion::sl1qpOptimize(ParOptInteriorPoint *optimizer) {
         double best_reduction =
             ParOptRealPart(con_infeas[i] - best_con_infeas[i]);
 
-        char info[8];
+        char info[64];
+        memset(info, '\0', sizeof(info));
         if (output_level > 0) {
-          sprintf(info, "---");
+          snprintf(info, sizeof(info), "---");
         }
 
         // If the ratio of the predicted to actual improvement is good,
@@ -1692,7 +1612,7 @@ void ParOptTrustRegion::sl1qpOptimize(ParOptInteriorPoint *optimizer) {
           penalty_gamma[i] = ParOptRealPart(max2(
               0.5 * (penalty_gamma[i] + fabs(z[i])), tr_penalty_gamma_min));
           if (output_level > 0) {
-            sprintf(info, "decr");
+            snprintf(info, sizeof(info), "decr");
           }
         } else if (ParOptRealPart(con_infeas[i]) > tr_infeas_tol &&
                    0.995 * best_reduction > infeas_reduction) {
@@ -1700,7 +1620,7 @@ void ParOptTrustRegion::sl1qpOptimize(ParOptInteriorPoint *optimizer) {
           penalty_gamma[i] = ParOptRealPart(
               min2(1.5 * penalty_gamma[i], tr_penalty_gamma_max));
           if (output_level > 0) {
-            sprintf(info, "incr");
+            snprintf(info, sizeof(info), "incr");
           }
         }
 
@@ -1759,7 +1679,6 @@ void ParOptTrustRegion::filterOptimize(ParOptInteriorPoint *optimizer) {
   const int output_level = options->getIntOption("output_level");
   const int tr_write_output_frequency =
       options->getIntOption("tr_write_output_frequency");
-  const int tr_use_soc = options->getBoolOption("tr_use_soc");
 
   // Set up the optimizer so that it uses the quasi-Newton approximation
   ParOptCompactQuasiNewton *qn = subproblem->getQuasiNewton();
@@ -1919,48 +1838,6 @@ void ParOptTrustRegion::filterOptimize(ParOptInteriorPoint *optimizer) {
       minimizeInfeas(optimizer, infeas_problem, ip_options, step, NULL,
                      ParOptInfeasSubproblem::PAROPT_LINEAR_OBJECTIVE,
                      ParOptInfeasSubproblem::PAROPT_LINEAR_CONSTRAINT);
-
-#if 0
-      optimizer->resetProblemInstance(infeas_problem);
-
-      // If last step is not incompatible step, reset qn
-      if (!last_step_is_resto){
-        qn->reset();
-      }
-
-      // // The subproblem is linear, so set the interior point method to
-      // // a linear problem that will ignore the quasi-Newton Hessian
-      // ip_options->setOption("sequential_linear_method", 1);
-
-      // We want to use quadratic information of the subproblem
-      ip_options->setOption("sequential_linear_method", 0);
-
-      // Set the penalty parameter to a large value
-      double gamma = 1e6;
-      double tr_penalty_gamma_max = options->getFloatOption("tr_penalty_gamma_max");
-      if (1e2*tr_penalty_gamma_max > gamma){
-        gamma = 1e2*tr_penalty_gamma_max;
-      }
-
-      // Set the objective scaling to 1.0/gamma so that the contribution from
-      // the objective is small
-      infeas_problem->setObjectiveScaling(1.0/gamma);
-
-      // Set the penalty parameters to 1.0
-      optimizer->setPenaltyGamma(1.0);
-
-      // Reset the initial design point
-      optimizer->resetDesignAndBounds();
-
-      // Optimize the subproblem
-      optimizer->optimize();
-
-      // Get the design variables
-      optimizer->getOptimizedPoint(&step, &z, &zw, NULL, NULL);
-
-      // Reset the penalty parameters
-      optimizer->setPenaltyGamma(penalty_gamma);
-#endif  // if 0
     }
 
     // Evaluate model objective value
@@ -2041,7 +1918,7 @@ void ParOptTrustRegion::filterOptimize(ParOptInteriorPoint *optimizer) {
           subproblem->rejectTrialStep();
           smax = 0.0;
           decrease_tr_size = 1;
-          sprintf(&rej_info[strlen(rej_info)], "%s", "rej:rho");
+          addToInfo(sizeof(rej_info), rej_info, "%s", "rej:rho");
         } else {
           subproblem->acceptTrialStep(step, NULL, NULL);
           step_is_accepted = 1;
@@ -2063,12 +1940,12 @@ void ParOptTrustRegion::filterOptimize(ParOptInteriorPoint *optimizer) {
         subproblem->rejectTrialStep();
         smax = 0.0;
         decrease_tr_size = 1;
-        sprintf(&rej_info[strlen(rej_info)], "%s", "rej:");
+        addToInfo(sizeof(rej_info), rej_info, "%s", "rej:");
         if (!acceptable_by_filter) {
-          sprintf(&rej_info[strlen(rej_info)], "%s", "F");
+          addToInfo(sizeof(rej_info), rej_info, "%s", "F");
         }
         if (!acceptable_by_pair) {
-          sprintf(&rej_info[strlen(rej_info)], "%s", "xk");
+          addToInfo(sizeof(rej_info), rej_info, "%s", "xk");
         }
       }
 
@@ -2181,41 +2058,42 @@ void ParOptTrustRegion::filterOptimize(ParOptInteriorPoint *optimizer) {
     // Create an info string for the update type
     int update_type = subproblem->getQuasiNewtonUpdateType();
     char info[64];
-    info[0] = '\0';
+    memset(info, '\0', sizeof(info));
+
     if (update_type == 1) {
       // Damped BFGS update
-      sprintf(&info[strlen(info)], "%s ", "dampH");
+      addToInfo(sizeof(info), info, "%s ", "dampH");
     } else if (update_type == 2) {
       // Skipped update
-      sprintf(&info[strlen(info)], "%s ", "skipH");
+      addToInfo(sizeof(info), info, "%s ", "skipH");
     }
 
     // Write out the number of subproblem iterations
-    sprintf(&info[strlen(info)], "%d ", qp_iters);
+    addToInfo(sizeof(info), info, "%d ", qp_iters);
 
     // Write out the size of filter set
-    sprintf(&info[strlen(info)], "f%ld ", filter.size());
+    addToInfo(sizeof(info), info, "f%ld ", filter.size());
 
     // Put an "R" in info, indicating that this is a restoration step
     if (this_step_is_resto) {
-      sprintf(&info[strlen(info)], "R ");
+      addToInfo(sizeof(info), info, "R ");
     }
 
     // Write information about whether the step is accepted or rejected
     if (!step_is_accepted) {
       if (strlen(rej_info) != 0) {
-        sprintf(&info[strlen(info)], "%s ", rej_info);
+        addToInfo(sizeof(info), info, "%s ", rej_info);
       } else {
-        sprintf(&info[strlen(info)], "%s ", "rej");
+        addToInfo(sizeof(info), info, "%s ", "rej");
       }
     }
 
     // Write information about second order correction
     if (soc_step) {
       if (soc_succ) {
-        sprintf(&info[strlen(info)], "%s%d ", "SocSucc", soc_niters);
+        addToInfo(sizeof(info), info, "%s%d ", "SocSucc", soc_niters);
       } else {
-        sprintf(&info[strlen(info)], "%s%d ", "SocFail", soc_niters);
+        addToInfo(sizeof(info), info, "%s%d ", "SocFail", soc_niters);
       }
     }
 
@@ -2409,7 +2287,6 @@ int ParOptTrustRegion::isAcceptedBySoc(ParOptInteriorPoint *optimizer,
     delete[] _ck;
 
     // Compute predicted decrease q and least power of 10 mu
-    double q = ParOptRealPart(fk - fobj_new);
     ParOptScalar zinfty = 0.0;
     for (int i = 0; i < m; i++) {
       if (ParOptRealPart(z[i]) > ParOptRealPart(zinfty)) {

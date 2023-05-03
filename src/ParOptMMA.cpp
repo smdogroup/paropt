@@ -529,7 +529,7 @@ int ParOptMMA::initializeSubProblem(ParOptVec *xv) {
   // Extract parameters used in the computation of the objective/constraint
   // approximations
   const double eps = options->getFloatOption("mma_eps_regularization");
-  const double eta = options->getFloatOption("mma_delta_regularization");
+  const double delta = options->getFloatOption("mma_delta_regularization");
 
   // Get the output level
   const int output_level = options->getIntOption("output_level");
@@ -695,9 +695,9 @@ int ParOptMMA::initializeSubProblem(ParOptVec *xv) {
     ParOptScalar gpos = max2(0.0, g[j]);
     ParOptScalar gneg = max2(0.0, -g[j]);
     p0[j] = (U[j] - x[j]) * (U[j] - x[j]) *
-            ((1.0 + eta) * gpos + eta * gneg + eps / (U[j] - L[j]));
+            ((1.0 + delta) * gpos + delta * gneg + eps / (U[j] - L[j]));
     q0[j] = (x[j] - L[j]) * (x[j] - L[j]) *
-            ((1.0 + eta) * gneg + eta * gpos + eps / (U[j] - L[j]));
+            ((1.0 + delta) * gneg + delta * gpos + eps / (U[j] - L[j]));
   }
 
   if (use_true_mma) {

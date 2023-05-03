@@ -234,6 +234,9 @@ class ParOptInteriorPoint : public ParOptBase {
   // Print out the optimizer options to a file
   void printOptionSummary(FILE *fp);
 
+  // Add to the info string
+  void addToInfo(size_t info_size, char *info, const char *format, ...);
+
   // Check and initialize the design variables and their bounds
   void initAndCheckDesignAndBounds();
 
