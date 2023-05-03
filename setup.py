@@ -91,11 +91,18 @@ for e in exts:
         "binding": True,
     }
 
+optional_dependencies = {
+    "testing": ["testflo>=1.4.7"],
+    "docs": ["sphinx", "breathe", "sphinxcontrib-programoutput"],
+}
+
 setup(
     name="paropt",
     version=0.1,
     description="Parallel interior-point optimizer",
     author="Graeme J. Kennedy",
     author_email="graeme.kennedy@ae.gatech.edu",
+    install_requires=["numpy", "mpi4py>=3.1.1"],
+    extras_require=optional_dependencies,
     ext_modules=cythonize(exts, language="c++", include_path=inc_dirs),
 )
