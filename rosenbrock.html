@@ -1,18 +1,17 @@
-
 <!DOCTYPE html>
 
 <html lang="python">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
     <title>Rosenbrock example &#8212; paropt  documentation</title>
-    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinxdoc.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/doctools.js"></script>
-    <script src="_static/language_data.js"></script>
-    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Sellar problem" href="sellar.html" />
@@ -33,52 +32,18 @@
         <li class="right" >
           <a href="options.html" title="Options and generic interface for ParOpt optimziers"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Rosenbrock example</a></li> 
       </ul>
-    </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Rosenbrock example</a><ul>
-<li><a class="reference internal" href="#python-implementation">Python implementation</a></li>
-</ul>
-</li>
-</ul>
-
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="options.html"
-                        title="previous chapter">Options and generic interface for ParOpt optimziers</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="sellar.html"
-                        title="next chapter">Sellar problem</a></p>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="_sources/rosenbrock.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>$('#searchbox').show(0);</script>
-        </div>
-      </div>
+    </div>  
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="rosenbrock-example">
-<h1>Rosenbrock example<a class="headerlink" href="#rosenbrock-example" title="Permalink to this headline">¶</a></h1>
+  <section id="rosenbrock-example">
+<h1>Rosenbrock example<a class="headerlink" href="#rosenbrock-example" title="Permalink to this heading">¶</a></h1>
 <p>In this example we consider a python implementation of the following optimization problem:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{align}
@@ -86,8 +51,8 @@
     \text{with respect to} \qquad &amp; -2 \le x_{i} \le 2 \qquad i = 1, 2\\
     \text{subject to} \qquad &amp; x_{1} + x_{2} + 5 \ge 0 \\
 \end{align}\end{split}\]</div>
-<div class="section" id="python-implementation">
-<h2>Python implementation<a class="headerlink" href="#python-implementation" title="Permalink to this headline">¶</a></h2>
+<section id="python-implementation">
+<h2>Python implementation<a class="headerlink" href="#python-implementation" title="Permalink to this heading">¶</a></h2>
 <p>The python implementation of this problem is as follows</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import some utilities</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -114,14 +79,14 @@
         <span class="k">return</span>
 
     <span class="k">def</span> <span class="nf">getVarsAndBounds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">lb</span><span class="p">,</span> <span class="n">ub</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Set the values of the bounds&#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Set the values of the bounds&#39;&#39;&#39;</span>
         <span class="n">x</span><span class="p">[:]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
         <span class="n">lb</span><span class="p">[:]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span>
         <span class="n">ub</span><span class="p">[:]</span> <span class="o">=</span> <span class="mf">2.0</span>
         <span class="k">return</span>
 
     <span class="k">def</span> <span class="nf">evalObjCon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Evaluate the objective and constraint&#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Evaluate the objective and constraint&#39;&#39;&#39;</span>
         <span class="c1"># Append the point to the solution history</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">x_hist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
 
@@ -133,7 +98,7 @@
         <span class="k">return</span> <span class="n">fail</span><span class="p">,</span> <span class="n">fobj</span><span class="p">,</span> <span class="n">con</span>
 
     <span class="k">def</span> <span class="nf">evalObjConGradient</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">A</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Evaluate the objective and constraint gradient&#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Evaluate the objective and constraint gradient&#39;&#39;&#39;</span>
         <span class="n">fail</span> <span class="o">=</span> <span class="mi">0</span>
 
         <span class="c1"># The objective gradient</span>
@@ -306,11 +271,46 @@ Next, the file contains the iteration history with the following columns</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">max</span> <span class="pre">pen.</span></code> the maximum penalty value</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">info</span></code> information about the interior-point subproblem solution (iteration for the step/iteration for the penalty problem)</p></li>
 </ul>
-</div>
-</div>
+</section>
+</section>
 
 
+            <div class="clearer"></div>
           </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Rosenbrock example</a><ul>
+<li><a class="reference internal" href="#python-implementation">Python implementation</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="options.html"
+                          title="previous chapter">Options and generic interface for ParOpt optimziers</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="sellar.html"
+                          title="next chapter">Sellar problem</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -330,12 +330,13 @@ Next, the file contains the iteration history with the following columns</p>
         <li class="right" >
           <a href="options.html" title="Options and generic interface for ParOpt optimziers"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Rosenbrock example</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2019, Graeme Kennedy.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.0.3.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.0.0.
     </div>
   </body>
 </html>

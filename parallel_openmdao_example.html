@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+
+<html lang="python">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>Parallel OpenMDAO example &#8212; paropt  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinxdoc.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Class reference" href="reference.html" />
+    <link rel="prev" title="OpenMDAO example" href="openmdao_example.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="reference.html" title="Class reference"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="openmdao_example.html" title="OpenMDAO example"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Parallel OpenMDAO example</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="parallel-openmdao-example">
+<h1>Parallel OpenMDAO example<a class="headerlink" href="#parallel-openmdao-example" title="Permalink to this heading">¶</a></h1>
+<p>This examples uses the ParOpt driver for OpenMDAO to solve the
+following optimization problem in parallel:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+     \text{min} \qquad &amp; (w - 10)^2 + \sum_i{\left( x_i - 5 \right) ^2} \\
+     \text{with respect to} \qquad &amp; x_i \le 10 \\
+     \text{subject to} \qquad &amp; \sum_i{x_i ^3} \le 10 \\
+ \end{align}\end{split}\]</div>
+<p>There are two inputs to the distributed paraboloid component:
+<cite>x</cite> is an array input connected to a distributed IndependentVarComp,
+and <cite>w</cite> is a scalar input connected to a non-distributed IndependentVarComp.</p>
+<p>Because <cite>w</cite> is a non-distributed variable connected as an input to a
+distributed component, it will be duplicated on each processor (it has
+a local size of 1, but a global size equal to the number of
+processors). There are two options for connecting variables from a
+non-distributed component to a distributed component. This behavior is
+governed by defining <cite>src_indices</cite> for the component. This example
+uses the default for <cite>w</cite> , where rank0 would get <cite>src_indices = 0</cite>,
+rank1 would get <cite>src_indices = 1</cite>, and so on. When the default
+behavior is used, there will be a warning issued by OpenMDAO to
+clarify what the default behavior is doing, but this warning doesn't
+imply that anything is wrong.</p>
+<p>For parallel optimization with ParOpt, the objective and constraint
+values are expected to be duplicated on all processors, while the design
+variables are distributed across processors. Therefore in this example,
+the objective (<cite>y</cite>) and constraint (<cite>a</cite>) values are computed as the sum of
+an <cite>Allgather</cite> operation.</p>
+<section id="python-implementation">
+<h2>Python implementation<a class="headerlink" href="#python-implementation" title="Permalink to this heading">¶</a></h2>
+<p>The python implementation of this problem is as follows</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">mpi4py</span> <span class="kn">import</span> <span class="n">MPI</span>
+
+<span class="kn">import</span> <span class="nn">openmdao.api</span> <span class="k">as</span> <span class="nn">om</span>
+<span class="kn">from</span> <span class="nn">paropt.paropt_driver</span> <span class="kn">import</span> <span class="n">ParOptDriver</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Example to demonstrate parallel optimization with OpenMDAO</span>
+<span class="sd">using distributed components</span>
+
+<span class="sd">Minimize: y = Sum((x - 5)^2) + (w - 10)^2</span>
+<span class="sd">w.r.t. x</span>
+<span class="sd">subject to: a = Sum(x^3) &lt;= 10.0</span>
+
+<span class="sd">The size of x depends on the number of procs used:</span>
+<span class="sd">size(x) = 2*num_procs + 1</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="k">class</span> <span class="nc">DistribParaboloid</span><span class="p">(</span><span class="n">om</span><span class="o">.</span><span class="n">ExplicitComponent</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s2">&quot;distributed&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">comm</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">ndvs</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ndvs</span> <span class="o">=</span> <span class="mi">2</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>  <span class="c1"># this will connect to a non-distributed IVC</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">ndvs</span><span class="p">)</span>  <span class="c1"># this will connect to a distributed IVC</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># all-gathered output, duplicated on all procs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">ndvs</span><span class="p">)</span>  <span class="c1"># distributed output</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># all-gathered output, duplicated on all procs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declare_partials</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declare_partials</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declare_partials</span><span class="p">(</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declare_partials</span><span class="p">(</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span>
+        <span class="n">local_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="mi">5</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">y_g</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comm</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">comm</span><span class="o">.</span><span class="n">Allgather</span><span class="p">(</span><span class="n">local_y</span><span class="p">,</span> <span class="n">y_g</span><span class="p">)</span>
+        <span class="n">outputs</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y_g</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="s2">&quot;w&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">10</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+
+        <span class="n">z</span> <span class="o">=</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span>
+        <span class="n">outputs</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">z</span>
+
+        <span class="n">local_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+        <span class="n">a_g</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comm</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">comm</span><span class="o">.</span><span class="n">Allgather</span><span class="p">(</span><span class="n">local_a</span><span class="p">,</span> <span class="n">a_g</span><span class="p">)</span>
+        <span class="n">outputs</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a_g</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">compute_partials</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">J</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span>
+        <span class="n">J</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="mf">5.0</span><span class="p">)</span>
+        <span class="n">J</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="s2">&quot;w&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mf">10.0</span><span class="p">)</span>
+        <span class="n">J</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">J</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">3.0</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="n">x</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="c1"># Create an argument parser</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--driver&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;paropt&quot;</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;paropt&quot;</span><span class="p">,</span> <span class="s2">&quot;scipy&quot;</span><span class="p">,</span> <span class="s2">&quot;pyoptsparse&quot;</span><span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;driver&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--algorithm&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;ip&quot;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ip&quot;</span><span class="p">,</span> <span class="s2">&quot;tr&quot;</span><span class="p">],</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;optimizer type&quot;</span>
+    <span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="n">driver</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">driver</span>
+    <span class="n">algorithm</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">algorithm</span>
+
+    <span class="n">comm</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span>
+
+    <span class="c1"># Build the model</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">om</span><span class="o">.</span><span class="n">Problem</span><span class="p">()</span>
+
+    <span class="c1"># Set the number of design variables on each processor</span>
+    <span class="k">if</span> <span class="n">comm</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">ndvs</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ndvs</span> <span class="o">=</span> <span class="mi">2</span>
+
+    <span class="c1"># Define the independent variables that are distributed</span>
+    <span class="n">d_ivc</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span>
+        <span class="s2">&quot;distrib_ivc&quot;</span><span class="p">,</span> <span class="n">om</span><span class="o">.</span><span class="n">IndepVarComp</span><span class="p">(</span><span class="n">distributed</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">promotes</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;*&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">d_ivc</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">ndvs</span><span class="p">))</span>
+
+    <span class="c1"># Define the independent variables that are non-distributed</span>
+    <span class="c1"># These non-distributed variables will be duplicated on each processor</span>
+    <span class="n">ivc</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span>
+        <span class="s2">&quot;ivc&quot;</span><span class="p">,</span> <span class="n">om</span><span class="o">.</span><span class="n">IndepVarComp</span><span class="p">(</span><span class="n">distributed</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="n">promotes</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;*&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">ivc</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">)</span>
+
+    <span class="c1"># Add the paraboloid model</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s2">&quot;dp&quot;</span><span class="p">,</span> <span class="n">DistribParaboloid</span><span class="p">(),</span> <span class="n">promotes</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;*&quot;</span><span class="p">])</span>
+
+    <span class="c1"># Define the optimization problem</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_design_var</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">upper</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_objective</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_constraint</span><span class="p">(</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="n">upper</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
+
+    <span class="c1"># Create and set the driver</span>
+    <span class="k">if</span> <span class="n">driver</span> <span class="o">==</span> <span class="s2">&quot;paropt&quot;</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">driver</span> <span class="o">=</span> <span class="n">ParOptDriver</span><span class="p">()</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">driver</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s2">&quot;algorithm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">algorithm</span>
+    <span class="k">elif</span> <span class="n">driver</span> <span class="o">==</span> <span class="s2">&quot;scipy&quot;</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">driver</span> <span class="o">=</span> <span class="n">ScipyOptimizeDriver</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">driver</span> <span class="o">==</span> <span class="s2">&quot;pyoptsparse&quot;</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">driver</span> <span class="o">=</span> <span class="n">pyOptSparseDriver</span><span class="p">()</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">driver</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s2">&quot;optimizer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;ParOpt&quot;</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">run_driver</span><span class="p">()</span>
+
+    <span class="c1"># Print the objective and constraint values at the optimized point</span>
+    <span class="k">if</span> <span class="n">comm</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;f = </span><span class="si">{0:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">get_val</span><span class="p">(</span><span class="s2">&quot;dp.y&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;c = </span><span class="si">{0:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">get_val</span><span class="p">(</span><span class="s2">&quot;dp.a&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mf">10.0</span><span class="p">))</span>
+
+    <span class="c1"># Print the x location of the minimum</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Rank = </span><span class="si">{0}</span><span class="s2">; x = </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">comm</span><span class="o">.</span><span class="n">rank</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">get_val</span><span class="p">(</span><span class="s2">&quot;dp.x&quot;</span><span class="p">)))</span>
+</pre></div>
+</div>
+<p>This code can be run with any number of processors (for example, using <cite>mpirun -np &lt;# of processors&gt; python distrib_paraboloid.py</cite>). Using two processors, this code results in the following output:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="mf">.9</span><span class="o">/</span><span class="n">site</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">openmdao</span><span class="o">/</span><span class="n">core</span><span class="o">/</span><span class="n">component</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">905</span><span class="p">:</span> <span class="ne">UserWarning</span><span class="p">:</span><span class="s1">&#39;dp&#39;</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">DistribParaboloid</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">Component</span> <span class="ow">is</span> <span class="n">distributed</span> <span class="n">but</span> <span class="nb">input</span> <span class="s1">&#39;dp.w&#39;</span> <span class="n">was</span> <span class="n">added</span> <span class="n">without</span> <span class="n">src_indices</span><span class="o">.</span> <span class="n">Setting</span> <span class="n">src_indices</span> <span class="n">to</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,))</span><span class="o">.</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="mf">.9</span><span class="o">/</span><span class="n">site</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">openmdao</span><span class="o">/</span><span class="n">core</span><span class="o">/</span><span class="n">component</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">905</span><span class="p">:</span> <span class="ne">UserWarning</span><span class="p">:</span><span class="s1">&#39;dp&#39;</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">DistribParaboloid</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">Component</span> <span class="ow">is</span> <span class="n">distributed</span> <span class="n">but</span> <span class="nb">input</span> <span class="s1">&#39;dp.w&#39;</span> <span class="n">was</span> <span class="n">added</span> <span class="n">without</span> <span class="n">src_indices</span><span class="o">.</span> <span class="n">Setting</span> <span class="n">src_indices</span> <span class="n">to</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,))</span><span class="o">.</span>
+<span class="n">f</span> <span class="o">=</span> <span class="mf">133.94</span>
+<span class="n">c</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.00</span>
+<span class="n">Rank</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.25992104</span> <span class="mf">1.25992104</span> <span class="mf">1.25992104</span><span class="p">]</span>
+<span class="n">Rank</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.25992104</span> <span class="mf">1.25992104</span><span class="p">]</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Parallel OpenMDAO example</a><ul>
+<li><a class="reference internal" href="#python-implementation">Python implementation</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="openmdao_example.html"
+                          title="previous chapter">OpenMDAO example</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="reference.html"
+                          title="next chapter">Class reference</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="reference.html" title="Class reference"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="openmdao_example.html" title="OpenMDAO example"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Parallel OpenMDAO example</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Graeme Kennedy.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.0.0.
+    </div>
+  </body>
+</html>

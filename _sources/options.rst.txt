@@ -33,7 +33,7 @@ Options
 The option data is populated directly from the C++ code.
 The options are pulled from all optimizers, so not all options are applicable.
 In general the options specific to the trust region method have ``tr_`` as a prefix while options associated with the method of moving asymptotes have ``mma_`` as a prefix.
-Options without the ``_tr`` or ``_mma`` prefix apply to the interior point method.
+Options without the ``tr_`` or ``mma_`` prefix apply to the interior point method.
 
 The full set of options can displayed as follows:
 

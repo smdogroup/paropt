@@ -1,18 +1,17 @@
-
 <!DOCTYPE html>
 
 <html lang="python">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
     <title>Sellar problem &#8212; paropt  documentation</title>
-    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinxdoc.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/doctools.js"></script>
-    <script src="_static/language_data.js"></script>
-    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Parallel Rosenbrock" href="parallel_rosenbrock.html" />
@@ -33,53 +32,18 @@
         <li class="right" >
           <a href="rosenbrock.html" title="Rosenbrock example"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Sellar problem</a></li> 
       </ul>
-    </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Sellar problem</a><ul>
-<li><a class="reference internal" href="#c-implementation">C++ implementation</a></li>
-<li><a class="reference internal" href="#python-implementation">Python implementation</a></li>
-</ul>
-</li>
-</ul>
-
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="rosenbrock.html"
-                        title="previous chapter">Rosenbrock example</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="parallel_rosenbrock.html"
-                        title="next chapter">Parallel Rosenbrock</a></p>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="_sources/sellar.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>$('#searchbox').show(0);</script>
-        </div>
-      </div>
+    </div>  
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="sellar-problem">
-<h1>Sellar problem<a class="headerlink" href="#sellar-problem" title="Permalink to this headline">¶</a></h1>
+  <section id="sellar-problem">
+<h1>Sellar problem<a class="headerlink" href="#sellar-problem" title="Permalink to this heading">¶</a></h1>
 <p>To illustrate the application of ParOpt, consider the following optimization problem with the Sellar objective function:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{align}
@@ -90,22 +54,22 @@
     &amp; -1 \le x_{4} \le 24 \\
     \text{subject to} \qquad &amp; x_{1} + x_{2} - 1 \ge 0 \\
 \end{align}\end{split}\]</div>
-<div class="section" id="c-implementation">
-<h2>C++ implementation<a class="headerlink" href="#c-implementation" title="Permalink to this headline">¶</a></h2>
+<section id="c-implementation">
+<h2>C++ implementation<a class="headerlink" href="#c-implementation" title="Permalink to this heading">¶</a></h2>
 <p>The first step to use the ParOpt optimization library is to create a problem class which inherits from ParOptProblem.
 This class is used by ParOpt's interior-point or trust-region algorithms to get the function and gradient values from the problem.</p>
 <p>Key functions required for the implementation of a ParOptProblem class are described below.</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">getVarsAndBounds</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
-                       <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">lbvec</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">ubvec</span> <span class="p">);</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">getVarsAndBounds</span><span class="p">(</span><span class="w"> </span><span class="n">ParOptVec</span><span class="w"> </span><span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
+<span class="w">                       </span><span class="n">ParOptVec</span><span class="w"> </span><span class="o">*</span><span class="n">lbvec</span><span class="p">,</span><span class="w"> </span><span class="n">ParOptVec</span><span class="w"> </span><span class="o">*</span><span class="n">ubvec</span><span class="w"> </span><span class="p">);</span>
 </pre></div>
 </div>
 <p>To begin the optimization problem, the optimizer must know the starting point and the variable bounds for the problem
 The member function getVarsAndBounds retrieves this information.
 On return, the initial design variables are written to the design vector x, and the lower and upper bounds are written to the vectors lb and ub, respectively.</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span> <span class="nf">evalObjCon</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
-                <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">fobj</span><span class="p">,</span> <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">cons</span> <span class="p">);</span>
-<span class="kt">int</span> <span class="nf">evalObjConGradient</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
-                        <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">gvec</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">**</span><span class="n">Ac</span> <span class="p">);</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="nf">evalObjCon</span><span class="p">(</span><span class="w"> </span><span class="n">ParOptVec</span><span class="w"> </span><span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
+<span class="w">                </span><span class="n">ParOptScalar</span><span class="w"> </span><span class="o">*</span><span class="n">fobj</span><span class="p">,</span><span class="w"> </span><span class="n">ParOptScalar</span><span class="w"> </span><span class="o">*</span><span class="n">cons</span><span class="w"> </span><span class="p">);</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">evalObjConGradient</span><span class="p">(</span><span class="w"> </span><span class="n">ParOptVec</span><span class="w"> </span><span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
+<span class="w">                        </span><span class="n">ParOptVec</span><span class="w"> </span><span class="o">*</span><span class="n">gvec</span><span class="p">,</span><span class="w"> </span><span class="n">ParOptVec</span><span class="w"> </span><span class="o">**</span><span class="n">Ac</span><span class="w"> </span><span class="p">);</span>
 </pre></div>
 </div>
 <p>The class inheriting from ParOptProblem must also implement member functions to evaluate the objective and constraints and their gradients.
@@ -114,111 +78,112 @@ When the code is run in parallel, the same objective value and constraint values
 The function evalObjConGradient sets the values of the objective and constraint gradients into the vector gvec, and the array of vectors Ac, respectively.
 If an error is encountered during the evaluation of either the functions or gradients, a non-zero error code should be returned to terminate the optimization.</p>
 <p>When implemented in C++, the complete Sellar problem is:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&quot;ParOptInteriorPoint.h&quot;</span><span class="cp"></span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;ParOptInteriorPoint.h&quot;</span>
 
 <span class="cm">/*</span>
 <span class="cm">  The following is a simple implementation of a Sellar function with</span>
 <span class="cm">  constraints that can be used to test the parallel optimizer.</span>
 <span class="cm">*/</span>
-<span class="k">class</span> <span class="nc">Sellar</span> <span class="o">:</span> <span class="k">public</span> <span class="n">ParOptProblem</span> <span class="p">{</span>
- <span class="k">public</span><span class="o">:</span>
-  <span class="k">static</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">nvars</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
-  <span class="k">static</span> <span class="k">const</span> <span class="kt">int</span> <span class="n">ncon</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
-  <span class="n">Sellar</span><span class="p">(</span> <span class="n">MPI_Comm</span> <span class="n">_comm</span> <span class="p">)</span><span class="o">:</span> <span class="n">ParOptProblem</span><span class="p">(</span><span class="n">_comm</span><span class="p">,</span> <span class="n">nvars</span><span class="p">,</span> <span class="n">ncon</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">){}</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Sellar</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">ParOptProblem</span><span class="w"> </span><span class="p">{</span>
+<span class="w"> </span><span class="k">public</span><span class="o">:</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">nvars</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">ncon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Sellar</span><span class="p">(</span><span class="n">MPI_Comm</span><span class="w"> </span><span class="n">_comm</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">ParOptProblem</span><span class="p">(</span><span class="n">_comm</span><span class="p">,</span><span class="w"> </span><span class="n">nvars</span><span class="p">,</span><span class="w"> </span><span class="n">ncon</span><span class="p">,</span><span class="w"> </span><span class="n">ncon</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
 
-  <span class="c1">//! Get the variables/bounds</span>
-  <span class="kt">void</span> <span class="n">getVarsAndBounds</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
-                         <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">lbvec</span><span class="p">,</span>
-                         <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">ubvec</span> <span class="p">){</span>
-    <span class="c1">// declare design variable and bounds vector</span>
-    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">lb</span><span class="p">,</span> <span class="o">*</span><span class="n">ub</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">//! Get the variables/bounds</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">getVarsAndBounds</span><span class="p">(</span><span class="n">ParOptVec</span><span class="w"> </span><span class="o">*</span><span class="n">xvec</span><span class="p">,</span><span class="w"> </span><span class="n">ParOptVec</span><span class="w"> </span><span class="o">*</span><span class="n">lbvec</span><span class="p">,</span><span class="w"> </span><span class="n">ParOptVec</span><span class="w"> </span><span class="o">*</span><span class="n">ubvec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// declare design variable and bounds vector</span>
+<span class="w">    </span><span class="n">ParOptScalar</span><span class="w"> </span><span class="o">*</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">lb</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">ub</span><span class="p">;</span>
 
-    <span class="c1">// store the memory addresses of the class variables</span>
-    <span class="n">xvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">x</span><span class="p">);</span>
-    <span class="n">lbvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">lb</span><span class="p">);</span>
-    <span class="n">ubvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ub</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// store the memory addresses of the class variables</span>
+<span class="w">    </span><span class="n">xvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">x</span><span class="p">);</span>
+<span class="w">    </span><span class="n">lbvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">lb</span><span class="p">);</span>
+<span class="w">    </span><span class="n">ubvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ub</span><span class="p">);</span>
 
-    <span class="c1">// Set the initial design variables</span>
-    <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">;</span>
-    <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
-    <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
-    <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
-    
-    <span class="c1">// set lower and upper bounds to design variables</span>
-    <span class="n">lb</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>  <span class="n">lb</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span> <span class="n">lb</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">;</span> <span class="n">lb</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">;</span>
-    <span class="n">ub</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">;</span> <span class="n">ub</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">;</span> <span class="n">ub</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">3.16</span><span class="p">;</span> <span class="n">ub</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mf">24.0</span><span class="p">;</span> 
-  <span class="p">}</span>
-  
-  <span class="c1">//! Evaluate the objective and constraints</span>
-  <span class="kt">int</span> <span class="n">evalObjCon</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">xvec</span><span class="p">,</span>
-                  <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">fobj</span><span class="p">,</span> <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">cons</span> <span class="p">){</span>
+<span class="w">    </span><span class="c1">// Set the initial design variables</span>
+<span class="w">    </span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">;</span>
 
-    <span class="c1">// declare local variables</span>
-    <span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">x</span><span class="p">;</span>
-    <span class="n">xvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">x</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// set lower and upper bounds to design variables</span>
+<span class="w">    </span><span class="n">lb</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">lb</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">lb</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">-1.0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">lb</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">-1.0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ub</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">10.0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ub</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">10.0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ub</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">3.16</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ub</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">24.0</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
 
-    <span class="c1">// the objective function</span>
-    <span class="o">*</span><span class="n">fobj</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">]);</span>
-    <span class="n">cons</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">//! Evaluate the objective and constraints</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">evalObjCon</span><span class="p">(</span><span class="n">ParOptVec</span><span class="w"> </span><span class="o">*</span><span class="n">xvec</span><span class="p">,</span><span class="w"> </span><span class="n">ParOptScalar</span><span class="w"> </span><span class="o">*</span><span class="n">fobj</span><span class="p">,</span><span class="w"> </span><span class="n">ParOptScalar</span><span class="w"> </span><span class="o">*</span><span class="n">cons</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// declare local variables</span>
+<span class="w">    </span><span class="n">ParOptScalar</span><span class="w"> </span><span class="o">*</span><span class="n">x</span><span class="p">;</span>
+<span class="w">    </span><span class="n">xvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">x</span><span class="p">);</span>
 
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="p">}</span>
-  
-  <span class="c1">//! Evaluate the objective and constraint gradients</span>
-  <span class="kt">int</span> <span class="n">evalObjConGradient</span><span class="p">(</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">xvec</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">*</span><span class="n">gvec</span><span class="p">,</span> <span class="n">ParOptVec</span> <span class="o">**</span><span class="n">Ac</span> <span class="p">){</span>
+<span class="w">    </span><span class="c1">// the objective function</span>
+<span class="w">    </span><span class="o">*</span><span class="n">fobj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">]);</span>
+<span class="w">    </span><span class="n">cons</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">1.0</span><span class="p">;</span>
 
-    <span class="c1">// define the local variables</span>
-    <span class="kt">double</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">g</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
 
-    <span class="c1">// get the local variables values</span>
-    <span class="n">xvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">x</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">//! Evaluate the objective and constraint gradients</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">evalObjConGradient</span><span class="p">(</span><span class="n">ParOptVec</span><span class="w"> </span><span class="o">*</span><span class="n">xvec</span><span class="p">,</span><span class="w"> </span><span class="n">ParOptVec</span><span class="w"> </span><span class="o">*</span><span class="n">gvec</span><span class="p">,</span><span class="w"> </span><span class="n">ParOptVec</span><span class="w"> </span><span class="o">**</span><span class="n">Ac</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// define the local variables</span>
+<span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="o">*</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">g</span><span class="p">;</span>
 
-    <span class="c1">// derivative of the objective function wrt to the DV</span>
-    <span class="n">gvec</span><span class="o">-&gt;</span><span class="n">zeroEntries</span><span class="p">();</span>
-    <span class="n">gvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">g</span><span class="p">);</span>
-    <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
-    <span class="n">g</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.0</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
-    <span class="n">g</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
-    <span class="n">g</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">]);</span>
+<span class="w">    </span><span class="c1">// get the local variables values</span>
+<span class="w">    </span><span class="n">xvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">x</span><span class="p">);</span>
 
-    <span class="c1">// Derivative of the constraint</span>
-    <span class="n">Ac</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">zeroEntries</span><span class="p">();</span>
-    <span class="n">Ac</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">g</span><span class="p">);</span>
-    <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
-    <span class="n">g</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">;</span>
-    
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="p">}</span>
+<span class="w">    </span><span class="c1">// derivative of the objective function wrt to the DV</span>
+<span class="w">    </span><span class="n">gvec</span><span class="o">-&gt;</span><span class="n">zeroEntries</span><span class="p">();</span>
+<span class="w">    </span><span class="n">gvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">g</span><span class="p">);</span>
+<span class="w">    </span><span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">g</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+<span class="w">    </span><span class="n">g</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">g</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">]);</span>
+
+<span class="w">    </span><span class="c1">// Derivative of the constraint</span>
+<span class="w">    </span><span class="n">Ac</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">zeroEntries</span><span class="p">();</span>
+<span class="w">    </span><span class="n">Ac</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">g</span><span class="p">);</span>
+<span class="w">    </span><span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">g</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
 <span class="p">};</span>
 
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span> <span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[]</span> <span class="p">){</span>
-  <span class="n">MPI_Init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">argc</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">argv</span><span class="p">);</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">argv</span><span class="p">[])</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">MPI_Init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">argv</span><span class="p">);</span>
 
-  <span class="c1">// Allocate the Sellar function</span>
-  <span class="n">Sellar</span> <span class="o">*</span><span class="n">sellar</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Sellar</span><span class="p">(</span><span class="n">MPI_COMM_SELF</span><span class="p">);</span>
-  <span class="n">sellar</span><span class="o">-&gt;</span><span class="n">incref</span><span class="p">();</span>
-  
-  <span class="c1">// Allocate the optimizer with default options</span>
-  <span class="n">ParOptInteriorPoint</span> <span class="o">*</span><span class="n">opt</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ParOptInteriorPoint</span><span class="p">(</span><span class="n">sellar</span><span class="p">);</span>
-  <span class="n">opt</span><span class="o">-&gt;</span><span class="n">incref</span><span class="p">();</span>
+<span class="w">  </span><span class="c1">// Allocate the Sellar function</span>
+<span class="w">  </span><span class="n">Sellar</span><span class="w"> </span><span class="o">*</span><span class="n">sellar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Sellar</span><span class="p">(</span><span class="n">MPI_COMM_SELF</span><span class="p">);</span>
+<span class="w">  </span><span class="n">sellar</span><span class="o">-&gt;</span><span class="n">incref</span><span class="p">();</span>
 
-  <span class="n">opt</span><span class="o">-&gt;</span><span class="n">checkGradients</span><span class="p">(</span><span class="mf">1e-6</span><span class="p">);</span>
-  
-  <span class="kt">double</span> <span class="n">start</span> <span class="o">=</span> <span class="n">MPI_Wtime</span><span class="p">();</span>
-  <span class="n">opt</span><span class="o">-&gt;</span><span class="n">optimize</span><span class="p">();</span>
-  <span class="kt">double</span> <span class="n">diff</span> <span class="o">=</span> <span class="n">MPI_Wtime</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span><span class="p">;</span>
-  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Time taken: %f seconds </span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">diff</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// Allocate the optimizer with default options</span>
+<span class="w">  </span><span class="n">ParOptInteriorPoint</span><span class="w"> </span><span class="o">*</span><span class="n">opt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ParOptInteriorPoint</span><span class="p">(</span><span class="n">sellar</span><span class="p">);</span>
+<span class="w">  </span><span class="n">opt</span><span class="o">-&gt;</span><span class="n">incref</span><span class="p">();</span>
 
-  <span class="n">sellar</span><span class="o">-&gt;</span><span class="n">decref</span><span class="p">();</span>
-  <span class="n">opt</span><span class="o">-&gt;</span><span class="n">decref</span><span class="p">();</span>
+<span class="w">  </span><span class="n">opt</span><span class="o">-&gt;</span><span class="n">checkGradients</span><span class="p">(</span><span class="mf">1e-6</span><span class="p">);</span>
 
-  <span class="n">MPI_Finalize</span><span class="p">();</span>
-  <span class="k">return</span> <span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">double</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MPI_Wtime</span><span class="p">();</span>
+<span class="w">  </span><span class="n">opt</span><span class="o">-&gt;</span><span class="n">optimize</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">double</span><span class="w"> </span><span class="n">diff</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MPI_Wtime</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">;</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Time taken: %f seconds </span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">diff</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">sellar</span><span class="o">-&gt;</span><span class="n">decref</span><span class="p">();</span>
+<span class="w">  </span><span class="n">opt</span><span class="o">-&gt;</span><span class="n">decref</span><span class="p">();</span>
+
+<span class="w">  </span><span class="n">MPI_Finalize</span><span class="p">();</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 <p>The local components of the design vector can be accessed by making a call to getArray.</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">ParOptScalar</span> <span class="o">*</span><span class="n">x</span><span class="p">;</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">ParOptScalar</span><span class="w"> </span><span class="o">*</span><span class="n">x</span><span class="p">;</span>
 <span class="n">xvec</span><span class="o">-&gt;</span><span class="n">getArray</span><span class="p">(</span><span class="o">&amp;</span><span class="n">x</span><span class="p">);</span>
 </pre></div>
 </div>
@@ -227,9 +192,9 @@ If an error is encountered during the evaluation of either the functions or grad
 Use incref() to increase the reference count after an object is allocated.
 When the object is no longer needed, call decref() to decrease the reference count and possibly delete the object.
 Direct calls to delete the object should not be used.</p>
-</div>
-<div class="section" id="python-implementation">
-<h2>Python implementation<a class="headerlink" href="#python-implementation" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="python-implementation">
+<h2>Python implementation<a class="headerlink" href="#python-implementation" title="Permalink to this heading">¶</a></h2>
 <p>The python implementation of this problem is also straightforward.
 In an analogous manner, the python implemenation uses a class inherited from ParOpt.Problem, a python wrapper for the CyParOptProblem class.
 This inherited class must implement a getVarsAndBounds, evalObjCon and evalObjConGradient member functions.
@@ -239,6 +204,7 @@ These vectors are of type ParOpt.PVec, but act in many ways like a numpy array.<
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">mpi4py</span> <span class="kn">import</span> <span class="n">MPI</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">paropt</span> <span class="kn">import</span> <span class="n">ParOpt</span>
+
 
 <span class="c1"># Create the rosenbrock function class</span>
 <span class="k">class</span> <span class="nc">Sellar</span><span class="p">(</span><span class="n">ParOpt</span><span class="o">.</span><span class="n">Problem</span><span class="p">):</span>
@@ -251,7 +217,7 @@ These vectors are of type ParOpt.PVec, but act in many ways like a numpy array.<
         <span class="k">return</span>
 
     <span class="k">def</span> <span class="nf">getVarsAndBounds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">lb</span><span class="p">,</span> <span class="n">ub</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Set the values of the bounds&#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the values of the bounds&quot;&quot;&quot;</span>
 
         <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.0</span>
         <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
@@ -270,18 +236,18 @@ These vectors are of type ParOpt.PVec, but act in many ways like a numpy array.<
         <span class="k">return</span>
 
     <span class="k">def</span> <span class="nf">evalObjCon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Evaluate the objective and constraint&#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate the objective and constraint&quot;&quot;&quot;</span>
         <span class="n">fail</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">fobj</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">fobj</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
         <span class="n">cons</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">fail</span><span class="p">,</span> <span class="n">fobj</span><span class="p">,</span> <span class="n">cons</span>
 
     <span class="k">def</span> <span class="nf">evalObjConGradient</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">A</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Evaluate the objective and constraint gradient&#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate the objective and constraint gradient&quot;&quot;&quot;</span>
         <span class="n">fail</span> <span class="o">=</span> <span class="mi">0</span>
 
         <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
-        <span class="n">g</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.0</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">g</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">g</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
         <span class="n">g</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
 
@@ -289,6 +255,7 @@ These vectors are of type ParOpt.PVec, but act in many ways like a numpy array.<
         <span class="n">A</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
 
         <span class="k">return</span> <span class="n">fail</span>
+
 
 <span class="c1"># Allocate the optimization problem</span>
 <span class="n">problem</span> <span class="o">=</span> <span class="n">Sellar</span><span class="p">()</span>
@@ -302,11 +269,47 @@ These vectors are of type ParOpt.PVec, but act in many ways like a numpy array.<
 <span class="n">opt</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>
 </pre></div>
 </div>
-</div>
-</div>
+</section>
+</section>
 
 
+            <div class="clearer"></div>
           </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Sellar problem</a><ul>
+<li><a class="reference internal" href="#c-implementation">C++ implementation</a></li>
+<li><a class="reference internal" href="#python-implementation">Python implementation</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="rosenbrock.html"
+                          title="previous chapter">Rosenbrock example</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="parallel_rosenbrock.html"
+                          title="next chapter">Parallel Rosenbrock</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -326,12 +329,13 @@ These vectors are of type ParOpt.PVec, but act in many ways like a numpy array.<
         <li class="right" >
           <a href="rosenbrock.html" title="Rosenbrock example"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Sellar problem</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2019, Graeme Kennedy.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.0.3.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.0.0.
     </div>
   </body>
 </html>

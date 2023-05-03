@@ -1,21 +1,20 @@
-
 <!DOCTYPE html>
 
 <html lang="python">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
     <title>OpenMDAO example &#8212; paropt  documentation</title>
-    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinxdoc.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/doctools.js"></script>
-    <script src="_static/language_data.js"></script>
-    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Class reference" href="reference.html" />
+    <link rel="next" title="Parallel OpenMDAO example" href="parallel_openmdao_example.html" />
     <link rel="prev" title="Parallel Rosenbrock" href="parallel_rosenbrock.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
@@ -28,57 +27,23 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="reference.html" title="Class reference"
+          <a href="parallel_openmdao_example.html" title="Parallel OpenMDAO example"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="parallel_rosenbrock.html" title="Parallel Rosenbrock"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">OpenMDAO example</a></li> 
       </ul>
-    </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">OpenMDAO example</a><ul>
-<li><a class="reference internal" href="#python-implementation">Python implementation</a></li>
-</ul>
-</li>
-</ul>
-
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="parallel_rosenbrock.html"
-                        title="previous chapter">Parallel Rosenbrock</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="reference.html"
-                        title="next chapter">Class reference</a></p>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="_sources/openmdao_example.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>$('#searchbox').show(0);</script>
-        </div>
-      </div>
+    </div>  
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="openmdao-example">
-<h1>OpenMDAO example<a class="headerlink" href="#openmdao-example" title="Permalink to this headline">¶</a></h1>
+  <section id="openmdao-example">
+<h1>OpenMDAO example<a class="headerlink" href="#openmdao-example" title="Permalink to this heading">¶</a></h1>
 <p>This examples uses the paropt_driver for OpenMDAO to solve the following optimization problem:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{align}
@@ -86,59 +51,80 @@
      \text{with respect to} \qquad &amp; -50 \le x, y \le 50 \\
      \text{subject to} \qquad &amp; x + y \ge 0 \\
  \end{align}\end{split}\]</div>
-<div class="section" id="python-implementation">
-<h2>Python implementation<a class="headerlink" href="#python-implementation" title="Permalink to this headline">¶</a></h2>
+<section id="python-implementation">
+<h2>Python implementation<a class="headerlink" href="#python-implementation" title="Permalink to this heading">¶</a></h2>
 <p>The python implementation of this problem is as follows</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">openmdao.api</span> <span class="kn">import</span> <span class="n">Problem</span><span class="p">,</span> <span class="n">ScipyOptimizeDriver</span><span class="p">,</span> <span class="n">ExecComp</span><span class="p">,</span> <span class="n">IndepVarComp</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">openmdao.api</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Problem</span><span class="p">,</span>
+    <span class="n">ScipyOptimizeDriver</span><span class="p">,</span>
+    <span class="n">pyOptSparseDriver</span><span class="p">,</span>
+    <span class="n">ExecComp</span><span class="p">,</span>
+    <span class="n">IndepVarComp</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">paropt.paropt_driver</span> <span class="kn">import</span> <span class="n">ParOptDriver</span>
 <span class="kn">import</span> <span class="nn">argparse</span>
 
 <span class="c1"># Create an argument parser</span>
 <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
-<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--algorithm&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;ip&#39;</span><span class="p">,</span>
-                    <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;ip&#39;</span><span class="p">,</span> <span class="s1">&#39;tr&#39;</span><span class="p">,</span> <span class="s1">&#39;mma&#39;</span><span class="p">],</span>
-                    <span class="n">help</span><span class="o">=</span><span class="s1">&#39;optimizer type&#39;</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--driver&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="s2">&quot;paropt&quot;</span><span class="p">,</span>
+    <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;paropt&quot;</span><span class="p">,</span> <span class="s2">&quot;scipy&quot;</span><span class="p">,</span> <span class="s2">&quot;pyoptsparse&quot;</span><span class="p">],</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;driver&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--algorithm&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;ip&quot;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ip&quot;</span><span class="p">,</span> <span class="s2">&quot;tr&quot;</span><span class="p">,</span> <span class="s2">&quot;mma&quot;</span><span class="p">],</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;optimizer type&quot;</span>
+<span class="p">)</span>
 <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+<span class="n">driver</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">driver</span>
+<span class="n">algorithm</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">algorithm</span>
 
 <span class="c1"># Build the model</span>
 <span class="n">prob</span> <span class="o">=</span> <span class="n">Problem</span><span class="p">()</span>
 
 <span class="c1"># Define the independent variables</span>
-<span class="n">indeps</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s1">&#39;indeps&#39;</span><span class="p">,</span> <span class="n">IndepVarComp</span><span class="p">())</span>
-<span class="n">indeps</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">)</span>
-<span class="n">indeps</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.0</span><span class="p">)</span>
+<span class="n">indeps</span> <span class="o">=</span> <span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s2">&quot;indeps&quot;</span><span class="p">,</span> <span class="n">IndepVarComp</span><span class="p">())</span>
+<span class="n">indeps</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">)</span>
+<span class="n">indeps</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.0</span><span class="p">)</span>
 
 <span class="c1"># Define the objective and the constraint functions</span>
-<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s1">&#39;paraboloid&#39;</span><span class="p">,</span> <span class="n">ExecComp</span><span class="p">(</span><span class="s1">&#39;f = (x-3)**2 + x*y + (y+4)**2 - 3&#39;</span><span class="p">))</span>
-<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s1">&#39;con&#39;</span><span class="p">,</span> <span class="n">ExecComp</span><span class="p">(</span><span class="s1">&#39;c = x + y&#39;</span><span class="p">))</span>
+<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s2">&quot;paraboloid&quot;</span><span class="p">,</span> <span class="n">ExecComp</span><span class="p">(</span><span class="s2">&quot;f = (x-3)**2 + x*y + (y+4)**2 - 3&quot;</span><span class="p">))</span>
+<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_subsystem</span><span class="p">(</span><span class="s2">&quot;con&quot;</span><span class="p">,</span> <span class="n">ExecComp</span><span class="p">(</span><span class="s2">&quot;c = x**2 + y**2&quot;</span><span class="p">))</span>
 
 <span class="c1"># Connect the model</span>
-<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;indeps.x&#39;</span><span class="p">,</span> <span class="s1">&#39;paraboloid.x&#39;</span><span class="p">)</span>
-<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;indeps.y&#39;</span><span class="p">,</span> <span class="s1">&#39;paraboloid.y&#39;</span><span class="p">)</span>
-<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;indeps.x&#39;</span><span class="p">,</span> <span class="s1">&#39;con.x&#39;</span><span class="p">)</span>
-<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;indeps.y&#39;</span><span class="p">,</span> <span class="s1">&#39;con.y&#39;</span><span class="p">)</span>
+<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;indeps.x&quot;</span><span class="p">,</span> <span class="s2">&quot;paraboloid.x&quot;</span><span class="p">)</span>
+<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;indeps.y&quot;</span><span class="p">,</span> <span class="s2">&quot;paraboloid.y&quot;</span><span class="p">)</span>
+<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;indeps.x&quot;</span><span class="p">,</span> <span class="s2">&quot;con.x&quot;</span><span class="p">)</span>
+<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;indeps.y&quot;</span><span class="p">,</span> <span class="s2">&quot;con.y&quot;</span><span class="p">)</span>
 
 <span class="c1"># Define the optimization problem</span>
-<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_design_var</span><span class="p">(</span><span class="s1">&#39;indeps.x&#39;</span><span class="p">,</span> <span class="n">lower</span><span class="o">=-</span><span class="mi">50</span><span class="p">,</span> <span class="n">upper</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
-<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_design_var</span><span class="p">(</span><span class="s1">&#39;indeps.y&#39;</span><span class="p">,</span> <span class="n">lower</span><span class="o">=-</span><span class="mi">50</span><span class="p">,</span> <span class="n">upper</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
-<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_objective</span><span class="p">(</span><span class="s1">&#39;paraboloid.f&#39;</span><span class="p">)</span>
-<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_constraint</span><span class="p">(</span><span class="s1">&#39;con.c&#39;</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_design_var</span><span class="p">(</span><span class="s2">&quot;indeps.x&quot;</span><span class="p">,</span> <span class="n">lower</span><span class="o">=-</span><span class="mi">50</span><span class="p">,</span> <span class="n">upper</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_design_var</span><span class="p">(</span><span class="s2">&quot;indeps.y&quot;</span><span class="p">,</span> <span class="n">lower</span><span class="o">=-</span><span class="mi">50</span><span class="p">,</span> <span class="n">upper</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_objective</span><span class="p">(</span><span class="s2">&quot;paraboloid.f&quot;</span><span class="p">)</span>
+<span class="n">prob</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_constraint</span><span class="p">(</span><span class="s2">&quot;con.c&quot;</span><span class="p">,</span> <span class="n">equals</span><span class="o">=</span><span class="mf">27.0</span><span class="p">)</span>
 
-<span class="c1"># Create the ParOpt driver</span>
-<span class="n">prob</span><span class="o">.</span><span class="n">driver</span> <span class="o">=</span> <span class="n">ParOptDriver</span><span class="p">()</span>
-
-<span class="c1"># Set options for the driver</span>
-<span class="n">prob</span><span class="o">.</span><span class="n">driver</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;algorithm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">algorithm</span>
+<span class="c1"># Create and set the ParOpt driver</span>
+<span class="k">if</span> <span class="n">driver</span> <span class="o">==</span> <span class="s2">&quot;paropt&quot;</span><span class="p">:</span>
+    <span class="n">prob</span><span class="o">.</span><span class="n">driver</span> <span class="o">=</span> <span class="n">ParOptDriver</span><span class="p">()</span>
+    <span class="n">prob</span><span class="o">.</span><span class="n">driver</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s2">&quot;algorithm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">algorithm</span>
+<span class="k">elif</span> <span class="n">driver</span> <span class="o">==</span> <span class="s2">&quot;scipy&quot;</span><span class="p">:</span>
+    <span class="n">prob</span><span class="o">.</span><span class="n">driver</span> <span class="o">=</span> <span class="n">ScipyOptimizeDriver</span><span class="p">()</span>
+<span class="k">elif</span> <span class="n">driver</span> <span class="o">==</span> <span class="s2">&quot;pyoptsparse&quot;</span><span class="p">:</span>
+    <span class="n">prob</span><span class="o">.</span><span class="n">driver</span> <span class="o">=</span> <span class="n">pyOptSparseDriver</span><span class="p">()</span>
+    <span class="n">prob</span><span class="o">.</span><span class="n">driver</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s2">&quot;optimizer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;ParOpt&quot;</span>
 
 <span class="c1"># Run the problem</span>
 <span class="n">prob</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
 <span class="n">prob</span><span class="o">.</span><span class="n">run_driver</span><span class="p">()</span>
 
 <span class="c1"># Print the minimum value</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Minimum value = </span><span class="si">{fmin:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fmin</span><span class="o">=</span><span class="n">prob</span><span class="p">[</span><span class="s1">&#39;paraboloid.f&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Minimum value = </span><span class="si">{fmin:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fmin</span><span class="o">=</span><span class="n">prob</span><span class="p">[</span><span class="s2">&quot;paraboloid.f&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
 
 <span class="c1"># Print the x/y location of the minimum</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;(x, y) = (</span><span class="si">{x:.2f}</span><span class="s2">, </span><span class="si">{y:.2f}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">prob</span><span class="p">[</span><span class="s1">&#39;indeps.x&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">y</span><span class="o">=</span><span class="n">prob</span><span class="p">[</span><span class="s1">&#39;indeps.y&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;(x, y) = (</span><span class="si">{x:.2f}</span><span class="s2">, </span><span class="si">{y:.2f}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">prob</span><span class="p">[</span><span class="s2">&quot;indeps.x&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">y</span><span class="o">=</span><span class="n">prob</span><span class="p">[</span><span class="s2">&quot;indeps.y&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;x**2 + y**2 = &quot;</span><span class="p">,</span> <span class="n">prob</span><span class="p">[</span><span class="s2">&quot;indeps.x&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">prob</span><span class="p">[</span><span class="s2">&quot;indeps.y&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>This code results in the output:</p>
@@ -146,11 +132,46 @@
 <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="mf">7.00</span><span class="p">,</span> <span class="o">-</span><span class="mf">7.00</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-</div>
+</section>
+</section>
 
 
+            <div class="clearer"></div>
           </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">OpenMDAO example</a><ul>
+<li><a class="reference internal" href="#python-implementation">Python implementation</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="parallel_rosenbrock.html"
+                          title="previous chapter">Parallel Rosenbrock</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="parallel_openmdao_example.html"
+                          title="next chapter">Parallel OpenMDAO example</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -165,17 +186,18 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="reference.html" title="Class reference"
+          <a href="parallel_openmdao_example.html" title="Parallel OpenMDAO example"
              >next</a> |</li>
         <li class="right" >
           <a href="parallel_rosenbrock.html" title="Parallel Rosenbrock"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">OpenMDAO example</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2019, Graeme Kennedy.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.0.3.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.0.0.
     </div>
   </body>
 </html>

@@ -1,18 +1,17 @@
-
 <!DOCTYPE html>
 
 <html lang="python">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
     <title>ParOpt Overview &#8212; paropt  documentation</title>
-    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinxdoc.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/doctools.js"></script>
-    <script src="_static/language_data.js"></script>
-    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Options and generic interface for ParOpt optimziers" href="options.html" /> 
@@ -29,53 +28,18 @@
         <li class="right" >
           <a href="options.html" title="Options and generic interface for ParOpt optimziers"
              accesskey="N">next</a> |</li>
-        <li class="nav-item nav-item-0"><a href="#">paropt  documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="#">paropt  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">ParOpt Overview</a></li> 
       </ul>
-    </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-  <h3><a href="#">Table of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">ParOpt Overview</a><ul>
-<li><a class="reference internal" href="#quick-example">Quick example</a></li>
-<li><a class="reference internal" href="#please-cite-us">Please cite us</a></li>
-<li><a class="reference internal" href="#installation">Installation</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#introduction-and-examples">Introduction and examples</a></li>
-<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
-</ul>
-
-  <h4>Next topic</h4>
-  <p class="topless"><a href="options.html"
-                        title="next chapter">Options and generic interface for ParOpt optimziers</a></p>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="_sources/index.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>$('#searchbox').show(0);</script>
-        </div>
-      </div>
+    </div>  
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="paropt-overview">
-<h1>ParOpt Overview<a class="headerlink" href="#paropt-overview" title="Permalink to this headline">¶</a></h1>
+  <section id="paropt-overview">
+<h1>ParOpt Overview<a class="headerlink" href="#paropt-overview" title="Permalink to this heading">¶</a></h1>
 <p>ParOpt is a parallel optimization library for large-scale optimization using distributed design variables.
 ParOpt is implemented in C++ with a Python wrapper generated using Cython.
 ParOpt contains both an interior-point optimization algorithm with a line search globalization strategy and an <span class="math notranslate nohighlight">\(l_{\infty}\)</span> trust region algorithm with an <span class="math notranslate nohighlight">\(l_{1}\)</span> penalty function.</p>
@@ -91,8 +55,8 @@ ParOpt contains both an interior-point optimization algorithm with a line search
 The constraints <span class="math notranslate nohighlight">\(c(x)\)</span>, which we refer to as dense constraints, are a small number of global constraints.
 The constraints <span class="math notranslate nohighlight">\(c_{w}(x)\)</span> are sparse and separable, where their Jacobian <span class="math notranslate nohighlight">\(A_{w}(x) = \nabla c_{w}(x)\)</span>.
 The separable constraints satisfy the property that the matrix <span class="math notranslate nohighlight">\(A_{w} C A_{w}^{T}\)</span> is block diagonal when <span class="math notranslate nohighlight">\(C\)</span> is a diagonal matrix.</p>
-<div class="section" id="quick-example">
-<h2>Quick example<a class="headerlink" href="#quick-example" title="Permalink to this headline">¶</a></h2>
+<section id="quick-example">
+<h2>Quick example<a class="headerlink" href="#quick-example" title="Permalink to this heading">¶</a></h2>
 <p>The following code is an example of ParOpt applied to the optimization problem:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{align}
@@ -111,21 +75,21 @@ The separable constraints satisfy the property that the matrix <span class="math
         <span class="nb">super</span><span class="p">(</span><span class="n">Problem</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">MPI</span><span class="o">.</span><span class="n">COMM_SELF</span><span class="p">,</span> <span class="n">nvars</span><span class="p">,</span> <span class="n">ncon</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">getVarsAndBounds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">lb</span><span class="p">,</span> <span class="n">ub</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get the variable values and bounds&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the variable values and bounds&quot;&quot;&quot;</span>
         <span class="n">lb</span><span class="p">[:]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">3.0</span>
         <span class="n">ub</span><span class="p">[:]</span> <span class="o">=</span> <span class="mf">3.0</span>
         <span class="n">x</span><span class="p">[:]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span>
         <span class="k">return</span>
 
     <span class="k">def</span> <span class="nf">evalObjCon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Evaluate the objective and constraint values&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate the objective and constraint values&quot;&quot;&quot;</span>
         <span class="n">fail</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">fobj</span> <span class="o">=</span> <span class="o">-</span><span class="mi">10</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">10</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">4</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="mi">4</span>
         <span class="n">cons</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">fail</span><span class="p">,</span> <span class="n">fobj</span><span class="p">,</span> <span class="n">cons</span>
 
     <span class="k">def</span> <span class="nf">evalObjConGradient</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">A</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Evaluate the objective and constraint gradients&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate the objective and constraint gradients&quot;&quot;&quot;</span>
         <span class="n">fail</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">20</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">4</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mf">2.0</span> <span class="o">+</span> <span class="mi">4</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="mi">3</span>
         <span class="n">g</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span>  <span class="mi">20</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">4</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -140,9 +104,9 @@ The separable constraints satisfy the property that the matrix <span class="math
 <span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">zw</span><span class="p">,</span> <span class="n">zl</span><span class="p">,</span> <span class="n">zw</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">getOptimizedPoint</span><span class="p">()</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="please-cite-us">
-<h2>Please cite us<a class="headerlink" href="#please-cite-us" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="please-cite-us">
+<h2>Please cite us<a class="headerlink" href="#please-cite-us" title="Permalink to this heading">¶</a></h2>
 <p>The key contributions and development of ParOpt are described in the following paper:
 Ting Wei Chin, Mark K. Leader, Graeme J. Kennedy, A scalable framework for large-scale 3D multimaterial topology optimization with octree-based mesh adaptation, Advances in Engineering Software, Volume 135, 2019.</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>@article{Chin:2019,
@@ -154,9 +118,9 @@ Ting Wei Chin, Mark K. Leader, Graeme J. Kennedy, A scalable framework for large
          author = {Ting Wei Chin and Mark K. Leader and Graeme J. Kennedy}}
 </pre></div>
 </div>
-</div>
-<div class="section" id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">¶</a></h2>
 <p>The installation process for ParOpt consists of first compiling the C++ source and then installing the python interface.
 The C++ source requires a BLAS/LAPACK installation and a MPI compiler for C++.
 Using the Python interface additional requires numpy, mpi4py and Cython.</p>
@@ -172,10 +136,10 @@ The first step in compling ParOpt is to first copy the file &quot;Makefile.in.in
 <p>By default, the shared and static library are complied to the directory &quot;PAROPT_DIR/lib&quot;.</p>
 <p>Installation of the python interface is performed using the &quot;setup.py&quot; script.
 The recommended python installation command &quot;python setup.py build_ext --inplace&quot; can be executed by typing &quot;make interface&quot; in the root directory.</p>
-</div>
-</div>
-<div class="section" id="introduction-and-examples">
-<h1>Introduction and examples<a class="headerlink" href="#introduction-and-examples" title="Permalink to this headline">¶</a></h1>
+</section>
+</section>
+<section id="introduction-and-examples">
+<h1>Introduction and examples<a class="headerlink" href="#introduction-and-examples" title="Permalink to this heading">¶</a></h1>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="options.html">Options and generic interface for ParOpt optimziers</a><ul>
@@ -199,21 +163,75 @@ The recommended python installation command &quot;python setup.py build_ext --in
 <li class="toctree-l2"><a class="reference internal" href="openmdao_example.html#python-implementation">Python implementation</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="reference.html">Class reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parallel_openmdao_example.html">Parallel OpenMDAO example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="parallel_openmdao_example.html#python-implementation">Python implementation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Class reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#paropt.get_cython_include"><code class="docutils literal notranslate"><span class="pre">get_cython_include()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#paropt.get_include"><code class="docutils literal notranslate"><span class="pre">get_include()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#paropt.get_libraries"><code class="docutils literal notranslate"><span class="pre">get_libraries()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#paropt.ParOpt.getOptionsInfo"><code class="docutils literal notranslate"><span class="pre">getOptionsInfo()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#paropt.ParOpt.printOptionSummary"><code class="docutils literal notranslate"><span class="pre">printOptionSummary()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#paropt.ParOpt.unpack_checkpoint"><code class="docutils literal notranslate"><span class="pre">unpack_checkpoint()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#paropt.ParOpt.unpack_mma_output"><code class="docutils literal notranslate"><span class="pre">unpack_mma_output()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#paropt.ParOpt.unpack_output"><code class="docutils literal notranslate"><span class="pre">unpack_output()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#paropt.ParOpt.unpack_tr_2nd_output"><code class="docutils literal notranslate"><span class="pre">unpack_tr_2nd_output()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#paropt.ParOpt.unpack_tr_output"><code class="docutils literal notranslate"><span class="pre">unpack_tr_output()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#paropt.ParOpt.Optimizer"><code class="docutils literal notranslate"><span class="pre">Optimizer</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#paropt.ParOpt.PVec"><code class="docutils literal notranslate"><span class="pre">PVec</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#paropt.ParOpt.InteriorPoint"><code class="docutils literal notranslate"><span class="pre">InteriorPoint</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#paropt.ParOpt.TrustRegion"><code class="docutils literal notranslate"><span class="pre">TrustRegion</span></code></a></li>
+</ul>
+</li>
 </ul>
 </div>
-</div>
-<div class="section" id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+</section>
+<section id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading">¶</a></h1>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
 <li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
 <li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
 </ul>
-</div>
+</section>
 
 
+            <div class="clearer"></div>
           </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="#">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">ParOpt Overview</a><ul>
+<li><a class="reference internal" href="#quick-example">Quick example</a></li>
+<li><a class="reference internal" href="#please-cite-us">Please cite us</a></li>
+<li><a class="reference internal" href="#installation">Installation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#introduction-and-examples">Introduction and examples</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="options.html"
+                          title="next chapter">Options and generic interface for ParOpt optimziers</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -230,12 +248,13 @@ The recommended python installation command &quot;python setup.py build_ext --in
         <li class="right" >
           <a href="options.html" title="Options and generic interface for ParOpt optimziers"
              >next</a> |</li>
-        <li class="nav-item nav-item-0"><a href="#">paropt  documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="#">paropt  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">ParOpt Overview</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2019, Graeme Kennedy.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.0.3.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.0.0.
     </div>
   </body>
 </html>
