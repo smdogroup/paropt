@@ -35,7 +35,7 @@ complex:
 	${CXX} ${SO_LINK_FLAGS} ${PAROPT_OBJS} ${PAROPT_EXTERN_LIBS} -o ${PAROPT_DIR}/lib/libparopt.${SO_EXT}
 	@echo "ctypedef complex ParOptScalar" > paropt/ParOptTypedefs.pxi;
 	@echo "PAROPT_NPY_SCALAR = np.NPY_CDOUBLE" > paropt/ParOptDefs.pxi;
-	@echo "dtype = np.complex" >> paropt/ParOptDefs.pxi;
+	@echo "dtype = complex" >> paropt/ParOptDefs.pxi;
 
 complex_debug:
 	@for subdir in ${PAROPT_SUBDIRS}; do \
@@ -44,7 +44,7 @@ complex_debug:
 	${CXX} ${SO_LINK_FLAGS} ${PAROPT_OBJS} ${PAROPT_EXTERN_LIBS} -o ${PAROPT_DIR}/lib/libparopt.${SO_EXT}
 	@echo "ctypedef complex ParOptScalar" > paropt/ParOptTypedefs.pxi;
 	@echo "PAROPT_NPY_SCALAR = np.NPY_CDOUBLE" > paropt/ParOptDefs.pxi;
-	@echo "dtype = np.complex" >> paropt/ParOptDefs.pxi;
+	@echo "dtype = complex" >> paropt/ParOptDefs.pxi;
 
 interface:
 	${PIP} install -e .\[all\]; \
