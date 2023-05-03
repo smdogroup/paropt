@@ -47,7 +47,7 @@ jobs:
             INTERFACE: 'complex_interface'
             PUBLISH_DOCS: false
 
-    name: TACS ${{ matrix.NAME }} Build/Test/Docs
+    name: ParOpt ${{ matrix.NAME }} Build/Test/Docs
 
     # Recommended if you intend to make multiple deployments in quick succession.
     # This will kill any currently running CI from previous commits to the same branch
@@ -88,15 +88,6 @@ jobs:
           make ${{ matrix.OPTIONAL }} PAROPT_DIR=$PAROPT_DIR";
           cd $PAROPT_DIR;
           make ${{ matrix.INTERFACE }};
-          cd $PAROPT_DIR/examples;
-          make ${{ matrix.OPTIONAL }} PAROPT_DIR=$PAROPT_DIR";
-      - name: Run unit tests
-        run: |
-          # Reload ESP/CAPS environment variables if in real mode
-          if [[ ${{ matrix.NAME }} == 'Real' ]]; then
-            source ${TACS_DIR}/extern/ESP122/ESPenv.sh
-          fi
-          testflo --timeout 120 .;
       - name: Build docs
         run: |
           cd $PAROPT_DIR/docs;
@@ -124,6 +115,6 @@ jobs:
         # To access the terminal through the web-interface:
         #   1. Click on the web-browser link printed out in this action from the github workkflow terminal
         #   2. Press cntrl + c in the new tab that opens up to reveal the terminal
-        #   3. To activate the conda environment used to build TACS run:
+        #   3. To activate the conda environment used to build ParOpt run:
         #       $ source $CONDA/etc/profile.d/conda.sh
         #       $ conda activate test

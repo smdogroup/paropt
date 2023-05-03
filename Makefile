@@ -47,10 +47,10 @@ complex_debug:
 	@echo "dtype = np.complex" >> paropt/ParOptDefs.pxi;
 
 interface:
-	${PYTHON} setup.py build_ext --inplace
+	${PIP} install -e .\[all\]; \
 
 complex_interface:
-	${PYTHON} setup.py build_ext --inplace --define PAROPT_USE_COMPLEX
+	CFLAGS=-DPAROPT_USE_COMPLEX ${PIP} install -e .\[all\]; \
 
 clean:
 	${RM} lib/libparopt.a lib/*.so
