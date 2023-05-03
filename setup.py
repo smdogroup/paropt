@@ -93,7 +93,12 @@ for e in exts:
 
 optional_dependencies = {
     "testing": ["testflo>=1.4.7"],
-    "docs": ["sphinx", "breathe", "sphinxcontrib-programoutput"],
+    "docs": [
+        "sphinx",
+        "breathe",
+        "sphinxcontrib-programoutput",
+        "sphinxcontrib-bibtex",
+    ],
 }
 
 # Add an optional dependency that concatenates all others
