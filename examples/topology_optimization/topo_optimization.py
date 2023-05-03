@@ -2,6 +2,7 @@
 Perform a 2D plane stress analysis for topology optimization
 """
 
+import sys
 import numpy as np
 from mpi4py import MPI
 from scipy import sparse
@@ -548,28 +549,29 @@ if __name__ == "__main__":
     )
     problem.checkGradients()
 
-    options = {
-        "algorithm": "tr",
-        "tr_init_size": 0.05,
-        "tr_min_size": 1e-6,
-        "tr_max_size": 10.0,
-        "tr_eta": 0.25,
-        "tr_infeas_tol": 1e-6,
-        "tr_l1_tol": 1e-3,
-        "tr_linfty_tol": 0.0,
-        "tr_adaptive_gamma_update": True,
-        "tr_max_iterations": 1000,
-        "max_major_iters": 100,
-        "penalty_gamma": 1e3,
-        "qn_subspace_size": 10,
-        "qn_type": "bfgs",
-        "abs_res_tol": 1e-8,
-        "starting_point_strategy": "affine_step",
-        "barrier_strategy": "mehrotra_predictor_corrector",
-        "use_line_search": False,
-    }
-
-    options = {"algorithm": "mma"}
+    if "mma" in sys.argv:
+        options = {"algorithm": "mma"}
+    else:
+        options = {
+            "algorithm": "tr",
+            "tr_init_size": 0.05,
+            "tr_min_size": 1e-6,
+            "tr_max_size": 10.0,
+            "tr_eta": 0.25,
+            "tr_infeas_tol": 1e-6,
+            "tr_l1_tol": 1e-3,
+            "tr_linfty_tol": 0.0,
+            "tr_adaptive_gamma_update": True,
+            "tr_max_iterations": 1000,
+            "max_major_iters": 100,
+            "penalty_gamma": 1e3,
+            "qn_subspace_size": 10,
+            "qn_type": "bfgs",
+            "abs_res_tol": 1e-8,
+            "starting_point_strategy": "affine_step",
+            "barrier_strategy": "mehrotra_predictor_corrector",
+            "use_line_search": False,
+        }
 
     # Set up the optimizer
     opt = ParOpt.Optimizer(problem, options)

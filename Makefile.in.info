@@ -1,9 +1,9 @@
-# This is the Makefile.in file for the parallel optimizer. 
+# This is the Makefile.in file for the parallel optimizer.
 
 # This is the default location for ParOpt
 PAROPT_DIR=${HOME}/git/paropt
-PYTHON=python3
-PYTHON_CONFIG=python3-config
+PYTHON=python
+PIP=pip
 
 # Which compiler to use
 CXX = mpicxx
@@ -17,15 +17,13 @@ AR_FLAGS = rcs
 
 # ParOpt linking command
 PAROPT_LD_CMD=-L${PAROPT_DIR}/lib/ -Wl,-rpath,${PAROPT_DIR}/lib -lparopt
-# PAROPT_LD_CMD=${PAROPT_DIR}/lib/paropt.a
-
-# The lapack libraries to use
-LAPACK_LIBS = -L/usr/lib -llapack -lblas
 
 # For linux systems, use the following settings:
+LAPACK_LIBS = -L/usr/lib -llapack -lblas
 SO_EXT=so
 SO_LINK_FLAGS=-fPIC -shared
 
 # For MAC OS X, use the following settings:
+# LAPACK_LIBS = -framework accelerate
 # SO_EXT=so
-# SO_LINK_FLAGS=-fPIC -dynamiclib
+# SO_LINK_FLAGS=-fPIC -dynamiclib -undefined dynamic_lookup

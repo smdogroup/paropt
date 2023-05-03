@@ -8,12 +8,10 @@ class Sellar : public ParOptProblem {
  public:
   static const int nvars = 4;
   static const int ncon = 1;
-  Sellar( MPI_Comm _comm ): ParOptProblem(_comm, nvars, ncon, ncon, 0, 0){}
+  Sellar(MPI_Comm _comm) : ParOptProblem(_comm, nvars, ncon, ncon, 0, 0) {}
 
   //! Get the variables/bounds
-  void getVarsAndBounds( ParOptVec *xvec,
-                         ParOptVec *lbvec,
-                         ParOptVec *ubvec ){
+  void getVarsAndBounds(ParOptVec *xvec, ParOptVec *lbvec, ParOptVec *ubvec) {
     // declare design variable and bounds vector
     ParOptScalar *x, *lb, *ub;
 
@@ -29,28 +27,31 @@ class Sellar : public ParOptProblem {
     x[3] = 0.0;
 
     // set lower and upper bounds to design variables
-    lb[0] = 0.0;  lb[1]  = 0.0; lb[2] = -1.0; lb[3] = -1.0;
-    ub[0] = 10.0; ub[1] = 10.0; ub[2] = 3.16; ub[3] = 24.0;
+    lb[0] = 0.0;
+    lb[1] = 0.0;
+    lb[2] = -1.0;
+    lb[3] = -1.0;
+    ub[0] = 10.0;
+    ub[1] = 10.0;
+    ub[2] = 3.16;
+    ub[3] = 24.0;
   }
 
   //! Evaluate the objective and constraints
-  int evalObjCon( ParOptVec *xvec,
-                  ParOptScalar *fobj, ParOptScalar *cons ){
-
+  int evalObjCon(ParOptVec *xvec, ParOptScalar *fobj, ParOptScalar *cons) {
     // declare local variables
     ParOptScalar *x;
     xvec->getArray(&x);
 
     // the objective function
-    *fobj = x[1]*x[1] + x[0] + x[2] + exp(-x[3]);
+    *fobj = x[1] * x[1] + x[0] + x[2] + exp(-x[3]);
     cons[0] = x[0] + x[1] - 1.0;
 
     return 0;
   }
 
   //! Evaluate the objective and constraint gradients
-  int evalObjConGradient( ParOptVec *xvec, ParOptVec *gvec, ParOptVec **Ac ){
-
+  int evalObjConGradient(ParOptVec *xvec, ParOptVec *gvec, ParOptVec **Ac) {
     // define the local variables
     double *x, *g;
 
@@ -61,7 +62,7 @@ class Sellar : public ParOptProblem {
     gvec->zeroEntries();
     gvec->getArray(&g);
     g[0] = 1.0;
-    g[1] = 2.0*x[1];
+    g[1] = 2.0 * x[1];
     g[2] = 1.0;
     g[3] = -exp(-x[3]);
 
@@ -75,7 +76,7 @@ class Sellar : public ParOptProblem {
   }
 };
 
-int main( int argc, char* argv[] ){
+int main(int argc, char *argv[]) {
   MPI_Init(&argc, &argv);
 
   // Allocate the Sellar function
