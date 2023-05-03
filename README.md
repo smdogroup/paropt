@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/gjkennedy/paropt.svg?branch=master)](https://travis-ci.org/gjkennedy/paropt)
+[![Build, unit tests, and docs](https://github.com/smdogroup/paropt/actions/workflows/unit_tests.yml/badge.svg)](https://github.com/smdogroup/paropt/actions/workflows/unit_tests.yml)
 
 # ParOpt: A parallel interior-point optimizer #
 ------------------------------------------------
