@@ -454,6 +454,9 @@ class ParOptTrustRegion : public ParOptBase {
   // Print the options summary
   void printOptionSummary(FILE *fp);
 
+  // Add info statement
+  void addToInfo(size_t info_size, char *info, const char *format, ...);
+
   // File pointer for the summary file - depending on the settings
   FILE *outfp;
   int iter_count;                 // Iteration counter

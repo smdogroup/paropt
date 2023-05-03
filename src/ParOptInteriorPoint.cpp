@@ -4359,6 +4359,20 @@ void ParOptInteriorPoint::initAndCheckDesignAndBounds() {
   }
 }
 
+/*
+  Add to the info string
+*/
+void ParOptInteriorPoint::addToInfo(size_t info_size, char *info,
+                                    const char *format, ...) {
+  va_list args;
+  size_t offset = strlen(info);
+  size_t buff_size = info_size - offset;
+
+  va_start(args, format);
+  vsnprintf(&info[offset], buff_size, format, args);
+  va_end(args);
+}
+
 /**
    Perform the optimization.
 
@@ -4573,7 +4587,7 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
 
   // Information about what happened on the previous major iteration
   char info[64];
-  info[0] = '\0';
+  memset(info, '\0', sizeof(info));
 
   for (int k = 0; k < max_major_iters; k++, niter++) {
     if (qn && !sequential_linear_method) {
@@ -4583,7 +4597,7 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
 
         // Add a reset flag to the output
         if (rank == opt_root) {
-          sprintf(&info[strlen(info)], "%s ", "resetH");
+          addToInfo(sizeof(info), info, "resetH");
         }
       }
     }
@@ -5170,51 +5184,50 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
 
     // Create a string to print to the screen
     if (rank == opt_root) {
-      // The string of unforseen events
-      info[0] = '\0';
+      memset(info, '\0', sizeof(info));
       if (gmres_iters != 0) {
         // Print how well GMRES is doing
-        sprintf(&info[strlen(info)], "%s%d ", "iNK", gmres_iters);
+        addToInfo(sizeof(info), info, "%s%d ", "iNK", gmres_iters);
       }
       if (update_type == 1) {
         // Damped BFGS update
-        sprintf(&info[strlen(info)], "%s ", "dampH");
+        addToInfo(sizeof(info), info, "%s ", "dampH");
       } else if (update_type == 2) {
         // Skipped update
-        sprintf(&info[strlen(info)], "%s ", "skipH");
+        addToInfo(sizeof(info), info, "%s ", "skipH");
       }
       if (line_fail & PAROPT_LINE_SEARCH_FAILURE) {
         // Line search failure
-        sprintf(&info[strlen(info)], "%s ", "LFail");
+        addToInfo(sizeof(info), info, "%s ", "LFail");
       }
       if (line_fail & PAROPT_LINE_SEARCH_MIN_STEP) {
         // Line search reached the minimum step length
-        sprintf(&info[strlen(info)], "%s ", "LMnStp");
+        addToInfo(sizeof(info), info, "%s ", "LMnStp");
       }
       if (line_fail & PAROPT_LINE_SEARCH_MAX_ITERS) {
         // Line search reached the max. number of iterations
-        sprintf(&info[strlen(info)], "%s ", "LMxItr");
+        addToInfo(sizeof(info), info, "%s ", "LMxItr");
       }
       if (line_fail & PAROPT_LINE_SEARCH_NO_IMPROVEMENT) {
         // Line search did not improve merit function
-        sprintf(&info[strlen(info)], "%s ", "LNoImprv");
+        addToInfo(sizeof(info), info, "%s ", "LNoImprv");
       }
       if (seq_linear_step) {
         // Sequential linear step (even though we're using a QN approx.)
-        sprintf(&info[strlen(info)], "%s ", "SLP");
+        addToInfo(sizeof(info), info, "%s ", "SLP");
       }
       if (diagonal_quasi_newton_step) {
         // Step generated using only the diagonal from a quasi-Newton approx.
-        sprintf(&info[strlen(info)], "%s ", "DQN");
+        addToInfo(sizeof(info), info, "%s ", "DQN");
       }
       if (line_search_skipped) {
         // Line search reached the max. number of iterations
-        sprintf(&info[strlen(info)], "%s ", "LSkip");
+        addToInfo(sizeof(info), info, "%s ", "LSkip");
       }
       if (ceq_step) {
         // The step lengths are equal due to an increase in the
         // the complementarity at the new step
-        sprintf(&info[strlen(info)], "%s ", "cmpEq");
+        addToInfo(sizeof(info), info, "%s ", "cmpEq");
       }
     }
   }
