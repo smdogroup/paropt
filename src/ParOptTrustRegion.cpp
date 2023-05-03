@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include <cstdarg>
+
 #include "ParOptCompactEigenvalueApprox.h"
 #include "ParOptComplexStep.h"
 

@@ -3,6 +3,8 @@
 #include <math.h>
 #include <string.h>
 
+#include <cstdarg>
+
 #include "ParOptBlasLapack.h"
 #include "ParOptComplexStep.h"
 
