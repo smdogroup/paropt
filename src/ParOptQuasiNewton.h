@@ -1,22 +1,26 @@
 #ifndef PAROPT_QUASI_NEWTON_H
 #define PAROPT_QUASI_NEWTON_H
 
-#include "ParOptVec.h"
 #include "ParOptProblem.h"
+#include "ParOptVec.h"
 
 /*
   The type of BFGS update to use
 */
-enum ParOptBFGSUpdateType { PAROPT_SKIP_NEGATIVE_CURVATURE,
-                            PAROPT_DAMPED_UPDATE };
+enum ParOptBFGSUpdateType {
+  PAROPT_SKIP_NEGATIVE_CURVATURE,
+  PAROPT_DAMPED_UPDATE
+};
 
 /*
   The type of diagonal approximation to use in the BFGS update
 */
-enum ParOptQuasiNewtonDiagonalType { PAROPT_YTY_OVER_YTS,
-                                     PAROPT_YTS_OVER_STS,
-                                     PAROPT_INNER_PRODUCT_YTY_OVER_YTS,
-                                     PAROPT_INNER_PRODUCT_YTS_OVER_STS };
+enum ParOptQuasiNewtonDiagonalType {
+  PAROPT_YTY_OVER_YTS,
+  PAROPT_YTS_OVER_STS,
+  PAROPT_INNER_PRODUCT_YTY_OVER_YTS,
+  PAROPT_INNER_PRODUCT_YTS_OVER_STS
+};
 
 /**
   This is the abstract base class for compact limited-memory
@@ -27,35 +31,36 @@ enum ParOptQuasiNewtonDiagonalType { PAROPT_YTY_OVER_YTS,
 */
 class ParOptCompactQuasiNewton : public ParOptBase {
  public:
-  ParOptCompactQuasiNewton(){}
-  virtual ~ParOptCompactQuasiNewton(){}
+  ParOptCompactQuasiNewton() {}
+  virtual ~ParOptCompactQuasiNewton() {}
 
   // Set the type of diagonal to use
-  virtual void setInitDiagonalType( ParOptQuasiNewtonDiagonalType _diagonal_type ){}
+  virtual void setInitDiagonalType(
+      ParOptQuasiNewtonDiagonalType _diagonal_type) {}
 
   // Reset the internal data
   virtual void reset() = 0;
 
   // Perform the quasi-Newton update with the specified multipliers
-  virtual int update( ParOptVec *x, const ParOptScalar *z, ParOptVec *zw,
-                      ParOptVec *s, ParOptVec *y ) = 0;
+  virtual int update(ParOptVec *x, const ParOptScalar *z, ParOptVec *zw,
+                     ParOptVec *s, ParOptVec *y) = 0;
 
   // Update the approximation with only multiplier values - this is used
   // only for certain classes of compact Hessian approximations and does
   // not need to be implemented in general.
-  virtual int update( ParOptVec *x, const ParOptScalar *z, ParOptVec *zw ){
+  virtual int update(ParOptVec *x, const ParOptScalar *z, ParOptVec *zw) {
     return 0;
   }
 
   // Perform a matrix-vector multiplication
-  virtual void mult( ParOptVec *x, ParOptVec *y ) = 0;
+  virtual void mult(ParOptVec *x, ParOptVec *y) = 0;
 
   // Perform a matrix-vector multiplication and add the result to y
-  virtual void multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y ) = 0;
+  virtual void multAdd(ParOptScalar alpha, ParOptVec *x, ParOptVec *y) = 0;
 
   // Get the compact representation for the limited-memory quasi-Newton method
-  virtual int getCompactMat( ParOptScalar *_b0, const ParOptScalar **_d,
-                             const ParOptScalar **_M, ParOptVec ***Z ) = 0;
+  virtual int getCompactMat(ParOptScalar *_b0, const ParOptScalar **_d,
+                            const ParOptScalar **_M, ParOptVec ***Z) = 0;
 
   // Get the maximum size of the compact representation
   virtual int getMaxLimitedMemorySize() = 0;
@@ -83,27 +88,27 @@ class ParOptCompactQuasiNewton : public ParOptBase {
 */
 class ParOptLBFGS : public ParOptCompactQuasiNewton {
  public:
-  ParOptLBFGS( ParOptProblem *prob, int _subspace_size );
+  ParOptLBFGS(ParOptProblem *prob, int _subspace_size);
   ~ParOptLBFGS();
 
   // Set the curvature update type
-  void setBFGSUpdateType( ParOptBFGSUpdateType _hessian_update_type );
-  void setInitDiagonalType( ParOptQuasiNewtonDiagonalType _diagonal_type );
+  void setBFGSUpdateType(ParOptBFGSUpdateType _hessian_update_type);
+  void setInitDiagonalType(ParOptQuasiNewtonDiagonalType _diagonal_type);
 
   // Reset the internal data
   void reset();
 
   // Perform the BFGS update
-  int update( ParOptVec *x, const ParOptScalar *z, ParOptVec *zw,
-              ParOptVec *s, ParOptVec *y );
+  int update(ParOptVec *x, const ParOptScalar *z, ParOptVec *zw, ParOptVec *s,
+             ParOptVec *y);
 
   // Perform a matrix-vector multiplication
-  void mult( ParOptVec *x, ParOptVec *y );
-  void multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y);
+  void mult(ParOptVec *x, ParOptVec *y);
+  void multAdd(ParOptScalar alpha, ParOptVec *x, ParOptVec *y);
 
   // Get the information for the limited-memory BFGS update
-  int getCompactMat( ParOptScalar *_b0, const ParOptScalar **_d,
-                     const ParOptScalar **_M, ParOptVec ***Z );
+  int getCompactMat(ParOptScalar *_b0, const ParOptScalar **_d,
+                    const ParOptScalar **_M, ParOptVec ***Z);
 
   // Get the maximum size of the limited-memory BFGS
   int getMaxLimitedMemorySize();
@@ -124,19 +129,19 @@ class ParOptLBFGS : public ParOptCompactQuasiNewton {
 
   // Temporary data for internal usage
   ParOptVec *r;
-  ParOptScalar *rz; // rz = Z^{T}*x
+  ParOptScalar *rz;  // rz = Z^{T}*x
 
   // The update S/Y vectors
   ParOptVec **S, **Y;
-  ParOptScalar b0; // The diagonal scalar
+  ParOptScalar b0;  // The diagonal scalar
 
   // The M-matrix
   ParOptScalar *M, *M_factor;
-  int *mfpiv; // The pivot array for the M-factorization
+  int *mfpiv;  // The pivot array for the M-factorization
 
   // Data for the internal storage of M/M_factor
   ParOptScalar *B, *L, *D;
-  ParOptScalar *d0; // The diagonal matrix
+  ParOptScalar *d0;  // The diagonal matrix
 };
 
 /**
@@ -157,26 +162,26 @@ class ParOptLBFGS : public ParOptCompactQuasiNewton {
 */
 class ParOptLSR1 : public ParOptCompactQuasiNewton {
  public:
-  ParOptLSR1( ParOptProblem *prob, int _subspace_size );
+  ParOptLSR1(ParOptProblem *prob, int _subspace_size);
   ~ParOptLSR1();
 
   // Set the type of initial diagonal approximation to use
-  void setInitDiagonalType( ParOptQuasiNewtonDiagonalType _diagonal_type );
+  void setInitDiagonalType(ParOptQuasiNewtonDiagonalType _diagonal_type);
 
   // Reset the internal data
   void reset();
 
   // Perform the BFGS update
-  int update( ParOptVec *x, const ParOptScalar *z, ParOptVec *zw,
-              ParOptVec *s, ParOptVec *y );
+  int update(ParOptVec *x, const ParOptScalar *z, ParOptVec *zw, ParOptVec *s,
+             ParOptVec *y);
 
   // Perform a matrix-vector multiplication
-  void mult( ParOptVec *x, ParOptVec *y );
-  void multAdd( ParOptScalar alpha, ParOptVec *x, ParOptVec *y);
+  void mult(ParOptVec *x, ParOptVec *y);
+  void multAdd(ParOptScalar alpha, ParOptVec *x, ParOptVec *y);
 
   // Get the information for the limited-memory BFGS update
-  int getCompactMat( ParOptScalar *_b0, const ParOptScalar **_d,
-                     const ParOptScalar **_M, ParOptVec ***Z );
+  int getCompactMat(ParOptScalar *_b0, const ParOptScalar **_d,
+                    const ParOptScalar **_M, ParOptVec ***Z);
 
   // Get the maximum size of the limited-memory BFGS
   int getMaxLimitedMemorySize();
@@ -196,19 +201,19 @@ class ParOptLSR1 : public ParOptCompactQuasiNewton {
 
   // Temporary data for internal usage
   ParOptVec *r;
-  ParOptScalar *rz; // rz = Z^{T}*x
+  ParOptScalar *rz;  // rz = Z^{T}*x
 
   // The update S/Y vectors
   ParOptVec **S, **Y;
-  ParOptScalar b0; // The diagonal scalar
+  ParOptScalar b0;  // The diagonal scalar
 
   // The M-matrix
   ParOptScalar *M, *M_factor;
-  int *mfpiv; // The pivot array for the M-factorization
+  int *mfpiv;  // The pivot array for the M-factorization
 
   // Data for the internal storage of M/M_factor
   ParOptScalar *B, *L, *D;
-  ParOptScalar *d0; // The diagonal matrix
+  ParOptScalar *d0;  // The diagonal matrix
 };
 
-#endif // PAROPT_QUASI_NEWTON_H
+#endif  // PAROPT_QUASI_NEWTON_H

@@ -6,8 +6,9 @@
   classes used by the parallel optimizer.
 */
 
-#include "mpi.h"
 #include <complex>
+
+#include "mpi.h"
 
 // Define the complex ParOpt type
 typedef std::complex<double> ParOptComplex;
@@ -19,28 +20,24 @@ typedef std::complex<double> ParOptScalar;
 #else
 #define PAROPT_MPI_TYPE MPI_DOUBLE
 typedef double ParOptScalar;
-#endif // PAROPT_USE_COMPLEX
+#endif  // PAROPT_USE_COMPLEX
 
 /**
   ParOpt base class for reference counting
 */
 class ParOptBase {
  public:
-  ParOptBase(){
-    ref_count = 0;
-  }
-  virtual ~ParOptBase(){}
+  ParOptBase() { ref_count = 0; }
+  virtual ~ParOptBase() {}
 
   /// Increase the reference count
-  void incref(){
-    ref_count++;
-  }
+  void incref() { ref_count++; }
 
   /// Decrease the reference count and delete the object once
   /// the reference count is zero.
-  void decref(){
+  void decref() {
     ref_count--;
-    if (ref_count == 0){
+    if (ref_count == 0) {
       delete this;
     }
   }
@@ -55,21 +52,21 @@ class ParOptBase {
 */
 class ParOptVec : public ParOptBase {
  public:
-  virtual ~ParOptVec(){}
+  virtual ~ParOptVec() {}
 
   // Perform standard operations required for linear algebra
   // -------------------------------------------------------
-  virtual void set( ParOptScalar alpha ) = 0;
+  virtual void set(ParOptScalar alpha) = 0;
   virtual void zeroEntries() = 0;
-  virtual void copyValues( ParOptVec *vec ) = 0;
+  virtual void copyValues(ParOptVec *vec) = 0;
   virtual double norm() = 0;
   virtual double maxabs() = 0;
   virtual double l1norm() = 0;
-  virtual ParOptScalar dot( ParOptVec *vec ) = 0;
-  virtual void mdot( ParOptVec **vecs, int nvecs, ParOptScalar *output ) = 0;
-  virtual void scale( ParOptScalar alpha ) = 0;
-  virtual void axpy( ParOptScalar alpha, ParOptVec *x ) = 0;
-  virtual int getArray( ParOptScalar **array ) = 0;
+  virtual ParOptScalar dot(ParOptVec *vec) = 0;
+  virtual void mdot(ParOptVec **vecs, int nvecs, ParOptScalar *output) = 0;
+  virtual void scale(ParOptScalar alpha) = 0;
+  virtual void axpy(ParOptScalar alpha, ParOptVec *x) = 0;
+  virtual int getArray(ParOptScalar **array) = 0;
 };
 
 /*
@@ -77,22 +74,22 @@ class ParOptVec : public ParOptBase {
 */
 class ParOptBasicVec : public ParOptVec {
  public:
-  ParOptBasicVec( MPI_Comm _comm, int n );
+  ParOptBasicVec(MPI_Comm _comm, int n);
   ~ParOptBasicVec();
 
   // Perform standard operations required for linear algebra
   // -------------------------------------------------------
-  void set( ParOptScalar alpha );
+  void set(ParOptScalar alpha);
   void zeroEntries();
-  void copyValues( ParOptVec *vec );
+  void copyValues(ParOptVec *vec);
   double norm();
   double maxabs();
   double l1norm();
-  ParOptScalar dot( ParOptVec *vec );
-  void mdot( ParOptVec **vecs, int nvecs, ParOptScalar *output );
-  void scale( ParOptScalar alpha );
-  void axpy( ParOptScalar alpha, ParOptVec *x );
-  int getArray( ParOptScalar **array );
+  ParOptScalar dot(ParOptVec *vec);
+  void mdot(ParOptVec **vecs, int nvecs, ParOptScalar *output);
+  void scale(ParOptScalar alpha);
+  void axpy(ParOptScalar alpha, ParOptVec *x);
+  int getArray(ParOptScalar **array);
 
  private:
   MPI_Comm comm;
@@ -100,4 +97,4 @@ class ParOptBasicVec : public ParOptVec {
   ParOptScalar *x;
 };
 
-#endif // PAR_OPT_VEC_H
+#endif  // PAR_OPT_VEC_H

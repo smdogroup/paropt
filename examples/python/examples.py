@@ -9,6 +9,7 @@ import os
 # Import ParOpt
 from paropt import ParOpt
 
+
 class Problem1(ParOpt.Problem):
     def __init__(self):
         self.x_hist = []
@@ -19,7 +20,7 @@ class Problem1(ParOpt.Problem):
         """Get the variable values and bounds"""
         lb[:] = -3.0
         ub[:] = 3.0
-        x[:] = -2.0 + 4.0*np.random.uniform(size=len(x))
+        x[:] = -2.0 + 4.0 * np.random.uniform(size=len(x))
         return
 
     def evalObjCon(self, x):
@@ -30,17 +31,18 @@ class Problem1(ParOpt.Problem):
 
         # Evaluate the objective and constraints
         fail = 0
-        fobj = 2*x[0]**2 + 2*x[1]**2 + x[0]*x[1]
+        fobj = 2 * x[0] ** 2 + 2 * x[1] ** 2 + x[0] * x[1]
         cons = np.array([x[0] + x[1] - 0.5])
         return fail, fobj, cons
 
     def evalObjConGradient(self, x, g, A):
         fail = 0
-        g[0] = 4*x[0] + x[1]
-        g[1] = 4*x[1] + x[0]
+        g[0] = 4 * x[0] + x[1]
+        g[1] = 4 * x[1] + x[0]
         A[0][0] = 1.0
         A[0][1] = 1.0
         return fail
+
 
 class Problem2(ParOpt.Problem):
     def __init__(self):
@@ -52,7 +54,7 @@ class Problem2(ParOpt.Problem):
         """Get the variable values and bounds"""
         lb[:] = -3.0
         ub[:] = 3.0
-        x[:] = -2.0 + 4.0*np.random.uniform(size=len(x))
+        x[:] = -2.0 + 4.0 * np.random.uniform(size=len(x))
         return
 
     def evalObjCon(self, x):
@@ -63,17 +65,18 @@ class Problem2(ParOpt.Problem):
 
         # Evaluate the objective and constraints
         fail = 0
-        fobj = x[0]**4 + x[1]**2 + 2*x[0]*x[1] - x[0] - x[1]
+        fobj = x[0] ** 4 + x[1] ** 2 + 2 * x[0] * x[1] - x[0] - x[1]
         cons = np.array([x[0] + x[1] - 0.5])
         return fail, fobj, cons
 
     def evalObjConGradient(self, x, g, A):
         fail = 0
-        g[0] = 4*x[0]**3 + 2*x[1] - 1.0
-        g[1] = 2*x[1] + 2*x[0] - 1.0
+        g[0] = 4 * x[0] ** 3 + 2 * x[1] - 1.0
+        g[1] = 2 * x[1] + 2 * x[0] - 1.0
         A[0][0] = 1.0
         A[0][1] = 1.0
         return fail
+
 
 class Problem3(ParOpt.Problem):
     def __init__(self):
@@ -85,7 +88,7 @@ class Problem3(ParOpt.Problem):
         """Get the variable values and bounds"""
         lb[:] = -3.0
         ub[:] = 3.0
-        x[:] = -2.0 + 4.0*np.random.uniform(size=len(x))
+        x[:] = -2.0 + 4.0 * np.random.uniform(size=len(x))
         return
 
     def evalObjCon(self, x):
@@ -96,17 +99,18 @@ class Problem3(ParOpt.Problem):
 
         # Evaluate the objective and constraints
         fail = 0
-        fobj = x[0]**4 + x[1]**4 + 1 - x[0]**2 - x[1]**2
+        fobj = x[0] ** 4 + x[1] ** 4 + 1 - x[0] ** 2 - x[1] ** 2
         cons = np.array([x[0] + x[1] - 0.5])
         return fail, fobj, cons
 
     def evalObjConGradient(self, x, g, A):
         fail = 0
-        g[0] = 4*x[0]**3 - 2*x[0]
-        g[1] = 4*x[1]**3 - 2*x[1]
+        g[0] = 4 * x[0] ** 3 - 2 * x[0]
+        g[1] = 4 * x[1] ** 3 - 2 * x[1]
         A[0][0] = 1.0
         A[0][1] = 1.0
         return fail
+
 
 class Problem4(ParOpt.Problem):
     def __init__(self):
@@ -118,7 +122,7 @@ class Problem4(ParOpt.Problem):
         """Get the variable values and bounds"""
         lb[:] = -3.0
         ub[:] = 3.0
-        x[:] = -2.0 + 4.0*np.random.uniform(size=len(x))
+        x[:] = -2.0 + 4.0 * np.random.uniform(size=len(x))
         return
 
     def evalObjCon(self, x):
@@ -129,17 +133,24 @@ class Problem4(ParOpt.Problem):
 
         # Evaluate the objective and constraints
         fail = 0
-        fobj = -10*x[0]**2 + 10*x[1]**2 + 4*np.sin(x[0]*x[1]) - 2*x[0] + x[0]**4
+        fobj = (
+            -10 * x[0] ** 2
+            + 10 * x[1] ** 2
+            + 4 * np.sin(x[0] * x[1])
+            - 2 * x[0]
+            + x[0] ** 4
+        )
         cons = np.array([x[0] + x[1] - 0.5])
         return fail, fobj, cons
 
     def evalObjConGradient(self, x, g, A):
         fail = 0
-        g[0] = -20*x[0] + 4*np.cos(x[0]*x[1])*x[1] - 2.0 + 4*x[0]**3
-        g[1] =  20*x[1] + 4*np.cos(x[0]*x[1])*x[0]
+        g[0] = -20 * x[0] + 4 * np.cos(x[0] * x[1]) * x[1] - 2.0 + 4 * x[0] ** 3
+        g[1] = 20 * x[1] + 4 * np.cos(x[0] * x[1]) * x[0]
         A[0][0] = 1.0
         A[0][1] = 1.0
         return fail
+
 
 class Problem5(ParOpt.Problem):
     def __init__(self):
@@ -151,7 +162,7 @@ class Problem5(ParOpt.Problem):
         """Get the variable values and bounds"""
         lb[:] = -3.0
         ub[:] = 3.0
-        x[:] = -2.0 + 4.0*np.random.uniform(size=len(x))
+        x[:] = -2.0 + 4.0 * np.random.uniform(size=len(x))
         return
 
     def evalObjCon(self, x):
@@ -162,17 +173,18 @@ class Problem5(ParOpt.Problem):
 
         # Evaluate the objective and constraints
         fail = 0
-        fobj = 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
+        fobj = 100 * (x[1] - x[0] ** 2) ** 2 + (1 - x[0]) ** 2
         cons = np.array([x[0] + x[1] - 0.5])
         return fail, fobj, cons
 
     def evalObjConGradient(self, x, g, A):
         fail = 0
-        g[0] = 200*(x[1]-x[0]**2)*(-2*x[0]) - 2*(1-x[0])
-        g[1] = 200*(x[1]-x[0]**2)
+        g[0] = 200 * (x[1] - x[0] ** 2) * (-2 * x[0]) - 2 * (1 - x[0])
+        g[1] = 200 * (x[1] - x[0] ** 2)
         A[0][0] = 1.0
         A[0][1] = 1.0
         return fail
+
 
 def plot_it_all(problem, use_tr=False):
     """
@@ -200,49 +212,50 @@ def plot_it_all(problem, use_tr=False):
             r[j, i] = fobj
 
     # Assign the contour levels
-    levels = np.min(r) + np.linspace(0, 1.0, 75)**2*(np.max(r) - np.min(r))
+    levels = np.min(r) + np.linspace(0, 1.0, 75) ** 2 * (np.max(r) - np.min(r))
 
     # Create the plot
-    fig = plt.figure(facecolor='w')
+    fig = plt.figure(facecolor="w")
     plt.contour(x1, x2, r, levels)
-    plt.plot([0.5 - yhigh, 0.5 - ylow], [yhigh, ylow], '-k')
+    plt.plot([0.5 - yhigh, 0.5 - ylow], [yhigh, ylow], "-k")
 
-    colours = ['-bo', '-ko', '-co', '-mo', '-yo',
-               '-bx', '-kx', '-cx', '-mx', '-yx' ]
+    colours = ["-bo", "-ko", "-co", "-mo", "-yo", "-bx", "-kx", "-cx", "-mx", "-yx"]
 
     for k in range(len(colours)):
         # Optimize the problem
         problem.x_hist = []
 
         # Set the trust region parameters
-        filename = 'paropt.out'
+        filename = "paropt.out"
 
         options = {
-            'algorithm': 'ip',
-            'abs_res_tol': 1e-8,
-            'starting_point_strategy': 'affine_step',
-            'barrier_strategy': 'monotone',
-            'start_affine_multiplier_min': 0.01,
-            'penalty_gamma': 1000.0,
-            'qn_subspace_size': 10,
-            'qn_type': 'bfgs'}
+            "algorithm": "ip",
+            "abs_res_tol": 1e-8,
+            "starting_point_strategy": "affine_step",
+            "barrier_strategy": "monotone",
+            "start_affine_multiplier_min": 0.01,
+            "penalty_gamma": 1000.0,
+            "qn_subspace_size": 10,
+            "qn_type": "bfgs",
+        }
 
         if use_tr:
             options = {
-                'algorithm': 'tr',
-                'tr_init_size': 0.05,
-                'tr_min_size': 1e-6,
-                'tr_max_size': 10.0,
-                'tr_eta': 0.25,
-                'penalty_gamma': 10.0,
-                'qn_subspace_size': 10,
-                'qn_type': 'bfgs',
-                'abs_res_tol': 1e-8,
-                'output_file': filename,
-                'tr_output_file': os.path.splitext(filename)[0] + '.tr',
-                'starting_point_strategy': 'affine_step',
-                'barrier_strategy': 'monotone',
-                'use_line_search': False}
+                "algorithm": "tr",
+                "tr_init_size": 0.05,
+                "tr_min_size": 1e-6,
+                "tr_max_size": 10.0,
+                "tr_eta": 0.25,
+                "penalty_gamma": 10.0,
+                "qn_subspace_size": 10,
+                "qn_type": "bfgs",
+                "abs_res_tol": 1e-8,
+                "output_file": filename,
+                "tr_output_file": os.path.splitext(filename)[0] + ".tr",
+                "starting_point_strategy": "affine_step",
+                "barrier_strategy": "monotone",
+                "use_line_search": False,
+            }
 
         opt = ParOpt.Optimizer(problem, options)
 
@@ -256,38 +269,39 @@ def plot_it_all(problem, use_tr=False):
             popt[0, i] = problem.x_hist[i][0]
             popt[1, i] = problem.x_hist[i][1]
 
-        plt.plot(popt[0, :], popt[1, :], colours[k],
-                 label='ParOpt %d'%(popt.shape[1]))
-        plt.plot(popt[0, -1], popt[1, -1], '-ro')
+        plt.plot(
+            popt[0, :], popt[1, :], colours[k], label="ParOpt %d" % (popt.shape[1])
+        )
+        plt.plot(popt[0, -1], popt[1, -1], "-ro")
 
         # Print the data to the screen
         g = np.zeros(2)
         A = np.zeros((1, 2))
         problem.evalObjConGradient(x, g, A)
 
-        print('The design variables:    ', x[:])
-        print('The multipliers:         ', z[:])
-        print('The objective gradient:  ', g[:])
-        print('The constraint gradient: ', A[:])
+        print("The design variables:    ", x[:])
+        print("The multipliers:         ", z[:])
+        print("The objective gradient:  ", g[:])
+        print("The constraint gradient: ", A[:])
 
     ax = fig.axes[0]
-    ax.set_aspect('equal', 'box')
+    ax.set_aspect("equal", "box")
     plt.legend()
+
 
 # Allocate the problems
 problems = [Problem1(), Problem2(), Problem3(), Problem4(), Problem5()]
 
 # Parse the arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('--optimizer', type=str, default='ip',
-                    help='optimizer type')
+parser.add_argument("--optimizer", type=str, default="ip", help="optimizer type")
 args = parser.parse_args()
 
 # Use a consistent seed for consistent results
 np.random.seed(0)
 
 use_tr = False
-if args.optimizer != 'ip':
+if args.optimizer != "ip":
     use_tr = True
 
 for problem in problems:

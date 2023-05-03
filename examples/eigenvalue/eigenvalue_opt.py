@@ -6,6 +6,7 @@ from paropt import ParOptEig
 import argparse
 import matplotlib.pylab as plt
 
+
 class SpectralAggregate(ParOpt.Problem):
     def __init__(self, n, ndv, rho=10.0):
         """
@@ -25,10 +26,10 @@ class SpectralAggregate(ParOpt.Problem):
         self.comm = MPI.COMM_WORLD
 
         # Set the problem dimensions
-        self.n = n # The dimension of the matrix
-        self.ndv = ndv # The number of design variables
-        self.rho = rho # The KS parameter value
-        self.ncon = 1 # The number of constraints
+        self.n = n  # The dimension of the matrix
+        self.ndv = ndv  # The number of design variables
+        self.rho = rho  # The KS parameter value
+        self.ncon = 1  # The number of constraints
         self.itr = 0
 
         # Generate a random set of vectors
@@ -36,16 +37,17 @@ class SpectralAggregate(ParOpt.Problem):
         self.Q2 = np.random.uniform(size=(self.n, self.ndv), low=-1.0, high=1.0)
 
         # Pick a B0 such that we know a feasible point exists
-        self.x0 = np.ones(self.ndv)/self.ndv
+        self.x0 = np.ones(self.ndv) / self.ndv
 
-        A = (np.dot(self.Q1, np.dot(np.diag(self.x0), self.Q1.T)) +
-             np.dot(self.Q2, np.dot(np.diag(self.x0), self.Q2.T)))
+        A = np.dot(self.Q1, np.dot(np.diag(self.x0), self.Q1.T)) + np.dot(
+            self.Q2, np.dot(np.diag(self.x0), self.Q2.T)
+        )
 
-        fact = 0.1*np.trace(A)/self.ndv
+        fact = 0.1 * np.trace(A) / self.ndv
 
         # Create a positive definite B0 matrix
         Qb, Rb = np.linalg.qr(np.random.uniform(size=(self.n, self.n)))
-        lamb = fact*np.ones(self.n)
+        lamb = fact * np.ones(self.n)
         self.B0 = np.dot(Qb, np.dot(np.diag(lamb), Qb.T))
 
         # Initialize the base class
@@ -65,8 +67,10 @@ class SpectralAggregate(ParOpt.Problem):
         """
 
         # Compute the matrix A(x)
-        A = (np.dot(self.Q1, np.dot(np.diag(x), self.Q1.T)) +
-             np.dot(self.Q2, np.dot(np.diag(x), self.Q2.T))) - self.B0
+        A = (
+            np.dot(self.Q1, np.dot(np.diag(x), self.Q1.T))
+            + np.dot(self.Q2, np.dot(np.diag(x), self.Q2.T))
+        ) - self.B0
 
         # Compute the full eigen decomposition of the matrix A
         self.eigs, self.vecs = np.linalg.eigh(A)
@@ -75,43 +79,54 @@ class SpectralAggregate(ParOpt.Problem):
         self.W = np.zeros((self.ndv, self.n))
 
         # Compute the number of off-diagonal vectors
-        m = self.n*(self.n-1) >> 1
+        m = self.n * (self.n - 1) >> 1
         self.V = np.zeros((self.ndv, m))
 
         # Compute the eta values
         min_eig = np.min(self.eigs)
-        self.eta = np.exp(-self.rho*(self.eigs - min_eig))
+        self.eta = np.exp(-self.rho * (self.eigs - min_eig))
         self.beta = np.sum(self.eta)
-        self.eta[:] = self.eta/self.beta
+        self.eta[:] = self.eta / self.beta
 
         # Compute the maximum eigenvalue
-        ks_value = min_eig - np.log(self.beta)/rho
+        ks_value = min_eig - np.log(self.beta) / rho
 
         # Compute the gradients - fill in the W and V entries
         self.P = np.zeros((m, m))
         index = 0
         for i in range(self.n):
             # Compute the derivative
-            self.W[:,i] = (np.dot(self.Q1.T, self.vecs[:,i])**2 +
-                           np.dot(self.Q2.T, self.vecs[:,i])**2)
+            self.W[:, i] = (
+                np.dot(self.Q1.T, self.vecs[:, i]) ** 2
+                + np.dot(self.Q2.T, self.vecs[:, i]) ** 2
+            )
 
-            for j in range(i+1, self.n):
-                self.V[:,index] = (np.dot(self.Q1.T, self.vecs[:,i])*np.dot(self.Q1.T, self.vecs[:,j]) +
-                                   np.dot(self.Q2.T, self.vecs[:,i])*np.dot(self.Q2.T, self.vecs[:,j]))
+            for j in range(i + 1, self.n):
+                self.V[:, index] = np.dot(self.Q1.T, self.vecs[:, i]) * np.dot(
+                    self.Q1.T, self.vecs[:, j]
+                ) + np.dot(self.Q2.T, self.vecs[:, i]) * np.dot(
+                    self.Q2.T, self.vecs[:, j]
+                )
                 self.P[index, index] = 0.0
                 if self.eigs[i] != self.eigs[j]:
-                    self.P[index, index] = 2.0*(self.eta[i] - self.eta[j])/(self.eigs[i] - self.eigs[j])
+                    self.P[index, index] = (
+                        2.0
+                        * (self.eta[i] - self.eta[j])
+                        / (self.eigs[i] - self.eigs[j])
+                    )
                 else:
-                    self.P[index, index] = 2.0*self.rho*self.eta[i]
+                    self.P[index, index] = 2.0 * self.rho * self.eta[i]
                 index += 1
 
-        self.M = self.rho*(np.outer(self.eta, self.eta) - np.diag(self.eta))
+        self.M = self.rho * (np.outer(self.eta, self.eta) - np.diag(self.eta))
 
         # Compute the gradient
         ks_gradient = np.dot(self.W, self.eta)
 
         # Compute the Hessian
-        ks_hessian = np.dot(self.W, np.dot(self.M, self.W.T)) + np.dot(self.V, np.dot(self.P, self.V.T))
+        ks_hessian = np.dot(self.W, np.dot(self.M, self.W.T)) + np.dot(
+            self.V, np.dot(self.P, self.V.T)
+        )
 
         return min_eig, ks_value, ks_gradient, ks_hessian
 
@@ -129,18 +144,23 @@ class SpectralAggregate(ParOpt.Problem):
         lam0, ks0, grad0, H0 = self.evalModel(x0)
 
         # Evaluate the model at x0 + dh*pert
-        x = x0 + dh*pert
+        x = x0 + dh * pert
         lam1, ks1, grad1, H1 = self.evalModel(x)
 
-        fd = (ks1 - ks0)/dh
+        fd = (ks1 - ks0) / dh
         exact = np.dot(grad0, pert)
-        print('FD approx grad: %25.15e  Exact: %25.15e  Rel err: %25.15e'%(fd, exact, (fd - exact)/fd))
+        print(
+            "FD approx grad: %25.15e  Exact: %25.15e  Rel err: %25.15e"
+            % (fd, exact, (fd - exact) / fd)
+        )
 
-        fd = (grad1 - grad0)/dh
+        fd = (grad1 - grad0) / dh
         exact = np.dot(H0, pert)
         for i, val in enumerate(fd):
-            print('FD approx Hess[%2d]: %25.15e  Exact: %25.15e  Rel err: %25.15e'%(
-                i, val, exact[i], (val - exact[i])/val))
+            print(
+                "FD approx Hess[%2d]: %25.15e  Exact: %25.15e  Rel err: %25.15e"
+                % (i, val, exact[i], (val - exact[i]) / val)
+            )
 
         return
 
@@ -164,15 +184,15 @@ class SpectralAggregate(ParOpt.Problem):
         # Include terms that exceed a specified tolerance. In practice,
         # these are rarely included.
         tol = 0.01
-        for i in range(nhv//2):
-            if self.M[i,i] >= tol:
+        for i in range(nhv // 2):
+            if self.M[i, i] >= tol:
                 nmv += 1
 
         # Fill in the values of the approximation matrix from M
         npv = nhv - nmv
         for i in range(nmv):
-            hvecs[i][:] = self.W[:,i]
-            M[i,:nmv] = self.M[i,:nmv]
+            hvecs[i][:] = self.W[:, i]
+            M[i, :nmv] = self.M[i, :nmv]
 
         # Calculate the vectors with the largest contributions
         indices = range(npv)
@@ -180,8 +200,8 @@ class SpectralAggregate(ParOpt.Problem):
         # Extract the values from the P matrix to fill in the remainder
         # of the matrix approximation
         for i in range(npv):
-            hvecs[i+nmv][:] = self.V[:,indices[i]]
-            M[i+nmv,i+nmv] = self.P[indices[i], indices[i]]
+            hvecs[i + nmv][:] = self.V[:, indices[i]]
+            M[i + nmv, i + nmv] = self.P[indices[i], indices[i]]
 
         # Compute the Moore-Penrose inverse of the matrix
         Minv = np.linalg.pinv(M)
@@ -202,15 +222,18 @@ class SpectralAggregate(ParOpt.Problem):
         fail = 0
 
         # Evaluate the objective - the approximate compliance
-        fobj = 0.5*np.sum(x[:]**2)
+        fobj = 0.5 * np.sum(x[:] ** 2)
 
         # Evaluate the model using the eigenvalue constraint
         self.lam, self.ks, self.grad, self.H = self.evalModel(x[:])
 
         # Print out the minimum eigenvalue
-        print('[%3d] min(eigs) = %15.6e'%(self.itr, np.min(self.eigs)) +
-              ' ks = %15.6e'%(self.ks) +
-              ' fobj = %15.6e'%(fobj) + ' sum(x) = %15.6e'%(np.sum(x[:])))
+        print(
+            "[%3d] min(eigs) = %15.6e" % (self.itr, np.min(self.eigs))
+            + " ks = %15.6e" % (self.ks)
+            + " fobj = %15.6e" % (fobj)
+            + " sum(x) = %15.6e" % (np.sum(x[:]))
+        )
         self.itr += 1
 
         con = [self.ks]
@@ -232,8 +255,10 @@ class SpectralAggregate(ParOpt.Problem):
     def writeOutput(self, it):
         pass
 
-def solve_problem(n, ndv, N, rho, filename=None,
-                  use_quadratic_approx=True, verify=False):
+
+def solve_problem(
+    n, ndv, N, rho, filename=None, use_quadratic_approx=True, verify=False
+):
     problem = SpectralAggregate(n, ndv, rho=rho)
 
     if verify:
@@ -241,32 +266,32 @@ def solve_problem(n, ndv, N, rho, filename=None,
         problem.verify_derivatives(x0)
 
     options = {
-        'algorithm': 'tr',
-        'tr_init_size': 0.05,
-        'tr_min_size': 1e-6,
-        'tr_max_size': 10.0,
-        'tr_eta': 0.1,
-        'tr_output_file': os.path.splitext(filename)[0] + '.tr',
-        'tr_penalty_gamma_max': 1e6,
-        'tr_adaptive_gamma_update': True,
-        'tr_infeas_tol': 1e-6,
-        'tr_l1_tol': 1e-6,
-        'tr_linfty_tol': 0.0,
-        'tr_max_iterations': 200,
-
-        'output_level': 2,
-        'penalty_gamma': 10.0,
-        'qn_subspace_size': 10,
-        'qn_type': 'bfgs',
-        'abs_res_tol': 1e-10,
-        'output_file': filename,
-        'starting_point_strategy': 'affine_step',
-        'barrier_strategy': 'monotone',
-        'start_affine_multiplier_min': 0.01}
+        "algorithm": "tr",
+        "tr_init_size": 0.05,
+        "tr_min_size": 1e-6,
+        "tr_max_size": 10.0,
+        "tr_eta": 0.1,
+        "tr_output_file": os.path.splitext(filename)[0] + ".tr",
+        "tr_penalty_gamma_max": 1e6,
+        "tr_adaptive_gamma_update": True,
+        "tr_infeas_tol": 1e-6,
+        "tr_l1_tol": 1e-6,
+        "tr_linfty_tol": 0.0,
+        "tr_max_iterations": 200,
+        "output_level": 2,
+        "penalty_gamma": 10.0,
+        "qn_subspace_size": 10,
+        "qn_type": "bfgs",
+        "abs_res_tol": 1e-10,
+        "output_file": filename,
+        "starting_point_strategy": "affine_step",
+        "barrier_strategy": "monotone",
+        "start_affine_multiplier_min": 0.01,
+    }
 
     if use_quadratic_approx:
-        options['qn_subspace_size'] = 0
-        options['qn_type'] = 'none'
+        options["qn_subspace_size"] = 0
+        options["qn_type"] = "none"
 
     opt = ParOpt.Optimizer(problem, options)
 
@@ -292,9 +317,9 @@ def solve_problem(n, ndv, N, rho, filename=None,
     # Get the optimized point from the trust-region subproblem
     x, z, zw, zl, zu = opt.getOptimizedPoint()
 
-    print('max(x) = %15.6e'%(np.max(x[:])))
-    print('avg(x) = %15.6e'%(np.average(x[:])))
-    print('sum(x) = %15.6e'%(np.sum(x[:])))
+    print("max(x) = %15.6e" % (np.max(x[:])))
+    print("avg(x) = %15.6e" % (np.average(x[:])))
+    print("sum(x) = %15.6e" % (np.sum(x[:])))
 
     if verify:
         for h in [1e-6, 1e-7, 1e-8, 1e-9, 1e-10]:
@@ -303,20 +328,32 @@ def solve_problem(n, ndv, N, rho, filename=None,
 
     return x
 
+
 # Parse the arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('--n', type=int, default=100,
-                    help='Dimension of the problem matrix')
-parser.add_argument('--ndv', type=int, default=200,
-                    help='Number of design variables')
-parser.add_argument('--N', type=int, default=10,
-                    help='Number of terms in the eigenvalue Hessian approx.')
-parser.add_argument('--rho', type=float, default=10.0,
-                    help='KS aggregation parameter')
-parser.add_argument('--linearized', default=False, action='store_true',
-                    help='Use a linearized approximation')
-parser.add_argument('--verify', default=False, action='store_true',
-                    help='Perform a finite-difference verification')
+parser.add_argument(
+    "--n", type=int, default=100, help="Dimension of the problem matrix"
+)
+parser.add_argument("--ndv", type=int, default=200, help="Number of design variables")
+parser.add_argument(
+    "--N",
+    type=int,
+    default=10,
+    help="Number of terms in the eigenvalue Hessian approx.",
+)
+parser.add_argument("--rho", type=float, default=10.0, help="KS aggregation parameter")
+parser.add_argument(
+    "--linearized",
+    default=False,
+    action="store_true",
+    help="Use a linearized approximation",
+)
+parser.add_argument(
+    "--verify",
+    default=False,
+    action="store_true",
+    help="Perform a finite-difference verification",
+)
 args = parser.parse_args()
 
 # Set the eigenvalues for the matrix
@@ -333,6 +370,12 @@ if args.linearized:
 np.random.seed(0)
 
 # Solve the problem
-x = solve_problem(n, ndv, N, rho, filename='output.out',
-                  use_quadratic_approx=use_quadratic_approx,
-                  verify=args.verify)
+x = solve_problem(
+    n,
+    ndv,
+    N,
+    rho,
+    filename="output.out",
+    use_quadratic_approx=use_quadratic_approx,
+    verify=args.verify,
+)

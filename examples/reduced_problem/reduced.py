@@ -1,4 +1,4 @@
-'''
+"""
 This code demonstrates how to create a reduced optimization problem by fixing
 a subset of design variables.
 
@@ -8,13 +8,14 @@ s.t. x0 + x1 + x2 - 1 >= 0
 
 reduced problem:
 fix: x0 = 0.1
-'''
+"""
 
 import os
 import numpy as np
 import mpi4py.MPI as MPI
 import matplotlib.pyplot as plt
 from paropt import ParOpt
+
 
 class OriginalProblem(ParOpt.Problem):
     def __init__(self):
@@ -39,7 +40,7 @@ class OriginalProblem(ParOpt.Problem):
         """Evaluate the objective and constraint"""
         fail = 0
         con = np.zeros(1)
-        fobj = x[0]**4 + x[1]**4 + x[2]**4
+        fobj = x[0] ** 4 + x[1] ** 4 + x[2] ** 4
         con[0] = x[0] + x[1] + x[2] - 1
         return fail, fobj, con
 
@@ -48,9 +49,9 @@ class OriginalProblem(ParOpt.Problem):
         fail = 0
 
         # The objective gradient
-        g[0] = 4*x[0]**3
-        g[1] = 4*x[1]**3
-        g[2] = 4*x[2]**3
+        g[0] = 4 * x[0] ** 3
+        g[1] = 4 * x[1] ** 3
+        g[2] = 4 * x[2] ** 3
 
         # The constraint gradient
         A[0][0] = 1.0
@@ -79,7 +80,9 @@ class ReducedProblem(ParOpt.Problem):
 
         # Compute the indices of fixed design variables, these indices
         # are with respect to the original full-sized problem
-        self.free_dv_idx = [i for i in range(len(self._x)) if i not in self.fixed_dv_idx]
+        self.free_dv_idx = [
+            i for i in range(len(self._x)) if i not in self.fixed_dv_idx
+        ]
         self.nvars = len(self.free_dv_idx)
 
         # Get vars and bounds from the original problem
@@ -111,18 +114,18 @@ class ReducedProblem(ParOpt.Problem):
             A[i][:] = self._A[i][self.free_dv_idx]
         return fail
 
+
 options = {
-    'algorithm': 'tr',
-    'tr_init_size': 0.05,
-    'tr_min_size': 1e-6,
-    'tr_max_size': 10.0,
-    'tr_eta': 0.1,
-    'tr_adaptive_gamma_update': True,
-    'tr_max_iterations': 200}
+    "algorithm": "tr",
+    "tr_init_size": 0.05,
+    "tr_min_size": 1e-6,
+    "tr_max_size": 10.0,
+    "tr_eta": 0.1,
+    "tr_adaptive_gamma_update": True,
+    "tr_max_iterations": 200,
+}
 
 original = OriginalProblem()
 redu = ReducedProblem(original, fixed_dv_idx=[0], fixed_dv_vals=[0.1])
 opt = ParOpt.Optimizer(redu, options)
 opt.optimize()
-
-

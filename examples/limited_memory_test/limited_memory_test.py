@@ -13,6 +13,7 @@ import argparse
 # Import matplotlib
 import matplotlib.pylab as plt
 
+
 # Random quadratic problem class
 class Quadratic(ParOpt.Problem):
     def __init__(self, eigs):
@@ -33,26 +34,26 @@ class Quadratic(ParOpt.Problem):
         return
 
     def getVarsAndBounds(self, x, lb, ub):
-        '''Set the values of the bounds'''
+        """Set the values of the bounds"""
         x[:] = -2.0 + np.random.uniform(size=len(x))
         lb[:] = -5.0
         ub[:] = 5.0
         return
 
     def evalObjCon(self, x):
-        '''Evaluate the objective and constraint'''
+        """Evaluate the objective and constraint"""
         # Append the point to the solution history
 
         # Evaluate the objective and constraints
         fail = 0
         con = np.zeros(1)
 
-        fobj = 0.5*np.dot(x, np.dot(self.A, x)) + np.dot(self.b, x)
+        fobj = 0.5 * np.dot(x, np.dot(self.A, x)) + np.dot(self.b, x)
         con[0] = np.dot(x, self.Acon) + self.bcon
         return fail, fobj, con
 
     def evalObjConGradient(self, x, g, A):
-        '''Evaluate the objective and constraint gradient'''
+        """Evaluate the objective and constraint gradient"""
         fail = 0
 
         # The objective gradient
@@ -64,9 +65,9 @@ class Quadratic(ParOpt.Problem):
         return fail
 
     def createRandomProblem(self, eigs):
-        '''
+        """
         Create a random matrix with the given eigenvalues
-        '''
+        """
 
         # The dimension of the matrix
         n = len(eigs)
@@ -82,18 +83,19 @@ class Quadratic(ParOpt.Problem):
 
         return A
 
+
 # Parse the arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('--qn_type', type=str, default='sr1')
+parser.add_argument("--qn_type", type=str, default="sr1")
 args = parser.parse_args()
 qn_type = args.qn_type
 
 # This test compares a limited-memory Hessian with their dense counterparts
 n = 50
-eigs = np.linspace(1, 1+n, n)
+eigs = np.linspace(1, 1 + n, n)
 problem = Quadratic(eigs)
 
-if qn_type == 'sr1':
+if qn_type == "sr1":
     # Create the LSR1 object
     qn = ParOpt.LSR1(problem, subspace=n)
 else:
@@ -109,23 +111,23 @@ ps = problem.createDesignVec()
 py = problem.createDesignVec()
 
 # Compute the update to the
-y0 = Y[:,-1]
-s0 = S[:,-1]
-B = (np.dot(y0, y0)/np.dot(s0, y0))*np.eye(n)
+y0 = Y[:, -1]
+s0 = S[:, -1]
+B = (np.dot(y0, y0) / np.dot(s0, y0)) * np.eye(n)
 
 for i in range(n):
-    s = S[:,i]
-    y = Y[:,i]
+    s = S[:, i]
+    y = Y[:, i]
 
     # Update the dense variant
-    if qn_type == 'sr1':
+    if qn_type == "sr1":
         r = y - np.dot(B, s)
-        B += np.outer(r, r)/np.dot(r, s)
+        B += np.outer(r, r) / np.dot(r, s)
     else:
         r = np.dot(B, s)
-        rho = 1.0/np.dot(y, s)
-        beta = 1.0/np.dot(s, r)
-        B += - beta*np.outer(r, r) + rho*np.outer(y, y)
+        rho = 1.0 / np.dot(y, s)
+        beta = 1.0 / np.dot(s, r)
+        B += -beta * np.outer(r, r) + rho * np.outer(y, y)
 
     # Update the paropt problem
     ps[:] = s[:]
@@ -142,4 +144,7 @@ for i in range(n):
     r = py[:] - np.dot(B, s)
 
     # Compute the relative error
-    print('relative err[%2d]: %25.10e'%(i, np.sqrt(np.dot(r, r)/np.dot(s, np.dot(B, s)))))
+    print(
+        "relative err[%2d]: %25.10e"
+        % (i, np.sqrt(np.dot(r, r) / np.dot(s, np.dot(B, s))))
+    )

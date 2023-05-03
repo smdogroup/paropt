@@ -2,8 +2,8 @@
 #define PAROPT_OPTIMIZER_H
 
 #include "ParOptInteriorPoint.h"
-#include "ParOptTrustRegion.h"
 #include "ParOptMMA.h"
+#include "ParOptTrustRegion.h"
 
 /*
   ParOptOptimizer is a generic interface to the optimizers that are
@@ -19,28 +19,27 @@
 */
 class ParOptOptimizer : public ParOptBase {
  public:
-  ParOptOptimizer( ParOptProblem *_problem,
-                   ParOptOptions *_options );
+  ParOptOptimizer(ParOptProblem *_problem, ParOptOptions *_options);
   ~ParOptOptimizer();
 
   // Get default optimization options
-  static void addDefaultOptions( ParOptOptions *options );
-  ParOptOptions* getOptions();
+  static void addDefaultOptions(ParOptOptions *options);
+  ParOptOptions *getOptions();
 
   // Get the optimization problem class
-  ParOptProblem* getProblem();
+  ParOptProblem *getProblem();
 
   // Perform the optimization
   void optimize();
 
   // Get the optimized point
-  void getOptimizedPoint( ParOptVec **x, ParOptScalar **z,
-                          ParOptVec **zw, ParOptVec **zl, ParOptVec **zu );
+  void getOptimizedPoint(ParOptVec **x, ParOptScalar **z, ParOptVec **zw,
+                         ParOptVec **zl, ParOptVec **zu);
 
   // Set the trust-region subproblem. This is required when non-standard
   // subproblems are used. This is an advanced feature this it not required
   // in most applications.
-  void setTrustRegionSubproblem( ParOptTrustRegionSubproblem *_subproblem );
+  void setTrustRegionSubproblem(ParOptTrustRegionSubproblem *_subproblem);
 
  private:
   // The problem instance
@@ -58,4 +57,4 @@ class ParOptOptimizer : public ParOptBase {
   ParOptTrustRegionSubproblem *subproblem;
 };
 
-#endif // PAROPT_OPTIMIZER_H
+#endif  // PAROPT_OPTIMIZER_H

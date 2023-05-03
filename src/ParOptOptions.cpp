@@ -1,13 +1,14 @@
-#include <stdlib.h>
-#include <string.h>
 #include "ParOptOptions.h"
 
-ParOptOptions::ParOptOptions( MPI_Comm _comm ){
+#include <stdlib.h>
+#include <string.h>
+
+ParOptOptions::ParOptOptions(MPI_Comm _comm) {
   comm = _comm;
   iter = entries.begin();
 }
 
-ParOptOptions::~ParOptOptions(){}
+ParOptOptions::~ParOptOptions() {}
 
 /**
   Add an string option to the set of options.
@@ -18,30 +19,29 @@ ParOptOptions::~ParOptOptions(){}
   @param value The default value of the option
   @param descript The description of the option
 */
-int ParOptOptions::addStringOption( const char *name,
-                                    const char *value,
-                                    const char *descript ){
+int ParOptOptions::addStringOption(const char *name, const char *value,
+                                   const char *descript) {
   int fail = 1;
-  if (name && descript && entries.count(name) == 0){
+  if (name && descript && entries.count(name) == 0) {
     ParOptOptionEntry *entry = new ParOptOptionEntry();
 
     // Set the entry type
     entry->type_info = PAROPT_STRING_OPTION;
 
     // Copy the name of the option and its description
-    entry->name = new char[ strlen(name)+1 ];
+    entry->name = new char[strlen(name) + 1];
     strcpy(entry->name, name);
 
-    entry->descript = new char[ strlen(descript)+1 ];
+    entry->descript = new char[strlen(descript) + 1];
     strcpy(entry->descript, descript);
 
     entry->str_value = NULL;
     entry->str_default = NULL;
-    if (value){
-      entry->str_value = new char[ strlen(value)+1 ];
+    if (value) {
+      entry->str_value = new char[strlen(value) + 1];
       strcpy(entry->str_value, value);
 
-      entry->str_default = new char[ strlen(value)+1 ];
+      entry->str_default = new char[strlen(value) + 1];
       strcpy(entry->str_default, value);
     }
 
@@ -63,21 +63,20 @@ int ParOptOptions::addStringOption( const char *name,
   @param value The default value of the option
   @param descript The description of the option
 */
-int ParOptOptions::addBoolOption( const char *name,
-                                  int value,
-                                  const char *descript ){
+int ParOptOptions::addBoolOption(const char *name, int value,
+                                 const char *descript) {
   int fail = 1;
-  if (name && descript && entries.count(name) == 0){
+  if (name && descript && entries.count(name) == 0) {
     ParOptOptionEntry *entry = new ParOptOptionEntry();
 
     // Set the entry type
     entry->type_info = PAROPT_BOOLEAN_OPTION;
 
     // Copy the name of the option and its description
-    entry->name = new char[ strlen(name)+1 ];
+    entry->name = new char[strlen(name) + 1];
     strcpy(entry->name, name);
 
-    entry->descript = new char[ strlen(descript)+1 ];
+    entry->descript = new char[strlen(descript) + 1];
     strcpy(entry->descript, descript);
 
     entry->bool_value = value;
@@ -104,28 +103,26 @@ int ParOptOptions::addBoolOption( const char *name,
   @param high The higher value for the integer range
   @param descript The description of the option
 */
-int ParOptOptions::addIntOption( const char *name,
-                                 int value,
-                                 int low, int high,
-                                 const char *descript ){
+int ParOptOptions::addIntOption(const char *name, int value, int low, int high,
+                                const char *descript) {
   int fail = 1;
-  if (name && descript && entries.count(name) == 0){
+  if (name && descript && entries.count(name) == 0) {
     ParOptOptionEntry *entry = new ParOptOptionEntry();
 
     // Set the entry type
     entry->type_info = PAROPT_INT_OPTION;
 
     // Copy the name of the option and its description
-    entry->name = new char[ strlen(name)+1 ];
+    entry->name = new char[strlen(name) + 1];
     strcpy(entry->name, name);
 
-    entry->descript = new char[ strlen(descript)+1 ];
+    entry->descript = new char[strlen(descript) + 1];
     strcpy(entry->descript, descript);
 
-    if (value < low){
+    if (value < low) {
       value = low;
     }
-    if (value > high){
+    if (value > high) {
       value = high;
     }
     entry->int_value = value;
@@ -150,28 +147,26 @@ int ParOptOptions::addIntOption( const char *name,
   @param high The higher value for the integer range
   @param descript The description of the option
 */
-int ParOptOptions::addFloatOption( const char *name,
-                                   double value,
-                                   double low, double high,
-                                   const char *descript ){
+int ParOptOptions::addFloatOption(const char *name, double value, double low,
+                                  double high, const char *descript) {
   int fail = 1;
-  if (name && descript && entries.count(name) == 0){
+  if (name && descript && entries.count(name) == 0) {
     ParOptOptionEntry *entry = new ParOptOptionEntry();
 
     // Set the entry type
     entry->type_info = PAROPT_FLOAT_OPTION;
 
     // Copy the name of the option and its description
-    entry->name = new char[ strlen(name)+1 ];
+    entry->name = new char[strlen(name) + 1];
     strcpy(entry->name, name);
 
-    entry->descript = new char[ strlen(descript)+1 ];
+    entry->descript = new char[strlen(descript) + 1];
     strcpy(entry->descript, descript);
 
-    if (value < low){
+    if (value < low) {
       value = low;
     }
-    if (value > high){
+    if (value > high) {
       value = high;
     }
     entry->float_value = value;
@@ -199,36 +194,34 @@ int ParOptOptions::addFloatOption( const char *name,
   @param high The higher value for the integer range
   @param descript The description of the option
 */
-int ParOptOptions::addEnumOption( const char *name,
-                                  const char *value,
-                                  int size, const char *options[],
-                                  const char *descript ){
+int ParOptOptions::addEnumOption(const char *name, const char *value, int size,
+                                 const char *options[], const char *descript) {
   int fail = 1;
-  if (name && entries.count(name) == 0){
+  if (name && entries.count(name) == 0) {
     ParOptOptionEntry *entry = new ParOptOptionEntry();
 
     // Set the entry type
     entry->type_info = PAROPT_ENUM_OPTION;
 
     // Copy the name of the option and its description
-    entry->name = new char[ strlen(name)+1 ];
+    entry->name = new char[strlen(name) + 1];
     strcpy(entry->name, name);
 
-    entry->descript = new char[ strlen(descript)+1 ];
+    entry->descript = new char[strlen(descript) + 1];
     strcpy(entry->descript, descript);
 
-    if (value){
-      entry->enum_value = new char[ strlen(value)+1 ];
+    if (value) {
+      entry->enum_value = new char[strlen(value) + 1];
       strcpy(entry->enum_value, value);
 
-      entry->enum_default = new char[ strlen(value)+1 ];
+      entry->enum_default = new char[strlen(value) + 1];
       strcpy(entry->enum_default, value);
     }
 
     entry->num_enum = size;
-    entry->enum_range = new char*[ size ];
-    for ( int i = 0; i < size; i++ ){
-      entry->enum_range[i] = new char[ strlen(options[i])+1 ];
+    entry->enum_range = new char *[size];
+    for (int i = 0; i < size; i++) {
+      entry->enum_range[i] = new char[strlen(options[i]) + 1];
       strcpy(entry->enum_range[i], options[i]);
     }
 
@@ -246,8 +239,8 @@ int ParOptOptions::addEnumOption( const char *name,
   @param name Name of the option
   @return Boolean value indicating if the option is valid
 */
-int ParOptOptions::isOption( const char *name ){
-  if (entries.count(name) > 0){
+int ParOptOptions::isOption(const char *name) {
+  if (entries.count(name) > 0) {
     return 1;
   }
   return 0;
@@ -259,50 +252,48 @@ int ParOptOptions::isOption( const char *name ){
   @param name Name of the option
   @param value Value to set
 */
-int ParOptOptions::setOption( const char *name,
-                              const char *value ){
+int ParOptOptions::setOption(const char *name, const char *value) {
   int rank;
   MPI_Comm_rank(comm, &rank);
   int fail = 1;
-  if (entries.count(name) == 0){
-    if (rank == 0){
+  if (entries.count(name) == 0) {
+    if (rank == 0) {
       fprintf(stderr, "ParOptOptions Error: Unknown option %s\n", name);
     }
-  }
-  else {
+  } else {
     ParOptOptionEntry *entry = entries[name];
-    if (entry->type_info == PAROPT_STRING_OPTION){
-      if (entry->str_value){
-        delete [] entry->str_value;
+    if (entry->type_info == PAROPT_STRING_OPTION) {
+      if (entry->str_value) {
+        delete[] entry->str_value;
       }
-      entry->str_value = new char[ strlen(value)+1 ];
+      entry->str_value = new char[strlen(value) + 1];
       strcpy(entry->str_value, value);
       entry->is_set = 1;
       fail = 0;
-    }
-    else if (entry->type_info == PAROPT_ENUM_OPTION){
+    } else if (entry->type_info == PAROPT_ENUM_OPTION) {
       int k = 0;
-      for ( ; k < entry->num_enum; k++ ){
-        if (strcmp(entry->enum_range[k], value) == 0){
-          if (entry->enum_value){
-            delete [] entry->enum_value;
+      for (; k < entry->num_enum; k++) {
+        if (strcmp(entry->enum_range[k], value) == 0) {
+          if (entry->enum_value) {
+            delete[] entry->enum_value;
           }
-          entry->enum_value = new char[ strlen(value)+1 ];
+          entry->enum_value = new char[strlen(value) + 1];
           strcpy(entry->enum_value, value);
           entry->is_set = 1;
           fail = 0;
           break;
         }
       }
-      if (k == entry->num_enum){
-        if (rank == 0){
-          fprintf(stderr, "ParOptOptions Warning: Option %s out or range "
-                  "for field %s\n", value, name);
+      if (k == entry->num_enum) {
+        if (rank == 0) {
+          fprintf(stderr,
+                  "ParOptOptions Warning: Option %s out or range "
+                  "for field %s\n",
+                  value, name);
         }
       }
-    }
-    else {
-      if (rank == 0){
+    } else {
+      if (rank == 0) {
         fprintf(stderr, "ParOptOptions Error: Option %s not found\n", name);
       }
     }
@@ -316,39 +307,36 @@ int ParOptOptions::setOption( const char *name,
   @param name Name of the option
   @param value Value to set
 */
-int ParOptOptions::setOption( const char *name,
-                              int value ){
+int ParOptOptions::setOption(const char *name, int value) {
   int rank;
   MPI_Comm_rank(comm, &rank);
   int fail = 1;
-  if (entries.count(name) == 0){
-    if (rank == 0){
+  if (entries.count(name) == 0) {
+    if (rank == 0) {
       fprintf(stderr, "ParOptOptions Error: Unknown option %s\n", name);
     }
-  }
-  else {
+  } else {
     ParOptOptionEntry *entry = entries[name];
-    if (entry->type_info == PAROPT_BOOLEAN_OPTION){
+    if (entry->type_info == PAROPT_BOOLEAN_OPTION) {
       ParOptOptionEntry *entry = entries[name];
       entry->bool_value = value;
       entry->is_set = 1;
       fail = 0;
-    }
-    else if (entry->type_info == PAROPT_INT_OPTION){
+    } else if (entry->type_info == PAROPT_INT_OPTION) {
       ParOptOptionEntry *entry = entries[name];
-      if (value >= entry->int_low && value <= entry->int_high){
+      if (value >= entry->int_low && value <= entry->int_high) {
         entry->int_value = value;
         entry->is_set = 1;
         fail = 0;
-      }
-      else {
-        if (rank == 0){
-          fprintf(stderr, "ParOptOptions Warning: Integer option %s "
-                  "out or range\n", name);
+      } else {
+        if (rank == 0) {
+          fprintf(stderr,
+                  "ParOptOptions Warning: Integer option %s "
+                  "out or range\n",
+                  name);
         }
       }
-    }
-    else {
+    } else {
       fprintf(stderr, "ParOptOptions Error: Option %s not found\n", name);
     }
   }
@@ -361,171 +349,180 @@ int ParOptOptions::setOption( const char *name,
   @param name Name of the option
   @param value Value to set
 */
-int ParOptOptions::setOption( const char *name,
-                              double value ){
+int ParOptOptions::setOption(const char *name, double value) {
   int rank;
   MPI_Comm_rank(comm, &rank);
   int fail = 1;
-  if (entries.count(name) == 0){
-    if (rank == 0){
+  if (entries.count(name) == 0) {
+    if (rank == 0) {
       fprintf(stderr, "ParOptOptions Error: Unknown float option %s\n", name);
     }
-  }
-  else {
+  } else {
     ParOptOptionEntry *entry = entries[name];
-    if (entry->type_info == PAROPT_FLOAT_OPTION){
+    if (entry->type_info == PAROPT_FLOAT_OPTION) {
       ParOptOptionEntry *entry = entries[name];
-      if (value >= entry->float_low && value <= entry->float_high){
+      if (value >= entry->float_low && value <= entry->float_high) {
         entry->float_value = value;
         entry->is_set = 1;
         fail = 0;
-      }
-      else {
-        if (rank == 0){
-          fprintf(stderr, "ParOptOptions Warning: Float option %s "
-                  "out or range\n", name);
+      } else {
+        if (rank == 0) {
+          fprintf(stderr,
+                  "ParOptOptions Warning: Float option %s "
+                  "out or range\n",
+                  name);
         }
       }
-    }
-    else {
-      if (rank == 0){
-        fprintf(stderr, "ParOptOptions Error: Option %s "
-                "is not a float\n", name);
+    } else {
+      if (rank == 0) {
+        fprintf(stderr,
+                "ParOptOptions Error: Option %s "
+                "is not a float\n",
+                name);
       }
     }
   }
   return fail;
 }
 
-const char* ParOptOptions::getStringOption( const char *name ){
+const char *ParOptOptions::getStringOption(const char *name) {
   int rank;
   MPI_Comm_rank(comm, &rank);
-  if (entries.count(name) != 0){
+  if (entries.count(name) != 0) {
     ParOptOptionEntry *entry = entries[name];
-    if (entry->type_info == PAROPT_STRING_OPTION){
+    if (entry->type_info == PAROPT_STRING_OPTION) {
       return entry->str_value;
     }
   }
-  if (rank == 0){
-    fprintf(stderr, "ParOptOptions Error: String option %s "
-            "not found\n", name);
+  if (rank == 0) {
+    fprintf(stderr,
+            "ParOptOptions Error: String option %s "
+            "not found\n",
+            name);
   }
   return NULL;
 }
 
-int ParOptOptions::getBoolOption( const char *name ){
+int ParOptOptions::getBoolOption(const char *name) {
   int rank;
   MPI_Comm_rank(comm, &rank);
-  if (entries.count(name) != 0){
+  if (entries.count(name) != 0) {
     ParOptOptionEntry *entry = entries[name];
-    if (entry->type_info == PAROPT_BOOLEAN_OPTION){
+    if (entry->type_info == PAROPT_BOOLEAN_OPTION) {
       return entry->bool_value;
     }
   }
-  if (rank == 0){
-    fprintf(stderr, "ParOptOptions Error: Boolean option %s "
-            "not found\n", name);
+  if (rank == 0) {
+    fprintf(stderr,
+            "ParOptOptions Error: Boolean option %s "
+            "not found\n",
+            name);
   }
   return 0;
 }
 
-int ParOptOptions::getIntOption( const char *name ){
+int ParOptOptions::getIntOption(const char *name) {
   int rank;
   MPI_Comm_rank(comm, &rank);
-  if (entries.count(name) != 0){
+  if (entries.count(name) != 0) {
     ParOptOptionEntry *entry = entries[name];
-    if (entry->type_info == PAROPT_INT_OPTION){
+    if (entry->type_info == PAROPT_INT_OPTION) {
       return entry->int_value;
     }
   }
-  if (rank == 0){
-    fprintf(stderr, "ParOptOptions Error: Integer option %s "
-            "not found\n", name);
+  if (rank == 0) {
+    fprintf(stderr,
+            "ParOptOptions Error: Integer option %s "
+            "not found\n",
+            name);
   }
   return 0;
 }
 
-double ParOptOptions::getFloatOption( const char *name ){
+double ParOptOptions::getFloatOption(const char *name) {
   int rank;
   MPI_Comm_rank(comm, &rank);
-  if (entries.count(name) != 0){
+  if (entries.count(name) != 0) {
     ParOptOptionEntry *entry = entries[name];
-    if (entry->type_info == PAROPT_FLOAT_OPTION){
+    if (entry->type_info == PAROPT_FLOAT_OPTION) {
       return entry->float_value;
     }
   }
-  if (rank == 0){
-    fprintf(stderr, "ParOptOptions Error: Float option %s "
-            "not found\n", name);
+  if (rank == 0) {
+    fprintf(stderr,
+            "ParOptOptions Error: Float option %s "
+            "not found\n",
+            name);
   }
   return 0.0;
 }
 
-const char* ParOptOptions::getEnumOption( const char *name ){
+const char *ParOptOptions::getEnumOption(const char *name) {
   int rank;
   MPI_Comm_rank(comm, &rank);
-  if (entries.count(name) != 0){
+  if (entries.count(name) != 0) {
     ParOptOptionEntry *entry = entries[name];
-    if (entry->type_info == PAROPT_ENUM_OPTION){
+    if (entry->type_info == PAROPT_ENUM_OPTION) {
       return entry->enum_value;
     }
   }
-  if (rank == 0){
-    fprintf(stderr, "ParOptOptions Error: Boolean option %s "
-            "not found\n", name);
+  if (rank == 0) {
+    fprintf(stderr,
+            "ParOptOptions Error: Boolean option %s "
+            "not found\n",
+            name);
   }
   return NULL;
 }
 
-int ParOptOptions::getOptionType( const char *name ){
+int ParOptOptions::getOptionType(const char *name) {
   int rank;
   MPI_Comm_rank(comm, &rank);
-  if (entries.count(name) != 0){
+  if (entries.count(name) != 0) {
     return entries[name]->type_info;
   }
-  if (rank == 0){
+  if (rank == 0) {
     fprintf(stderr, "ParOptOptions Error: Option %s not found\n", name);
   }
   return 0;
 }
 
-const char* ParOptOptions::getDescription( const char *name ){
+const char *ParOptOptions::getDescription(const char *name) {
   int rank;
   MPI_Comm_rank(comm, &rank);
-  if (entries.count(name) != 0){
+  if (entries.count(name) != 0) {
     return entries[name]->descript;
   }
-  if (rank == 0){
-    fprintf(stderr, "ParOptOptions Error: No description for "
-            "option %s found\n", name);
+  if (rank == 0) {
+    fprintf(stderr,
+            "ParOptOptions Error: No description for "
+            "option %s found\n",
+            name);
   }
   return NULL;
 }
 
-int ParOptOptions::getIntRange( const char *name,
-                                int *low, int *high ){
+int ParOptOptions::getIntRange(const char *name, int *low, int *high) {
   int rank;
   MPI_Comm_rank(comm, &rank);
   int fail = 1;
-  if (entries.count(name) == 0){
-    if (rank == 0){
+  if (entries.count(name) == 0) {
+    if (rank == 0) {
       fprintf(stderr, "ParOptOptions Error: Unknown option %s\n", name);
     }
-  }
-  else {
+  } else {
     ParOptOptionEntry *entry = entries[name];
-    if (entry->type_info == PAROPT_INT_OPTION){
+    if (entry->type_info == PAROPT_INT_OPTION) {
       ParOptOptionEntry *entry = entries[name];
-      if (low){
+      if (low) {
         *low = entry->int_low;
       }
-      if (high){
+      if (high) {
         *high = entry->int_high;
       }
       fail = 0;
-    }
-    else {
-      if (rank == 0){
+    } else {
+      if (rank == 0) {
         fprintf(stderr, "ParOptOptions Error: %s is not an integer option\n",
                 name);
       }
@@ -534,30 +531,27 @@ int ParOptOptions::getIntRange( const char *name,
   return fail;
 }
 
-int ParOptOptions::getFloatRange( const char *name,
-                                  double *low, double *high ){
+int ParOptOptions::getFloatRange(const char *name, double *low, double *high) {
   int rank;
   MPI_Comm_rank(comm, &rank);
   int fail = 1;
-  if (entries.count(name) == 0){
-    if (rank == 0){
+  if (entries.count(name) == 0) {
+    if (rank == 0) {
       fprintf(stderr, "ParOptOptions Error: Unknown option %s\n", name);
     }
-  }
-  else {
+  } else {
     ParOptOptionEntry *entry = entries[name];
-    if (entry->type_info == PAROPT_FLOAT_OPTION){
+    if (entry->type_info == PAROPT_FLOAT_OPTION) {
       ParOptOptionEntry *entry = entries[name];
-      if (low){
+      if (low) {
         *low = entry->float_low;
       }
-      if (high){
+      if (high) {
         *high = entry->float_high;
       }
       fail = 0;
-    }
-    else {
-      if (rank == 0){
+    } else {
+      if (rank == 0) {
         fprintf(stderr, "ParOptOptions Error: %s is not a float option\n",
                 name);
       }
@@ -566,30 +560,28 @@ int ParOptOptions::getFloatRange( const char *name,
   return fail;
 }
 
-int ParOptOptions::getEnumRange( const char *name,
-                                 int *size, const char *const **values ){
+int ParOptOptions::getEnumRange(const char *name, int *size,
+                                const char *const **values) {
   int rank;
   MPI_Comm_rank(comm, &rank);
   int fail = 1;
-  if (entries.count(name) == 0){
-    if (rank == 0){
+  if (entries.count(name) == 0) {
+    if (rank == 0) {
       fprintf(stderr, "ParOptOptions Error: Unknown option %s\n", name);
     }
-  }
-  else {
+  } else {
     ParOptOptionEntry *entry = entries[name];
-    if (entry->type_info == PAROPT_ENUM_OPTION){
+    if (entry->type_info == PAROPT_ENUM_OPTION) {
       ParOptOptionEntry *entry = entries[name];
-      if (size){
+      if (size) {
         *size = entry->num_enum;
       }
-      if (values){
+      if (values) {
         *values = entry->enum_range;
       }
       fail = 0;
-    }
-    else {
-      if (rank == 0){
+    } else {
+      if (rank == 0) {
         fprintf(stderr, "ParOptOptions Error: %s is not an enum option\n",
                 name);
       }
@@ -598,90 +590,78 @@ int ParOptOptions::getEnumRange( const char *name,
   return fail;
 }
 
-void ParOptOptions::printSummary( FILE *fp, int output_level ){
-  if (fp){
-    std::map<std::string, ParOptOptionEntry*>::iterator it = entries.begin();
+void ParOptOptions::printSummary(FILE *fp, int output_level) {
+  if (fp) {
+    std::map<std::string, ParOptOptionEntry *>::iterator it = entries.begin();
 
     // Iterate over the map using Iterator till end.
-    for ( ; it != entries.end(); it++ ){
+    for (; it != entries.end(); it++) {
       ParOptOptionEntry *entry = it->second;
 
       // If the output level is zero, then print out only those
       // options that are set
-      if (output_level <= 1 && !entry->is_set){
+      if (output_level <= 1 && !entry->is_set) {
         continue;
       }
 
-      if (output_level > 1){
+      if (output_level > 1) {
         fprintf(fp, "%s\n", entry->descript);
       }
-      if (entry->type_info == PAROPT_STRING_OPTION){
-        fprintf(fp, "%-40s %-15s\n",
-                entry->name, entry->str_value);
-        if (output_level > 1){
+      if (entry->type_info == PAROPT_STRING_OPTION) {
+        fprintf(fp, "%-40s %-15s\n", entry->name, entry->str_value);
+        if (output_level > 1) {
           fprintf(fp, "%-40s %-15s\n", "default", entry->str_default);
         }
-      }
-      else if (entry->type_info == PAROPT_BOOLEAN_OPTION){
-        if (entry->bool_value){
+      } else if (entry->type_info == PAROPT_BOOLEAN_OPTION) {
+        if (entry->bool_value) {
           fprintf(fp, "%-40s %-15s\n", entry->name, "True");
-        }
-        else {
+        } else {
           fprintf(fp, "%-40s %-15s\n", entry->name, "False");
         }
-        if (output_level > 1){
-          if (entry->bool_default){
+        if (output_level > 1) {
+          if (entry->bool_default) {
             fprintf(fp, "%-40s %-15s\n", "default", "True");
-          }
-          else {
+          } else {
             fprintf(fp, "%-40s %-15s\n", "default", "False");
           }
         }
-      }
-      else if (entry->type_info == PAROPT_INT_OPTION){
-        fprintf(fp, "%-40s %-15d\n",
-                entry->name, entry->int_value);
-        if (output_level > 1){
+      } else if (entry->type_info == PAROPT_INT_OPTION) {
+        fprintf(fp, "%-40s %-15d\n", entry->name, entry->int_value);
+        if (output_level > 1) {
           fprintf(fp, "%-40s %-15d\n", "default", entry->int_default);
         }
-      }
-      else if (entry->type_info == PAROPT_FLOAT_OPTION){
-        fprintf(fp, "%-40s %-15g\n",
-                entry->name, entry->float_value);
-        if (output_level > 1){
+      } else if (entry->type_info == PAROPT_FLOAT_OPTION) {
+        fprintf(fp, "%-40s %-15g\n", entry->name, entry->float_value);
+        if (output_level > 1) {
           fprintf(fp, "%-40s %-15g\n", "default", entry->float_default);
         }
-      }
-      else if (entry->type_info == PAROPT_ENUM_OPTION){
-        fprintf(fp, "%-40s %-15s\n",
-                entry->name, entry->enum_value);
-        if (output_level > 1){
-          for ( int i = 0; i < entry->num_enum; i++ ){
+      } else if (entry->type_info == PAROPT_ENUM_OPTION) {
+        fprintf(fp, "%-40s %-15s\n", entry->name, entry->enum_value);
+        if (output_level > 1) {
+          for (int i = 0; i < entry->num_enum; i++) {
             fprintf(fp, "%-40s %-15s\n", "options", entry->enum_range[i]);
           }
           fprintf(fp, "%-40s %-15s\n", "default", entry->enum_default);
         }
       }
-      if (output_level > 1){
+      if (output_level > 1) {
         fprintf(fp, "\n");
       }
     }
   }
 }
 
-void ParOptOptions::begin(){
-  iter = entries.begin();
-}
+void ParOptOptions::begin() { iter = entries.begin(); }
 
-const char* ParOptOptions::getName(){
-  if (iter != entries.end()){
+const char *ParOptOptions::getName() {
+  if (iter != entries.end()) {
     return iter->first.c_str();
   }
   return NULL;
 }
 
-int ParOptOptions::next(){
-  if (iter != entries.end()){
+int ParOptOptions::next() {
+  if (iter != entries.end()) {
     iter++;
   }
   return (iter != entries.end());

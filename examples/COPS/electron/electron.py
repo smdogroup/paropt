@@ -19,7 +19,7 @@ class Electron(ParOpt.Problem):
         # Set the communicator pointer
         self.comm = MPI.COMM_WORLD
         self.n = n
-        self.nvars = 3*n
+        self.nvars = 3 * n
         self.ncon = n
         self.epsilon = epsilon
 
@@ -34,12 +34,12 @@ class Electron(ParOpt.Problem):
 
         # x = [x_1, ..., x_n, y_1, ..., y_n, z_1, ..., z_n]
         np.random.seed(0)
-        alpha = np.random.uniform(low=0., high=2*np.pi, size=n)
-        beta  = np.random.uniform(low=-np.pi, high=np.pi, size=n)
+        alpha = np.random.uniform(low=0.0, high=2 * np.pi, size=n)
+        beta = np.random.uniform(low=-np.pi, high=np.pi, size=n)
         for i in range(n):
-            x[i]     = np.cos(beta[i]) * np.cos(alpha[i])
-            x[n+i]   = np.cos(beta[i]) * np.sin(alpha[i])
-            x[2*n+i] = np.sin(beta[i])
+            x[i] = np.cos(beta[i]) * np.cos(alpha[i])
+            x[n + i] = np.cos(beta[i]) * np.sin(alpha[i])
+            x[2 * n + i] = np.sin(beta[i])
 
         lb[:] = -10.0
         ub[:] = 10.0
@@ -51,20 +51,20 @@ class Electron(ParOpt.Problem):
         n = self.n
         epsilon = self.epsilon
         _x = x[:n]
-        _y = x[n:2*n]
-        _z = x[2*n:]
+        _y = x[n : 2 * n]
+        _z = x[2 * n :]
 
         fobj = 0.0
         for i in range(n - 2):
             for j in range(i + 1, n - 1):
-                dsq = (_x[i] - _x[j])**2 + (_y[i] - _y[j])**2 + (_z[i] - _z[j])**2
-                if (dsq < epsilon):
+                dsq = (_x[i] - _x[j]) ** 2 + (_y[i] - _y[j]) ** 2 + (_z[i] - _z[j]) ** 2
+                if dsq < epsilon:
                     dsq = epsilon
-                fobj += dsq**(-1/2)
+                fobj += dsq ** (-1 / 2)
 
         con = np.zeros(self.ncon)
         for i in range(n):
-            con[i] = 1.0 - (_x[i]**2 + _y[i]**2 + _z[i]**2)
+            con[i] = 1.0 - (_x[i] ** 2 + _y[i] ** 2 + _z[i] ** 2)
 
         fail = 0
 
@@ -75,29 +75,29 @@ class Electron(ParOpt.Problem):
         n = self.n
         epsilon = self.epsilon
         _x = x[:n]
-        _y = x[n:2*n]
-        _z = x[2*n:]
+        _y = x[n : 2 * n]
+        _z = x[2 * n :]
 
         g[:] = 0.0
         for i in range(n - 2):
             for j in range(i + 1, n - 1):
-                dsq = (_x[i] - _x[j])**2 + (_y[i] - _y[j])**2 + (_z[i] - _z[j])**2
-                if (dsq < epsilon):
+                dsq = (_x[i] - _x[j]) ** 2 + (_y[i] - _y[j]) ** 2 + (_z[i] - _z[j]) ** 2
+                if dsq < epsilon:
                     dsq = epsilon
                 else:
-                    fact = dsq ** (-3/2)
-                    g[i]     += -(_x[i] - _x[j]) * fact
-                    g[j]     +=  (_x[i] - _x[j]) * fact
-                    g[n+i]   += -(_y[i] - _y[j]) * fact
-                    g[n+j]   +=  (_y[i] - _y[j]) * fact
-                    g[2*n+i] += -(_z[i] - _z[j]) * fact
-                    g[2*n+j] +=  (_z[i] - _z[j]) * fact
+                    fact = dsq ** (-3 / 2)
+                    g[i] += -(_x[i] - _x[j]) * fact
+                    g[j] += (_x[i] - _x[j]) * fact
+                    g[n + i] += -(_y[i] - _y[j]) * fact
+                    g[n + j] += (_y[i] - _y[j]) * fact
+                    g[2 * n + i] += -(_z[i] - _z[j]) * fact
+                    g[2 * n + j] += (_z[i] - _z[j]) * fact
 
         for i in range(n):
             A[i][:] = 0.0
-            A[i][i]     = -2.0*_x[i]
-            A[i][n+i]   = -2.0*_y[i]
-            A[i][2*n+i] = -2.0*_z[i]
+            A[i][i] = -2.0 * _x[i]
+            A[i][n + i] = -2.0 * _y[i]
+            A[i][2 * n + i] = -2.0 * _z[i]
 
         fail = 0
 
@@ -107,45 +107,45 @@ class Electron(ParOpt.Problem):
 if __name__ == "__main__":
     # Parse the command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--algorithm', type=str, default='tr')
-    parser.add_argument('--n', type=int, default=10, help='number of electron')
+    parser.add_argument("--algorithm", type=str, default="tr")
+    parser.add_argument("--n", type=int, default=10, help="number of electron")
     args = parser.parse_args()
 
     use_tr = False
-    if args.algorithm != 'ip':
+    if args.algorithm != "ip":
         use_tr = True
 
     # use interior point algorithm
     options = {
-        'algorithm': 'ip',
-        'qn_subspace_size': 10,
-        'abs_res_tol': 1e-6,
-        'barrier_strategy': 'monotone',
-        'output_level': 1,
-        'armijo_constant': 1e-5,
-        'max_major_iters': 500}
+        "algorithm": "ip",
+        "qn_subspace_size": 10,
+        "abs_res_tol": 1e-6,
+        "barrier_strategy": "monotone",
+        "output_level": 1,
+        "armijo_constant": 1e-5,
+        "max_major_iters": 500,
+    }
 
     # use trust region algorithm
     if use_tr:
         options = {
-            'algorithm': 'tr',
-            'output_level': 0,
-            'tr_l1_tol': 1e-30,
-            'tr_linfty_tol': 1e-30,
-            'tr_init_size': 0.05,
-            'tr_min_size': 1e-6,
-            'tr_max_size': 1e3,
-            'tr_eta': 0.25,
-            'tr_adaptive_gamma_update': False,
-            'tr_accept_step_strategy': 'penalty_method',
-            'tr_use_soc': False,
-            'tr_max_iterations': 200,
-            'max_major_iters': 100,
+            "algorithm": "tr",
+            "output_level": 0,
+            "tr_l1_tol": 1e-30,
+            "tr_linfty_tol": 1e-30,
+            "tr_init_size": 0.05,
+            "tr_min_size": 1e-6,
+            "tr_max_size": 1e3,
+            "tr_eta": 0.25,
+            "tr_adaptive_gamma_update": False,
+            "tr_accept_step_strategy": "penalty_method",
+            "tr_use_soc": False,
+            "tr_max_iterations": 200,
+            "max_major_iters": 100,
             # 'use_line_search': False
-            }
+        }
 
     problem = Electron(args.n, 1e-15)
     problem.checkGradients()
     opt = ParOpt.Optimizer(problem, options)
     opt.optimize()
-

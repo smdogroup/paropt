@@ -1,8 +1,10 @@
+#include "ParOptVec.h"
+
 #include <math.h>
 #include <string.h>
-#include "ParOptComplexStep.h"
+
 #include "ParOptBlasLapack.h"
-#include "ParOptVec.h"
+#include "ParOptComplexStep.h"
 
 /**
   Create a parallel vector for optimization
@@ -10,27 +12,25 @@
   @param comm the communicator for this vector
   @param n the number of vector components on this processor
 */
-ParOptBasicVec::ParOptBasicVec( MPI_Comm _comm, int n ){
+ParOptBasicVec::ParOptBasicVec(MPI_Comm _comm, int n) {
   comm = _comm;
   size = n;
-  x = new ParOptScalar[ size ];
-  memset(x, 0, size*sizeof(ParOptScalar));
+  x = new ParOptScalar[size];
+  memset(x, 0, size * sizeof(ParOptScalar));
 }
 
 /**
   Free the internally stored data
 */
-ParOptBasicVec::~ParOptBasicVec(){
-  delete [] x;
-}
+ParOptBasicVec::~ParOptBasicVec() { delete[] x; }
 
 /**
   Set the vector value
 
   @param alpha the scalar value to set in all components
 */
-void ParOptBasicVec::set( ParOptScalar alpha ){
-  for ( int i = 0; i < size; i++ ){
+void ParOptBasicVec::set(ParOptScalar alpha) {
+  for (int i = 0; i < size; i++) {
     x[i] = alpha;
   }
 }
@@ -38,8 +38,8 @@ void ParOptBasicVec::set( ParOptScalar alpha ){
 /**
   Zero the entries of the vector
 */
-void ParOptBasicVec::zeroEntries(){
-  memset(x, 0, size*sizeof(ParOptScalar));
+void ParOptBasicVec::zeroEntries() {
+  memset(x, 0, size * sizeof(ParOptScalar));
 }
 
 /**
@@ -47,11 +47,11 @@ void ParOptBasicVec::zeroEntries(){
 
   @param pvec copy the values from pvec to this vector
 */
-void ParOptBasicVec::copyValues( ParOptVec *pvec ){
-  ParOptBasicVec *vec = dynamic_cast<ParOptBasicVec*>(pvec);
+void ParOptBasicVec::copyValues(ParOptVec *pvec) {
+  ParOptBasicVec *vec = dynamic_cast<ParOptBasicVec *>(pvec);
 
-  if (vec){
-    memcpy(x, vec->x, size*sizeof(ParOptScalar));
+  if (vec) {
+    memcpy(x, vec->x, size * sizeof(ParOptScalar));
   }
 }
 
@@ -60,12 +60,12 @@ void ParOptBasicVec::copyValues( ParOptVec *pvec ){
 
   @return the l2 norm of the vector
 */
-double ParOptBasicVec::norm(){
+double ParOptBasicVec::norm() {
   double res = 0.0;
 #ifdef PAROPT_USE_COMPLEX
-  for ( int i = 0; i < size; i++ ){
-    res += (ParOptRealPart(x[i])*ParOptRealPart(x[i]) +
-            ParOptImagPart(x[i])*ParOptImagPart(x[i]));
+  for (int i = 0; i < size; i++) {
+    res += (ParOptRealPart(x[i]) * ParOptRealPart(x[i]) +
+            ParOptImagPart(x[i]) * ParOptImagPart(x[i]));
   }
 #else
   int one = 1;
@@ -84,10 +84,10 @@ double ParOptBasicVec::norm(){
 
   @return the l-infinity norm of the vector
 */
-double ParOptBasicVec::maxabs(){
+double ParOptBasicVec::maxabs() {
   double res = 0.0;
-  for ( int i = 0; i < size; i++ ){
-    if (fabs(ParOptRealPart(x[i])) > res){
+  for (int i = 0; i < size; i++) {
+    if (fabs(ParOptRealPart(x[i])) > res) {
       res = fabs(ParOptRealPart(x[i]));
     }
   }
@@ -103,9 +103,9 @@ double ParOptBasicVec::maxabs(){
 
   @return the l1 norm of the vector
 */
-double ParOptBasicVec::l1norm(){
+double ParOptBasicVec::l1norm() {
   double res = 0.0;
-  for ( int i = 0; i < size; i++ ){
+  for (int i = 0; i < size; i++) {
     res += fabs(ParOptRealPart(x[i]));
   }
 
@@ -121,15 +121,15 @@ double ParOptBasicVec::l1norm(){
   @param pvec the other vector in the dot product
   @return the dot product of the two vectors
 */
-ParOptScalar ParOptBasicVec::dot( ParOptVec *pvec ){
-  ParOptBasicVec *vec = dynamic_cast<ParOptBasicVec*>(pvec);
+ParOptScalar ParOptBasicVec::dot(ParOptVec *pvec) {
+  ParOptBasicVec *vec = dynamic_cast<ParOptBasicVec *>(pvec);
 
   ParOptScalar sum = 0.0;
-  if (vec){
+  if (vec) {
     ParOptScalar res = 0.0;
 #ifdef PAROPT_USE_COMPLEX
-    for ( int i = 0; i < size; i++ ){
-      res += x[i]*vec->x[i];
+    for (int i = 0; i < size; i++) {
+      res += x[i] * vec->x[i];
     }
 #else
     int one = 1;
@@ -149,15 +149,15 @@ ParOptScalar ParOptBasicVec::dot( ParOptVec *pvec ){
   @param pvecs an array of vectors
   @param output an array of the dot product results
 */
-void ParOptBasicVec::mdot( ParOptVec **pvecs, int nvecs, ParOptScalar *output ){
-  for ( int i = 0; i < nvecs; i++ ){
+void ParOptBasicVec::mdot(ParOptVec **pvecs, int nvecs, ParOptScalar *output) {
+  for (int i = 0; i < nvecs; i++) {
     output[i] = 0.0;
-    ParOptBasicVec *vec = dynamic_cast<ParOptBasicVec*>(pvecs[i]);
+    ParOptBasicVec *vec = dynamic_cast<ParOptBasicVec *>(pvecs[i]);
 
-    if (vec){
+    if (vec) {
 #ifdef PAROPT_USE_COMPLEX
-      for ( int j = 0; j < size; j++ ){
-        output[i] += x[j]*vec->x[j];
+      for (int j = 0; j < size; j++) {
+        output[i] += x[j] * vec->x[j];
       }
 #else
       int one = 1;
@@ -171,12 +171,12 @@ void ParOptBasicVec::mdot( ParOptVec **pvecs, int nvecs, ParOptScalar *output ){
 
 /**
   Scale the components of the vector
-  
+
   @param alpha the scalar factor
 */
-void ParOptBasicVec::scale( ParOptScalar alpha ){
+void ParOptBasicVec::scale(ParOptScalar alpha) {
 #ifdef PAROPT_USE_COMPLEX
-  for ( int i = 0; i < size; i++ ){
+  for (int i = 0; i < size; i++) {
     x[i] *= alpha;
   }
 #else
@@ -188,13 +188,13 @@ void ParOptBasicVec::scale( ParOptScalar alpha ){
 /**
   Compute: self <- self + alpha*x
 */
-void ParOptBasicVec::axpy( ParOptScalar alpha, ParOptVec *pvec ){
-  ParOptBasicVec *vec = dynamic_cast<ParOptBasicVec*>(pvec);
+void ParOptBasicVec::axpy(ParOptScalar alpha, ParOptVec *pvec) {
+  ParOptBasicVec *vec = dynamic_cast<ParOptBasicVec *>(pvec);
 
-  if (vec){
+  if (vec) {
 #ifdef PAROPT_USE_COMPLEX
-    for ( int i = 0; i < size; i++ ){
-      x[i] = x[i] + alpha*vec->x[i];
+    for (int i = 0; i < size; i++) {
+      x[i] = x[i] + alpha * vec->x[i];
     }
 #else
     int one = 1;
@@ -206,11 +206,11 @@ void ParOptBasicVec::axpy( ParOptScalar alpha, ParOptVec *pvec ){
 /**
   Retrieve the locally stored values from the array
 
-  @param array pointer assigned to the memory location of the 
+  @param array pointer assigned to the memory location of the
   local vector components
 */
-int ParOptBasicVec::getArray( ParOptScalar **array ){
-  if (array){
+int ParOptBasicVec::getArray(ParOptScalar **array) {
+  if (array) {
     *array = x;
   }
   return size;

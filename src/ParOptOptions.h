@@ -1,9 +1,10 @@
 #ifndef PAR_OPT_OPTIONS_H
 #define PAR_OPT_OPTIONS_H
 
-#include "ParOptVec.h"
-#include <string>
 #include <map>
+#include <string>
+
+#include "ParOptVec.h"
 
 class ParOptOptions : public ParOptBase {
  public:
@@ -13,62 +14,56 @@ class ParOptOptions : public ParOptBase {
   static const int PAROPT_FLOAT_OPTION = 4;
   static const int PAROPT_ENUM_OPTION = 5;
 
-  ParOptOptions( MPI_Comm _comm=MPI_COMM_WORLD );
+  ParOptOptions(MPI_Comm _comm = MPI_COMM_WORLD);
   ~ParOptOptions();
 
   // Add the options
-  int addStringOption( const char *name,
-                       const char *value,
-                       const char *descript );
-  int addBoolOption( const char *name, int value,
-                     const char *descript );
-  int addIntOption( const char *name, int value,
-                    int low, int high,
-                    const char *descript );
-  int addFloatOption( const char *name, double value,
-                      double low, double high,
-                      const char *descript );
-  int addEnumOption( const char *name, const char *value,
-                     int size, const char *options[],
-                     const char *descript );
+  int addStringOption(const char *name, const char *value,
+                      const char *descript);
+  int addBoolOption(const char *name, int value, const char *descript);
+  int addIntOption(const char *name, int value, int low, int high,
+                   const char *descript);
+  int addFloatOption(const char *name, double value, double low, double high,
+                     const char *descript);
+  int addEnumOption(const char *name, const char *value, int size,
+                    const char *options[], const char *descript);
 
   // Is this an option?
-  int isOption( const char *name );
+  int isOption(const char *name);
 
   // Set the option values
-  int setOption( const char *name, const char *value );
-  int setOption( const char *name, int value );
-  int setOption( const char *name, double value );
+  int setOption(const char *name, const char *value);
+  int setOption(const char *name, int value);
+  int setOption(const char *name, double value);
 
   // Retrieve the option values that have been set
-  const char* getStringOption( const char *name );
-  int getBoolOption( const char *name );
-  int getIntOption( const char *name );
-  double getFloatOption( const char *name );
-  const char* getEnumOption( const char *name );
+  const char *getStringOption(const char *name);
+  int getBoolOption(const char *name);
+  int getIntOption(const char *name);
+  double getFloatOption(const char *name);
+  const char *getEnumOption(const char *name);
 
   // Get the type
-  int getOptionType( const char *name );
+  int getOptionType(const char *name);
 
   // Get the description
-  const char* getDescription( const char *name );
+  const char *getDescription(const char *name);
 
   // Get information about the range of possible values
-  int getIntRange( const char *name, int *low, int *high );
-  int getFloatRange( const char *name, double *low, double *high );
-  int getEnumRange( const char *name, int *size,
-                    const char *const **values );
+  int getIntRange(const char *name, int *low, int *high);
+  int getFloatRange(const char *name, double *low, double *high);
+  int getEnumRange(const char *name, int *size, const char *const **values);
 
-  void printSummary( FILE *fp, int output_level );
+  void printSummary(FILE *fp, int output_level);
 
   void begin();
-  const char* getName();
+  const char *getName();
   int next();
 
  private:
   class ParOptOptionEntry {
    public:
-    ParOptOptionEntry(){
+    ParOptOptionEntry() {
       name = descript = NULL;
       str_value = NULL;
       bool_value = bool_default = 0;
@@ -79,16 +74,28 @@ class ParOptOptions : public ParOptBase {
       enum_range = NULL;
       is_set = 0;
     }
-    ~ParOptOptionEntry(){
-      if (name){ delete [] name; }
-      if (descript){ delete [] descript; }
-      if (str_value){ delete [] str_value; }
-      if (str_default){ delete [] str_default; }
-      if (enum_value){ delete [] enum_value; }
-      if (enum_default){ delete [] enum_default; }
-      if (enum_range){
-        for ( int i = 0; i < num_enum; i++ ){
-          delete [] enum_range[i];
+    ~ParOptOptionEntry() {
+      if (name) {
+        delete[] name;
+      }
+      if (descript) {
+        delete[] descript;
+      }
+      if (str_value) {
+        delete[] str_value;
+      }
+      if (str_default) {
+        delete[] str_default;
+      }
+      if (enum_value) {
+        delete[] enum_value;
+      }
+      if (enum_default) {
+        delete[] enum_default;
+      }
+      if (enum_range) {
+        for (int i = 0; i < num_enum; i++) {
+          delete[] enum_range[i];
         }
       }
     }
@@ -124,8 +131,8 @@ class ParOptOptions : public ParOptBase {
   };
 
   MPI_Comm comm;
-  std::map<std::string, ParOptOptionEntry*> entries;
-  std::map<std::string, ParOptOptionEntry*>::iterator iter;
+  std::map<std::string, ParOptOptionEntry *> entries;
+  std::map<std::string, ParOptOptionEntry *>::iterator iter;
 };
 
-#endif // PAR_OPT_OPTIONS_H
+#endif  // PAR_OPT_OPTIONS_H

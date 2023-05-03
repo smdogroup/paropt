@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 # Import ParOpt
 from paropt import ParOpt
 
+
 # Create the rosenbrock function class
 class Rosenbrock(ParOpt.Problem):
     def __init__(self):
@@ -41,7 +42,7 @@ class Rosenbrock(ParOpt.Problem):
         # Evaluate the objective and constraints
         fail = 0
         con = np.zeros(1)
-        fobj = 100*(x[1]-x[0]**2)**2 + (1-x[0])**2
+        fobj = 100 * (x[1] - x[0] ** 2) ** 2 + (1 - x[0]) ** 2
         con[0] = x[0] + x[1] + 5.0
         return fail, fobj, con
 
@@ -50,13 +51,14 @@ class Rosenbrock(ParOpt.Problem):
         fail = 0
 
         # The objective gradient
-        g[0] = 200*(x[1]-x[0]**2)*(-2*x[0]) - 2*(1-x[0])
-        g[1] = 200*(x[1]-x[0]**2)
+        g[0] = 200 * (x[1] - x[0] ** 2) * (-2 * x[0]) - 2 * (1 - x[0])
+        g[1] = 200 * (x[1] - x[0] ** 2)
 
         # The constraint gradient
         A[0][0] = 1.0
         A[0][1] = 1.0
         return fail
+
 
 def plot_it_all(problem):
     """
@@ -77,23 +79,23 @@ def plot_it_all(problem):
             r[j, i] = fobj
 
     # Assign the contour levels
-    levels = np.min(r) + np.linspace(0, 1.0, 75)**2*(np.max(r) - np.min(r))
+    levels = np.min(r) + np.linspace(0, 1.0, 75) ** 2 * (np.max(r) - np.min(r))
 
     # Create the plot
-    fig = plt.figure(facecolor='w')
+    fig = plt.figure(facecolor="w")
     plt.contour(x1, x1, r, levels)
 
-    colours = ['-bo', '-ko', '-co', '-mo', '-yo',
-               '-bx', '-kx', '-cx', '-mx', '-yx' ]
+    colours = ["-bo", "-ko", "-co", "-mo", "-yo", "-bx", "-kx", "-cx", "-mx", "-yx"]
 
     options = {
-        'algorithm': 'tr',
-        'tr_init_size': 0.05,
-        'tr_min_size': 1e-6,
-        'tr_max_size': 10.0,
-        'tr_eta': 0.1,
-        'tr_adaptive_gamma_update': True,
-        'tr_max_iterations': 200}
+        "algorithm": "tr",
+        "tr_init_size": 0.05,
+        "tr_min_size": 1e-6,
+        "tr_max_size": 10.0,
+        "tr_eta": 0.1,
+        "tr_adaptive_gamma_update": True,
+        "tr_max_iterations": 200,
+    }
 
     for k in range(len(colours)):
         # Optimize the problem
@@ -108,13 +110,13 @@ def plot_it_all(problem):
             sd[0, i] = problem.x_hist[i][0]
             sd[1, i] = problem.x_hist[i][1]
 
-        plt.plot(sd[0, :], sd[1, :], colours[k],
-                 label='IP %d'%(sd.shape[1]))
-        plt.plot(sd[0, -1], sd[1, -1], '-ro')
+        plt.plot(sd[0, :], sd[1, :], colours[k], label="IP %d" % (sd.shape[1]))
+        plt.plot(sd[0, -1], sd[1, -1], "-ro")
 
     plt.legend()
     plt.axis([xlow, xhigh, xlow, xhigh])
     plt.show()
+
 
 # Create the Rosenbrock problem class
 rosen = Rosenbrock()

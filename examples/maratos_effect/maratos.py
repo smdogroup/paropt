@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from paropt import ParOpt
 import argparse
 
+
 class Maratos(ParOpt.Problem):
     def __init__(self, plot_label=False):
         self.comm = MPI.COMM_WORLD
@@ -22,30 +23,29 @@ class Maratos(ParOpt.Problem):
         self.ncon = 1
         self.nineq = 0
         self.design_counter = 0
-        super(Maratos, self).__init__(self.comm, self.nvars,
-                                      self.ncon, self.nineq)
+        super(Maratos, self).__init__(self.comm, self.nvars, self.ncon, self.nineq)
         self.plot_label = plot_label
 
     def fun(self, x):
-        return 2.0*(x[0] - 0.5)**2 + 2.0*x[1]**2
+        return 2.0 * (x[0] - 0.5) ** 2 + 2.0 * x[1] ** 2
 
     def fun_grad(self, x):
-        return np.array([4.0*x[0] - 1.0, 4.0*x[1]])
+        return np.array([4.0 * x[0] - 1.0, 4.0 * x[1]])
 
     def con(self, x):
-        return (x[0]**2 + x[1]**2) - 2.0
+        return (x[0] ** 2 + x[1] ** 2) - 2.0
 
     def con_grad(self, x):
-        return np.array([2.0*x[0], 2.0*x[1]])
+        return np.array([2.0 * x[0], 2.0 * x[1]])
 
     def plot_contour(self):
         n = 200
         x = np.linspace(-2.0, 2.0, n)
         y = np.linspace(-2.0, 2.0, n)
-        X,Y = np.meshgrid(x, y)
+        X, Y = np.meshgrid(x, y)
 
-        f = np.zeros((n,n))
-        c = np.zeros((n,n))
+        f = np.zeros((n, n))
+        c = np.zeros((n, n))
 
         for i in range(n):
             for j in range(n):
@@ -54,10 +54,10 @@ class Maratos(ParOpt.Problem):
 
         fig, ax = plt.subplots(nrows=1, ncols=1)
         ax.contour(X, Y, f, levels=100)
-        ax.contour(X, Y, c, levels=[0.0], colors=['red'])
-        plt.xlabel('x1')
-        plt.ylabel('x2')
-        ax.set_aspect('equal', 'box')
+        ax.contour(X, Y, c, levels=[0.0], colors=["red"])
+        plt.xlabel("x1")
+        plt.ylabel("x2")
+        ax.set_aspect("equal", "box")
         fig.tight_layout()
 
         self.ax = ax
@@ -66,11 +66,11 @@ class Maratos(ParOpt.Problem):
         return
 
     def plot_design(self, x):
-        plt.plot(x[0], x[1], 'b.')
+        plt.plot(x[0], x[1], "b.")
         label = str(self.design_counter)
 
         if self.plot_label:
-            self.ax.annotate(label,(x[0], x[1]))
+            self.ax.annotate(label, (x[0], x[1]))
             self.design_counter += 1
 
         return
@@ -81,7 +81,7 @@ class Maratos(ParOpt.Problem):
         x[1] = 1.0
 
         lb[:] = -10.0
-        ub[:] =  10.0
+        ub[:] = 10.0
 
         return
 
@@ -105,9 +105,9 @@ class Maratos(ParOpt.Problem):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--algorithm', type=str, default='tr')
-parser.add_argument('--no_plot', action='store_false', default=True)
-parser.add_argument('--no_label', action='store_false', default=True)
+parser.add_argument("--algorithm", type=str, default="tr")
+parser.add_argument("--no_plot", action="store_false", default=True)
+parser.add_argument("--no_label", action="store_false", default=True)
 args = parser.parse_args()
 algorithm = args.algorithm
 plot = args.no_plot
@@ -117,31 +117,32 @@ problem = Maratos(plot_label=plot_label)
 problem.plot_contour()
 
 options = {
-    'algorithm': 'tr',
-    'output_level': 2,
-    'tr_init_size': 1.0,
-    'tr_min_size': 1e-6,
-    'tr_max_size': 1e2,
-    'tr_eta': 0.25,
-    'penalty_gamma': 1e2,
-    'tr_adaptive_gamma_update': False,
-    'tr_accept_step_strategy': 'filter_method',
-    'tr_use_soc': False,
-    'tr_penalty_gamma_max': 1e5,
-    'tr_penalty_gamma_min': 1e-5,
-    'tr_max_iterations': 50,
-    'max_major_iters': 100,
-    }
+    "algorithm": "tr",
+    "output_level": 2,
+    "tr_init_size": 1.0,
+    "tr_min_size": 1e-6,
+    "tr_max_size": 1e2,
+    "tr_eta": 0.25,
+    "penalty_gamma": 1e2,
+    "tr_adaptive_gamma_update": False,
+    "tr_accept_step_strategy": "filter_method",
+    "tr_use_soc": False,
+    "tr_penalty_gamma_max": 1e5,
+    "tr_penalty_gamma_min": 1e-5,
+    "tr_max_iterations": 50,
+    "max_major_iters": 100,
+}
 
-if algorithm == 'ip':
+if algorithm == "ip":
     options = {
-            'algorithm': 'ip',
-            'qn_subspace_size': 10,
-            'abs_res_tol': 1e-6,
-            'barrier_strategy': 'monotone',
-            'output_level': 1,
-            'armijo_constant': 1e-5,
-            'max_major_iters': 500}
+        "algorithm": "ip",
+        "qn_subspace_size": 10,
+        "abs_res_tol": 1e-6,
+        "barrier_strategy": "monotone",
+        "output_level": 1,
+        "armijo_constant": 1e-5,
+        "max_major_iters": 500,
+    }
 
 opt = ParOpt.Optimizer(problem, options)
 opt.optimize()
