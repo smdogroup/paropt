@@ -85,7 +85,7 @@ jobs:
           conda install -c conda-forge lapack -q -y;
           cd $PAROPT_DIR;
           cp Makefile.in.info Makefile.in;
-          make ${{ matrix.OPTIONAL }} PAROPT_DIR=$PAROPT_DIR";
+          make ${{ matrix.OPTIONAL }} PAROPT_DIR=$PAROPT_DIR;
           cd $PAROPT_DIR;
           make ${{ matrix.INTERFACE }};
       - name: Build docs
