@@ -76,333 +76,370 @@ Options without the <code class="docutils literal notranslate"><span class="pre"
 </pre></div>
 </div>
 <p>This produces the following output:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Absolute</span> <span class="n">stopping</span> <span class="n">criterion</span>
-<span class="n">abs_res_tol</span>                              <span class="mf">1e-06</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Absolute</span> <span class="n">stopping</span> <span class="n">norm</span> <span class="n">on</span> <span class="n">the</span> <span class="n">step</span> <span class="n">size</span>
-<span class="n">abs_step_tol</span>                             <span class="mi">0</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">The</span> <span class="nb">type</span> <span class="n">of</span> <span class="n">optimization</span> <span class="n">algorithm</span>
-<span class="n">algorithm</span>                                <span class="n">tr</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span>                         <span class="n">ip</span>
-                                         <span class="n">tr</span>
-                                         <span class="n">mma</span>
-
-<span class="n">The</span> <span class="n">Armijo</span> <span class="n">constant</span> <span class="k">for</span> <span class="n">the</span> <span class="n">line</span> <span class="n">search</span>
-<span class="n">armijo_constant</span>                          <span class="mf">1e-05</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
-
-<span class="n">The</span> <span class="nb">type</span> <span class="n">of</span> <span class="n">barrier</span> <span class="n">update</span> <span class="n">strategy</span> <span class="n">to</span> <span class="n">use</span>
-<span class="n">barrier_strategy</span>                         <span class="n">monotone</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span>                         <span class="n">monotone</span>
-                                         <span class="n">mehrotra</span>
-                                         <span class="n">mehrotra_predictor_corrector</span>
-                                         <span class="n">complementarity_fraction</span>
-
-<span class="n">The</span> <span class="n">absolute</span> <span class="n">precision</span> <span class="n">of</span> <span class="n">the</span> <span class="n">design</span> <span class="n">variables</span>
-<span class="n">design_precision</span>                         <span class="mf">1e-14</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
-
-<span class="n">Exponent</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">Eisenstat</span><span class="o">-</span><span class="n">Walker</span> <span class="n">INK</span> <span class="n">forcing</span> <span class="n">equation</span>
-<span class="n">eisenstat_walker_alpha</span>                   <span class="mf">1.5</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">2</span>
-
-<span class="n">Multiplier</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">Eisenstat</span><span class="o">-</span><span class="n">Walker</span> <span class="n">INK</span> <span class="n">forcing</span> <span class="n">equation</span>
-<span class="n">eisenstat_walker_gamma</span>                   <span class="mi">1</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
-
-<span class="n">The</span> <span class="n">absolute</span> <span class="n">precision</span> <span class="n">of</span> <span class="n">the</span> <span class="n">function</span> <span class="ow">and</span> <span class="n">constraints</span>
-<span class="n">function_precision</span>                       <span class="mf">1e-10</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
-
-<span class="n">The</span> <span class="n">absolute</span> <span class="n">GMRES</span> <span class="n">tolerance</span> <span class="p">(</span><span class="n">almost</span> <span class="n">never</span> <span class="n">relevant</span><span class="p">)</span>
-<span class="n">gmres_atol</span>                               <span class="mf">1e-30</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
-
-<span class="n">The</span> <span class="n">subspace</span> <span class="n">size</span> <span class="k">for</span> <span class="n">GMRES</span>
-<span class="n">gmres_subspace_size</span>                      <span class="mi">0</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000</span>
-
-<span class="n">Step</span> <span class="n">length</span> <span class="n">used</span> <span class="n">to</span> <span class="n">check</span> <span class="n">the</span> <span class="n">gradient</span>
-<span class="n">gradient_check_step_length</span>               <span class="mf">1e-06</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
-
-<span class="n">Print</span> <span class="n">to</span> <span class="n">screen</span> <span class="n">the</span> <span class="n">output</span> <span class="n">of</span> <span class="n">the</span> <span class="n">gradient</span> <span class="n">check</span> <span class="n">at</span> <span class="n">this</span> <span class="n">frequency</span> <span class="n">during</span> <span class="n">an</span> <span class="n">optimization</span>
-<span class="n">gradient_verification_frequency</span>          <span class="o">-</span><span class="mi">1</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="o">-</span><span class="mi">1000000</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000000</span>
-
-<span class="n">Do</span> <span class="n">a</span> <span class="n">hard</span> <span class="n">reset</span> <span class="n">of</span> <span class="n">the</span> <span class="n">Hessian</span> <span class="n">at</span> <span class="n">this</span> <span class="n">specified</span> <span class="n">major</span> <span class="n">iteration</span> <span class="n">frequency</span>
-<span class="n">hessian_reset_freq</span>                       <span class="mi">1000000</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">1000000</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000000</span>
-
-<span class="n">The</span> <span class="n">initial</span> <span class="n">value</span> <span class="n">of</span> <span class="n">the</span> <span class="n">barrier</span> <span class="n">parameter</span>
-<span class="n">init_barrier_param</span>                       <span class="mf">0.1</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Initial</span> <span class="n">value</span> <span class="n">of</span> <span class="n">the</span> <span class="n">line</span> <span class="n">search</span> <span class="n">penalty</span> <span class="n">parameter</span>
-<span class="n">init_rho_penalty_search</span>                  <span class="mi">0</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Checkpoint</span> <span class="n">file</span> <span class="k">for</span> <span class="n">the</span> <span class="n">interior</span> <span class="n">point</span> <span class="n">method</span>
-<span class="n">ip_checkpoint_file</span>                       <span class="kc">None</span>
-
-<span class="n">Maximum</span> <span class="n">bound</span> <span class="n">value</span> <span class="n">at</span> <span class="n">which</span> <span class="n">bound</span> <span class="n">constraints</span> <span class="n">are</span> <span class="n">omitted</span>
-<span class="n">max_bound_value</span>                          <span class="mf">1e+20</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+300</span>
-
-<span class="n">The</span> <span class="n">maximum</span> <span class="n">relative</span> <span class="n">tolerance</span> <span class="n">used</span> <span class="k">for</span> <span class="n">GMRES</span><span class="p">,</span> <span class="n">above</span> <span class="n">this</span> <span class="n">the</span> <span class="n">quasi</span><span class="o">-</span><span class="n">Newton</span> <span class="n">approximation</span> <span class="ow">is</span> <span class="n">used</span>
-<span class="n">max_gmres_rtol</span>                           <span class="mf">0.1</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
-
-<span class="n">Maximum</span> <span class="n">number</span> <span class="n">of</span> <span class="n">line</span> <span class="n">search</span> <span class="n">iterations</span>
-<span class="n">max_line_iters</span>                           <span class="mi">10</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">1</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">100</span>
-
-<span class="n">The</span> <span class="n">maximum</span> <span class="n">number</span> <span class="n">of</span> <span class="n">major</span> <span class="n">iterations</span> <span class="n">before</span> <span class="n">quiting</span>
-<span class="n">max_major_iters</span>                          <span class="mi">5000</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000000</span>
-
-<span class="n">Minimum</span> <span class="n">fraction</span> <span class="n">to</span> <span class="n">the</span> <span class="n">boundary</span> <span class="n">rule</span> <span class="o">&lt;</span> <span class="mi">1</span>
-<span class="n">min_fraction_to_boundary</span>                 <span class="mf">0.95</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
-
-<span class="n">Minimum</span> <span class="n">value</span> <span class="n">of</span> <span class="n">the</span> <span class="n">line</span> <span class="n">search</span> <span class="n">penalty</span> <span class="n">parameter</span>
-<span class="n">min_rho_penalty_search</span>                   <span class="mi">0</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Contraction</span> <span class="n">factor</span> <span class="n">applied</span> <span class="n">to</span> <span class="n">the</span> <span class="n">asymptotes</span>
-<span class="n">mma_asymptote_contract</span>                   <span class="mf">0.7</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
-
-<span class="n">Expansion</span> <span class="n">factor</span> <span class="n">applied</span> <span class="n">to</span> <span class="n">the</span> <span class="n">asymptotes</span>
-<span class="n">mma_asymptote_relax</span>                      <span class="mf">1.2</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">1</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Relaxation</span> <span class="n">bound</span> <span class="k">for</span> <span class="n">computing</span> <span class="n">the</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">KKT</span> <span class="n">conditions</span>
-<span class="n">mma_bound_relax</span>                          <span class="mi">0</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Regularization</span> <span class="n">term</span> <span class="n">applied</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">MMA</span> <span class="n">approximation</span>
-<span class="n">mma_delta_regularization</span>                 <span class="mf">1e-05</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Regularization</span> <span class="n">term</span> <span class="n">applied</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">MMA</span> <span class="n">approximation</span>
-<span class="n">mma_eps_regularization</span>                   <span class="mf">0.001</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Infeasibility</span> <span class="n">tolerance</span>
-<span class="n">mma_infeas_tol</span>                           <span class="mf">1e-05</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Initial</span> <span class="n">aymptote</span> <span class="n">offset</span> <span class="kn">from</span> <span class="nn">the</span> <span class="n">variable</span> <span class="n">bounds</span>
-<span class="n">mma_init_asymptote_offset</span>                <span class="mf">0.25</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
-
-<span class="n">l1</span> <span class="n">tolerance</span> <span class="k">for</span> <span class="n">the</span> <span class="n">optimality</span> <span class="n">tolerance</span>
-<span class="n">mma_l1_tol</span>                               <span class="mf">1e-06</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">l</span><span class="o">-</span><span class="n">infinity</span> <span class="n">tolerance</span> <span class="k">for</span> <span class="n">the</span> <span class="n">optimality</span> <span class="n">tolerance</span>
-<span class="n">mma_linfty_tol</span>                           <span class="mf">1e-06</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Maximum</span> <span class="n">asymptote</span> <span class="n">offset</span> <span class="kn">from</span> <span class="nn">the</span> <span class="n">variable</span> <span class="n">bounds</span>
-<span class="n">mma_max_asymptote_offset</span>                 <span class="mi">10</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Maximum</span> <span class="n">number</span> <span class="n">of</span> <span class="n">iterations</span>
-<span class="n">mma_max_iterations</span>                       <span class="mi">200</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000000</span>
-
-<span class="n">Minimum</span> <span class="n">asymptote</span> <span class="n">offset</span> <span class="kn">from</span> <span class="nn">the</span> <span class="n">variable</span> <span class="n">bounds</span>
-<span class="n">mma_min_asymptote_offset</span>                 <span class="mf">0.01</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Ouput</span> <span class="n">file</span> <span class="n">name</span> <span class="k">for</span> <span class="n">MMA</span>
-<span class="n">mma_output_file</span>                          <span class="n">paropt</span><span class="o">.</span><span class="n">mma</span>
-
-<span class="n">If</span> <span class="n">false</span><span class="p">,</span> <span class="n">linearized</span> <span class="n">the</span> <span class="n">constraints</span>
-<span class="n">mma_use_constraint_linearization</span>         <span class="kc">True</span>
-
-<span class="n">Factor</span> <span class="n">applied</span> <span class="n">to</span> <span class="n">the</span> <span class="n">barrier</span> <span class="n">update</span> <span class="o">&lt;</span> <span class="mi">1</span>
-<span class="n">monotone_barrier_fraction</span>                <span class="mf">0.25</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
-
-<span class="n">Exponent</span> <span class="k">for</span> <span class="n">barrier</span> <span class="n">parameter</span> <span class="n">update</span> <span class="o">&gt;</span> <span class="mi">1</span>
-<span class="n">monotone_barrier_power</span>                   <span class="mf">1.1</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">1</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">10</span>
-
-<span class="n">Switch</span> <span class="n">to</span> <span class="n">the</span> <span class="n">Newton</span><span class="o">-</span><span class="n">Krylov</span> <span class="n">method</span> <span class="n">at</span> <span class="n">this</span> <span class="n">residual</span> <span class="n">tolerance</span>
-<span class="n">nk_switch_tol</span>                            <span class="mf">0.001</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">The</span> <span class="nb">type</span> <span class="n">of</span> <span class="n">norm</span> <span class="n">to</span> <span class="n">use</span> <span class="ow">in</span> <span class="nb">all</span> <span class="n">computations</span>
-<span class="n">norm_type</span>                                <span class="n">infinity</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span>                         <span class="n">infinity</span>
-                                         <span class="n">l1</span>
-                                         <span class="n">l2</span>
-
-<span class="n">Output</span> <span class="n">file</span> <span class="n">name</span>
-<span class="n">output_file</span>                              <span class="n">paropt</span><span class="o">.</span><span class="n">out</span>
-
-<span class="n">Output</span> <span class="n">level</span> <span class="n">indicating</span> <span class="n">how</span> <span class="n">verbose</span> <span class="n">the</span> <span class="n">output</span> <span class="n">should</span> <span class="n">be</span>
-<span class="n">output_level</span>                             <span class="mi">0</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000000</span>
-
-<span class="n">Fraction</span> <span class="n">of</span> <span class="n">infeasibility</span> <span class="n">used</span> <span class="n">to</span> <span class="n">enforce</span> <span class="n">a</span> <span class="n">descent</span> <span class="n">direction</span>
-<span class="n">penalty_descent_fraction</span>                 <span class="mf">0.3</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mf">1e-06</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
-
-<span class="n">l1</span> <span class="n">penalty</span> <span class="n">parameter</span> <span class="n">applied</span> <span class="n">to</span> <span class="n">slack</span> <span class="n">variables</span>
-<span class="n">penalty_gamma</span>                            <span class="mi">1000</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">The</span> <span class="n">problem</span> <span class="n">name</span>
-<span class="n">problem_name</span>                             <span class="kc">None</span>
-
-<span class="n">Scalar</span> <span class="n">added</span> <span class="n">to</span> <span class="n">the</span> <span class="n">diagonal</span> <span class="n">of</span> <span class="n">the</span> <span class="n">quasi</span><span class="o">-</span><span class="n">Newton</span> <span class="n">approximation</span> <span class="o">&gt;</span> <span class="mi">0</span>
-<span class="n">qn_sigma</span>                                 <span class="mi">0</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">The</span> <span class="n">maximum</span> <span class="n">dimension</span> <span class="n">of</span> <span class="n">the</span> <span class="n">quasi</span><span class="o">-</span><span class="n">Newton</span> <span class="n">approximation</span>
-<span class="n">qn_subspace_size</span>                         <span class="mi">10</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000</span>
-
-<span class="n">The</span> <span class="n">the</span> <span class="n">of</span> <span class="n">quasi</span><span class="o">-</span><span class="n">Newton</span> <span class="n">approximation</span> <span class="n">to</span> <span class="n">use</span>
-<span class="n">qn_type</span>                                  <span class="n">bfgs</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span>                         <span class="n">bfgs</span>
-                                         <span class="n">sr1</span>
-                                         <span class="n">none</span>
-
-<span class="n">The</span> <span class="nb">type</span> <span class="n">of</span> <span class="n">BFGS</span> <span class="n">update</span> <span class="n">to</span> <span class="n">apply</span> <span class="n">when</span> <span class="n">the</span> <span class="n">curvature</span> <span class="n">condition</span> <span class="n">fails</span>
-<span class="n">qn_update_type</span>                           <span class="n">skip_negative_curvature</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span>                         <span class="n">skip_negative_curvature</span>
-                                         <span class="n">damped_update</span>
-
-<span class="n">Relative</span> <span class="n">factor</span> <span class="n">applied</span> <span class="n">to</span> <span class="n">barrier</span> <span class="n">parameter</span> <span class="k">for</span> <span class="n">bound</span> <span class="n">constraints</span>
-<span class="n">rel_bound_barrier</span>                        <span class="mi">1</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Relative</span> <span class="n">function</span> <span class="n">value</span> <span class="n">stopping</span> <span class="n">criterion</span>
-<span class="n">rel_func_tol</span>                             <span class="mi">0</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Discard</span> <span class="n">the</span> <span class="n">quasi</span><span class="o">-</span><span class="n">Newton</span> <span class="n">approximation</span> <span class="p">(</span><span class="n">but</span> <span class="ow">not</span> <span class="n">necessarily</span> <span class="n">the</span> <span class="n">exact</span> <span class="n">Hessian</span><span class="p">)</span>
-<span class="n">sequential_linear_method</span>                 <span class="kc">False</span>
-
-<span class="n">Minimum</span> <span class="n">multiplier</span> <span class="k">for</span> <span class="n">the</span> <span class="n">affine</span> <span class="n">step</span> <span class="n">initialization</span> <span class="n">strategy</span>
-<span class="n">start_affine_multiplier_min</span>              <span class="mi">1</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Initialize</span> <span class="n">the</span> <span class="n">Lagrange</span> <span class="n">multiplier</span> <span class="n">estimates</span> <span class="ow">and</span> <span class="n">slack</span> <span class="n">variables</span>
-<span class="n">starting_point_strategy</span>                  <span class="n">affine_step</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span>                         <span class="n">least_squares_multipliers</span>
-                                         <span class="n">affine_step</span>
-                                         <span class="n">no_start_strategy</span>
-
-<span class="n">The</span> <span class="nb">type</span> <span class="n">of</span> <span class="n">constraint</span> <span class="n">to</span> <span class="n">use</span> <span class="k">for</span> <span class="n">the</span> <span class="n">adaptive</span> <span class="n">penalty</span> <span class="n">subproblem</span>
-<span class="n">tr_adaptive_constraint</span>                   <span class="n">linear_constraint</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span>                         <span class="n">linear_constraint</span>
-                                         <span class="n">subproblem_constraint</span>
-
-<span class="n">Adaptive</span> <span class="n">penalty</span> <span class="n">parameter</span> <span class="n">update</span>
-<span class="n">tr_adaptive_gamma_update</span>                 <span class="kc">True</span>
-
-<span class="n">The</span> <span class="nb">type</span> <span class="n">of</span> <span class="n">objective</span> <span class="n">to</span> <span class="n">use</span> <span class="k">for</span> <span class="n">the</span> <span class="n">adaptive</span> <span class="n">penalty</span> <span class="n">subproblem</span>
-<span class="n">tr_adaptive_objective</span>                    <span class="n">linear_objective</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span>                         <span class="n">constant_objective</span>
-                                         <span class="n">linear_objective</span>
-                                         <span class="n">subproblem_objective</span>
-
-<span class="n">Upper</span> <span class="ow">and</span> <span class="n">lower</span> <span class="n">bound</span> <span class="n">relaxing</span> <span class="n">parameter</span>
-<span class="n">tr_bound_relax</span>                           <span class="mf">0.0001</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Trust</span> <span class="n">region</span> <span class="n">trial</span> <span class="n">step</span> <span class="n">acceptance</span> <span class="n">ratio</span>
-<span class="n">tr_eta</span>                                   <span class="mf">0.25</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1</span>
-
-<span class="n">Infeasibility</span> <span class="n">tolerance</span>
-<span class="n">tr_infeas_tol</span>                            <span class="mf">1e-05</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">The</span> <span class="n">initial</span> <span class="n">trust</span> <span class="n">region</span> <span class="n">radius</span>
-<span class="n">tr_init_size</span>                             <span class="mf">0.1</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">l1</span> <span class="n">tolerance</span> <span class="k">for</span> <span class="n">the</span> <span class="n">optimality</span> <span class="n">tolerance</span>
-<span class="n">tr_l1_tol</span>                                <span class="mf">1e-06</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">l</span><span class="o">-</span><span class="n">infinity</span> <span class="n">tolerance</span> <span class="k">for</span> <span class="n">the</span> <span class="n">optimality</span> <span class="n">tolerance</span>
-<span class="n">tr_linfty_tol</span>                            <span class="mf">1e-06</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Maximum</span> <span class="n">number</span> <span class="n">of</span> <span class="n">trust</span> <span class="n">region</span> <span class="n">iterations</span>
-<span class="n">tr_max_iterations</span>                        <span class="mi">200</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000000</span>
-
-<span class="n">The</span> <span class="n">maximum</span> <span class="n">trust</span> <span class="n">region</span> <span class="n">radius</span>
-<span class="n">tr_max_size</span>                              <span class="mi">1</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">The</span> <span class="n">minimum</span> <span class="n">trust</span> <span class="n">region</span> <span class="n">radius</span>
-<span class="n">tr_min_size</span>                              <span class="mf">0.001</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Trust</span> <span class="n">region</span> <span class="n">output</span> <span class="n">file</span>
-<span class="n">tr_output_file</span>                           <span class="n">paropt</span><span class="o">.</span><span class="n">tr</span>
-
-<span class="n">Maximum</span> <span class="n">value</span> <span class="k">for</span> <span class="n">the</span> <span class="n">penalty</span> <span class="n">parameter</span>
-<span class="n">tr_penalty_gamma_max</span>                     <span class="mi">10000</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">Minimum</span> <span class="n">value</span> <span class="k">for</span> <span class="n">the</span> <span class="n">penalty</span> <span class="n">parameter</span>
-<span class="n">tr_penalty_gamma_min</span>                     <span class="mi">0</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mf">1e+20</span>
-
-<span class="n">The</span> <span class="n">barrier</span> <span class="n">update</span> <span class="n">strategy</span> <span class="n">to</span> <span class="n">use</span> <span class="k">for</span> <span class="n">the</span> <span class="n">steering</span> <span class="n">method</span> <span class="n">subproblem</span>
-<span class="n">tr_steering_barrier_strategy</span>             <span class="n">mehrotra_predictor_corrector</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span>                         <span class="n">monotone</span>
-                                         <span class="n">mehrotra</span>
-                                         <span class="n">mehrotra_predictor_corrector</span>
-                                         <span class="n">complementarity_fraction</span>
-                                         <span class="n">default</span>
-
-<span class="n">The</span> <span class="n">barrier</span> <span class="n">update</span> <span class="n">strategy</span> <span class="n">to</span> <span class="n">use</span> <span class="k">for</span> <span class="n">the</span> <span class="n">steering</span> <span class="n">method</span> <span class="n">subproblem</span>
-<span class="n">tr_steering_starting_point_strategy</span>      <span class="n">affine_step</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span>                         <span class="n">least_squares_multipliers</span>
-                                         <span class="n">affine_step</span>
-                                         <span class="n">no_start_strategy</span>
-                                         <span class="n">default</span>
-
-<span class="n">Write</span> <span class="n">output</span> <span class="n">frequency</span>
-<span class="n">tr_write_output_frequency</span>                <span class="mi">10</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000000</span>
-
-<span class="n">Perform</span> <span class="n">a</span> <span class="n">back</span><span class="o">-</span><span class="n">tracking</span> <span class="n">line</span> <span class="n">search</span>
-<span class="n">use_backtracking_alpha</span>                   <span class="kc">False</span>
-
-<span class="n">Use</span> <span class="ow">or</span> <span class="n">do</span> <span class="ow">not</span> <span class="n">use</span> <span class="n">the</span> <span class="n">diagonal</span> <span class="n">Hessian</span> <span class="n">computation</span>
-<span class="n">use_diag_hessian</span>                         <span class="kc">False</span>
-
-<span class="n">Use</span> <span class="ow">or</span> <span class="n">do</span> <span class="ow">not</span> <span class="n">use</span> <span class="n">Hessian</span><span class="o">-</span><span class="n">vector</span> <span class="n">products</span>
-<span class="n">use_hvec_product</span>                         <span class="kc">False</span>
-
-<span class="n">Perform</span> <span class="ow">or</span> <span class="n">skip</span> <span class="n">the</span> <span class="n">line</span> <span class="n">search</span>
-<span class="n">use_line_search</span>                          <span class="kc">True</span>
-
-<span class="n">Use</span> <span class="ow">or</span> <span class="n">do</span> <span class="ow">not</span> <span class="n">use</span> <span class="n">the</span> <span class="n">quasi</span><span class="o">-</span><span class="n">Newton</span> <span class="n">method</span> <span class="k">as</span> <span class="n">a</span> <span class="n">preconditioner</span>
-<span class="n">use_qn_gmres_precon</span>                      <span class="kc">True</span>
-
-<span class="n">Update</span> <span class="n">the</span> <span class="n">quasi</span><span class="o">-</span><span class="n">Newton</span> <span class="n">approximation</span> <span class="n">at</span> <span class="n">each</span> <span class="n">iteration</span>
-<span class="n">use_quasi_newton_update</span>                  <span class="kc">True</span>
-
-<span class="n">Write</span> <span class="n">out</span> <span class="n">the</span> <span class="n">solution</span> <span class="n">file</span> <span class="ow">and</span> <span class="n">checkpoint</span> <span class="n">file</span> <span class="n">at</span> <span class="n">this</span> <span class="n">frequency</span>
-<span class="n">write_output_frequency</span>                   <span class="mi">10</span>
-<span class="n">Range</span> <span class="n">of</span> <span class="n">values</span><span class="p">:</span> <span class="n">lower</span> <span class="n">limit</span> <span class="mi">0</span>  <span class="n">upper</span> <span class="n">limit</span> <span class="mi">1000000</span>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Absolute stopping criterion
+abs_res_tol                              1e-06          
+Range of values: lower limit 0  upper limit 1e+20
+
+Absolute stopping norm on the step size
+abs_step_tol                             0              
+Range of values: lower limit 0  upper limit 1e+20
+
+The type of optimization algorithm
+algorithm                                tr             
+Range of values:                         ip             
+                                         tr             
+                                         mma            
+
+The Armijo constant for the line search
+armijo_constant                          1e-05          
+Range of values: lower limit 0  upper limit 1
+
+The type of barrier update strategy to use
+barrier_strategy                         monotone       
+Range of values:                         monotone       
+                                         mehrotra       
+                                         mehrotra_predictor_corrector
+                                         complementarity_fraction
+
+The absolute precision of the design variables
+design_precision                         1e-14          
+Range of values: lower limit 0  upper limit 1
+
+Exponent in the Eisenstat-Walker INK forcing equation
+eisenstat_walker_alpha                   1.5            
+Range of values: lower limit 0  upper limit 2
+
+Multiplier in the Eisenstat-Walker INK forcing equation
+eisenstat_walker_gamma                   1              
+Range of values: lower limit 0  upper limit 1
+
+A small value that controls slanting envelope of the filter
+filter_gamma                             1e-05          
+Range of values: lower limit 0  upper limit 1
+
+Use feasibility restoration for filter method
+filter_has_feas_restore_phase            True           
+
+Use sufficient reduction criteria for filter
+filter_sufficient_reduction              True           
+
+The absolute precision of the function and constraints
+function_precision                       1e-10          
+Range of values: lower limit 0  upper limit 1
+
+The absolute GMRES tolerance (almost never relevant)
+gmres_atol                               1e-30          
+Range of values: lower limit 0  upper limit 1
+
+The subspace size for GMRES
+gmres_subspace_size                      0              
+Range of values: lower limit 0  upper limit 1000
+
+Step length used to check the gradient
+gradient_check_step_length               1e-06          
+Range of values: lower limit 0  upper limit 1
+
+Print to screen the output of the gradient check at this frequency during an optimization
+gradient_verification_frequency          -1             
+Range of values: lower limit -1000000  upper limit 1000000
+
+Do a hard reset of the Hessian at this specified major iteration frequency
+hessian_reset_freq                       1000000        
+Range of values: lower limit 1  upper limit 1000000
+
+The initial value of the barrier parameter
+init_barrier_param                       0.1            
+Range of values: lower limit 0  upper limit 1e+20
+
+Initial value of the line search penalty parameter
+init_rho_penalty_search                  0              
+Range of values: lower limit 0  upper limit 1e+20
+
+Checkpoint file for the interior point method
+ip_checkpoint_file                       None           
+
+Maximum bound value at which bound constraints are omitted
+max_bound_value                          1e+20          
+Range of values: lower limit 0  upper limit 1e+300
+
+The maximum relative tolerance used for GMRES, above this the quasi-Newton approximation is used
+max_gmres_rtol                           0.1            
+Range of values: lower limit 0  upper limit 1
+
+Maximum number of line search iterations
+max_line_iters                           10             
+Range of values: lower limit 1  upper limit 100
+
+The maximum number of major iterations before quiting
+max_major_iters                          5000           
+Range of values: lower limit 0  upper limit 1000000
+
+Minimum fraction to the boundary rule &lt; 1
+min_fraction_to_boundary                 0.95           
+Range of values: lower limit 0  upper limit 1
+
+Minimum value of the line search penalty parameter
+min_rho_penalty_search                   0              
+Range of values: lower limit 0  upper limit 1e+20
+
+Contraction factor applied to the asymptotes
+mma_asymptote_contract                   0.7            
+Range of values: lower limit 0  upper limit 1
+
+Expansion factor applied to the asymptotes
+mma_asymptote_relax                      1.2            
+Range of values: lower limit 1  upper limit 1e+20
+
+Relaxation bound for computing the error in the KKT conditions
+mma_bound_relax                          0              
+Range of values: lower limit 0  upper limit 1e+20
+
+Regularization term applied in the MMA approximation
+mma_delta_regularization                 0.001          
+Range of values: lower limit 0  upper limit 1e+20
+
+Regularization term applied in the MMA approximation
+mma_eps_regularization                   1e-05          
+Range of values: lower limit 0  upper limit 1e+20
+
+Infeasibility tolerance 
+mma_infeas_tol                           1e-05          
+Range of values: lower limit 0  upper limit 1e+20
+
+Initial asymptote offset from the variable bounds
+mma_init_asymptote_offset                0.5            
+Range of values: lower limit 0  upper limit 1
+
+l1 tolerance for the optimality tolerance
+mma_l1_tol                               1e-06          
+Range of values: lower limit 0  upper limit 1e+20
+
+l-infinity tolerance for the optimality tolerance
+mma_linfty_tol                           1e-06          
+Range of values: lower limit 0  upper limit 1e+20
+
+Maximum asymptote offset from the variable bounds
+mma_max_asymptote_offset                 10             
+Range of values: lower limit 0  upper limit 1e+20
+
+Maximum number of iterations
+mma_max_iterations                       200            
+Range of values: lower limit 0  upper limit 1000000
+
+Minimum asymptote offset from the variable bounds
+mma_min_asymptote_offset                 0.01           
+Range of values: lower limit 0  upper limit 1e+20
+
+Move limit for design variables to prevent oscillation
+mma_move_limit                           0.2            
+Range of values: lower limit 0  upper limit 1e+20
+
+Ouput file name for MMA
+mma_output_file                          paropt.mma     
+
+Use a linearization of the constraints in the MMA subproblem
+mma_use_constraint_linearization         False          
+
+Factor applied to the barrier update &lt; 1
+monotone_barrier_fraction                0.25           
+Range of values: lower limit 0  upper limit 1
+
+Exponent for barrier parameter update &gt; 1
+monotone_barrier_power                   1.1            
+Range of values: lower limit 1  upper limit 10
+
+Switch to the Newton-Krylov method at this residual tolerance
+nk_switch_tol                            0.001          
+Range of values: lower limit 0  upper limit 1e+20
+
+The type of norm to use in all computations
+norm_type                                infinity       
+Range of values:                         infinity       
+                                         l1             
+                                         l2             
+
+Output file name
+output_file                              paropt.out     
+
+Output level indicating how verbose the output should be
+output_level                             0              
+Range of values: lower limit 0  upper limit 1000000
+
+Fraction of infeasibility used to enforce a descent direction
+penalty_descent_fraction                 0.3            
+Range of values: lower limit 1e-06  upper limit 1
+
+l1 penalty parameter applied to slack variables
+penalty_gamma                            1000           
+Range of values: lower limit 0  upper limit 1e+20
+
+The problem name
+problem_name                             None           
+
+The type of initial diagonal to use in the quasi-Newton approximation
+qn_diag_type                             yty_over_yts   
+Range of values:                         yty_over_yts   
+                                         yts_over_sts   
+                                         inner_yty_over_yts
+                                         inner_yts_over_sts
+
+Scalar added to the diagonal of the quasi-Newton approximation &gt; 0
+qn_sigma                                 0              
+Range of values: lower limit 0  upper limit 1e+20
+
+The maximum dimension of the quasi-Newton approximation
+qn_subspace_size                         10             
+Range of values: lower limit 0  upper limit 1000
+
+The type of quasi-Newton approximation to use, note that scaled_bfgs should be only used when there&#39;s single constraint and objective is linear
+qn_type                                  bfgs           
+Range of values:                         bfgs           
+                                         scaled_bfgs    
+                                         sr1            
+                                         none           
+
+The type of BFGS update to apply when the curvature condition fails
+qn_update_type                           skip_negative_curvature
+Range of values:                         skip_negative_curvature
+                                         damped_update  
+
+Relative factor applied to barrier parameter for bound constraints
+rel_bound_barrier                        1              
+Range of values: lower limit 0  upper limit 1e+20
+
+Relative function value stopping criterion
+rel_func_tol                             0              
+Range of values: lower limit 0  upper limit 1e+20
+
+Discard the quasi-Newton approximation (but not necessarily the exact Hessian)
+sequential_linear_method                 False          
+
+Minimum multiplier for the affine step initialization strategy
+start_affine_multiplier_min              1              
+Range of values: lower limit 0  upper limit 1e+20
+
+Initialize the Lagrange multiplier estimates and slack variables
+starting_point_strategy                  affine_step    
+Range of values:                         least_squares_multipliers
+                                         affine_step    
+                                         no_start_strategy
+
+Which strategy to use to decide if a trial point can be accepted or not
+tr_accept_step_strategy                  penalty_method 
+Range of values:                         penalty_method 
+                                         filter_method  
+
+The type of constraint to use for the adaptive penalty subproblem
+tr_adaptive_constraint                   linear_constraint
+Range of values:                         linear_constraint
+                                         subproblem_constraint
+
+Adaptive penalty parameter update
+tr_adaptive_gamma_update                 True           
+
+The type of objective to use for the adaptive penalty subproblem
+tr_adaptive_objective                    linear_objective
+Range of values:                         constant_objective
+                                         linear_objective
+                                         subproblem_objective
+
+Upper and lower bound relaxing parameter
+tr_bound_relax                           0.0001         
+Range of values: lower limit 0  upper limit 1e+20
+
+Trust region trial step acceptance ratio
+tr_eta                                   0.25           
+Range of values: lower limit 0  upper limit 1
+
+Infeasibility tolerance 
+tr_infeas_tol                            1e-05          
+Range of values: lower limit 0  upper limit 1e+20
+
+The initial trust region radius
+tr_init_size                             0.1            
+Range of values: lower limit 0  upper limit 1e+20
+
+l1 tolerance for the optimality tolerance
+tr_l1_tol                                1e-06          
+Range of values: lower limit 0  upper limit 1e+20
+
+l-infinity tolerance for the optimality tolerance
+tr_linfty_tol                            1e-06          
+Range of values: lower limit 0  upper limit 1e+20
+
+Maximum number of trust region iterations
+tr_max_iterations                        200            
+Range of values: lower limit 0  upper limit 1000000
+
+The maximum trust region radius
+tr_max_size                              1              
+Range of values: lower limit 0  upper limit 1e+20
+
+Maximum number of trust region iterations
+tr_max_soc_iterations                    20             
+Range of values: lower limit 0  upper limit 1000000
+
+The minimum trust region radius
+tr_min_size                              0.001          
+Range of values: lower limit 0  upper limit 1e+20
+
+Trust region output file
+tr_output_file                           paropt.tr      
+
+Maximum value for the penalty parameter
+tr_penalty_gamma_max                     10000          
+Range of values: lower limit 0  upper limit 1e+20
+
+Minimum value for the penalty parameter
+tr_penalty_gamma_min                     0              
+Range of values: lower limit 0  upper limit 1e+20
+
+Update quasi-Newton approximation in second order correction steps
+tr_soc_update_qn                         False          
+
+The barrier update strategy to use for the steering method subproblem
+tr_steering_barrier_strategy             mehrotra_predictor_corrector
+Range of values:                         monotone       
+                                         mehrotra       
+                                         mehrotra_predictor_corrector
+                                         complementarity_fraction
+                                         default        
+
+The barrier update strategy to use for the steering method subproblem
+tr_steering_starting_point_strategy      affine_step    
+Range of values:                         least_squares_multipliers
+                                         affine_step    
+                                         no_start_strategy
+                                         default        
+
+Use second order correction when trial step is rejeccted
+tr_use_soc                               False          
+
+Write output frequency
+tr_write_output_frequency                10             
+Range of values: lower limit 0  upper limit 1000000
+
+Perform a back-tracking line search
+use_backtracking_alpha                   False          
+
+Use or do not use the diagonal Hessian computation
+use_diag_hessian                         False          
+
+Use or do not use Hessian-vector products
+use_hvec_product                         False          
+
+Perform or skip the line search
+use_line_search                          True           
+
+Use or do not use the quasi-Newton method as a preconditioner
+use_qn_gmres_precon                      True           
+
+Update the quasi-Newton approximation at each iteration
+use_quasi_newton_update                  True           
+
+Write out the solution file and checkpoint file at this frequency
+write_output_frequency                   10             
+Range of values: lower limit 0  upper limit 1000000
 </pre></div>
 </div>
 </section>
