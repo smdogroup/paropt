@@ -1,5 +1,9 @@
 [![Build, unit tests, and docs](https://github.com/smdogroup/paropt/actions/workflows/unit_tests.yml/badge.svg)](https://github.com/smdogroup/paropt/actions/workflows/unit_tests.yml)
 
+[![Anaconda-Server Badge](https://anaconda.org/smdogroup/paropt/badges/version.svg)](https://anaconda.org/smdogroup/paropt)
+[![Anaconda-Server Badge](https://anaconda.org/smdogroup/paropt/badges/platforms.svg)](https://anaconda.org/smdogroup/paropt)
+[![Anaconda-Server Badge](https://anaconda.org/smdogroup/paropt/badges/downloads.svg)](https://anaconda.org/smdogroup/paropt)
+
 # ParOpt: A parallel interior-point optimizer #
 ------------------------------------------------
 
