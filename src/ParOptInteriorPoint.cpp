@@ -4426,15 +4426,19 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
     starting_point_strategy = PAROPT_AFFINE_STEP;
   }
 
-  // Set the barrier strategy
+  // Set the barrier strategy - always start with a monotone approach then
+  // switch to the specified strategy after the first barrier problem is solved
   const char *barrier_name = options->getEnumOption("barrier_strategy");
-  ParOptBarrierStrategy barrier_strategy = PAROPT_COMPLEMENTARITY_FRACTION;
+  ParOptBarrierStrategy barrier_strategy = PAROPT_MONOTONE;
+
+  ParOptBarrierStrategy input_barrier_strategy =
+      PAROPT_COMPLEMENTARITY_FRACTION;
   if (strcmp(barrier_name, "monotone") == 0) {
-    barrier_strategy = PAROPT_MONOTONE;
+    input_barrier_strategy = PAROPT_MONOTONE;
   } else if (strcmp(barrier_name, "mehrotra") == 0) {
-    barrier_strategy = PAROPT_MEHROTRA;
+    input_barrier_strategy = PAROPT_MEHROTRA;
   } else if (strcmp(barrier_name, "mehrotra_predictor_corrector") == 0) {
-    barrier_strategy = PAROPT_MEHROTRA_PREDICTOR_CORRECTOR;
+    input_barrier_strategy = PAROPT_MEHROTRA_PREDICTOR_CORRECTOR;
   }
 
   // Set the initial barrier parameter
@@ -4650,6 +4654,9 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
     // Compute the overall norm of the KKT conditions
     double res_norm = 0.0;
 
+    // Keep tract if the monotone barrier problem has converged
+    int monotone_barrier_converged = 0;
+
     if (barrier_strategy == PAROPT_MONOTONE) {
       // Compute the residual of the KKT system
       computeKKTRes(barrier_param, norm_type, &max_prime, &max_dual,
@@ -4662,10 +4669,9 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
 
       // Set the flag to indicate whether the barrier problem has
       // converged
-      int barrier_converged = 0;
       if (k > 0 && ((res_norm < 10.0 * barrier_param) || rel_function_test ||
                     (line_search_test >= 2))) {
-        barrier_converged = 1;
+        monotone_barrier_converged = 1;
       }
 
       // Keep track of the new barrier parameter (if any). Only set the
@@ -4675,9 +4681,9 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
       double new_barrier_param = 0.0;
 
       // Broadcast the result of the test from the root processor
-      MPI_Bcast(&barrier_converged, 1, MPI_INT, opt_root, comm);
+      MPI_Bcast(&monotone_barrier_converged, 1, MPI_INT, opt_root, comm);
 
-      if (barrier_converged) {
+      if (monotone_barrier_converged) {
         const double monotone_barrier_fraction =
             options->getFloatOption("monotone_barrier_fraction");
         const double monotone_barrier_power =
@@ -5232,6 +5238,12 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
         addToInfo(sizeof(info), info, "%s ", "cmpEq");
       }
     }
+
+    // If the first problem converged, switched to the user specified barrier
+    // strategy for the remainder of the optimization
+    if (monotone_barrier_converged) {
+      barrier_strategy = input_barrier_strategy;
+    }
   }
 
   // Success - we completed the optimization
@@ -5335,6 +5347,7 @@ void ParOptInteriorPoint::initAffineStepMultipliers(ParOptNormType norm_type) {
   const int sequential_linear_method =
       options->getBoolOption("sequential_linear_method");
   const int use_qn_gmres_precon = options->getBoolOption("use_qn_gmres_precon");
+  const int use_diag_hessian = options->getBoolOption("use_diag_hessian");
 
   // Perform a preliminary estimate of the multipliers using the
   // least-squares method
@@ -5365,7 +5378,7 @@ void ParOptInteriorPoint::initAffineStepMultipliers(ParOptNormType norm_type) {
   // Set the flag which determines whether or not to use
   // the quasi-Newton method as a preconditioner
   int use_qn = 1;
-  if (sequential_linear_method || !use_qn_gmres_precon) {
+  if (sequential_linear_method || !use_qn_gmres_precon || use_diag_hessian) {
     use_qn = 0;
   }
 

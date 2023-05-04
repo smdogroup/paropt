@@ -536,6 +536,11 @@ if __name__ == "__main__":
     nyelems = 96
     Lx = 8.0
     Ly = 8.0
+
+    thermal_problem = True
+    if "elastic" in sys.argv:
+        thermal_problem = False
+
     problem = TopoAnalysis(
         nxelems,
         nyelems,
@@ -544,13 +549,20 @@ if __name__ == "__main__":
         E0=70e3,
         r0=3,
         kappa=70e3,
-        thermal_problem=True,
+        thermal_problem=thermal_problem,
         draw_figure=True,
     )
     problem.checkGradients()
 
     if "mma" in sys.argv:
-        options = {"algorithm": "mma"}
+        options = {
+            "algorithm": "mma",
+            "max_major_iters": 100,
+            "abs_res_tol": 1e-8,
+            "starting_point_strategy": "affine_step",
+            "barrier_strategy": "mehrotra_predictor_corrector",
+            "use_line_search": False,
+        }
     else:
         options = {
             "algorithm": "tr",
@@ -569,7 +581,7 @@ if __name__ == "__main__":
             "qn_type": "bfgs",
             "abs_res_tol": 1e-8,
             "starting_point_strategy": "affine_step",
-            "barrier_strategy": "mehrotra_predictor_corrector",
+            "barrier_strategy": "mehrotra",
             "use_line_search": False,
         }
 
