@@ -51,6 +51,7 @@ extensions = [
     "sphinx.ext.githubpages",
     "sphinx.ext.mathjax",
     "sphinxcontrib.bibtex",
+    "sphinxcontrib.programoutput",
 ]
 
 # Breathe configuration
