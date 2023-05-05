@@ -96,6 +96,7 @@ optional_dependencies = {
     "docs": [
         "sphinx",
         "breathe",
+        "sphinx-rtd-theme",
         "sphinxcontrib-programoutput",
         "sphinxcontrib-bibtex",
     ],
