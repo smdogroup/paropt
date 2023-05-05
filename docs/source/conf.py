@@ -20,8 +20,8 @@ sys.path.insert(0, os.path.abspath("../paropt"))
 
 # -- Project information -----------------------------------------------------
 
-project = "paropt"
-copyright = "2019, Graeme Kennedy"
+project = "ParOpt"
+copyright = "2023, Graeme Kennedy"
 author = "Graeme Kennedy"
 
 # The short X.Y version
@@ -83,7 +83,7 @@ language = "python"
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = "sphinx"
+# pygments_style = "default"
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -94,7 +94,7 @@ pygments_style = "sphinx"
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = "sphinxdoc"
+html_theme = "sphinx_rtd_theme"
 
 # Add any paths that contain custom themes here, relative to this directory.
 
@@ -102,7 +102,7 @@ html_theme = "sphinxdoc"
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+# html_theme_options = {"rightsidebar": "true"}
 
 bibtex_bibfiles = ["../refs.bib"]
 
