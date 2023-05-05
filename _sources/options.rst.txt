@@ -27,6 +27,8 @@ The optimizer interface is generally executed as follows:
 
 Switching the above optimization problem to use the interior-point method or the method of moving asymptotes will be as simple as specifying ``'ip'`` or ``'mma'`` as the argument associated with ``'algorithm'``.
 
+.. _options-label:
+
 Options
 -------
 

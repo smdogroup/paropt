@@ -18,7 +18,7 @@ ParOpt is designed to solve optimization problems that take the form:
 
 where :math:`x` is a vector of distributed design variables with lower and upper bounds :math:`l` and :math:`u`.
 The constraints :math:`c(x)`, which we refer to as dense constraints, are a small number of global constraints.
-The constraints :math:`c_{w}(x)` are sparse and separable, where their Jacobian :math:`A_{w}(x) = \nabla c_{w}(x)`.
+The constraints :math:`c_{w}(x)` are sparse and separable, with the Jacobian :math:`A_{w}(x) = \nabla c_{w}(x)`.
 The separable constraints satisfy the property that the matrix :math:`A_{w} C A_{w}^{T}` is block diagonal when :math:`C` is a diagonal matrix.
 
 Quick example
@@ -75,6 +75,64 @@ The following code is an example of ParOpt applied to the optimization problem:
     opt.optimize()
     x, z, zw, zl, zw = opt.getOptimizedPoint()
 
+Recommended settings
+--------------------
+
+Often the default options work well. A complete description of the options is described :ref:`here<options-label>`.
+
+For the trust region algorithm, we recommend starting with the following set of parameters.
+These control the trust region algorithm and the interior point solution algorithm that solves the trust region subproblems.
+Different globalization strategies are implemented with the trust region method.
+These control how the :math:`\ell_{1}` penalty parameters are updated.
+A filter globalization strategy is also implemented.
+
+.. code-block:: python
+
+    options = {
+        "algorithm": "tr",
+        "tr_output_file": "paropt.tr",  # Trust region output file
+        "output_file": "paropt.out",  # Interior point output file
+        "tr_max_iterations": 100,  # Maximum number of trust region iterations
+        "tr_infeas_tol": 1e-6,  # Feasibility tolerace
+        "tr_l1_tol": 1e-5,  # l1 norm for the KKT conditions
+        "tr_linfty_tol": 1e-5,  # l-infinity norm for the KKT conditions
+        "tr_init_size": 0.05,  # Initial trust region radius
+        "tr_min_size": 1e-6,  # Minimum trust region radius size
+        "tr_max_size": 10.0,  # Max trust region radius size
+        "tr_eta": 0.25,  # Trust region step acceptance ratio
+        "tr_adaptive_gamma_update": True,  # Use an adaptive update strategy for the penalty
+        "max_major_iters": 100,  # Maximum number of iterations for the IP subproblem solver
+        "qn_subspace_size": 10,  # Subspace size for the quasi-Newton method
+        "qn_type": "bfgs",  # Type of quasi-Newton Hessian approximation
+        "abs_res_tol": 1e-8,  # Tolerance for the subproblem
+        "starting_point_strategy": "affine_step",  # Starting point strategy for the IP
+        "barrier_strategy": "mehrotra",  # Barrier strategy for the IP
+        "use_line_search": False,  # Don't useline searches for the subproblem
+    }
+
+For MMA, we recommend starting with the settings shown below.
+These settings set the primary MMA parameters as well as several key interior point parameters that control the manner in which the subproblems are solved.
+Options that begin with `mma_` control the output file name, maximum iterations, feasibility and optimality tolerances for the outer iterations.
+The options `max_major_iters`, `abs_res_tol`, `starting_point_strategy`, `barrier_strategy` and `use_line_search` all are passed to the interior point method.
+These suggested settings are selected to solve each subproblem to a tight tolerance.
+
+.. code-block:: python
+
+    options = {
+        "algorithm": "mma",
+        "mma_output_file": "paropt.mma",  # MMA output file name
+        "output_file": "paropt.out",  # Interior point output file
+        "mma_max_iterations": 100,  # Maximum number of iterations for MMA
+        "mma_infeas_tol": 1e-6,  # Feasibility tolerance for MMA
+        "mma_l1_tol": 1e-5,  # l1 tolerance on the on the KKT conditions for MMA
+        "mma_linfty_tol" : 1e-5,  # l-infinity tolerance on the KKT conditions for MMA
+        "max_major_iters": 100,  # Max iterations for each subproblem
+        "abs_res_tol": 1e-8,  # Tolerance for each subproblem
+        "starting_point_strategy": "affine_step",  # IP initialization strategy
+        "barrier_strategy": "mehrotra",  # IP barrier strategy
+        "use_line_search": False,  # Don't use line searches on the subproblem
+    }
+
 Please cite us
 --------------
 
@@ -98,20 +156,19 @@ The installation process for ParOpt consists of first compiling the C++ source a
 The C++ source requires a BLAS/LAPACK installation and a MPI compiler for C++.
 Using the Python interface additional requires numpy, mpi4py and Cython.
 
-Currently ParOpt does not use an build system so all options are set in the file "Makefile.in".
-Default settings for these options are contained within the file "Makefile.in.info".
-The first step in compling ParOpt is to first copy the file "Makefile.in.info" to "Makefile.in".
+Currently ParOpt does not use an build system so all options are set in the file ``Makefile.in``.
+Default settings for these options are contained within the file ``Makefile.in.info```.
+The first step in compling ParOpt is to first copy the file ``Makefile.in.info`` to ``Makefile.in``.
 
-Key parameters that should be set within the "Makefile.in" file are:
+Key parameters that should be set within the ``Makefile.in`` file are:
 
-1) "PAROPT_DIR" the root ParOpt directory
-2) "CXX" the MPI-enabled C++ compiler
-3) "LAPACK_LIBS" the link command for the BLAS/LAPACK libraries
+1) ``PAROPT_DIR`` the root ParOpt directory
+2) ``CXX`` the MPI-enabled C++ compiler
+3) ``LAPACK_LIBS`` the link command for the BLAS/LAPACK libraries
 
-By default, the shared and static library are complied to the directory "PAROPT_DIR/lib".
+By default, the shared and static library are complied to the directory ``PAROPT_DIR/lib``.
 
-Installation of the python interface is performed using the "setup.py" script.
-The recommended python installation command "python setup.py build_ext --inplace" can be executed by typing "make interface" in the root directory.
+Installation of the python interface is performed using ``pip install -e .\[all\]``.
 
 Introduction and examples
 =========================

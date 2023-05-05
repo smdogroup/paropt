@@ -1,91 +1,160 @@
 <!DOCTYPE html>
+<html class="writer-html5" lang="python" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
-<html lang="python">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
-
-    <title>Class reference &#8212; paropt  documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="_static/sphinxdoc.css" />
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-    <script src="_static/doctools.js"></script>
-    <script src="_static/sphinx_highlight.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Class reference &mdash; ParOpt  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="prev" title="Parallel OpenMDAO example" href="parallel_openmdao_example.html" /> 
-  </head><body>
-    <div class="related" role="navigation" aria-label="related navigation">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             accesskey="I">index</a></li>
-        <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="parallel_openmdao_example.html" title="Parallel OpenMDAO example"
-             accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li>
-        <li class="nav-item nav-item-this"><a href="">Class reference</a></li> 
-      </ul>
-    </div>  
+</head>
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          <div class="body" role="main">
-            
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ParOpt
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="options.html">Options and generic interface for ParOpt optimziers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rosenbrock.html">Rosenbrock example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sellar.html">Sellar problem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parallel_rosenbrock.html">Parallel Rosenbrock</a></li>
+<li class="toctree-l1"><a class="reference internal" href="openmdao_example.html">OpenMDAO example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parallel_openmdao_example.html">Parallel OpenMDAO example</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Class reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#paropt.get_cython_include"><code class="docutils literal notranslate"><span class="pre">get_cython_include()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#paropt.get_include"><code class="docutils literal notranslate"><span class="pre">get_include()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#paropt.get_libraries"><code class="docutils literal notranslate"><span class="pre">get_libraries()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#paropt.ParOpt.getOptionsInfo"><code class="docutils literal notranslate"><span class="pre">getOptionsInfo()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#paropt.ParOpt.printOptionSummary"><code class="docutils literal notranslate"><span class="pre">printOptionSummary()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#paropt.ParOpt.unpack_checkpoint"><code class="docutils literal notranslate"><span class="pre">unpack_checkpoint()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#paropt.ParOpt.unpack_mma_output"><code class="docutils literal notranslate"><span class="pre">unpack_mma_output()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#paropt.ParOpt.unpack_output"><code class="docutils literal notranslate"><span class="pre">unpack_output()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#paropt.ParOpt.unpack_tr_2nd_output"><code class="docutils literal notranslate"><span class="pre">unpack_tr_2nd_output()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#paropt.ParOpt.unpack_tr_output"><code class="docutils literal notranslate"><span class="pre">unpack_tr_output()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#paropt.ParOpt.Optimizer"><code class="docutils literal notranslate"><span class="pre">Optimizer</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#paropt.ParOpt.Optimizer.getOptimizedPoint"><code class="docutils literal notranslate"><span class="pre">Optimizer.getOptimizedPoint()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#paropt.ParOpt.PVec"><code class="docutils literal notranslate"><span class="pre">PVec</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#paropt.ParOpt.PVec.copyValues"><code class="docutils literal notranslate"><span class="pre">PVec.copyValues()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#paropt.ParOpt.PVec.dot"><code class="docutils literal notranslate"><span class="pre">PVec.dot()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#paropt.ParOpt.PVec.l1norm"><code class="docutils literal notranslate"><span class="pre">PVec.l1norm()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#paropt.ParOpt.PVec.maxabs"><code class="docutils literal notranslate"><span class="pre">PVec.maxabs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#paropt.ParOpt.PVec.norm"><code class="docutils literal notranslate"><span class="pre">PVec.norm()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#paropt.ParOpt.PVec.zeroEntries"><code class="docutils literal notranslate"><span class="pre">PVec.zeroEntries()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#paropt.ParOpt.InteriorPoint"><code class="docutils literal notranslate"><span class="pre">InteriorPoint</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#paropt.ParOpt.InteriorPoint.getOptimizedPoint"><code class="docutils literal notranslate"><span class="pre">InteriorPoint.getOptimizedPoint()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#paropt.ParOpt.InteriorPoint.getOptimizedSlacks"><code class="docutils literal notranslate"><span class="pre">InteriorPoint.getOptimizedSlacks()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#paropt.ParOpt.TrustRegion"><code class="docutils literal notranslate"><span class="pre">TrustRegion</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#paropt.ParOpt.TrustRegion.getOptimizedPoint"><code class="docutils literal notranslate"><span class="pre">TrustRegion.getOptimizedPoint()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ParOpt</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Class reference</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
   <section id="module-paropt">
-<span id="class-reference"></span><h1>Class reference<a class="headerlink" href="#module-paropt" title="Permalink to this heading">¶</a></h1>
+<span id="class-reference"></span><h1>Class reference<a class="headerlink" href="#module-paropt" title="Permalink to this heading"></a></h1>
 <p>ParOpt is an interior point optimizer</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="paropt.get_cython_include">
-<span class="sig-prename descclassname"><span class="pre">paropt.</span></span><span class="sig-name descname"><span class="pre">get_cython_include</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/paropt.html#get_cython_include"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paropt.get_cython_include" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">paropt.</span></span><span class="sig-name descname"><span class="pre">get_cython_include</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/paropt.html#get_cython_include"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paropt.get_cython_include" title="Permalink to this definition"></a></dt>
 <dd><p>Get the include directory for the Cython .pxd files in ParOpt</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="paropt.get_include">
-<span class="sig-prename descclassname"><span class="pre">paropt.</span></span><span class="sig-name descname"><span class="pre">get_include</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/paropt.html#get_include"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paropt.get_include" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">paropt.</span></span><span class="sig-name descname"><span class="pre">get_include</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/paropt.html#get_include"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paropt.get_include" title="Permalink to this definition"></a></dt>
 <dd><p>Get the include directory for the Cython .pxd files in ParOpt</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="paropt.get_libraries">
-<span class="sig-prename descclassname"><span class="pre">paropt.</span></span><span class="sig-name descname"><span class="pre">get_libraries</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/paropt.html#get_libraries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paropt.get_libraries" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">paropt.</span></span><span class="sig-name descname"><span class="pre">get_libraries</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/paropt.html#get_libraries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paropt.get_libraries" title="Permalink to this definition"></a></dt>
 <dd><p>Get the library directories</p>
 </dd></dl>
 
 <span class="target" id="module-paropt.ParOpt"></span><dl class="py function">
 <dt class="sig sig-object py" id="paropt.ParOpt.getOptionsInfo">
-<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">getOptionsInfo</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.getOptionsInfo" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">getOptionsInfo</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.getOptionsInfo" title="Permalink to this definition"></a></dt>
 <dd><p>Get a dictionary that contains all of the option values and information
 that are used in any of the ParOpt optimizers.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="paropt.ParOpt.printOptionSummary">
-<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">printOptionSummary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.printOptionSummary" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">printOptionSummary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.printOptionSummary" title="Permalink to this definition"></a></dt>
 <dd><p>Print a summary of all the options available within all ParOpt optimizers.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="paropt.ParOpt.unpack_checkpoint">
-<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_checkpoint</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_checkpoint" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_checkpoint</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_checkpoint" title="Permalink to this definition"></a></dt>
 <dd><p>Convert the checkpoint file to usable python objects</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="paropt.ParOpt.unpack_mma_output">
-<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_mma_output</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_mma_output" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_mma_output</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_mma_output" title="Permalink to this definition"></a></dt>
 <dd><p>Unpack the parameters from a file output from MMA</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="paropt.ParOpt.unpack_output">
-<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_output</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_output" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_output</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_output" title="Permalink to this definition"></a></dt>
 <dd><p>Unpack the parameters from the paropt output file and return them
 in a list of numpy arrays. This also returns a small string
 description from the file itself. This code relies ont he
@@ -94,7 +163,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="paropt.ParOpt.unpack_tr_2nd_output">
-<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_tr_2nd_output</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_tr_2nd_output" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_tr_2nd_output</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_tr_2nd_output" title="Permalink to this definition"></a></dt>
 <dd><p>Unpack actual/predicted reduction of function and
 constraint, note that this will only work when
 output_level &gt; 0, which need to be checked by user</p>
@@ -102,7 +171,7 @@ output_level &gt; 0, which need to be checked by user</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="paropt.ParOpt.unpack_tr_output">
-<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_tr_output</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_tr_output" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_tr_output</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_tr_output" title="Permalink to this definition"></a></dt>
 <dd><p>Unpack the parameters from the paropt output file and return them
 in a list of numpy arrays. This also returns a small string
 description from the file itself. This code relies ont he
@@ -111,10 +180,10 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="paropt.ParOpt.Optimizer">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">Optimizer</span></span><a class="headerlink" href="#paropt.ParOpt.Optimizer" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">Optimizer</span></span><a class="headerlink" href="#paropt.ParOpt.Optimizer" title="Permalink to this definition"></a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="paropt.ParOpt.Optimizer.getOptimizedPoint">
-<span class="sig-name descname"><span class="pre">getOptimizedPoint</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.Optimizer.getOptimizedPoint" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">getOptimizedPoint</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.Optimizer.getOptimizedPoint" title="Permalink to this definition"></a></dt>
 <dd><p>Get the optimized solution in PVec form for interpolation purposes</p>
 </dd></dl>
 
@@ -122,40 +191,40 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="paropt.ParOpt.PVec">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">PVec</span></span><a class="headerlink" href="#paropt.ParOpt.PVec" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">PVec</span></span><a class="headerlink" href="#paropt.ParOpt.PVec" title="Permalink to this definition"></a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="paropt.ParOpt.PVec.copyValues">
-<span class="sig-name descname"><span class="pre">copyValues</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.copyValues" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">copyValues</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.copyValues" title="Permalink to this definition"></a></dt>
 <dd><p>Copy values from the provided PVec</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="paropt.ParOpt.PVec.dot">
-<span class="sig-name descname"><span class="pre">dot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.dot" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">dot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.dot" title="Permalink to this definition"></a></dt>
 <dd><p>Compute the dot product with the provided PVec</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="paropt.ParOpt.PVec.l1norm">
-<span class="sig-name descname"><span class="pre">l1norm</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.l1norm" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">l1norm</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.l1norm" title="Permalink to this definition"></a></dt>
 <dd><p>Compute the l1 norm of the vector</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="paropt.ParOpt.PVec.maxabs">
-<span class="sig-name descname"><span class="pre">maxabs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.maxabs" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">maxabs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.maxabs" title="Permalink to this definition"></a></dt>
 <dd><p>Compute the linfty norm of the vector</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="paropt.ParOpt.PVec.norm">
-<span class="sig-name descname"><span class="pre">norm</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.norm" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">norm</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.norm" title="Permalink to this definition"></a></dt>
 <dd><p>Compute the l2 norm of the vector</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="paropt.ParOpt.PVec.zeroEntries">
-<span class="sig-name descname"><span class="pre">zeroEntries</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.zeroEntries" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">zeroEntries</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.zeroEntries" title="Permalink to this definition"></a></dt>
 <dd><p>Zero the values</p>
 </dd></dl>
 
@@ -163,16 +232,16 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="paropt.ParOpt.InteriorPoint">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">InteriorPoint</span></span><a class="headerlink" href="#paropt.ParOpt.InteriorPoint" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">InteriorPoint</span></span><a class="headerlink" href="#paropt.ParOpt.InteriorPoint" title="Permalink to this definition"></a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="paropt.ParOpt.InteriorPoint.getOptimizedPoint">
-<span class="sig-name descname"><span class="pre">getOptimizedPoint</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.InteriorPoint.getOptimizedPoint" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">getOptimizedPoint</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.InteriorPoint.getOptimizedPoint" title="Permalink to this definition"></a></dt>
 <dd><p>Get the optimized solution in PVec form for interpolation purposes</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="paropt.ParOpt.InteriorPoint.getOptimizedSlacks">
-<span class="sig-name descname"><span class="pre">getOptimizedSlacks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.InteriorPoint.getOptimizedSlacks" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">getOptimizedSlacks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.InteriorPoint.getOptimizedSlacks" title="Permalink to this definition"></a></dt>
 <dd><p>Get the optimized slack variables from the problem</p>
 </dd></dl>
 
@@ -180,10 +249,10 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="paropt.ParOpt.TrustRegion">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">TrustRegion</span></span><a class="headerlink" href="#paropt.ParOpt.TrustRegion" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">TrustRegion</span></span><a class="headerlink" href="#paropt.ParOpt.TrustRegion" title="Permalink to this definition"></a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="paropt.ParOpt.TrustRegion.getOptimizedPoint">
-<span class="sig-name descname"><span class="pre">getOptimizedPoint</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.TrustRegion.getOptimizedPoint" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">getOptimizedPoint</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.TrustRegion.getOptimizedPoint" title="Permalink to this definition"></a></dt>
 <dd><p>Get the optimized solution in PVec form for interpolation purposes</p>
 </dd></dl>
 
@@ -191,13 +260,13 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv413ParOptProblem">
-<span id="_CPPv313ParOptProblem"></span><span id="_CPPv213ParOptProblem"></span><span id="ParOptProblem"></span><span class="target" id="class_par_opt_problem"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ParOptProblem</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">ParOptBase</span></span><a class="headerlink" href="#_CPPv413ParOptProblem" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv313ParOptProblem"></span><span id="_CPPv213ParOptProblem"></span><span id="ParOptProblem"></span><span class="target" id="class_par_opt_problem"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ParOptProblem</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">ParOptBase</span></span><a class="headerlink" href="#_CPPv413ParOptProblem" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Subclassed by CyParOptProblem, ParOptInfeasSubproblem, ParOptMMA, ParOptTrustRegionSubproblem</p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem13ParOptProblemE8MPI_Comm">
-<span id="_CPPv3N13ParOptProblem13ParOptProblemE8MPI_Comm"></span><span id="_CPPv2N13ParOptProblem13ParOptProblemE8MPI_Comm"></span><span id="ParOptProblem::ParOptProblem__MPI_Comm"></span><span class="target" id="class_par_opt_problem_1ac9257c2b7c7e21e44cf1e21c902a5ba3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ParOptProblem</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MPI_Comm</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_comm</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem13ParOptProblemE8MPI_Comm" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem13ParOptProblemE8MPI_Comm"></span><span id="_CPPv2N13ParOptProblem13ParOptProblemE8MPI_Comm"></span><span id="ParOptProblem::ParOptProblem__MPI_Comm"></span><span class="target" id="class_par_opt_problem_1ac9257c2b7c7e21e44cf1e21c902a5ba3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ParOptProblem</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MPI_Comm</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_comm</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem13ParOptProblemE8MPI_Comm" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Create an empty <a class="reference internal" href="#class_par_opt_problem"><span class="std std-ref">ParOptProblem</span></a> class without defining the problem layout.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -208,7 +277,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem13ParOptProblemE8MPI_Commiiiii">
-<span id="_CPPv3N13ParOptProblem13ParOptProblemE8MPI_Commiiiii"></span><span id="_CPPv2N13ParOptProblem13ParOptProblemE8MPI_Commiiiii"></span><span id="ParOptProblem::ParOptProblem__MPI_Comm.i.i.i.i.i"></span><span class="target" id="class_par_opt_problem_1aea191f71b8f3dd25efe10f15df9a7265"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ParOptProblem</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MPI_Comm</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_comm</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_nvars</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_ncon</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_ninequality</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_nwcon</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_nwblock</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem13ParOptProblemE8MPI_Commiiiii" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem13ParOptProblemE8MPI_Commiiiii"></span><span id="_CPPv2N13ParOptProblem13ParOptProblemE8MPI_Commiiiii"></span><span id="ParOptProblem::ParOptProblem__MPI_Comm.i.i.i.i.i"></span><span class="target" id="class_par_opt_problem_1aea191f71b8f3dd25efe10f15df9a7265"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ParOptProblem</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">MPI_Comm</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_comm</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_nvars</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_ncon</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_ninequality</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_nwcon</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_nwblock</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem13ParOptProblemE8MPI_Commiiiii" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Create a <a class="reference internal" href="#class_par_opt_problem"><span class="std std-ref">ParOptProblem</span></a> class and define the problem layout.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -226,7 +295,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem15createDesignVecEv">
-<span id="_CPPv3N13ParOptProblem15createDesignVecEv"></span><span id="_CPPv2N13ParOptProblem15createDesignVecEv"></span><span id="ParOptProblem::createDesignVec"></span><span class="target" id="class_par_opt_problem_1a27a58689897252ba1aeaf2e5c1b1fd32"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">createDesignVec</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem15createDesignVecEv" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem15createDesignVecEv"></span><span id="_CPPv2N13ParOptProblem15createDesignVecEv"></span><span id="ParOptProblem::createDesignVec"></span><span class="target" id="class_par_opt_problem_1a27a58689897252ba1aeaf2e5c1b1fd32"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">createDesignVec</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem15createDesignVecEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Create a new distributed design vector</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -237,7 +306,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem19createConstraintVecEv">
-<span id="_CPPv3N13ParOptProblem19createConstraintVecEv"></span><span id="_CPPv2N13ParOptProblem19createConstraintVecEv"></span><span id="ParOptProblem::createConstraintVec"></span><span class="target" id="class_par_opt_problem_1a50d80faca1bfa90ea0b6acb1b2b199ca"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">createConstraintVec</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem19createConstraintVecEv" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem19createConstraintVecEv"></span><span id="_CPPv2N13ParOptProblem19createConstraintVecEv"></span><span id="ParOptProblem::createConstraintVec"></span><span class="target" id="class_par_opt_problem_1a50d80faca1bfa90ea0b6acb1b2b199ca"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">createConstraintVec</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem19createConstraintVecEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Create a new distributed sparse constraint vector</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -248,7 +317,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem10getMPICommEv">
-<span id="_CPPv3N13ParOptProblem10getMPICommEv"></span><span id="_CPPv2N13ParOptProblem10getMPICommEv"></span><span id="ParOptProblem::getMPIComm"></span><span class="target" id="class_par_opt_problem_1a321ae5aebdf240076c749b7f14e1934c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">MPI_Comm</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getMPIComm</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem10getMPICommEv" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem10getMPICommEv"></span><span id="_CPPv2N13ParOptProblem10getMPICommEv"></span><span id="ParOptProblem::getMPIComm"></span><span class="target" id="class_par_opt_problem_1a321ae5aebdf240076c749b7f14e1934c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">MPI_Comm</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getMPIComm</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem10getMPICommEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get the communicator for the problem</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -259,7 +328,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem15setProblemSizesEiiiii">
-<span id="_CPPv3N13ParOptProblem15setProblemSizesEiiiii"></span><span id="_CPPv2N13ParOptProblem15setProblemSizesEiiiii"></span><span id="ParOptProblem::setProblemSizes__i.i.i.i.i"></span><span class="target" id="class_par_opt_problem_1a05bb78f6045a8366713283e00c8c9e2d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setProblemSizes</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_nvars</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_ncon</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_ninequality</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_nwcon</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_nwblock</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem15setProblemSizesEiiiii" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem15setProblemSizesEiiiii"></span><span id="_CPPv2N13ParOptProblem15setProblemSizesEiiiii"></span><span id="ParOptProblem::setProblemSizes__i.i.i.i.i"></span><span class="target" id="class_par_opt_problem_1a05bb78f6045a8366713283e00c8c9e2d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setProblemSizes</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_nvars</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_ncon</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_ninequality</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_nwcon</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_nwblock</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem15setProblemSizesEiiiii" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the problem size</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -276,7 +345,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem15getProblemSizesEPiPiPiPiPi">
-<span id="_CPPv3N13ParOptProblem15getProblemSizesEPiPiPiPiPi"></span><span id="_CPPv2N13ParOptProblem15getProblemSizesEPiPiPiPiPi"></span><span id="ParOptProblem::getProblemSizes__iP.iP.iP.iP.iP"></span><span class="target" id="class_par_opt_problem_1a63f1605b037351d86b55cff36b05fdf8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getProblemSizes</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_nvars</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_ncon</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_ninequality</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_nwcon</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_nwblock</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem15getProblemSizesEPiPiPiPiPi" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem15getProblemSizesEPiPiPiPiPi"></span><span id="_CPPv2N13ParOptProblem15getProblemSizesEPiPiPiPiPi"></span><span id="ParOptProblem::getProblemSizes__iP.iP.iP.iP.iP"></span><span class="target" id="class_par_opt_problem_1a63f1605b037351d86b55cff36b05fdf8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getProblemSizes</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_nvars</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_ncon</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_ninequality</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_nwcon</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_nwblock</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem15getProblemSizesEPiPiPiPiPi" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get the problem size</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -293,7 +362,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem18isSparseInequalityEv">
-<span id="_CPPv3N13ParOptProblem18isSparseInequalityEv"></span><span id="_CPPv2N13ParOptProblem18isSparseInequalityEv"></span><span id="ParOptProblem::isSparseInequality"></span><span class="target" id="class_par_opt_problem_1a5aab3bfbfce4d47dcb321c4e0354d9ee"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isSparseInequality</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem18isSparseInequalityEv" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem18isSparseInequalityEv"></span><span id="_CPPv2N13ParOptProblem18isSparseInequalityEv"></span><span id="ParOptProblem::isSparseInequality"></span><span class="target" id="class_par_opt_problem_1a5aab3bfbfce4d47dcb321c4e0354d9ee"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isSparseInequality</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem18isSparseInequalityEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Are the dense constraints inequalities? Default is true.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -304,7 +373,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem14useLowerBoundsEv">
-<span id="_CPPv3N13ParOptProblem14useLowerBoundsEv"></span><span id="_CPPv2N13ParOptProblem14useLowerBoundsEv"></span><span id="ParOptProblem::useLowerBounds"></span><span class="target" id="class_par_opt_problem_1afb8b5cb71e738c4777a349d024845498"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">useLowerBounds</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem14useLowerBoundsEv" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem14useLowerBoundsEv"></span><span id="_CPPv2N13ParOptProblem14useLowerBoundsEv"></span><span id="ParOptProblem::useLowerBounds"></span><span class="target" id="class_par_opt_problem_1afb8b5cb71e738c4777a349d024845498"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">useLowerBounds</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem14useLowerBoundsEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Indicate whether to use the lower variable bounds. Default is true.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -315,7 +384,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem14useUpperBoundsEv">
-<span id="_CPPv3N13ParOptProblem14useUpperBoundsEv"></span><span id="_CPPv2N13ParOptProblem14useUpperBoundsEv"></span><span id="ParOptProblem::useUpperBounds"></span><span class="target" id="class_par_opt_problem_1a1100418c2bfc8ef00d79540643eff493"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">useUpperBounds</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem14useUpperBoundsEv" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem14useUpperBoundsEv"></span><span id="_CPPv2N13ParOptProblem14useUpperBoundsEv"></span><span id="ParOptProblem::useUpperBounds"></span><span class="target" id="class_par_opt_problem_1a1100418c2bfc8ef00d79540643eff493"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">useUpperBounds</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem14useUpperBoundsEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Indicate whether to use the upper variable bounds. Default is true.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -326,7 +395,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem16getVarsAndBoundsEP9ParOptVecP9ParOptVecP9ParOptVec">
-<span id="_CPPv3N13ParOptProblem16getVarsAndBoundsEP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem16getVarsAndBoundsEP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::getVarsAndBounds__ParOptVecP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1a7c0b37f9a0f711318f9d5dc3a5bb43ab"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getVarsAndBounds</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">lb</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ub</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N13ParOptProblem16getVarsAndBoundsEP9ParOptVecP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem16getVarsAndBoundsEP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem16getVarsAndBoundsEP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::getVarsAndBounds__ParOptVecP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1a7c0b37f9a0f711318f9d5dc3a5bb43ab"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getVarsAndBounds</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">lb</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ub</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N13ParOptProblem16getVarsAndBoundsEP9ParOptVecP9ParOptVecP9ParOptVec" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get the initial variable values and bounds for the problem</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -341,7 +410,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem10evalObjConEP9ParOptVecP12ParOptScalarP12ParOptScalar">
-<span id="_CPPv3N13ParOptProblem10evalObjConEP9ParOptVecP12ParOptScalarP12ParOptScalar"></span><span id="_CPPv2N13ParOptProblem10evalObjConEP9ParOptVecP12ParOptScalarP12ParOptScalar"></span><span id="ParOptProblem::evalObjCon__ParOptVecP.ParOptScalarP.ParOptScalarP"></span><span class="target" id="class_par_opt_problem_1a57b75d26141f9470e409186155748c15"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">evalObjCon</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">fobj</span></span>, <span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">cons</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N13ParOptProblem10evalObjConEP9ParOptVecP12ParOptScalarP12ParOptScalar" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem10evalObjConEP9ParOptVecP12ParOptScalarP12ParOptScalar"></span><span id="_CPPv2N13ParOptProblem10evalObjConEP9ParOptVecP12ParOptScalarP12ParOptScalar"></span><span id="ParOptProblem::evalObjCon__ParOptVecP.ParOptScalarP.ParOptScalarP"></span><span class="target" id="class_par_opt_problem_1a57b75d26141f9470e409186155748c15"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">evalObjCon</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">fobj</span></span>, <span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">cons</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N13ParOptProblem10evalObjConEP9ParOptVecP12ParOptScalarP12ParOptScalar" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Evaluate the objective and constraints.</p>
 <p>Given the design variables x, compute the scalar objective value and the dense constraints. The constraints and objective must be consistent across all processors.</p>
 <dl class="field-list simple">
@@ -360,7 +429,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem18evalObjConGradientEP9ParOptVecP9ParOptVecPP9ParOptVec">
-<span id="_CPPv3N13ParOptProblem18evalObjConGradientEP9ParOptVecP9ParOptVecPP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem18evalObjConGradientEP9ParOptVecP9ParOptVecPP9ParOptVec"></span><span id="ParOptProblem::evalObjConGradient__ParOptVecP.ParOptVecP.ParOptVecPP"></span><span class="target" id="class_par_opt_problem_1accb7e8213be4e08ca82cfaacedecc5b6"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">evalObjConGradient</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">g</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">Ac</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N13ParOptProblem18evalObjConGradientEP9ParOptVecP9ParOptVecPP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem18evalObjConGradientEP9ParOptVecP9ParOptVecPP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem18evalObjConGradientEP9ParOptVecP9ParOptVecPP9ParOptVec"></span><span id="ParOptProblem::evalObjConGradient__ParOptVecP.ParOptVecP.ParOptVecPP"></span><span class="target" id="class_par_opt_problem_1accb7e8213be4e08ca82cfaacedecc5b6"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">evalObjConGradient</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">g</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">Ac</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N13ParOptProblem18evalObjConGradientEP9ParOptVecP9ParOptVecPP9ParOptVec" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Evaluate the objective and constraint gradients.</p>
 <p>Given the desgin variables x, compute the gradient of the objective and dense constraint functions. This call is made only after a call to evaluate the objective and dense constraint functions.</p>
 <dl class="field-list simple">
@@ -379,7 +448,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem15evalHvecProductEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec">
-<span id="_CPPv3N13ParOptProblem15evalHvecProductEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem15evalHvecProductEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::evalHvecProduct__ParOptVecP.ParOptScalarP.ParOptVecP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1af5e6b93090c533f5840cc2fbc37613b9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">evalHvecProduct</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">z</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">zw</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">px</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">hvec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem15evalHvecProductEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem15evalHvecProductEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem15evalHvecProductEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::evalHvecProduct__ParOptVecP.ParOptScalarP.ParOptVecP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1af5e6b93090c533f5840cc2fbc37613b9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">evalHvecProduct</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">z</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">zw</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">px</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">hvec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem15evalHvecProductEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Evaluate the product of the Hessian with a given vector.</p>
 <p>This function is only called if Hessian-vector products are requested by the optimizer. By default, no implementation is provided.</p>
 <dl class="field-list simple">
@@ -400,14 +469,14 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem15evalHessianDiagEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVec">
-<span id="_CPPv3N13ParOptProblem15evalHessianDiagEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem15evalHessianDiagEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::evalHessianDiag__ParOptVecP.ParOptScalarP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1a1550b868a4acd54c6fc297c49a14f1c4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">evalHessianDiag</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">z</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">zw</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">hdiag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem15evalHessianDiagEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem15evalHessianDiagEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem15evalHessianDiagEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::evalHessianDiag__ParOptVecP.ParOptScalarP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1a1550b868a4acd54c6fc297c49a14f1c4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">evalHessianDiag</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">z</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">zw</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">hdiag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem15evalHessianDiagEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVec" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Evaluate the diagonal of the Hessian.</p>
 <p>This is only used by MMA. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem34computeQuasiNewtonUpdateCorrectionEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec">
-<span id="_CPPv3N13ParOptProblem34computeQuasiNewtonUpdateCorrectionEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem34computeQuasiNewtonUpdateCorrectionEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::computeQuasiNewtonUpdateCorrection__ParOptVecP.ParOptScalarP.ParOptVecP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1ae9388cea0441eea16db84b261d2f008b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">computeQuasiNewtonUpdateCorrection</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">z</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">zw</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">s</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">y</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem34computeQuasiNewtonUpdateCorrectionEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem34computeQuasiNewtonUpdateCorrectionEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem34computeQuasiNewtonUpdateCorrectionEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::computeQuasiNewtonUpdateCorrection__ParOptVecP.ParOptScalarP.ParOptVecP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1ae9388cea0441eea16db84b261d2f008b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">computeQuasiNewtonUpdateCorrection</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">z</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">zw</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">s</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">y</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem34computeQuasiNewtonUpdateCorrectionEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Compute a correction or modification of the quasi-Newton update.</p>
 <p>The vectors s and y represent the step and gradient difference, respectively between iterations. By default, no correction or modification is performed. However, some problems may benefit by modifying the gradient difference term.</p>
 <dl class="field-list simple">
@@ -425,7 +494,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem13evalSparseConEP9ParOptVecP9ParOptVec">
-<span id="_CPPv3N13ParOptProblem13evalSparseConEP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem13evalSparseConEP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::evalSparseCon__ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1acece78f3d46efd0d288cfd64d01ac820"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">evalSparseCon</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">out</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem13evalSparseConEP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem13evalSparseConEP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem13evalSparseConEP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::evalSparseCon__ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1acece78f3d46efd0d288cfd64d01ac820"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">evalSparseCon</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">out</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem13evalSparseConEP9ParOptVecP9ParOptVec" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Evaluate the sparse constraints.</p>
 <p>Give the design variable vector x, compute the sparse constraints.</p>
 <dl class="field-list simple">
@@ -440,7 +509,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem17addSparseJacobianE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec">
-<span id="_CPPv3N13ParOptProblem17addSparseJacobianE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem17addSparseJacobianE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::addSparseJacobian__ParOptScalar.ParOptVecP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1ab61b53a690e2a7199b68e461e5936196"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addSparseJacobian</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">alpha</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">px</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">out</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem17addSparseJacobianE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem17addSparseJacobianE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem17addSparseJacobianE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::addSparseJacobian__ParOptScalar.ParOptVecP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1ab61b53a690e2a7199b68e461e5936196"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addSparseJacobian</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">alpha</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">px</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">out</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem17addSparseJacobianE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Compute the Jacobian-vector product of the sparse constraints.</p>
 <p>This code computes the action of the Jacobian of the sparse constraint matrix on the input vector px, to compute out = alpha*J(x)*px.</p>
 <dl class="field-list simple">
@@ -457,7 +526,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem26addSparseJacobianTransposeE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec">
-<span id="_CPPv3N13ParOptProblem26addSparseJacobianTransposeE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem26addSparseJacobianTransposeE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::addSparseJacobianTranspose__ParOptScalar.ParOptVecP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1ae462335c5ddc4d86c4dcf0d29cdcd102"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addSparseJacobianTranspose</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">alpha</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">pzw</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">out</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem26addSparseJacobianTransposeE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem26addSparseJacobianTransposeE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem26addSparseJacobianTransposeE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec"></span><span id="ParOptProblem::addSparseJacobianTranspose__ParOptScalar.ParOptVecP.ParOptVecP.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1ae462335c5ddc4d86c4dcf0d29cdcd102"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addSparseJacobianTranspose</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">alpha</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">pzw</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">out</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem26addSparseJacobianTransposeE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Compute the tranpose Jacobian-vector product of the sparse constraints.</p>
 <p>This code computes the action of the transpose Jacobian of the sparse constraint matrix on the input vector pzw, to compute out = alpha*J(x)^{T}*pzw.</p>
 <dl class="field-list simple">
@@ -474,7 +543,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem21addSparseInnerProductE12ParOptScalarP9ParOptVecP9ParOptVecP12ParOptScalar">
-<span id="_CPPv3N13ParOptProblem21addSparseInnerProductE12ParOptScalarP9ParOptVecP9ParOptVecP12ParOptScalar"></span><span id="_CPPv2N13ParOptProblem21addSparseInnerProductE12ParOptScalarP9ParOptVecP9ParOptVecP12ParOptScalar"></span><span id="ParOptProblem::addSparseInnerProduct__ParOptScalar.ParOptVecP.ParOptVecP.ParOptScalarP"></span><span class="target" id="class_par_opt_problem_1a58508c9278111b1a63d41e72ec5f5df3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addSparseInnerProduct</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">alpha</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">cvec</span></span>, <span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">A</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem21addSparseInnerProductE12ParOptScalarP9ParOptVecP9ParOptVecP12ParOptScalar" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem21addSparseInnerProductE12ParOptScalarP9ParOptVecP9ParOptVecP12ParOptScalar"></span><span id="_CPPv2N13ParOptProblem21addSparseInnerProductE12ParOptScalarP9ParOptVecP9ParOptVecP12ParOptScalar"></span><span id="ParOptProblem::addSparseInnerProduct__ParOptScalar.ParOptVecP.ParOptVecP.ParOptScalarP"></span><span class="target" id="class_par_opt_problem_1a58508c9278111b1a63d41e72ec5f5df3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addSparseInnerProduct</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">alpha</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">cvec</span></span>, <span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">A</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem21addSparseInnerProductE12ParOptScalarP9ParOptVecP9ParOptVecP12ParOptScalar" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Add the inner product of the constraints to the matrix such that A += J(x)*cvec*J(x)^{T} where cvec is a diagonal matrix</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -490,7 +559,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem14checkGradientsEdP9ParOptVeci">
-<span id="_CPPv3N13ParOptProblem14checkGradientsEdP9ParOptVeci"></span><span id="_CPPv2N13ParOptProblem14checkGradientsEdP9ParOptVeci"></span><span id="ParOptProblem::checkGradients__double.ParOptVecP.i"></span><span class="target" id="class_par_opt_problem_1adcb51ebc3d4eee2310f7fe9967813ed2"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">checkGradients</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dh</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">NULL</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">check_hvec_product</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem14checkGradientsEdP9ParOptVeci" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem14checkGradientsEdP9ParOptVeci"></span><span id="_CPPv2N13ParOptProblem14checkGradientsEdP9ParOptVeci"></span><span id="ParOptProblem::checkGradients__double.ParOptVecP.i"></span><span class="target" id="class_par_opt_problem_1adcb51ebc3d4eee2310f7fe9967813ed2"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">checkGradients</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dh</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">NULL</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">check_hvec_product</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem14checkGradientsEdP9ParOptVeci" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Check the objective and constraint gradients for this problem instance</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -504,7 +573,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N13ParOptProblem11writeOutputEiP9ParOptVec">
-<span id="_CPPv3N13ParOptProblem11writeOutputEiP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem11writeOutputEiP9ParOptVec"></span><span id="ParOptProblem::writeOutput__i.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1aa3d6c9f84c6f97a5d5ae242fa7b0a3d2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">writeOutput</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">iter</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem11writeOutputEiP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N13ParOptProblem11writeOutputEiP9ParOptVec"></span><span id="_CPPv2N13ParOptProblem11writeOutputEiP9ParOptVec"></span><span id="ParOptProblem::writeOutput__i.ParOptVecP"></span><span class="target" id="class_par_opt_problem_1aa3d6c9f84c6f97a5d5ae242fa7b0a3d2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">writeOutput</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">iter</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ParOptProblem11writeOutputEiP9ParOptVec" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Implement this function if you'd like to print out something with the same frequency as the output files </p>
 </dd></dl>
 
@@ -513,12 +582,12 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv419ParOptInteriorPoint">
-<span id="_CPPv319ParOptInteriorPoint"></span><span id="_CPPv219ParOptInteriorPoint"></span><span id="ParOptInteriorPoint"></span><span class="target" id="class_par_opt_interior_point"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ParOptInteriorPoint</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">ParOptBase</span></span><a class="headerlink" href="#_CPPv419ParOptInteriorPoint" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv319ParOptInteriorPoint"></span><span id="_CPPv219ParOptInteriorPoint"></span><span id="ParOptInteriorPoint"></span><span class="target" id="class_par_opt_interior_point"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ParOptInteriorPoint</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">ParOptBase</span></span><a class="headerlink" href="#_CPPv419ParOptInteriorPoint" title="Permalink to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint19ParOptInteriorPointEP13ParOptProblemP13ParOptOptions">
-<span id="_CPPv3N19ParOptInteriorPoint19ParOptInteriorPointEP13ParOptProblemP13ParOptOptions"></span><span id="_CPPv2N19ParOptInteriorPoint19ParOptInteriorPointEP13ParOptProblemP13ParOptOptions"></span><span id="ParOptInteriorPoint::ParOptInteriorPoint__ParOptProblemP.ParOptOptionsP"></span><span class="target" id="class_par_opt_interior_point_1a260b8c3fa111ae1cdcf87a5ae1b0b23f"></span><span class="sig-name descname"><span class="n"><span class="pre">ParOptInteriorPoint</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv413ParOptProblem" title="ParOptProblem"><span class="n"><span class="pre">ParOptProblem</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_prob</span></span>, <span class="n"><span class="pre">ParOptOptions</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_options</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">NULL</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint19ParOptInteriorPointEP13ParOptProblemP13ParOptOptions" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint19ParOptInteriorPointEP13ParOptProblemP13ParOptOptions"></span><span id="_CPPv2N19ParOptInteriorPoint19ParOptInteriorPointEP13ParOptProblemP13ParOptOptions"></span><span id="ParOptInteriorPoint::ParOptInteriorPoint__ParOptProblemP.ParOptOptionsP"></span><span class="target" id="class_par_opt_interior_point_1a260b8c3fa111ae1cdcf87a5ae1b0b23f"></span><span class="sig-name descname"><span class="n"><span class="pre">ParOptInteriorPoint</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv413ParOptProblem" title="ParOptProblem"><span class="n"><span class="pre">ParOptProblem</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_prob</span></span>, <span class="n"><span class="pre">ParOptOptions</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_options</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">NULL</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint19ParOptInteriorPointEP13ParOptProblemP13ParOptOptions" title="Permalink to this definition"></a><br /></dt>
 <dd><p>ParOpt interior point optimization constructor.</p>
 <p>This function allocates and initializes the data that is required for parallel optimization. This includes initialization of the variables, allocation of the matrices and the BFGS approximate Hessian. This code also sets the default parameters for optimization. These parameters can be modified through member functions.</p>
 <dl class="field-list simple">
@@ -533,13 +602,13 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPointD0Ev">
-<span id="_CPPv3N19ParOptInteriorPointD0Ev"></span><span id="_CPPv2N19ParOptInteriorPointD0Ev"></span><span id="ParOptInteriorPoint::~ParOptInteriorPoint"></span><span class="target" id="class_par_opt_interior_point_1ae4d829a5ece19b7ce649712ac003ae0e"></span><span class="sig-name descname"><span class="n"><span class="pre">~ParOptInteriorPoint</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPointD0Ev" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPointD0Ev"></span><span id="_CPPv2N19ParOptInteriorPointD0Ev"></span><span id="ParOptInteriorPoint::~ParOptInteriorPoint"></span><span class="target" id="class_par_opt_interior_point_1ae4d829a5ece19b7ce649712ac003ae0e"></span><span class="sig-name descname"><span class="n"><span class="pre">~ParOptInteriorPoint</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPointD0Ev" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Free the data allocated during the creation of the object </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint10getOptionsEv">
-<span id="_CPPv3N19ParOptInteriorPoint10getOptionsEv"></span><span id="_CPPv2N19ParOptInteriorPoint10getOptionsEv"></span><span id="ParOptInteriorPoint::getOptions"></span><span class="target" id="class_par_opt_interior_point_1a4ba31f240bbd6630e8142eb57e769b9b"></span><span class="n"><span class="pre">ParOptOptions</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getOptions</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint10getOptionsEv" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint10getOptionsEv"></span><span id="_CPPv2N19ParOptInteriorPoint10getOptionsEv"></span><span id="ParOptInteriorPoint::getOptions"></span><span class="target" id="class_par_opt_interior_point_1a4ba31f240bbd6630e8142eb57e769b9b"></span><span class="n"><span class="pre">ParOptOptions</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getOptions</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint10getOptionsEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get the options object associated with the interior point method</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -550,7 +619,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint20resetProblemInstanceEP13ParOptProblem">
-<span id="_CPPv3N19ParOptInteriorPoint20resetProblemInstanceEP13ParOptProblem"></span><span id="_CPPv2N19ParOptInteriorPoint20resetProblemInstanceEP13ParOptProblem"></span><span id="ParOptInteriorPoint::resetProblemInstance__ParOptProblemP"></span><span class="target" id="class_par_opt_interior_point_1a03a14f51e90c0ca161d5b0a3bb07ad3a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resetProblemInstance</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv413ParOptProblem" title="ParOptProblem"><span class="n"><span class="pre">ParOptProblem</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_prob</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint20resetProblemInstanceEP13ParOptProblem" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint20resetProblemInstanceEP13ParOptProblem"></span><span id="_CPPv2N19ParOptInteriorPoint20resetProblemInstanceEP13ParOptProblem"></span><span id="ParOptInteriorPoint::resetProblemInstance__ParOptProblemP"></span><span class="target" id="class_par_opt_interior_point_1a03a14f51e90c0ca161d5b0a3bb07ad3a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resetProblemInstance</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv413ParOptProblem" title="ParOptProblem"><span class="n"><span class="pre">ParOptProblem</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_prob</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint20resetProblemInstanceEP13ParOptProblem" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Reset the problem instance.</p>
 <p>The new problem instance must have the same number of constraints design variables, and design vector distribution as the original problem.</p>
 <dl class="field-list simple">
@@ -562,7 +631,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint8optimizeEPKc">
-<span id="_CPPv3N19ParOptInteriorPoint8optimizeEPKc"></span><span id="_CPPv2N19ParOptInteriorPoint8optimizeEPKc"></span><span id="ParOptInteriorPoint::optimize__cCP"></span><span class="target" id="class_par_opt_interior_point_1aedc8fd27ea31aec52b0d536b68823397"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">optimize</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">checkpoint</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">NULL</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint8optimizeEPKc" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint8optimizeEPKc"></span><span id="_CPPv2N19ParOptInteriorPoint8optimizeEPKc"></span><span id="ParOptInteriorPoint::optimize__cCP"></span><span class="target" id="class_par_opt_interior_point_1aedc8fd27ea31aec52b0d536b68823397"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">optimize</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">checkpoint</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">NULL</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint8optimizeEPKc" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Perform the optimization.</p>
 <p>This is the main function that performs the actual optimization. The optimization uses an interior-point method. The barrier parameter (mu/barrier_param) is controlled using a monotone approach where successive barrier problems are solved and the barrier parameter is subsequently reduced.</p>
 <p>The method uses a quasi-Newton method where the Hessian is approximated using a limited-memory BFGS approximation. The special structure of the Hessian approximation is used to compute the updates. This computation relies on there being relatively few dense global inequality constraints (e.g. &lt; 100).</p>
@@ -576,7 +645,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint15getProblemSizesEPiPiPiPiPi">
-<span id="_CPPv3N19ParOptInteriorPoint15getProblemSizesEPiPiPiPiPi"></span><span id="_CPPv2N19ParOptInteriorPoint15getProblemSizesEPiPiPiPiPi"></span><span id="ParOptInteriorPoint::getProblemSizes__iP.iP.iP.iP.iP"></span><span class="target" id="class_par_opt_interior_point_1a6590bb83011fce885fca5582e25f3708"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getProblemSizes</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_nvars</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_ncon</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_inequality</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_nwcon</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_nwblock</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint15getProblemSizesEPiPiPiPiPi" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint15getProblemSizesEPiPiPiPiPi"></span><span id="_CPPv2N19ParOptInteriorPoint15getProblemSizesEPiPiPiPiPi"></span><span id="ParOptInteriorPoint::getProblemSizes__iP.iP.iP.iP.iP"></span><span class="target" id="class_par_opt_interior_point_1a6590bb83011fce885fca5582e25f3708"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getProblemSizes</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_nvars</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_ncon</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_inequality</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_nwcon</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_nwblock</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint15getProblemSizesEPiPiPiPiPi" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Retrieve the problem sizes from the underlying problem class</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -593,7 +662,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec">
-<span id="_CPPv3N19ParOptInteriorPoint17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec"></span><span id="_CPPv2N19ParOptInteriorPoint17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec"></span><span id="ParOptInteriorPoint::getOptimizedPoint__ParOptVecPP.ParOptScalarPP.ParOptVecPP.ParOptVecPP.ParOptVecPP"></span><span class="target" id="class_par_opt_interior_point_1a5cf602e5359da9fec86d96504dc286e5"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getOptimizedPoint</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_x</span></span>, <span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_z</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_zw</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_zl</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_zu</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec"></span><span id="_CPPv2N19ParOptInteriorPoint17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec"></span><span id="ParOptInteriorPoint::getOptimizedPoint__ParOptVecPP.ParOptScalarPP.ParOptVecPP.ParOptVecPP.ParOptVecPP"></span><span class="target" id="class_par_opt_interior_point_1a5cf602e5359da9fec86d96504dc286e5"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getOptimizedPoint</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_x</span></span>, <span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_z</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_zw</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_zl</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_zu</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Retrieve the values of the design variables and multipliers.</p>
 <p>This call can be made during the course of an optimization, but changing the values in x/zw/zl/zu is not recommended and the behavior after doing so is not defined. Note that inputs that are NULL are not assigned. If no output is available, for instance if use_lower == False, then NULL is assigned to the output.</p>
 <dl class="field-list simple">
@@ -611,7 +680,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec">
-<span id="_CPPv3N19ParOptInteriorPoint18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec"></span><span id="_CPPv2N19ParOptInteriorPoint18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec"></span><span id="ParOptInteriorPoint::getOptimizedSlacks__ParOptScalarPP.ParOptScalarPP.ParOptVecPP"></span><span class="target" id="class_par_opt_interior_point_1a6d33920dcbe309b2bc13aeb6602f27d0"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getOptimizedSlacks</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_s</span></span>, <span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_t</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_sw</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec"></span><span id="_CPPv2N19ParOptInteriorPoint18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec"></span><span id="ParOptInteriorPoint::getOptimizedSlacks__ParOptScalarPP.ParOptScalarPP.ParOptVecPP"></span><span class="target" id="class_par_opt_interior_point_1a6d33920dcbe309b2bc13aeb6602f27d0"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getOptimizedSlacks</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_s</span></span>, <span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_t</span></span>, <span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_sw</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Retrieve the values of the optimized slack variables.</p>
 <p>Note that the dense inequality constraints are formualted as</p>
 <p>c(x) = s - t</p>
@@ -631,7 +700,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint15setPenaltyGammaEd">
-<span id="_CPPv3N19ParOptInteriorPoint15setPenaltyGammaEd"></span><span id="_CPPv2N19ParOptInteriorPoint15setPenaltyGammaEd"></span><span id="ParOptInteriorPoint::setPenaltyGamma__double"></span><span class="target" id="class_par_opt_interior_point_1a24e821c7ad1e95e1e0dce44a7f200b9d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setPenaltyGamma</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">gamma</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint15setPenaltyGammaEd" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint15setPenaltyGammaEd"></span><span id="_CPPv2N19ParOptInteriorPoint15setPenaltyGammaEd"></span><span id="ParOptInteriorPoint::setPenaltyGamma__double"></span><span class="target" id="class_par_opt_interior_point_1a24e821c7ad1e95e1e0dce44a7f200b9d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setPenaltyGamma</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">gamma</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint15setPenaltyGammaEd" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the penalty parameter for the l1 penalty function.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -642,7 +711,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint15setPenaltyGammaEPKd">
-<span id="_CPPv3N19ParOptInteriorPoint15setPenaltyGammaEPKd"></span><span id="_CPPv2N19ParOptInteriorPoint15setPenaltyGammaEPKd"></span><span id="ParOptInteriorPoint::setPenaltyGamma__doubleCP"></span><span class="target" id="class_par_opt_interior_point_1a40b9ae428794e2907a54ec5ba86a4d00"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setPenaltyGamma</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">gamma</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint15setPenaltyGammaEPKd" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint15setPenaltyGammaEPKd"></span><span id="_CPPv2N19ParOptInteriorPoint15setPenaltyGammaEPKd"></span><span id="ParOptInteriorPoint::setPenaltyGamma__doubleCP"></span><span class="target" id="class_par_opt_interior_point_1a40b9ae428794e2907a54ec5ba86a4d00"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setPenaltyGamma</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">gamma</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint15setPenaltyGammaEPKd" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the individual penalty parameters for the l1 penalty function.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -653,7 +722,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint15getPenaltyGammaEPPKd">
-<span id="_CPPv3N19ParOptInteriorPoint15getPenaltyGammaEPPKd"></span><span id="_CPPv2N19ParOptInteriorPoint15getPenaltyGammaEPPKd"></span><span id="ParOptInteriorPoint::getPenaltyGamma__doubleCPP"></span><span class="target" id="class_par_opt_interior_point_1a2e3ce67f64b60e22551339dd2dfabae5"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getPenaltyGamma</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">gamma</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint15getPenaltyGammaEPPKd" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint15getPenaltyGammaEPPKd"></span><span id="_CPPv2N19ParOptInteriorPoint15getPenaltyGammaEPPKd"></span><span id="ParOptInteriorPoint::getPenaltyGamma__doubleCPP"></span><span class="target" id="class_par_opt_interior_point_1a2e3ce67f64b60e22551339dd2dfabae5"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getPenaltyGamma</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">gamma</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint15getPenaltyGammaEPPKd" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Retrieve the penalty parameter values.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -664,7 +733,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint17setBFGSUpdateTypeE20ParOptBFGSUpdateType">
-<span id="_CPPv3N19ParOptInteriorPoint17setBFGSUpdateTypeE20ParOptBFGSUpdateType"></span><span id="_CPPv2N19ParOptInteriorPoint17setBFGSUpdateTypeE20ParOptBFGSUpdateType"></span><span id="ParOptInteriorPoint::setBFGSUpdateType__ParOptBFGSUpdateType"></span><span class="target" id="class_par_opt_interior_point_1abb28109c38fb3eada3ce444f1bbd8d1a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setBFGSUpdateType</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptBFGSUpdateType</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bfgs_update</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint17setBFGSUpdateTypeE20ParOptBFGSUpdateType" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint17setBFGSUpdateTypeE20ParOptBFGSUpdateType"></span><span id="_CPPv2N19ParOptInteriorPoint17setBFGSUpdateTypeE20ParOptBFGSUpdateType"></span><span id="ParOptInteriorPoint::setBFGSUpdateType__ParOptBFGSUpdateType"></span><span class="target" id="class_par_opt_interior_point_1abb28109c38fb3eada3ce444f1bbd8d1a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setBFGSUpdateType</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptBFGSUpdateType</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bfgs_update</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint17setBFGSUpdateTypeE20ParOptBFGSUpdateType" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the type of BFGS update.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -675,7 +744,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint19getBarrierParameterEv">
-<span id="_CPPv3N19ParOptInteriorPoint19getBarrierParameterEv"></span><span id="_CPPv2N19ParOptInteriorPoint19getBarrierParameterEv"></span><span id="ParOptInteriorPoint::getBarrierParameter"></span><span class="target" id="class_par_opt_interior_point_1a5e303b429db8fcf03a4091fd6d857f52"></span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getBarrierParameter</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint19getBarrierParameterEv" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint19getBarrierParameterEv"></span><span id="_CPPv2N19ParOptInteriorPoint19getBarrierParameterEv"></span><span id="ParOptInteriorPoint::getBarrierParameter"></span><span class="target" id="class_par_opt_interior_point_1a5e303b429db8fcf03a4091fd6d857f52"></span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getBarrierParameter</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint19getBarrierParameterEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Retrieve the barrier parameter</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -686,7 +755,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint18getComplementarityEv">
-<span id="_CPPv3N19ParOptInteriorPoint18getComplementarityEv"></span><span id="_CPPv2N19ParOptInteriorPoint18getComplementarityEv"></span><span id="ParOptInteriorPoint::getComplementarity"></span><span class="target" id="class_par_opt_interior_point_1a358e0877902ab5337d580f067a646e66"></span><span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getComplementarity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint18getComplementarityEv" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint18getComplementarityEv"></span><span id="_CPPv2N19ParOptInteriorPoint18getComplementarityEv"></span><span id="ParOptInteriorPoint::getComplementarity"></span><span class="target" id="class_par_opt_interior_point_1a358e0877902ab5337d580f067a646e66"></span><span class="n"><span class="pre">ParOptScalar</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getComplementarity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint18getComplementarityEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get the average of the complementarity products at the current point. This function call is collective on all processors.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -697,7 +766,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint14setQuasiNewtonEP24ParOptCompactQuasiNewton">
-<span id="_CPPv3N19ParOptInteriorPoint14setQuasiNewtonEP24ParOptCompactQuasiNewton"></span><span id="_CPPv2N19ParOptInteriorPoint14setQuasiNewtonEP24ParOptCompactQuasiNewton"></span><span id="ParOptInteriorPoint::setQuasiNewton__ParOptCompactQuasiNewtonP"></span><span class="target" id="class_par_opt_interior_point_1a1fe73211ec57241c89f17003e0253f97"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setQuasiNewton</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptCompactQuasiNewton</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_qn</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint14setQuasiNewtonEP24ParOptCompactQuasiNewton" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint14setQuasiNewtonEP24ParOptCompactQuasiNewton"></span><span id="_CPPv2N19ParOptInteriorPoint14setQuasiNewtonEP24ParOptCompactQuasiNewton"></span><span id="ParOptInteriorPoint::setQuasiNewton__ParOptCompactQuasiNewtonP"></span><span class="target" id="class_par_opt_interior_point_1a1fe73211ec57241c89f17003e0253f97"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setQuasiNewton</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptCompactQuasiNewton</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_qn</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint14setQuasiNewtonEP24ParOptCompactQuasiNewton" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the quasi-Newton update object.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -708,19 +777,19 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint23resetQuasiNewtonHessianEv">
-<span id="_CPPv3N19ParOptInteriorPoint23resetQuasiNewtonHessianEv"></span><span id="_CPPv2N19ParOptInteriorPoint23resetQuasiNewtonHessianEv"></span><span id="ParOptInteriorPoint::resetQuasiNewtonHessian"></span><span class="target" id="class_par_opt_interior_point_1a2f31caaede09ae441ea1a5cfa6ac115e"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resetQuasiNewtonHessian</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint23resetQuasiNewtonHessianEv" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint23resetQuasiNewtonHessianEv"></span><span id="_CPPv2N19ParOptInteriorPoint23resetQuasiNewtonHessianEv"></span><span id="ParOptInteriorPoint::resetQuasiNewtonHessian"></span><span class="target" id="class_par_opt_interior_point_1a2f31caaede09ae441ea1a5cfa6ac115e"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resetQuasiNewtonHessian</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint23resetQuasiNewtonHessianEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Reset the Quasi-Newton Hessian approximation if it is used. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint20resetDesignAndBoundsEv">
-<span id="_CPPv3N19ParOptInteriorPoint20resetDesignAndBoundsEv"></span><span id="_CPPv2N19ParOptInteriorPoint20resetDesignAndBoundsEv"></span><span id="ParOptInteriorPoint::resetDesignAndBounds"></span><span class="target" id="class_par_opt_interior_point_1a2c87b5544d722c245ee16c6dfd02d18a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resetDesignAndBounds</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint20resetDesignAndBoundsEv" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint20resetDesignAndBoundsEv"></span><span id="_CPPv2N19ParOptInteriorPoint20resetDesignAndBoundsEv"></span><span id="ParOptInteriorPoint::resetDesignAndBounds"></span><span class="target" id="class_par_opt_interior_point_1a2c87b5544d722c245ee16c6dfd02d18a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resetDesignAndBounds</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint20resetDesignAndBoundsEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Reset the design variables and bounds. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint17writeSolutionFileEPKc">
-<span id="_CPPv3N19ParOptInteriorPoint17writeSolutionFileEPKc"></span><span id="_CPPv2N19ParOptInteriorPoint17writeSolutionFileEPKc"></span><span id="ParOptInteriorPoint::writeSolutionFile__cCP"></span><span class="target" id="class_par_opt_interior_point_1ae69326b953f80f501499c878b77c562b"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">writeSolutionFile</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint17writeSolutionFileEPKc" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint17writeSolutionFileEPKc"></span><span id="_CPPv2N19ParOptInteriorPoint17writeSolutionFileEPKc"></span><span id="ParOptInteriorPoint::writeSolutionFile__cCP"></span><span class="target" id="class_par_opt_interior_point_1ae69326b953f80f501499c878b77c562b"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">writeSolutionFile</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint17writeSolutionFileEPKc" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Write out the design variables, Lagrange multipliers and slack variables to a binary file in parallel.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -731,7 +800,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint16readSolutionFileEPKc">
-<span id="_CPPv3N19ParOptInteriorPoint16readSolutionFileEPKc"></span><span id="_CPPv2N19ParOptInteriorPoint16readSolutionFileEPKc"></span><span id="ParOptInteriorPoint::readSolutionFile__cCP"></span><span class="target" id="class_par_opt_interior_point_1a4157ed66c2d34bc409d1d8ac9b44b3b3"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">readSolutionFile</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint16readSolutionFileEPKc" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint16readSolutionFileEPKc"></span><span id="_CPPv2N19ParOptInteriorPoint16readSolutionFileEPKc"></span><span id="ParOptInteriorPoint::readSolutionFile__cCP"></span><span class="target" id="class_par_opt_interior_point_1a4157ed66c2d34bc409d1d8ac9b44b3b3"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">readSolutionFile</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint16readSolutionFileEPKc" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Read in the design variables, Lagrange multipliers and slack variables from a binary file.</p>
 <p>This function requires that the same problem structure as the original problem.</p>
 <dl class="field-list simple">
@@ -746,7 +815,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19ParOptInteriorPoint17addDefaultOptionsEP13ParOptOptions">
-<span id="_CPPv3N19ParOptInteriorPoint17addDefaultOptionsEP13ParOptOptions"></span><span id="_CPPv2N19ParOptInteriorPoint17addDefaultOptionsEP13ParOptOptions"></span><span id="ParOptInteriorPoint::addDefaultOptions__ParOptOptionsP"></span><span class="target" id="class_par_opt_interior_point_1abe37182b854ece6269fc786e461329b7"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addDefaultOptions</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptOptions</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">options</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint17addDefaultOptionsEP13ParOptOptions" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N19ParOptInteriorPoint17addDefaultOptionsEP13ParOptOptions"></span><span id="_CPPv2N19ParOptInteriorPoint17addDefaultOptionsEP13ParOptOptions"></span><span id="ParOptInteriorPoint::addDefaultOptions__ParOptOptionsP"></span><span class="target" id="class_par_opt_interior_point_1abe37182b854ece6269fc786e461329b7"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addDefaultOptions</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptOptions</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">options</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19ParOptInteriorPoint17addDefaultOptionsEP13ParOptOptions" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Add the default options to the input options object</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -760,12 +829,12 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv417ParOptTrustRegion">
-<span id="_CPPv317ParOptTrustRegion"></span><span id="_CPPv217ParOptTrustRegion"></span><span id="ParOptTrustRegion"></span><span class="target" id="class_par_opt_trust_region"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ParOptTrustRegion</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">ParOptBase</span></span><a class="headerlink" href="#_CPPv417ParOptTrustRegion" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv317ParOptTrustRegion"></span><span id="_CPPv217ParOptTrustRegion"></span><span id="ParOptTrustRegion"></span><span class="target" id="class_par_opt_trust_region"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ParOptTrustRegion</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">ParOptBase</span></span><a class="headerlink" href="#_CPPv417ParOptTrustRegion" title="Permalink to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N17ParOptTrustRegion17ParOptTrustRegionEP27ParOptTrustRegionSubproblemP13ParOptOptions">
-<span id="_CPPv3N17ParOptTrustRegion17ParOptTrustRegionEP27ParOptTrustRegionSubproblemP13ParOptOptions"></span><span id="_CPPv2N17ParOptTrustRegion17ParOptTrustRegionEP27ParOptTrustRegionSubproblemP13ParOptOptions"></span><span id="ParOptTrustRegion::ParOptTrustRegion__ParOptTrustRegionSubproblemP.ParOptOptionsP"></span><span class="target" id="class_par_opt_trust_region_1ad31df69ac3a7e06ac104d893f360994e"></span><span class="sig-name descname"><span class="n"><span class="pre">ParOptTrustRegion</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptTrustRegionSubproblem</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_subproblem</span></span>, <span class="n"><span class="pre">ParOptOptions</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_options</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">NULL</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion17ParOptTrustRegionEP27ParOptTrustRegionSubproblemP13ParOptOptions" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N17ParOptTrustRegion17ParOptTrustRegionEP27ParOptTrustRegionSubproblemP13ParOptOptions"></span><span id="_CPPv2N17ParOptTrustRegion17ParOptTrustRegionEP27ParOptTrustRegionSubproblemP13ParOptOptions"></span><span id="ParOptTrustRegion::ParOptTrustRegion__ParOptTrustRegionSubproblemP.ParOptOptionsP"></span><span class="target" id="class_par_opt_trust_region_1ad31df69ac3a7e06ac104d893f360994e"></span><span class="sig-name descname"><span class="n"><span class="pre">ParOptTrustRegion</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptTrustRegionSubproblem</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_subproblem</span></span>, <span class="n"><span class="pre">ParOptOptions</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_options</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">NULL</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion17ParOptTrustRegionEP27ParOptTrustRegionSubproblemP13ParOptOptions" title="Permalink to this definition"></a><br /></dt>
 <dd><p>A parallel optimizer with trust region globalization</p>
 <p>The following code implements a trust region method. The algorithm uses an l1 penalty function for the constraints with an l-infinity (box) constraint for the trust region. The trust region sub-problems are solved at each step by an instance of the <a class="reference internal" href="#class_par_opt_interior_point"><span class="std std-ref">ParOptInteriorPoint</span></a> optimizer.</p>
 <dl class="field-list simple">
@@ -780,19 +849,19 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N17ParOptTrustRegionD0Ev">
-<span id="_CPPv3N17ParOptTrustRegionD0Ev"></span><span id="_CPPv2N17ParOptTrustRegionD0Ev"></span><span id="ParOptTrustRegion::~ParOptTrustRegion"></span><span class="target" id="class_par_opt_trust_region_1a80e85363d445908a124060f8b66a83cc"></span><span class="sig-name descname"><span class="n"><span class="pre">~ParOptTrustRegion</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegionD0Ev" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N17ParOptTrustRegionD0Ev"></span><span id="_CPPv2N17ParOptTrustRegionD0Ev"></span><span id="ParOptTrustRegion::~ParOptTrustRegion"></span><span class="target" id="class_par_opt_trust_region_1a80e85363d445908a124060f8b66a83cc"></span><span class="sig-name descname"><span class="n"><span class="pre">~ParOptTrustRegion</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegionD0Ev" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Delete the trust region object </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N17ParOptTrustRegion10initializeEv">
-<span id="_CPPv3N17ParOptTrustRegion10initializeEv"></span><span id="_CPPv2N17ParOptTrustRegion10initializeEv"></span><span id="ParOptTrustRegion::initialize"></span><span class="target" id="class_par_opt_trust_region_1a10f75e51c6213d0fb8f5b6754bb60d7a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion10initializeEv" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N17ParOptTrustRegion10initializeEv"></span><span id="_CPPv2N17ParOptTrustRegion10initializeEv"></span><span id="ParOptTrustRegion::initialize"></span><span class="target" id="class_par_opt_trust_region_1a10f75e51c6213d0fb8f5b6754bb60d7a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion10initializeEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Initialize the problem </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N17ParOptTrustRegion15setPenaltyGammaEd">
-<span id="_CPPv3N17ParOptTrustRegion15setPenaltyGammaEd"></span><span id="_CPPv2N17ParOptTrustRegion15setPenaltyGammaEd"></span><span id="ParOptTrustRegion::setPenaltyGamma__double"></span><span class="target" id="class_par_opt_trust_region_1aa29292cea09ac074c731cc0bca234327"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setPenaltyGamma</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">gamma</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion15setPenaltyGammaEd" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N17ParOptTrustRegion15setPenaltyGammaEd"></span><span id="_CPPv2N17ParOptTrustRegion15setPenaltyGammaEd"></span><span id="ParOptTrustRegion::setPenaltyGamma__double"></span><span class="target" id="class_par_opt_trust_region_1aa29292cea09ac074c731cc0bca234327"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setPenaltyGamma</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">gamma</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion15setPenaltyGammaEd" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the penalty parameter for the l1 penalty function.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -803,7 +872,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N17ParOptTrustRegion15setPenaltyGammaEPKd">
-<span id="_CPPv3N17ParOptTrustRegion15setPenaltyGammaEPKd"></span><span id="_CPPv2N17ParOptTrustRegion15setPenaltyGammaEPKd"></span><span id="ParOptTrustRegion::setPenaltyGamma__doubleCP"></span><span class="target" id="class_par_opt_trust_region_1a3afb595fd55a72f07d8aa613fc7bcd3a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setPenaltyGamma</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">gamma</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion15setPenaltyGammaEPKd" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N17ParOptTrustRegion15setPenaltyGammaEPKd"></span><span id="_CPPv2N17ParOptTrustRegion15setPenaltyGammaEPKd"></span><span id="ParOptTrustRegion::setPenaltyGamma__doubleCP"></span><span class="target" id="class_par_opt_trust_region_1a3afb595fd55a72f07d8aa613fc7bcd3a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setPenaltyGamma</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">gamma</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion15setPenaltyGammaEPKd" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the individual penalty parameters for the l1 penalty function.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -814,7 +883,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N17ParOptTrustRegion15getPenaltyGammaEPPKd">
-<span id="_CPPv3N17ParOptTrustRegion15getPenaltyGammaEPPKd"></span><span id="_CPPv2N17ParOptTrustRegion15getPenaltyGammaEPPKd"></span><span id="ParOptTrustRegion::getPenaltyGamma__doubleCPP"></span><span class="target" id="class_par_opt_trust_region_1a4cab40197cbf8809017ba6a428ee40f0"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getPenaltyGamma</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">gamma</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion15getPenaltyGammaEPPKd" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N17ParOptTrustRegion15getPenaltyGammaEPPKd"></span><span id="_CPPv2N17ParOptTrustRegion15getPenaltyGammaEPPKd"></span><span id="ParOptTrustRegion::getPenaltyGamma__doubleCPP"></span><span class="target" id="class_par_opt_trust_region_1a4cab40197cbf8809017ba6a428ee40f0"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getPenaltyGamma</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">gamma</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion15getPenaltyGammaEPPKd" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Retrieve the penalty parameter values.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -825,7 +894,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N17ParOptTrustRegion8optimizeEP19ParOptInteriorPoint">
-<span id="_CPPv3N17ParOptTrustRegion8optimizeEP19ParOptInteriorPoint"></span><span id="_CPPv2N17ParOptTrustRegion8optimizeEP19ParOptInteriorPoint"></span><span id="ParOptTrustRegion::optimize__ParOptInteriorPointP"></span><span class="target" id="class_par_opt_trust_region_1affaf69f4968147e8b246c592a8121249"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">optimize</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv419ParOptInteriorPoint" title="ParOptInteriorPoint"><span class="n"><span class="pre">ParOptInteriorPoint</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">optimizer</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion8optimizeEP19ParOptInteriorPoint" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N17ParOptTrustRegion8optimizeEP19ParOptInteriorPoint"></span><span id="_CPPv2N17ParOptTrustRegion8optimizeEP19ParOptInteriorPoint"></span><span id="ParOptTrustRegion::optimize__ParOptInteriorPointP"></span><span class="target" id="class_par_opt_trust_region_1affaf69f4968147e8b246c592a8121249"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">optimize</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv419ParOptInteriorPoint" title="ParOptInteriorPoint"><span class="n"><span class="pre">ParOptInteriorPoint</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">optimizer</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion8optimizeEP19ParOptInteriorPoint" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Perform the optimization</p>
 <p>This performs all steps in the optimization: initialization, trust-region updates and quasi-Newton updates. This should be called once In some cases, you</p>
 <dl class="field-list simple">
@@ -837,7 +906,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N17ParOptTrustRegion17getOptimizedPointEPP9ParOptVec">
-<span id="_CPPv3N17ParOptTrustRegion17getOptimizedPointEPP9ParOptVec"></span><span id="_CPPv2N17ParOptTrustRegion17getOptimizedPointEPP9ParOptVec"></span><span id="ParOptTrustRegion::getOptimizedPoint__ParOptVecPP"></span><span class="target" id="class_par_opt_trust_region_1a7bc5d4cb537015bbd2bf144c8a1d4f29"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getOptimizedPoint</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_x</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion17getOptimizedPointEPP9ParOptVec" title="Permalink to this definition">¶</a><br /></dt>
+<span id="_CPPv3N17ParOptTrustRegion17getOptimizedPointEPP9ParOptVec"></span><span id="_CPPv2N17ParOptTrustRegion17getOptimizedPointEPP9ParOptVec"></span><span id="ParOptTrustRegion::getOptimizedPoint__ParOptVecPP"></span><span class="target" id="class_par_opt_trust_region_1a7bc5d4cb537015bbd2bf144c8a1d4f29"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getOptimizedPoint</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ParOptVec</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">_x</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N17ParOptTrustRegion17getOptimizedPointEPP9ParOptVec" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get the optimized point from the subproblem class</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -852,91 +921,33 @@ fixed-width nature of the file, which is guaranteed.</p>
 </section>
 
 
-            <div class="clearer"></div>
+           </div>
           </div>
-        </div>
-      </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-  <div>
-    <h3><a href="index.html">Table of Contents</a></h3>
-    <ul>
-<li><a class="reference internal" href="#">Class reference</a><ul>
-<li><a class="reference internal" href="#paropt.get_cython_include"><code class="docutils literal notranslate"><span class="pre">get_cython_include()</span></code></a></li>
-<li><a class="reference internal" href="#paropt.get_include"><code class="docutils literal notranslate"><span class="pre">get_include()</span></code></a></li>
-<li><a class="reference internal" href="#paropt.get_libraries"><code class="docutils literal notranslate"><span class="pre">get_libraries()</span></code></a></li>
-<li><a class="reference internal" href="#paropt.ParOpt.getOptionsInfo"><code class="docutils literal notranslate"><span class="pre">getOptionsInfo()</span></code></a></li>
-<li><a class="reference internal" href="#paropt.ParOpt.printOptionSummary"><code class="docutils literal notranslate"><span class="pre">printOptionSummary()</span></code></a></li>
-<li><a class="reference internal" href="#paropt.ParOpt.unpack_checkpoint"><code class="docutils literal notranslate"><span class="pre">unpack_checkpoint()</span></code></a></li>
-<li><a class="reference internal" href="#paropt.ParOpt.unpack_mma_output"><code class="docutils literal notranslate"><span class="pre">unpack_mma_output()</span></code></a></li>
-<li><a class="reference internal" href="#paropt.ParOpt.unpack_output"><code class="docutils literal notranslate"><span class="pre">unpack_output()</span></code></a></li>
-<li><a class="reference internal" href="#paropt.ParOpt.unpack_tr_2nd_output"><code class="docutils literal notranslate"><span class="pre">unpack_tr_2nd_output()</span></code></a></li>
-<li><a class="reference internal" href="#paropt.ParOpt.unpack_tr_output"><code class="docutils literal notranslate"><span class="pre">unpack_tr_output()</span></code></a></li>
-<li><a class="reference internal" href="#paropt.ParOpt.Optimizer"><code class="docutils literal notranslate"><span class="pre">Optimizer</span></code></a><ul>
-<li><a class="reference internal" href="#paropt.ParOpt.Optimizer.getOptimizedPoint"><code class="docutils literal notranslate"><span class="pre">Optimizer.getOptimizedPoint()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#paropt.ParOpt.PVec"><code class="docutils literal notranslate"><span class="pre">PVec</span></code></a><ul>
-<li><a class="reference internal" href="#paropt.ParOpt.PVec.copyValues"><code class="docutils literal notranslate"><span class="pre">PVec.copyValues()</span></code></a></li>
-<li><a class="reference internal" href="#paropt.ParOpt.PVec.dot"><code class="docutils literal notranslate"><span class="pre">PVec.dot()</span></code></a></li>
-<li><a class="reference internal" href="#paropt.ParOpt.PVec.l1norm"><code class="docutils literal notranslate"><span class="pre">PVec.l1norm()</span></code></a></li>
-<li><a class="reference internal" href="#paropt.ParOpt.PVec.maxabs"><code class="docutils literal notranslate"><span class="pre">PVec.maxabs()</span></code></a></li>
-<li><a class="reference internal" href="#paropt.ParOpt.PVec.norm"><code class="docutils literal notranslate"><span class="pre">PVec.norm()</span></code></a></li>
-<li><a class="reference internal" href="#paropt.ParOpt.PVec.zeroEntries"><code class="docutils literal notranslate"><span class="pre">PVec.zeroEntries()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#paropt.ParOpt.InteriorPoint"><code class="docutils literal notranslate"><span class="pre">InteriorPoint</span></code></a><ul>
-<li><a class="reference internal" href="#paropt.ParOpt.InteriorPoint.getOptimizedPoint"><code class="docutils literal notranslate"><span class="pre">InteriorPoint.getOptimizedPoint()</span></code></a></li>
-<li><a class="reference internal" href="#paropt.ParOpt.InteriorPoint.getOptimizedSlacks"><code class="docutils literal notranslate"><span class="pre">InteriorPoint.getOptimizedSlacks()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#paropt.ParOpt.TrustRegion"><code class="docutils literal notranslate"><span class="pre">TrustRegion</span></code></a><ul>
-<li><a class="reference internal" href="#paropt.ParOpt.TrustRegion.getOptimizedPoint"><code class="docutils literal notranslate"><span class="pre">TrustRegion.getOptimizedPoint()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="parallel_openmdao_example.html" class="btn btn-neutral float-left" title="Parallel OpenMDAO example" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
 
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Graeme Kennedy.</p>
   </div>
-  <div>
-    <h4>Previous topic</h4>
-    <p class="topless"><a href="parallel_openmdao_example.html"
-                          title="previous chapter">Parallel OpenMDAO example</a></p>
-  </div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
         </div>
       </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="related" role="navigation" aria-label="related navigation">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             >index</a></li>
-        <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="parallel_openmdao_example.html" title="Parallel OpenMDAO example"
-             >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">paropt  documentation</a> &#187;</li>
-        <li class="nav-item nav-item-this"><a href="">Class reference</a></li> 
-      </ul>
-    </div>
-    <div class="footer" role="contentinfo">
-        &#169; Copyright 2019, Graeme Kennedy.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.0.0.
-    </div>
-  </body>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
 </html>

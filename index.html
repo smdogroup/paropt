@@ -1,45 +1,80 @@
 <!DOCTYPE html>
+<html class="writer-html5" lang="python" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
-<html lang="python">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
-
-    <title>ParOpt Overview &#8212; paropt  documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="_static/sphinxdoc.css" />
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-    <script src="_static/doctools.js"></script>
-    <script src="_static/sphinx_highlight.js"></script>
-    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ParOpt Overview &mdash; ParOpt  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Options and generic interface for ParOpt optimziers" href="options.html" /> 
-  </head><body>
-    <div class="related" role="navigation" aria-label="related navigation">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             accesskey="I">index</a></li>
-        <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="options.html" title="Options and generic interface for ParOpt optimziers"
-             accesskey="N">next</a> |</li>
-        <li class="nav-item nav-item-0"><a href="#">paropt  documentation</a> &#187;</li>
-        <li class="nav-item nav-item-this"><a href="">ParOpt Overview</a></li> 
-      </ul>
-    </div>  
+</head>
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          <div class="body" role="main">
-            
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            ParOpt
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="options.html">Options and generic interface for ParOpt optimziers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rosenbrock.html">Rosenbrock example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sellar.html">Sellar problem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parallel_rosenbrock.html">Parallel Rosenbrock</a></li>
+<li class="toctree-l1"><a class="reference internal" href="openmdao_example.html">OpenMDAO example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parallel_openmdao_example.html">Parallel OpenMDAO example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Class reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">ParOpt</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">ParOpt Overview</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
   <section id="paropt-overview">
-<h1>ParOpt Overview<a class="headerlink" href="#paropt-overview" title="Permalink to this heading">¶</a></h1>
+<h1>ParOpt Overview<a class="headerlink" href="#paropt-overview" title="Permalink to this heading"></a></h1>
 <p>ParOpt is a parallel optimization library for large-scale optimization using distributed design variables.
 ParOpt is implemented in C++ with a Python wrapper generated using Cython.
 ParOpt contains both an interior-point optimization algorithm with a line search globalization strategy and an <span class="math notranslate nohighlight">\(l_{\infty}\)</span> trust region algorithm with an <span class="math notranslate nohighlight">\(l_{1}\)</span> penalty function.</p>
@@ -53,10 +88,10 @@ ParOpt contains both an interior-point optimization algorithm with a line search
 \end{align}\end{split}\]</div>
 <p>where <span class="math notranslate nohighlight">\(x\)</span> is a vector of distributed design variables with lower and upper bounds <span class="math notranslate nohighlight">\(l\)</span> and <span class="math notranslate nohighlight">\(u\)</span>.
 The constraints <span class="math notranslate nohighlight">\(c(x)\)</span>, which we refer to as dense constraints, are a small number of global constraints.
-The constraints <span class="math notranslate nohighlight">\(c_{w}(x)\)</span> are sparse and separable, where their Jacobian <span class="math notranslate nohighlight">\(A_{w}(x) = \nabla c_{w}(x)\)</span>.
+The constraints <span class="math notranslate nohighlight">\(c_{w}(x)\)</span> are sparse and separable, with the Jacobian <span class="math notranslate nohighlight">\(A_{w}(x) = \nabla c_{w}(x)\)</span>.
 The separable constraints satisfy the property that the matrix <span class="math notranslate nohighlight">\(A_{w} C A_{w}^{T}\)</span> is block diagonal when <span class="math notranslate nohighlight">\(C\)</span> is a diagonal matrix.</p>
 <section id="quick-example">
-<h2>Quick example<a class="headerlink" href="#quick-example" title="Permalink to this heading">¶</a></h2>
+<h2>Quick example<a class="headerlink" href="#quick-example" title="Permalink to this heading"></a></h2>
 <p>The following code is an example of ParOpt applied to the optimization problem:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{align}
@@ -105,8 +140,61 @@ The separable constraints satisfy the property that the matrix <span class="math
 </pre></div>
 </div>
 </section>
+<section id="recommended-settings">
+<h2>Recommended settings<a class="headerlink" href="#recommended-settings" title="Permalink to this heading"></a></h2>
+<p>Often the default options work well. A complete description of the options is described <a class="reference internal" href="options.html#options-label"><span class="std std-ref">here</span></a>.</p>
+<p>For the trust region algorithm, we recommend starting with the following set of parameters.
+These control the trust region algorithm and the interior point solution algorithm that solves the trust region subproblems.
+Different globalization strategies are implemented with the trust region method.
+These control how the <span class="math notranslate nohighlight">\(\ell_{1}\)</span> penalty parameters are updated.
+A filter globalization strategy is also implemented.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;algorithm&quot;</span><span class="p">:</span> <span class="s2">&quot;tr&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tr_output_file&quot;</span><span class="p">:</span> <span class="s2">&quot;paropt.tr&quot;</span><span class="p">,</span>  <span class="c1"># Trust region output file</span>
+    <span class="s2">&quot;output_file&quot;</span><span class="p">:</span> <span class="s2">&quot;paropt.out&quot;</span><span class="p">,</span>  <span class="c1"># Interior point output file</span>
+    <span class="s2">&quot;tr_max_iterations&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>  <span class="c1"># Maximum number of trust region iterations</span>
+    <span class="s2">&quot;tr_infeas_tol&quot;</span><span class="p">:</span> <span class="mf">1e-6</span><span class="p">,</span>  <span class="c1"># Feasibility tolerace</span>
+    <span class="s2">&quot;tr_l1_tol&quot;</span><span class="p">:</span> <span class="mf">1e-5</span><span class="p">,</span>  <span class="c1"># l1 norm for the KKT conditions</span>
+    <span class="s2">&quot;tr_linfty_tol&quot;</span><span class="p">:</span> <span class="mf">1e-5</span><span class="p">,</span>  <span class="c1"># l-infinity norm for the KKT conditions</span>
+    <span class="s2">&quot;tr_init_size&quot;</span><span class="p">:</span> <span class="mf">0.05</span><span class="p">,</span>  <span class="c1"># Initial trust region radius</span>
+    <span class="s2">&quot;tr_min_size&quot;</span><span class="p">:</span> <span class="mf">1e-6</span><span class="p">,</span>  <span class="c1"># Minimum trust region radius size</span>
+    <span class="s2">&quot;tr_max_size&quot;</span><span class="p">:</span> <span class="mf">10.0</span><span class="p">,</span>  <span class="c1"># Max trust region radius size</span>
+    <span class="s2">&quot;tr_eta&quot;</span><span class="p">:</span> <span class="mf">0.25</span><span class="p">,</span>  <span class="c1"># Trust region step acceptance ratio</span>
+    <span class="s2">&quot;tr_adaptive_gamma_update&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>  <span class="c1"># Use an adaptive update strategy for the penalty</span>
+    <span class="s2">&quot;max_major_iters&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>  <span class="c1"># Maximum number of iterations for the IP subproblem solver</span>
+    <span class="s2">&quot;qn_subspace_size&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>  <span class="c1"># Subspace size for the quasi-Newton method</span>
+    <span class="s2">&quot;qn_type&quot;</span><span class="p">:</span> <span class="s2">&quot;bfgs&quot;</span><span class="p">,</span>  <span class="c1"># Type of quasi-Newton Hessian approximation</span>
+    <span class="s2">&quot;abs_res_tol&quot;</span><span class="p">:</span> <span class="mf">1e-8</span><span class="p">,</span>  <span class="c1"># Tolerance for the subproblem</span>
+    <span class="s2">&quot;starting_point_strategy&quot;</span><span class="p">:</span> <span class="s2">&quot;affine_step&quot;</span><span class="p">,</span>  <span class="c1"># Starting point strategy for the IP</span>
+    <span class="s2">&quot;barrier_strategy&quot;</span><span class="p">:</span> <span class="s2">&quot;mehrotra&quot;</span><span class="p">,</span>  <span class="c1"># Barrier strategy for the IP</span>
+    <span class="s2">&quot;use_line_search&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>  <span class="c1"># Don&#39;t useline searches for the subproblem</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>For MMA, we recommend starting with the settings shown below.
+These settings set the primary MMA parameters as well as several key interior point parameters that control the manner in which the subproblems are solved.
+Options that begin with <cite>mma_</cite> control the output file name, maximum iterations, feasibility and optimality tolerances for the outer iterations.
+The options <cite>max_major_iters</cite>, <cite>abs_res_tol</cite>, <cite>starting_point_strategy</cite>, <cite>barrier_strategy</cite> and <cite>use_line_search</cite> all are passed to the interior point method.
+These suggested settings are selected to solve each subproblem to a tight tolerance.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;algorithm&quot;</span><span class="p">:</span> <span class="s2">&quot;mma&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;mma_output_file&quot;</span><span class="p">:</span> <span class="s2">&quot;paropt.mma&quot;</span><span class="p">,</span>  <span class="c1"># MMA output file name</span>
+    <span class="s2">&quot;output_file&quot;</span><span class="p">:</span> <span class="s2">&quot;paropt.out&quot;</span><span class="p">,</span>  <span class="c1"># Interior point output file</span>
+    <span class="s2">&quot;mma_max_iterations&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>  <span class="c1"># Maximum number of iterations for MMA</span>
+    <span class="s2">&quot;mma_infeas_tol&quot;</span><span class="p">:</span> <span class="mf">1e-6</span><span class="p">,</span>  <span class="c1"># Feasibility tolerance for MMA</span>
+    <span class="s2">&quot;mma_l1_tol&quot;</span><span class="p">:</span> <span class="mf">1e-5</span><span class="p">,</span>  <span class="c1"># l1 tolerance on the on the KKT conditions for MMA</span>
+    <span class="s2">&quot;mma_linfty_tol&quot;</span> <span class="p">:</span> <span class="mf">1e-5</span><span class="p">,</span>  <span class="c1"># l-infinity tolerance on the KKT conditions for MMA</span>
+    <span class="s2">&quot;max_major_iters&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>  <span class="c1"># Max iterations for each subproblem</span>
+    <span class="s2">&quot;abs_res_tol&quot;</span><span class="p">:</span> <span class="mf">1e-8</span><span class="p">,</span>  <span class="c1"># Tolerance for each subproblem</span>
+    <span class="s2">&quot;starting_point_strategy&quot;</span><span class="p">:</span> <span class="s2">&quot;affine_step&quot;</span><span class="p">,</span>  <span class="c1"># IP initialization strategy</span>
+    <span class="s2">&quot;barrier_strategy&quot;</span><span class="p">:</span> <span class="s2">&quot;mehrotra&quot;</span><span class="p">,</span>  <span class="c1"># IP barrier strategy</span>
+    <span class="s2">&quot;use_line_search&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>  <span class="c1"># Don&#39;t use line searches on the subproblem</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
 <section id="please-cite-us">
-<h2>Please cite us<a class="headerlink" href="#please-cite-us" title="Permalink to this heading">¶</a></h2>
+<h2>Please cite us<a class="headerlink" href="#please-cite-us" title="Permalink to this heading"></a></h2>
 <p>The key contributions and development of ParOpt are described in the following paper:
 Ting Wei Chin, Mark K. Leader, Graeme J. Kennedy, A scalable framework for large-scale 3D multimaterial topology optimization with octree-based mesh adaptation, Advances in Engineering Software, Volume 135, 2019.</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>@article{Chin:2019,
@@ -120,26 +208,25 @@ Ting Wei Chin, Mark K. Leader, Graeme J. Kennedy, A scalable framework for large
 </div>
 </section>
 <section id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">¶</a></h2>
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h2>
 <p>The installation process for ParOpt consists of first compiling the C++ source and then installing the python interface.
 The C++ source requires a BLAS/LAPACK installation and a MPI compiler for C++.
 Using the Python interface additional requires numpy, mpi4py and Cython.</p>
-<p>Currently ParOpt does not use an build system so all options are set in the file &quot;Makefile.in&quot;.
-Default settings for these options are contained within the file &quot;Makefile.in.info&quot;.
-The first step in compling ParOpt is to first copy the file &quot;Makefile.in.info&quot; to &quot;Makefile.in&quot;.</p>
-<p>Key parameters that should be set within the &quot;Makefile.in&quot; file are:</p>
+<p>Currently ParOpt does not use an build system so all options are set in the file <code class="docutils literal notranslate"><span class="pre">Makefile.in</span></code>.
+Default settings for these options are contained within the file <code class="docutils literal notranslate"><span class="pre">Makefile.in.info`</span></code>.
+The first step in compling ParOpt is to first copy the file <code class="docutils literal notranslate"><span class="pre">Makefile.in.info</span></code> to <code class="docutils literal notranslate"><span class="pre">Makefile.in</span></code>.</p>
+<p>Key parameters that should be set within the <code class="docutils literal notranslate"><span class="pre">Makefile.in</span></code> file are:</p>
 <ol class="arabic simple">
-<li><p>&quot;PAROPT_DIR&quot; the root ParOpt directory</p></li>
-<li><p>&quot;CXX&quot; the MPI-enabled C++ compiler</p></li>
-<li><p>&quot;LAPACK_LIBS&quot; the link command for the BLAS/LAPACK libraries</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PAROPT_DIR</span></code> the root ParOpt directory</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CXX</span></code> the MPI-enabled C++ compiler</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LAPACK_LIBS</span></code> the link command for the BLAS/LAPACK libraries</p></li>
 </ol>
-<p>By default, the shared and static library are complied to the directory &quot;PAROPT_DIR/lib&quot;.</p>
-<p>Installation of the python interface is performed using the &quot;setup.py&quot; script.
-The recommended python installation command &quot;python setup.py build_ext --inplace&quot; can be executed by typing &quot;make interface&quot; in the root directory.</p>
+<p>By default, the shared and static library are complied to the directory <code class="docutils literal notranslate"><span class="pre">PAROPT_DIR/lib</span></code>.</p>
+<p>Installation of the python interface is performed using <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">.\[all\]</span></code>.</p>
 </section>
 </section>
 <section id="introduction-and-examples">
-<h1>Introduction and examples<a class="headerlink" href="#introduction-and-examples" title="Permalink to this heading">¶</a></h1>
+<h1>Introduction and examples<a class="headerlink" href="#introduction-and-examples" title="Permalink to this heading"></a></h1>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="options.html">Options and generic interface for ParOpt optimziers</a><ul>
@@ -188,7 +275,7 @@ The recommended python installation command &quot;python setup.py build_ext --in
 </div>
 </section>
 <section id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading">¶</a></h1>
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading"></a></h1>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
 <li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
@@ -197,64 +284,33 @@ The recommended python installation command &quot;python setup.py build_ext --in
 </section>
 
 
-            <div class="clearer"></div>
+           </div>
           </div>
-        </div>
-      </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-  <div>
-    <h3><a href="#">Table of Contents</a></h3>
-    <ul>
-<li><a class="reference internal" href="#">ParOpt Overview</a><ul>
-<li><a class="reference internal" href="#quick-example">Quick example</a></li>
-<li><a class="reference internal" href="#please-cite-us">Please cite us</a></li>
-<li><a class="reference internal" href="#installation">Installation</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#introduction-and-examples">Introduction and examples</a></li>
-<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
-</ul>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="options.html" class="btn btn-neutral float-right" title="Options and generic interface for ParOpt optimziers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Graeme Kennedy.</p>
   </div>
-  <div>
-    <h4>Next topic</h4>
-    <p class="topless"><a href="options.html"
-                          title="next chapter">Options and generic interface for ParOpt optimziers</a></p>
-  </div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
         </div>
       </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="related" role="navigation" aria-label="related navigation">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             >index</a></li>
-        <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="options.html" title="Options and generic interface for ParOpt optimziers"
-             >next</a> |</li>
-        <li class="nav-item nav-item-0"><a href="#">paropt  documentation</a> &#187;</li>
-        <li class="nav-item nav-item-this"><a href="">ParOpt Overview</a></li> 
-      </ul>
-    </div>
-    <div class="footer" role="contentinfo">
-        &#169; Copyright 2019, Graeme Kennedy.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.0.0.
-    </div>
-  </body>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
 </html>
