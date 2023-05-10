@@ -124,22 +124,21 @@ def paropt_truss(truss, use_hessian=False, use_tr=False, prefix="results"):
     fname = os.path.join(prefix, "truss_paropt%dx%d.out" % (N, M))
     options = {
         "algorithm": "ip",
-        "qn_subspace_size": 10,
+        "qn_subspace_size": 50,
         "abs_res_tol": 1e-5,
         "norm_type": "l1",
         "init_barrier_param": 10.0,
         "monotone_barrier_fraction": 0.25,
-        "barrier_strategy": "monotone",  # "complementarity_fraction",
+        "barrier_strategy": "monotone",
         "starting_point_strategy": "least_squares_multipliers",
         "use_hvec_product": True,
-        "gmres_subspace_size": 50,
+        "gmres_subspace_size": 25,
         "nk_switch_tol": 1e3,
         "eisenstat_walker_gamma": 0.01,
         "eisenstat_walker_alpha": 0.0,
         "max_gmres_rtol": 1.0,
         "output_level": 1,
         "armijo_constant": 1e-5,
-        "gradient_verification_frequency": 2,
         "output_file": fname,
     }
 

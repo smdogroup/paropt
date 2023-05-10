@@ -1843,8 +1843,7 @@ void ParOptInteriorPoint::solveKKTDiagSystem(ParOptVars &vars, ParOptVars &b,
   ub->getArray(&ubvals);
 
   // Get the arrays for the right-hand-sides
-  ParOptScalar *bxvals, *bzlvals, *bzuvals;
-  b.x->getArray(&bxvals);
+  ParOptScalar *bzlvals, *bzuvals;
   b.zl->getArray(&bzlvals);
   b.zu->getArray(&bzuvals);
 
@@ -2182,13 +2181,13 @@ void ParOptInteriorPoint::solveKKTDiagSystem(ParOptVars &vars, ParOptVec *bx,
   ub->getArray(&ubvals);
 
   // Get the arrays for the right-hand-sides
-  ParOptScalar *bxvals, *bzlvals, *bzuvals;
-  b.x->getArray(&bxvals);
+  ParOptScalar *bzlvals, *bzuvals;
   b.zl->getArray(&bzlvals);
   b.zu->getArray(&bzuvals);
 
+  // Get the right-hand-side for the design variables from bx
   // Compute d1 = bx + (X - Xl)^{-1}*bzl - (Xu - X)^{-1}*bzu
-  d1->copyValues(b.x);
+  d1->copyValues(bx);
 
   ParOptScalar *d1vals;
   d1->getArray(&d1vals);
