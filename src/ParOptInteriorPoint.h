@@ -418,8 +418,8 @@ class ParOptInteriorPoint : public ParOptBase {
   ParOptVec *Dinv, *Cdiag;
 
   // The Schur complement for the dense constraints
-  ParOptScalar *Dmat;
-  int *dpiv;
+  ParOptScalar *Gmat;
+  int *gpiv;
 
   // The Schur complement for the quasi-Newton Hessian approximation
   ParOptScalar *Ce;

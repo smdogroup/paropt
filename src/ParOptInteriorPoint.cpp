@@ -211,8 +211,8 @@ ParOptInteriorPoint::ParOptInteriorPoint(ParOptProblem *_prob,
   xtemp->incref();
 
   // Allocate space for the Dmatrix
-  Dmat = new ParOptScalar[ncon * ncon];
-  dpiv = new int[ncon];
+  Gmat = new ParOptScalar[ncon * ncon];
+  gpiv = new int[ncon];
 
   // Allocate the quasi-Newton approximation
   const char *qn_type = options->getEnumOption("qn_type");
@@ -419,8 +419,8 @@ ParOptInteriorPoint::~ParOptInteriorPoint() {
   }
 
   // Delete the various matrices
-  delete[] Dmat;
-  delete[] dpiv;
+  delete[] Gmat;
+  delete[] gpiv;
   if (Ce) {
     delete[] Ce;
   }
@@ -1675,7 +1675,7 @@ void ParOptInteriorPoint::setUpKKTDiagSystem(ParOptVars &vars, ParOptVec *xtmp,
   }
 
   // Set the value of the D matrix
-  memset(Dmat, 0, ncon * ncon * sizeof(ParOptScalar));
+  memset(Gmat, 0, ncon * ncon * sizeof(ParOptScalar));
 
   Cdiag->zeroEntries();
   if (nwcon > 0 && sparse_inequality) {
@@ -1698,7 +1698,7 @@ void ParOptInteriorPoint::setUpKKTDiagSystem(ParOptVars &vars, ParOptVec *xtmp,
     mat->apply(Ac[j], xtmp, wtmp);
 
     for (int i = j; i < ncon; i++) {
-      Dmat[i + ncon * j] += Ac[i]->dot(xtmp);
+      Gmat[i + ncon * j] += Ac[i]->dot(xtmp);
     }
   }
 
@@ -1706,7 +1706,7 @@ void ParOptInteriorPoint::setUpKKTDiagSystem(ParOptVars &vars, ParOptVec *xtmp,
   // symmetric
   for (int j = 0; j < ncon; j++) {
     for (int i = j + 1; i < ncon; i++) {
-      Dmat[j + ncon * i] = Dmat[i + ncon * j];
+      Gmat[j + ncon * i] = Gmat[i + ncon * j];
     }
   }
 
@@ -1717,17 +1717,17 @@ void ParOptInteriorPoint::setUpKKTDiagSystem(ParOptVars &vars, ParOptVec *xtmp,
     // Add the diagonal component to the matrix
     if (rank == opt_root) {
       for (int i = 0; i < ncon; i++) {
-        Dmat[i * (ncon + 1)] += vars.s[i] / vars.zs[i] + vars.t[i] / vars.zt[i];
+        Gmat[i * (ncon + 1)] += vars.s[i] / vars.zs[i] + vars.t[i] / vars.zt[i];
       }
     }
 
     // Broadcast the result to all processors. Note that this ensures
     // that the factorization will be the same on all processors
-    MPI_Bcast(Dmat, ncon * ncon, PAROPT_MPI_TYPE, opt_root, comm);
+    MPI_Bcast(Gmat, ncon * ncon, PAROPT_MPI_TYPE, opt_root, comm);
 
     // Factor the matrix for future use
     int info = 0;
-    LAPACKdgetrf(&ncon, &ncon, Dmat, &ncon, dpiv, &info);
+    LAPACKdgetrf(&ncon, &ncon, Gmat, &ncon, gpiv, &info);
   }
 }
 
@@ -1906,7 +1906,7 @@ void ParOptInteriorPoint::solveKKTDiagSystem(ParOptVars &vars, ParOptVars &b,
       }
 
       int one = 1, info = 0;
-      LAPACKdgetrs("N", &ncon, &one, Dmat, &ncon, dpiv, y.z, &ncon, &info);
+      LAPACKdgetrs("N", &ncon, &one, Gmat, &ncon, gpiv, y.z, &ncon, &info);
     }
 
     MPI_Bcast(y.z, ncon, PAROPT_MPI_TYPE, opt_root, comm);
@@ -2029,7 +2029,7 @@ void ParOptInteriorPoint::solveKKTDiagSystem(ParOptVars &vars, ParOptVec *bx,
       }
 
       int one = 1, info = 0;
-      LAPACKdgetrs("N", &ncon, &one, Dmat, &ncon, dpiv, y.z, &ncon, &info);
+      LAPACKdgetrs("N", &ncon, &one, Gmat, &ncon, gpiv, y.z, &ncon, &info);
     }
 
     MPI_Bcast(y.z, ncon, PAROPT_MPI_TYPE, opt_root, comm);
@@ -2144,7 +2144,7 @@ void ParOptInteriorPoint::solveKKTDiagSystem(ParOptVars &vars, ParOptVec *bx,
       }
 
       int one = 1, info = 0;
-      LAPACKdgetrs("N", &ncon, &one, Dmat, &ncon, dpiv, yz, &ncon, &info);
+      LAPACKdgetrs("N", &ncon, &one, Gmat, &ncon, gpiv, yz, &ncon, &info);
     }
 
     MPI_Bcast(yz, ncon, PAROPT_MPI_TYPE, opt_root, comm);
@@ -2248,7 +2248,7 @@ void ParOptInteriorPoint::solveKKTDiagSystem(ParOptVars &vars, ParOptVec *bx,
       }
 
       int one = 1, info = 0;
-      LAPACKdgetrs("N", &ncon, &one, Dmat, &ncon, dpiv, y.z, &ncon, &info);
+      LAPACKdgetrs("N", &ncon, &one, Gmat, &ncon, gpiv, y.z, &ncon, &info);
     }
 
     MPI_Bcast(y.z, ncon, PAROPT_MPI_TYPE, opt_root, comm);
@@ -4920,18 +4920,18 @@ void ParOptInteriorPoint::initLeastSquaresMultipliers(ParOptVars &vars) {
 
   // Compute Dmat = A*A^{T}
   for (int i = 0; i < ncon; i++) {
-    Ac[i]->mdot(Ac, ncon, &Dmat[i * ncon]);
+    Ac[i]->mdot(Ac, ncon, &Gmat[i * ncon]);
   }
 
   if (ncon > 0) {
     // Compute the factorization of Dmat
     int info;
-    LAPACKdgetrf(&ncon, &ncon, Dmat, &ncon, dpiv, &info);
+    LAPACKdgetrf(&ncon, &ncon, Gmat, &ncon, gpiv, &info);
 
     // Solve the linear system
     if (!info) {
       int one = 1;
-      LAPACKdgetrs("N", &ncon, &one, Dmat, &ncon, dpiv, vars.z, &ncon, &info);
+      LAPACKdgetrs("N", &ncon, &one, Gmat, &ncon, gpiv, vars.z, &ncon, &info);
 
       // Keep the Lagrange multipliers if they are within a
       // reasonable range.
