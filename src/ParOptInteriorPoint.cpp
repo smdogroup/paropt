@@ -2056,7 +2056,7 @@ void ParOptInteriorPoint::solveKKTDiagSystem(ParOptVars &vars, ParOptVec *bx,
     vars.zw->getArray(&zwvals);
     vars.sw->getArray(&swvals);
 
-    ParOptScalar *yzwvals, *yswvals, *bswvals;
+    ParOptScalar *yzwvals, *yswvals;
     y.zw->getArray(&yzwvals);
     y.sw->getArray(&yswvals);
 
@@ -2116,8 +2116,6 @@ void ParOptInteriorPoint::solveKKTDiagSystem(ParOptVars &vars, ParOptVec *bx,
 void ParOptInteriorPoint::solveKKTDiagSystem(ParOptVars &vars, ParOptVec *bx,
                                              ParOptVec *yx, ParOptScalar *yz,
                                              ParOptVec *d1, ParOptVec *yzw) {
-  const double max_bound_value = options->getFloatOption("max_bound_value");
-
   // Get the arrays for the variables and upper/lower bounds
   ParOptScalar *xvals, *lbvals, *ubvals;
   vars.x->getArray(&xvals);
@@ -2975,7 +2973,6 @@ void ParOptInteriorPoint::checkMeritFuncGradient(ParOptVec *xpt, double dh) {
   ParOptVec *rx = residual.x;
   ParOptVec *sw = variables.sw;
   ParOptVec *psw = update.sw;
-  ParOptVec *zw = variables.zw;
   ParOptVec *rzw = residual.zw;
 
   const ParOptScalar *s = variables.s;
