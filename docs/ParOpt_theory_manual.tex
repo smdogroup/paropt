@@ -306,69 +306,104 @@ where the diagonal matrix $\mb{D}$ is defined as follows:
   \mb{D} = \left[ b_{0} \mb{I} + (\mb{X} - \mb{L})^{-1}\mb{Z}_{l} + (\mb{U} - \mb{X})^{-1}\mb{Z}_{u} \right].
 \end{equation*}
 %
-Finally, $\mb{p}_{x}$ can be eliminated for $\mb{p}_{z}$ and $\mb{p}_{z_{w}}$ as follows
+This system of equations can be arranged as follows
 \begin{equation}
-  \begin{aligned}
-    (\mb{Z}_{w}^{-1}\mb{S}_{w} + \mb{A}_{w}\mb{D}^{-1}\mb{A}_{w}^{T})\mb{p}_{z_{w}} + \mb{A}_{w}\mb{D}^{-1}\mb{A}^{T}\mb{p}_{z} &= \mb{d}_{z_{w}}, \\
-    %
-    \mb{A}\mb{D}^{-1}\mb{A}_{w}^{T} \mb{p}_{z_{w}} + (\mb{Z}_{s}^{-1}\mb{S} + \mb{Z}_{t}^{-1}\mb{T} + \mb{A}\mb{D}^{-1}\mb{A}^{T})\mb{p}_{z} &= \mb{d}_{z}, \\
-  \end{aligned}
+\label{eqn:kkt-reduced}
+\begin{bmatrix} 
+\mb{D} & \mb{A}_{w}^{T} & \mb{A}^{T} \\
+\mb{A}_{w} & -\mb{C} & 0 \\
+\mb{A} & 0 & - \mb{C}_{0} \\
+\end{bmatrix}
+\begin{bmatrix}
+\mb{p}_{x} \\
+- \mb{p}_{z_{w}} \\
+- \mb{p}_{z} \\
+\end{bmatrix} =
+\begin{bmatrix}
+\mb{d}_{x} \\
+\mb{d}_{z_{w}} \\
+\mb{d}_{z} \\
+\end{bmatrix}
 \end{equation}
 %
-The right hand sides, $\mb{d}_{z_{w}}$ and $\mb{d}_{z}$ are
+where $\mb{C}_{0} = (\mb{Z}_{s}^{-1}\mb{S} + \mb{Z}_{t}^{-1}\mb{T})$ and $\mb{C} =  \mb{Z}_{w}^{-1}\mb{S}_{w}$.
+The right hand sides are defined as
 \begin{equation*}
-  \begin{aligned}
-    \mb{d}_{z_{w}} &\triangleq \mb{b}_{c_{w}} + \mb{Z}_{w}^{-1}\mb{b}_{s_{w}} - \mb{A}_{w}\mb{D}^{-1}\left(\mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}} \right), \\
-    \mb{d}_{z} &\triangleq \mb{b}_{c} + \mb{Z}_{s}^{-1}(\mb{b}_{z_{s}} + \mb{S}\mb{b}_{s}) - \mb{Z}_{t}^{-1}(\mb{b}_{z_{t}} + \mb{T}\mb{b}_{t}) - \mb{A}\mb{D}^{-1}\left(\mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}} \right). \\
-  \end{aligned}
+\begin{aligned}
+\mb{d}_{x} &= \mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}}, \\
+\mb{d}_{z_{w}} &=  \mb{b}_{c} + \mb{Z}_{s}^{-1}(\mb{b}_{z_{s}} + \mb{S}\mb{b}_{s}) - \mb{Z}_{t}^{-1}(\mb{b}_{z_{t}} + \mb{T}\mb{b}_{t}), \\
+\mb{d}_{z} &=  \mb{b}_{c_{w}} + \mb{Z}_{w}^{-1}\mb{b}_{s_{w}} \\
+\end{aligned}
 \end{equation*}
+
+The reduced KKT system~\eqref{eqn:kkt-reduced} can be solved via a Schur complement on the dense constraints for the unknowns $\mb{p}_{z}$.
+First, we introduce the quasi-definite matrix $\mb{D}_{0}$ and the rectangular matrix $\mb{A}_{0}$
+\begin{equation*}
+	\mb{D}_{0} = 
+	\begin{bmatrix} 
+	\mb{D} & \mb{A}_{w}^{T} \\
+	\mb{A}_{w} & - \mb{C} 
+	\end{bmatrix},
+	\qquad\qquad
+	\mb{A}_{0} = \begin{bmatrix} \mb{A} & 0 \end{bmatrix}.
+\end{equation*}
+Since we assume that there are only a small number of global dense constraints, $\mb{A}$ has only a few rows. 
 %
-Finally, defining the matrix $\mb{E} \triangleq (\mb{Z}_{w}^{-1}\mb{S}_{w} + \mb{A}_{w}\mb{D}^{-1}\mb{A}_{w}^{T})$, which is block diagonal, and introducing $\mb{F} \triangleq \mb{A}\mb{D}^{-1}\mb{A}_{w}^{T}$, gives the following equation
+The system of equations to determine $\mb{p}_{z}$ is 
+%
 \begin{equation*}
-  \left[\mb{Z}_{s}^{-1}\mb{S} + \mb{Z}_{t}^{-1}\mb{T} + \mb{A}\mb{D}^{-1}\mb{A}^{T} - \mb{F}\mb{E}^{-1}\mb{F}^{T} \right]\mb{p}_{z} = \mb{d}_{z} - \mb{F}\mb{E}^{-1} \mb{d}_{z_{w}}
+	\mb{G} \mb{p}_{z} \triangleq \left( \mb{C}_{0} + \mb{A}_{0} \mb{D}_{0}^{-1} \mb{A}_{0}^{T} \right)  \mb{p}_{z} = \mb{d}_{z} - \mb{A}_{0} \mb{D}_{0}^{-1} \begin{bmatrix} 
+	\mb{d}_{x} \\
+	\mb{d}_{z_{w}} \\
+	\end{bmatrix}.
 \end{equation*}
-
-This solution procedure is invoked each time a solution of the form $\mb{K}_{0}\mb{p} = \mb{b}$ is required.
-
-\subsection{Sparse interface}
-
+Once the values of $\mb{p}_{z}$ are obtained, we can find the values for $\mb{p}_{x}$ and $\mb{p}_{z_{w}}$ by solving the equation
+%
 \begin{equation*}
 	\begin{bmatrix} 
-	\mb{D} &  \mb{A}_{w}^{T} & \mb{A}^{T} \\
-	\mb{A}_{w} & -\mb{P}  & 0 \\
-	\mb{A} & 0 & -\mb{Q} 
+	\mb{D} & \mb{A}_{w}^{T} \\
+	\mb{A}_{w} & - \mb{C} 
 	\end{bmatrix}
 	\begin{bmatrix}
-	\mb{p}_{x} \\
-	\mb{p}_{z_{w}} \\
-	\mb{p}_{z} \\
+		\mb{p}_{x} \\
+		-\mb{p}_{z_{w}} \\
 	\end{bmatrix} = 
 	\begin{bmatrix}
-	\mb{b}_{x} \\
-	\mb{b}_{z_{w}} \\
-	\mb{b}_{z} \\
-	\end{bmatrix}
+	\mb{d}_{x} + \mb{A}^{T} \mb{p}_{z} \\
+	\mb{d}_{z_{w}}
+	\end{bmatrix}.
 \end{equation*}
-
-where $\mb{Q}$ and $\mb{P}$ are diagonal matrices.
-
-writing 
-\begin{equation*}
-	\mb{D}_{0} = \begin{bmatrix} \mb{D} & \mb{A}_{w}^{T} \\
-	\mb{A}_{w} & - \mb{P} \end{bmatrix}
-	\qquad\qquad
-	\mb{A}_{0} = \begin{bmatrix} \mb{A} & 0 \end{bmatrix}
-\end{equation*}
-
-This can be solved by first forming the matrix
 %
-\begin{equation*}
-	\left( \mb{Q} + \mb{A}_{0} \mb{D}_{0}^{-1} \mb{A}_{0}^{T} \right)  \mb{p}_{z} = \mb{b}_{z} - \mb{A}_{0} \mb{D}_{0}^{-1} \begin{bmatrix} 
-	\mb{b}_{x} \\
-	\mb{b}_{z_{w}} \\
-	\end{bmatrix}
-\end{equation*}
+The key operation is the solution of the sparse linear system of the form of $\mb{D}_{0}$.
+This solution is obtained via sparse direct methods. 
+When the sparse constraints exhibit specific structure, then significant computational savings can often be achieved.
 
+%  
+%  %
+%  Finally, $\mb{p}_{x}$ can be eliminated for $\mb{p}_{z}$ and $\mb{p}_{z_{w}}$ as follows
+%  \begin{equation}
+%  \begin{aligned}
+%    (\mb{Z}_{w}^{-1}\mb{S}_{w} + \mb{A}_{w}\mb{D}^{-1}\mb{A}_{w}^{T})\mb{p}_{z_{w}} + \mb{A}_{w}\mb{D}^{-1}\mb{A}^{T}\mb{p}_{z} &= \mb{d}_{z_{w}}, \\
+%    %
+%    \mb{A}\mb{D}^{-1}\mb{A}_{w}^{T} \mb{p}_{z_{w}} + (\mb{Z}_{s}^{-1}\mb{S} + \mb{Z}_{t}^{-1}\mb{T} + \mb{A}\mb{D}^{-1}\mb{A}^{T})\mb{p}_{z} &= \mb{d}_{z}, \\
+%  \end{aligned}
+%  \end{equation}
+%  %
+%  The right hand sides, $\mb{d}_{z_{w}}$ and $\mb{d}_{z}$ are
+%  \begin{equation*}
+%  \begin{aligned}
+%    \mb{d}_{z_{w}} &\triangleq \mb{b}_{c_{w}} + \mb{Z}_{w}^{-1}\mb{b}_{s_{w}} - \mb{A}_{w}\mb{D}^{-1}\left(\mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}} \right), \\
+%    \mb{d}_{z} &\triangleq \mb{b}_{c} + \mb{Z}_{s}^{-1}(\mb{b}_{z_{s}} + \mb{S}\mb{b}_{s}) - \mb{Z}_{t}^{-1}(\mb{b}_{z_{t}} + \mb{T}\mb{b}_{t}) - \mb{A}\mb{D}^{-1}\left(\mb{b}_{x} + (\mb{X} - \mb{L})^{-1}\mb{b}_{z_{l}} - (\mb{U} - \mb{X})^{-1}\mb{b}_{z_{u}} \right). \\
+%  \end{aligned}
+%  \end{equation*}
+%  %
+%  Finally, defining the matrix $\mb{E} \triangleq (\mb{Z}_{w}^{-1}\mb{S}_{w} + \mb{A}_{w}\mb{D}^{-1}\mb{A}_{w}^{T})$, which is block diagonal, and introducing $\mb{F} \triangleq \mb{A}\mb{D}^{-1}\mb{A}_{w}^{T}$, gives the following equation
+%  \begin{equation*}
+%  \left[\mb{Z}_{s}^{-1}\mb{S} + \mb{Z}_{t}^{-1}\mb{T} + \mb{A}\mb{D}^{-1}\mb{A}^{T} - \mb{F}\mb{E}^{-1}\mb{F}^{T} \right]\mb{p}_{z} = \mb{d}_{z} - \mb{F}\mb{E}^{-1} \mb{d}_{z_{w}}
+%  \end{equation*}
+%  
+%  This solution procedure is invoked each time a solution of the form $\mb{K}_{0}\mb{p} = \mb{b}$ is required.
+%  
 
 \subsection{Inexact Hessian-vector product mode}
 
@@ -1163,7 +1198,7 @@ Range of values: lower limit 0  upper limit 1000000
 \bibliography{refs}
 
 \appendix
-\section{Equivalency of the two barrier problems: proof}
+\section{Equivalence of the two barrier problems}
 \label{section:proof}
 We would like to show that for the following two optimization problems, we can replace the first one by second one.
 %
