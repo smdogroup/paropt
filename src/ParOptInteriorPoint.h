@@ -7,6 +7,7 @@
 #include "ParOptProblem.h"
 #include "ParOptQuasiNewton.h"
 #include "ParOptScaledQuasiNewton.h"
+#include "ParOptSparseMat.h"
 #include "ParOptVec.h"
 
 /*
@@ -246,10 +247,6 @@ class ParOptInteriorPoint : public ParOptBase {
   void initAffineStepMultipliers(ParOptVars &vars, ParOptVars &res,
                                  ParOptVars &step, ParOptNormType norm_type);
 
-  // Factor/apply the Cw matrix
-  int factorCw();
-  int applyCwFactor(ParOptVec *vec);
-
   // Compute the negative of the KKT residuals - return
   // the maximum primal, dual residuals and the max infeasibility
   void computeKKTRes(ParOptVars &vars, double barrier, ParOptVars &res,
@@ -269,21 +266,21 @@ class ParOptInteriorPoint : public ParOptBase {
 
   // Solve the diagonal KKT system
   void solveKKTDiagSystem(ParOptVars &vars, ParOptVars &b, ParOptVars &y,
-                          ParOptVec *xtmp, ParOptVec *wtmp);
+                          ParOptVec *d1, ParOptVec *d2);
 
   // Solve the diagonal KKT system with a specific RHS structure
   void solveKKTDiagSystem(ParOptVars &vars, ParOptVec *bx, ParOptVars &y,
-                          ParOptVec *xtmp, ParOptVec *wtmp);
+                          ParOptVec *d1, ParOptVec *d2);
 
   // Solve the diagonal KKT system but only return the components
   // corresponding to the design variables
   void solveKKTDiagSystem(ParOptVars &vars, ParOptVec *bx, ParOptVec *yx,
-                          ParOptScalar *ztmp, ParOptVec *xtmp, ParOptVec *wtmp);
+                          ParOptScalar *yz, ParOptVec *d1, ParOptVec *yzw);
 
   // Solve the diagonal system
   void solveKKTDiagSystem(ParOptVars &vars, ParOptVec *bx, ParOptScalar alpha,
-                          ParOptVars &b, ParOptVars &y, ParOptVec *xtmp,
-                          ParOptVec *wtmp);
+                          ParOptVars &b, ParOptVars &y, ParOptVec *d1,
+                          ParOptVec *d2);
 
   // Set up the full KKT system
   void setUpKKTSystem(ParOptVars &vars, ParOptScalar *ztmp, ParOptVec *xtmp1,
@@ -293,16 +290,6 @@ class ParOptInteriorPoint : public ParOptBase {
   void computeKKTStep(ParOptVars &vars, ParOptVars &res, ParOptVars &step,
                       ParOptScalar *ztmp, ParOptVec *xtmp1, ParOptVec *xtmp2,
                       ParOptVec *wtmp, int use_qn);
-
-  // Set up the least-squares multiplier problem
-  void setUpLeastSquaresSystem(ParOptVars &vars, double alpha, double beta,
-                               ParOptVec *xtmp, ParOptVec *wtmp,
-                               int use_sparse);
-
-  // Solve the least-squares system
-  void solveLeastSquaresSystem(ParOptScalar *bz, ParOptVec *bzw,
-                               ParOptScalar *yz, ParOptVec *yzw,
-                               int use_sparse);
 
   // Compute the full KKT step
   int computeKKTGMRESStep(ParOptVars &vars, ParOptVars &res, ParOptVars &step,
@@ -379,10 +366,6 @@ class ParOptInteriorPoint : public ParOptBase {
     ParOptVec *zw, *zsw, *ztw;  // Multipliers for the sparse constraints
     ParOptScalar *s, *t;        // Slack variables
     ParOptVec *sw, *tw;         // Slack variables for the sparse constraints
-
-    // Aliases for the constraints
-    ParOptScalar *c;  // = z;
-    ParOptVec *cw;    // = zw;
   };
 
   // The parallel optimizer problem and constraints
@@ -400,8 +383,10 @@ class ParOptInteriorPoint : public ParOptBase {
   int ncon;         // The number of constraints in the problem
   int ninequality;  // The number of inequality constraints
   int nwcon;        // The number of specially constructed weighting constraints
-  int nwblock;      // The nuber of constraints per block
-  int nvars_total;  // The total number of variables
+  int nwinequality;  // The number of sparse inequality constraints
+  int nvars_total;   // The total number of variables
+
+  int nwblock;
 
   // Distributed variable/constriant ranges
   int *var_range, *wcon_range;
@@ -423,18 +408,22 @@ class ParOptInteriorPoint : public ParOptBase {
   ParOptScalar fobj, *c;
   ParOptVec *g, **Ac;
 
-  // The l1-penalty parameters for the dense constraints
-  double *penalty_gamma_s;
-  double *penalty_gamma_t;
+  // The l1-penalty parameters for the dense constraints and sparse constraints
+  double *penalty_gamma_s, *penalty_gamma_t;
+  ParOptVec *penalty_gamma_sw, *penalty_gamma_tw;
 
-  // The data for the block-diagonal matrix
-  ParOptScalar *Cw;
+  ParOptQuasiDefMat *mat;
 
   // Data required for solving the KKT system
-  ParOptVec *Cvec;
-  ParOptVec **Ew;
-  ParOptScalar *Dmat, *Ce;
-  int *dpiv, *cpiv;
+  ParOptVec *Dinv, *Cdiag;
+
+  // The Schur complement for the dense constraints
+  ParOptScalar *Dmat;
+  int *dpiv;
+
+  // The Schur complement for the quasi-Newton Hessian approximation
+  ParOptScalar *Ce;
+  int *cpiv;
 
   // Storage for the Quasi-Newton updates
   ParOptCompactQuasiNewton *qn;

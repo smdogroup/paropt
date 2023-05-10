@@ -68,7 +68,16 @@ class ParOptProblem : public ParOptBase {
       ninequality = ncon;
     }
     nwcon = _nwcon;
+    // if (nwinequality > nwcon){
+    //   nwinequality = nwcon;
+    // }
+
     nwblock = _nwblock;
+
+    // Assign the values from the sparsity constraints
+    if (nwcon > 0 && nwcon % nwblock != 0) {
+      fprintf(stderr, "ParOpt: Weighted block size inconsistent\n");
+    }
   }
   virtual ~ParOptProblem() {}
 

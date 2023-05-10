@@ -235,7 +235,7 @@ int main(int argc, char *argv[]) {
   double start = MPI_Wtime();
   if (prefix) {
     char output[512];
-    sprintf(output, "%s/rosenbrock_output.bin", prefix);
+    snprintf(output, sizeof(output), "%s/rosenbrock_output.bin", prefix);
     options->setOption("ip_checkpoint_file", output);
   }
   opt->optimize();
