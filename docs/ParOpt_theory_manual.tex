@@ -330,6 +330,46 @@ Finally, defining the matrix $\mb{E} \triangleq (\mb{Z}_{w}^{-1}\mb{S}_{w} + \mb
 
 This solution procedure is invoked each time a solution of the form $\mb{K}_{0}\mb{p} = \mb{b}$ is required.
 
+\subsection{Sparse interface}
+
+\begin{equation*}
+	\begin{bmatrix} 
+	\mb{D} &  \mb{A}_{w}^{T} & \mb{A}^{T} \\
+	\mb{A}_{w} & -\mb{P}  & 0 \\
+	\mb{A} & 0 & -\mb{Q} 
+	\end{bmatrix}
+	\begin{bmatrix}
+	\mb{p}_{x} \\
+	\mb{p}_{z_{w}} \\
+	\mb{p}_{z} \\
+	\end{bmatrix} = 
+	\begin{bmatrix}
+	\mb{b}_{x} \\
+	\mb{b}_{z_{w}} \\
+	\mb{b}_{z} \\
+	\end{bmatrix}
+\end{equation*}
+
+where $\mb{Q}$ and $\mb{P}$ are diagonal matrices.
+
+writing 
+\begin{equation*}
+	\mb{D}_{0} = \begin{bmatrix} \mb{D} & \mb{A}_{w}^{T} \\
+	\mb{A}_{w} & - \mb{P} \end{bmatrix}
+	\qquad\qquad
+	\mb{A}_{0} = \begin{bmatrix} \mb{A} & 0 \end{bmatrix}
+\end{equation*}
+
+This can be solved by first forming the matrix
+%
+\begin{equation*}
+	\left( \mb{Q} + \mb{A}_{0} \mb{D}_{0}^{-1} \mb{A}_{0}^{T} \right)  \mb{p}_{z} = \mb{b}_{z} - \mb{A}_{0} \mb{D}_{0}^{-1} \begin{bmatrix} 
+	\mb{b}_{x} \\
+	\mb{b}_{z_{w}} \\
+	\end{bmatrix}
+\end{equation*}
+
+
 \subsection{Inexact Hessian-vector product mode}
 
 ParOpt can also use Hessian-vector products to accelerate convergence.

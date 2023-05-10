@@ -128,8 +128,8 @@ def paropt_truss(truss, use_hessian=False, use_tr=False, prefix="results"):
         "abs_res_tol": 1e-5,
         "norm_type": "l1",
         "init_barrier_param": 10.0,
-        "monotone_barrier_fraction": 0.75,
-        "barrier_strategy": "complementarity_fraction",
+        "monotone_barrier_fraction": 0.25,
+        "barrier_strategy": "monotone",  # "complementarity_fraction",
         "starting_point_strategy": "least_squares_multipliers",
         "use_hvec_product": True,
         "gmres_subspace_size": 50,
@@ -139,6 +139,7 @@ def paropt_truss(truss, use_hessian=False, use_tr=False, prefix="results"):
         "max_gmres_rtol": 1.0,
         "output_level": 1,
         "armijo_constant": 1e-5,
+        "gradient_verification_frequency": 2,
         "output_file": fname,
     }
 
@@ -339,7 +340,7 @@ if profile:
     ]
 
     # Perform the optimization with and without the Hessian
-    if optimizer is "None":
+    if optimizer == "None":
         # Set the prefix to use
         if use_hessian:
             prefix = "hessian"
@@ -372,7 +373,7 @@ if profile:
         # Optimize each of the trusses
         truss = setup_ground_struct(N, M)
         t0 = MPI.Wtime()
-        if optimizer is "None":
+        if optimizer == "None":
             opt = paropt_truss(
                 truss, prefix=prefix, use_tr=use_tr, use_hessian=use_hessian
             )
@@ -469,7 +470,7 @@ else:
     prefix = "results"
     truss = setup_ground_struct(N, M)
 
-    if optimizer is "None":
+    if optimizer == "None":
         opt = paropt_truss(truss, prefix=prefix, use_tr=use_tr, use_hessian=use_hessian)
 
         # Retrieve the optimized multipliers

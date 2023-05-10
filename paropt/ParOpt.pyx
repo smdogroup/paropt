@@ -1168,14 +1168,16 @@ cdef class InteriorPoint:
         cdef ParOptScalar *_s = NULL
         cdef ParOptScalar *_t = NULL
         cdef ParOptVec *_sw = NULL
+        cdef ParOptVec *_tw = NULL
 
         # Get the problem size/vector for the values
         self.ptr.getProblemSizes(NULL, &ncon, NULL, NULL, NULL)
-        self.ptr.getOptimizedSlacks(&_s, &_t, &_sw)
+        self.ptr.getOptimizedSlacks(&_s, &_t, &_sw, &_tw)
 
         s = None
         t = None
         sw = None
+        tw = None
 
         if _s != NULL:
             s = inplace_array_1d(PAROPT_NPY_SCALAR, ncon, <void*>_s, self)
@@ -1185,8 +1187,10 @@ cdef class InteriorPoint:
         # Convert to a vector
         if _sw != NULL:
             sw = _init_PVec(_sw)
+        if _tw != NULL:
+            tw = _init_PVec(_tw)
 
-        return s, t, sw
+        return s, t, sw, tw
 
     # Check objective and constraint gradients
     def checkGradients(self, double dh):
@@ -1205,15 +1209,6 @@ cdef class InteriorPoint:
 
         self.ptr.setPenaltyGamma(g)
         free(g)
-
-    def getPenaltyGamma(self):
-        cdef const double *penalty_gamma
-        cdef int ncon
-        ncon = self.ptr.getPenaltyGamma(&penalty_gamma)
-        gamma = np.zeros(ncon, dtype=np.double)
-        for i in range(ncon):
-            gamma[i] = penalty_gamma[i]
-        return gamma
 
     def getComplementarity(self):
         return self.ptr.getComplementarity()

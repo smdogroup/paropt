@@ -58,7 +58,7 @@ enum ParOptStartingPointStrategy {
   g(x) - A(x)^{T}*z - Aw^{T}*zw - zl + zu = 0
   gamma_s + z - zs = 0
   gamma_t - z - zt = 0
-  c(x) - s = 0
+  c(x) - s + t = 0
   cw(x) - sw = 0
   S*z - mu*e = 0
   T*zt - mu*e = 0
@@ -158,8 +158,8 @@ class ParOptInteriorPoint : public ParOptBase {
 
   // Retrieve the optimized slack variable values
   // --------------------------------------------
-  void getOptimizedSlacks(ParOptScalar **_s, ParOptScalar **_t,
-                          ParOptVec **_sw);
+  void getOptimizedSlacks(ParOptScalar **_s, ParOptScalar **_t, ParOptVec **_sw,
+                          ParOptVec **_tw);
 
   // Check the objective and constraint gradients
   // --------------------------------------------
@@ -169,7 +169,6 @@ class ParOptInteriorPoint : public ParOptBase {
   // ------------------------
   void setPenaltyGamma(double gamma);
   void setPenaltyGamma(const double *gamma);
-  int getPenaltyGamma(const double **gamma);
   void setBFGSUpdateType(ParOptBFGSUpdateType bfgs_update);
 
   // Get the barrier parameter and complementarity measure
@@ -225,6 +224,8 @@ class ParOptInteriorPoint : public ParOptBase {
   static const int PAROPT_LINE_SEARCH_NO_IMPROVEMENT = 16;
   static const int PAROPT_LINE_SEARCH_SHORT_STEP = 32;
 
+  class ParOptVars;
+
   // Set the size of the GMRES subspace
   void setGMRESSubspaceSize(int m);
 
@@ -241,9 +242,9 @@ class ParOptInteriorPoint : public ParOptBase {
   void initAndCheckDesignAndBounds();
 
   // Initialize the multipliers
-  void initLeastSquaresMultipliers();
-  void initAffineStepMultipliers(ParOptNormType norm_type);
-  void initMehrotraMultipliers();
+  void initLeastSquaresMultipliers(ParOptVars &vars);
+  void initAffineStepMultipliers(ParOptVars &vars, ParOptVars &res,
+                                 ParOptVars &step, ParOptNormType norm_type);
 
   // Factor/apply the Cw matrix
   int factorCw();
@@ -251,60 +252,52 @@ class ParOptInteriorPoint : public ParOptBase {
 
   // Compute the negative of the KKT residuals - return
   // the maximum primal, dual residuals and the max infeasibility
-  void computeKKTRes(double barrier, ParOptNormType norm_type,
-                     double *max_prime, double *max_dual, double *max_infeas,
+  void computeKKTRes(ParOptVars &vars, double barrier, ParOptVars &res,
+                     ParOptNormType norm_type, double *max_prime,
+                     double *max_dual, double *max_infeas,
                      double *res_norm = NULL);
 
   // Add the corrector components to the residual to compute the MPC step
-  void addMehrotraCorrectorResidual();
+  void addMehrotraCorrectorResidual(ParOptVars &step, ParOptVars &res);
 
   // Compute the norm of the step
-  double computeStepNorm(ParOptNormType norm_type);
+  double computeStepNorm(ParOptNormType norm_type, ParOptVars &step);
 
   // Set up the diagonal KKT system
-  void setUpKKTDiagSystem(ParOptVec *xt, ParOptVec *wt, int use_qn);
+  void setUpKKTDiagSystem(ParOptVars &vars, ParOptVec *xtmp, ParOptVec *wtmp,
+                          int use_qn);
 
   // Solve the diagonal KKT system
-  void solveKKTDiagSystem(ParOptVec *bx, ParOptScalar *bs, ParOptScalar *bt,
-                          ParOptScalar *bc, ParOptVec *bcw, ParOptScalar *bzs,
-                          ParOptScalar *bzt, ParOptVec *bzw, ParOptVec *bzl,
-                          ParOptVec *bzu, ParOptVec *yx, ParOptScalar *ys,
-                          ParOptScalar *yt, ParOptVec *ysw, ParOptScalar *yz,
-                          ParOptScalar *yzs, ParOptScalar *yzt, ParOptVec *yzw,
-                          ParOptVec *yzl, ParOptVec *yzu, ParOptVec *xtmp,
-                          ParOptVec *wtmp);
+  void solveKKTDiagSystem(ParOptVars &vars, ParOptVars &b, ParOptVars &y,
+                          ParOptVec *xtmp, ParOptVec *wtmp);
 
   // Solve the diagonal KKT system with a specific RHS structure
-  void solveKKTDiagSystem(ParOptVec *bx, ParOptVec *yx, ParOptScalar *ys,
-                          ParOptScalar *yt, ParOptVec *ysw, ParOptScalar *yz,
-                          ParOptScalar *yzs, ParOptScalar *yzt, ParOptVec *yzw,
-                          ParOptVec *yzl, ParOptVec *yzu, ParOptVec *xtmp,
-                          ParOptVec *wtmp);
+  void solveKKTDiagSystem(ParOptVars &vars, ParOptVec *bx, ParOptVars &y,
+                          ParOptVec *xtmp, ParOptVec *wtmp);
 
   // Solve the diagonal KKT system but only return the components
   // corresponding to the design variables
-  void solveKKTDiagSystem(ParOptVec *bx, ParOptVec *yx, ParOptScalar *zt,
-                          ParOptVec *xt, ParOptVec *wt);
+  void solveKKTDiagSystem(ParOptVars &vars, ParOptVec *bx, ParOptVec *yx,
+                          ParOptScalar *ztmp, ParOptVec *xtmp, ParOptVec *wtmp);
 
   // Solve the diagonal system
-  void solveKKTDiagSystem(ParOptVec *bx, ParOptScalar alpha, ParOptScalar *bs,
-                          ParOptScalar *bt, ParOptScalar *bc, ParOptVec *bcw,
-                          ParOptScalar *bzs, ParOptScalar *bzt, ParOptVec *bzw,
-                          ParOptVec *bzl, ParOptVec *bzu, ParOptVec *yx,
-                          ParOptScalar *ys, ParOptScalar *yt, ParOptVec *ysw,
-                          ParOptScalar *yz, ParOptVec *xtmp, ParOptVec *wtmp);
+  void solveKKTDiagSystem(ParOptVars &vars, ParOptVec *bx, ParOptScalar alpha,
+                          ParOptVars &b, ParOptVars &y, ParOptVec *xtmp,
+                          ParOptVec *wtmp);
 
   // Set up the full KKT system
-  void setUpKKTSystem(ParOptScalar *zt, ParOptVec *xt1, ParOptVec *xt2,
-                      ParOptVec *wt, int use_bfgs);
+  void setUpKKTSystem(ParOptVars &vars, ParOptScalar *ztmp, ParOptVec *xtmp1,
+                      ParOptVec *xtmp2, ParOptVec *wtmp, int use_qn);
 
   // Solve for the KKT step
-  void computeKKTStep(ParOptScalar *zt, ParOptVec *xt1, ParOptVec *xt2,
-                      ParOptVec *wt, int use_bfgs);
+  void computeKKTStep(ParOptVars &vars, ParOptVars &res, ParOptVars &step,
+                      ParOptScalar *ztmp, ParOptVec *xtmp1, ParOptVec *xtmp2,
+                      ParOptVec *wtmp, int use_qn);
 
   // Set up the least-squares multiplier problem
-  void setUpLeastSquaresSystem(double alpha, double beta, ParOptVec *xtmp,
-                               ParOptVec *wtmp, int use_sparse);
+  void setUpLeastSquaresSystem(ParOptVars &vars, double alpha, double beta,
+                               ParOptVec *xtmp, ParOptVec *wtmp,
+                               int use_sparse);
 
   // Solve the least-squares system
   void solveLeastSquaresSystem(ParOptScalar *bz, ParOptVec *bzw,
@@ -312,16 +305,19 @@ class ParOptInteriorPoint : public ParOptBase {
                                int use_sparse);
 
   // Compute the full KKT step
-  int computeKKTGMRESStep(ParOptScalar *ztmp, ParOptVec *xtmp1,
+  int computeKKTGMRESStep(ParOptVars &vars, ParOptVars &res, ParOptVars &step,
+                          ParOptScalar *ztmp, ParOptVec *xtmp1,
                           ParOptVec *xtmp2, ParOptVec *wtmp, double rtol,
                           double atol, int use_qn);
 
   // Check that the KKT step is computed correctly
-  void checkKKTStep(int iteration, int is_newton);
+  void checkKKTStep(ParOptVars &vars, ParOptVars &step, ParOptVars &res,
+                    int iteration, int is_newton);
 
   // Compute the maximum step length to maintain positivity of
   // all components of the design variables
-  void computeMaxStep(double tau, double *_max_x, double *_max_z);
+  void computeMaxStep(ParOptVars &vars, double tau, ParOptVars &step,
+                      double *_max_x, double *_max_z);
 
   // Compute the step so that it satisfies the required bounds
   void scaleStep(ParOptScalar alpha, int nvals, ParOptScalar *);
@@ -338,12 +334,13 @@ class ParOptInteriorPoint : public ParOptBase {
                  ParOptScalar dm0);
 
   // Scale the step by the distance-to-the-boundary rule
-  int scaleKKTStep(double tau, ParOptScalar comp, int inexact_newton_step,
-                   double *_alpha_x, double *_alpha_z);
+  int scaleKKTStep(ParOptVars &vars, ParOptVars &step, double tau,
+                   ParOptScalar comp, int inexact_newton_step, double *_alpha_x,
+                   double *_alpha_z);
 
   // Perform a primal/dual update and optionally upate the quasi-Newton Hessian
-  int computeStepAndUpdate(double alpha, int eval_obj_con,
-                           int perform_qn_update);
+  int computeStepAndUpdate(ParOptVars &vars, double alpha, ParOptVars &step,
+                           int eval_obj_con, int perform_qn_update);
 
   // Evaluate the merit function
   ParOptScalar evalMeritFunc(ParOptScalar fk, const ParOptScalar *ck,
@@ -351,21 +348,42 @@ class ParOptInteriorPoint : public ParOptBase {
                              const ParOptScalar *tk, ParOptVec *swk);
 
   // Evaluate the directional derivative of the objective + barrier terms
-  ParOptScalar evalObjBarrierDeriv();
+  ParOptScalar evalObjBarrierDeriv(ParOptVars &vars, ParOptVars &step);
 
   // Evaluate the merit function, its derivative and the new penalty
   // parameter
-  void evalMeritInitDeriv(double max_x, ParOptScalar *_merit,
-                          ParOptScalar *_pmerit, ParOptVec *xtmp,
-                          ParOptVec *wtmp1, ParOptVec *wtmp2);
+  void evalMeritInitDeriv(ParOptVars &vars, ParOptVars &step, double max_x,
+                          ParOptScalar *_merit, ParOptScalar *_pmerit,
+                          ParOptVec *xtmp, ParOptVec *wtmp1, ParOptVec *wtmp2);
 
   // Compute the average of the complementarity products at the
   // current point: Complementarity at (x + p)
-  ParOptScalar computeComp();
-  ParOptScalar computeCompStep(double alpha_x, double alpha_z);
+  ParOptScalar computeComp(ParOptVars &vars);
+  ParOptScalar computeCompStep(ParOptVars &vars, double alpha_x, double alpha_z,
+                               ParOptVars &step);
 
   // Check the step
   void checkStep();
+
+  // All the variables in a solution vector
+  class ParOptVars {
+   public:
+    ParOptVars();
+    ~ParOptVars();
+    void initialize(ParOptProblem *prob);
+
+    // The variables in the optimization problem
+    ParOptVec *x;               // The design point
+    ParOptVec *zl, *zu;         // Multipliers for the upper/lower bounds
+    ParOptScalar *z, *zs, *zt;  // Multipliers for the dense constraints
+    ParOptVec *zw, *zsw, *ztw;  // Multipliers for the sparse constraints
+    ParOptScalar *s, *t;        // Slack variables
+    ParOptVec *sw, *tw;         // Slack variables for the sparse constraints
+
+    // Aliases for the constraints
+    ParOptScalar *c;  // = z;
+    ParOptVec *cw;    // = zw;
+  };
 
   // The parallel optimizer problem and constraints
   ParOptProblem *prob;
@@ -388,30 +406,18 @@ class ParOptInteriorPoint : public ParOptBase {
   // Distributed variable/constriant ranges
   int *var_range, *wcon_range;
 
+  // Variables
+  ParOptVars variables;  // The solution variables
+  ParOptVars residual;   // The residual variables
+  ParOptVars update;     // The step variables
+
   // Temporary vectors for internal usage
   ParOptVec *xtemp;
   ParOptVec *wtemp;
   ParOptScalar *ztemp;
 
-  // The variables in the optimization problem
-  ParOptVec *x;               // The design point
-  ParOptVec *zl, *zu;         // Multipliers for the upper/lower bounds
-  ParOptScalar *z, *zs, *zt;  // Multipliers for the dense constraints
-  ParOptVec *zw;              // Multipliers for the sparse constraints
-  ParOptScalar *s, *t;        // Slack variables
-  ParOptVec *sw;              // Slack variables for the sparse constraints
-
   // The lower/upper bounds on the variables
   ParOptVec *lb, *ub;
-
-  // The steps in the variables
-  ParOptVec *px, *pzl, *pzu, *pzw, *psw;
-  ParOptScalar *ps, *pt, *pz, *pzs, *pzt;
-
-  // The residuals
-  ParOptVec *rx, *rzl, *rzu;
-  ParOptVec *rcw, *rzw;
-  ParOptScalar *rc, *rs, *rt, *rzs, *rzt;
 
   // The objective, gradient, constraints, and constraint gradients
   ParOptScalar fobj, *c;

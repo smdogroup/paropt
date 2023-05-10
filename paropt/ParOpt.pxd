@@ -162,11 +162,10 @@ cdef extern from "ParOptInteriorPoint.h":
         void getOptimizedPoint(ParOptVec**,
                                ParOptScalar**, ParOptVec**,
                                ParOptVec**, ParOptVec**)
-        void getOptimizedSlacks(ParOptScalar**, ParOptScalar**, ParOptVec**)
+        void getOptimizedSlacks(ParOptScalar**, ParOptScalar**, ParOptVec**, ParOptVec**)
         void checkGradients(double)
         void setPenaltyGamma(double)
         void setPenaltyGamma(double*)
-        int getPenaltyGamma(double**)
         double getBarrierParameter()
         ParOptScalar getComplementarity()
         void setQuasiNewton(ParOptCompactQuasiNewton*)
