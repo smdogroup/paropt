@@ -170,6 +170,7 @@ class ParOptQuadraticSubproblem : public ParOptTrustRegionSubproblem {
   // Create the design vectors
   ParOptVec *createDesignVec();
   ParOptVec *createConstraintVec();
+  ParOptQuasiDefMat *createQuasiDefMat();
 
   // Get the communicator for the problem
   MPI_Comm getMPIComm();
@@ -310,6 +311,7 @@ class ParOptInfeasSubproblem : public ParOptProblem {
   // Create the design vectors
   ParOptVec *createDesignVec();
   ParOptVec *createConstraintVec();
+  ParOptQuasiDefMat *createQuasiDefMat();
 
   // Get the communicator for the problem
   MPI_Comm getMPIComm();
@@ -463,11 +465,11 @@ class ParOptTrustRegion : public ParOptBase {
   int subproblem_iters;           // Subproblem iteration counter
   int adaptive_subproblem_iters;  // Subproblem iteration counter
 
-  int n;        // The number of design variables (local)
-  int m;        // The number of dense constraints (global)
-  int nineq;    // The number of inequality constraints
-  int nwcon;    // The number of sparse constraints
-  int nwblock;  // The block size
+  int n;       // The number of design variables (local)
+  int m;       // The number of dense constraints (global)
+  int nineq;   // The number of inequality constraints
+  int nwcon;   // The number of sparse constraints
+  int nwineq;  // The number of sparse inequality constraints
 
   double tr_size;         // The trust region size
   double *penalty_gamma;  // Penalty parameters

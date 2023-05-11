@@ -32,8 +32,8 @@ ParOptQuadraticSubproblem::ParOptQuadraticSubproblem(
   prob->incref();
 
   // Get the problem sizes
-  prob->getProblemSizes(&n, &m, &ninequality, &nwcon, &nwblock);
-  setProblemSizes(n, m, ninequality, nwcon, nwblock);
+  prob->getProblemSizes(&n, &m, &ninequality, &nwcon, &nwinequality);
+  setProblemSizes(n, m, ninequality, nwcon, nwinequality);
 
   // Set the quasi-Newton method
   if (_qn) {
@@ -245,6 +245,13 @@ ParOptVec *ParOptQuadraticSubproblem::createDesignVec() {
 */
 ParOptVec *ParOptQuadraticSubproblem::createConstraintVec() {
   return prob->createConstraintVec();
+}
+
+/*
+  Create the subproblem quasi-definite matrix
+*/
+ParOptQuasiDefMat *ParOptQuadraticSubproblem::createQuasiDefMat() {
+  return prob->createQuasiDefMat();
 }
 
 /*
@@ -469,8 +476,8 @@ ParOptInfeasSubproblem::ParOptInfeasSubproblem(
   subproblem_constraint = _subproblem_constraint;
 
   // Get the problem sizes
-  prob->getProblemSizes(&n, &m, &ninequality, &nwcon, &nwblock);
-  setProblemSizes(n, m, ninequality, nwcon, nwblock);
+  prob->getProblemSizes(&n, &m, &ninequality, &nwcon, &nwinequality);
+  setProblemSizes(n, m, ninequality, nwcon, nwinequality);
 }
 
 ParOptInfeasSubproblem::~ParOptInfeasSubproblem() { prob->decref(); }
@@ -487,6 +494,13 @@ ParOptVec *ParOptInfeasSubproblem::createDesignVec() {
 */
 ParOptVec *ParOptInfeasSubproblem::createConstraintVec() {
   return prob->createConstraintVec();
+}
+
+/*
+  Create the subproblem quasi-definite matrix
+*/
+ParOptQuasiDefMat *ParOptInfeasSubproblem::createQuasiDefMat() {
+  return prob->createQuasiDefMat();
 }
 
 /*
@@ -647,7 +661,7 @@ ParOptTrustRegion::ParOptTrustRegion(ParOptTrustRegionSubproblem *_subproblem,
   options->incref();
 
   // Get the subproblem sizes
-  subproblem->getProblemSizes(&n, &m, &nineq, &nwcon, &nwblock);
+  subproblem->getProblemSizes(&n, &m, &nineq, &nwcon, &nwineq);
 
   // Set the penalty parameters
   const double gamma = options->getFloatOption("penalty_gamma");

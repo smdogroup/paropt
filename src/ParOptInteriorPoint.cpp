@@ -157,11 +157,12 @@ ParOptInteriorPoint::ParOptInteriorPoint(ParOptProblem *_prob,
   opt_root = 0;
 
   // Get the number of variables/constraints
-  nwinequality = 0;
-  prob->getProblemSizes(&nvars, &ncon, &ninequality, &nwcon, &nwblock);
+  prob->getProblemSizes(&nvars, &ncon, &ninequality, &nwcon, &nwinequality);
+
+  // Set the sparse flag -- will be deprecated
+  sparse_inequality = prob->isSparseInequality();
 
   // Check whether to use upper/lower bounds
-  sparse_inequality = prob->isSparseInequality();
   use_lower = prob->useLowerBounds();
   use_upper = prob->useUpperBounds();
 
@@ -279,7 +280,7 @@ ParOptInteriorPoint::ParOptInteriorPoint(ParOptProblem *_prob,
   Cdiag = prob->createConstraintVec();
   Cdiag->incref();
 
-  mat = new ParOptQuasiDefMat(prob);
+  mat = prob->createQuasiDefMat();
   mat->incref();
 
   // Set the value of the objective
@@ -691,11 +692,11 @@ void ParOptInteriorPoint::resetProblemInstance(ParOptProblem *problem) {
   // Check to see if the new problem instance is congruent with
   // the previous problem instance - it has to be otherwise
   // we can't use it.
-  int _nvars, _ncon, _inequality, _nwcon, _nwblock;
-  problem->getProblemSizes(&_nvars, &_ncon, &_inequality, &_nwcon, &_nwblock);
+  int _nvars, _ncon, _ninequality, _nwcon, _nwinequality;
+  problem->getProblemSizes(&_nvars, &_ncon, &_ninequality, &_nwcon,
+                           &_nwinequality);
 
-  if (_nvars != nvars || _ncon != ncon || _nwcon != nwcon ||
-      _nwblock != nwblock) {
+  if (_nvars != nvars || _ncon != ncon || _nwcon != nwcon) {
     fprintf(stderr, "ParOpt: Incompatible problem instance\n");
     problem = NULL;
   } else {
@@ -712,12 +713,12 @@ void ParOptInteriorPoint::resetProblemInstance(ParOptProblem *problem) {
    @param _ncon the number of global constraints
    @param _inequality the number of global inequality constraints
    @param _nwcon the number of sparse constraints
-   @param _nwblock the size of the sparse constraint block
+   @param _nwinequality the size of the sparse constraint block
 */
 void ParOptInteriorPoint::getProblemSizes(int *_nvars, int *_ncon,
                                           int *_inequality, int *_nwcon,
-                                          int *_nwblock) {
-  prob->getProblemSizes(_nvars, _ncon, _inequality, _nwcon, _nwblock);
+                                          int *_nwinequality) {
+  prob->getProblemSizes(_nvars, _ncon, _inequality, _nwcon, _nwinequality);
 }
 
 /**
@@ -1804,9 +1805,9 @@ void ParOptInteriorPoint::setUpKKTDiagSystem(ParOptVars &vars, ParOptVec *xtmp,
 
   We can solve for yx, yzw and yz by solving the following system of equations:
 
-  [[ D   Aw^{T} ]   A^{T} ][  yx  ] = [ d1 ]
-  [[ Aw     -C  ]         ][ -yzw ] = [ d2 ]
-  [  A                -C0 ][ -yz  ] = [ d3 ]
+  [[ D   Aw^{T} ]  A^{T} ][  yx  ] = [ d1 ]
+  [[ Aw     -C  ]        ][ -yzw ] = [ d2 ]
+  [  A               -C0 ][ -yz  ] = [ d3 ]
 
   We solve this via a Schur complement on the yz variables. Writing the matrix
 

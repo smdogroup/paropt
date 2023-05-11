@@ -386,8 +386,6 @@ class ParOptInteriorPoint : public ParOptBase {
   int nwinequality;  // The number of sparse inequality constraints
   int nvars_total;   // The total number of variables
 
-  int nwblock;
-
   // Distributed variable/constriant ranges
   int *var_range, *wcon_range;
 

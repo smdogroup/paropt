@@ -58,9 +58,9 @@ ParOptMMA::ParOptMMA(ParOptProblem *_prob, ParOptOptions *_options)
   setOutputFile(mma_output_file);
 
   // Get the problem sizes
-  int nineq, _nwcon, _nwblock;
-  prob->getProblemSizes(&n, &m, &nineq, &_nwcon, &_nwblock);
-  setProblemSizes(n, m, nineq, _nwcon, _nwblock);
+  int nineq, _nwcon, nwineq;
+  prob->getProblemSizes(&n, &m, &nineq, &_nwcon, &nwineq);
+  setProblemSizes(n, m, nineq, _nwcon, nwineq);
 
   // Set the iteration counter
   mma_iter = 0;
@@ -762,6 +762,13 @@ ParOptVec *ParOptMMA::createDesignVec() { return prob->createDesignVec(); }
 */
 ParOptVec *ParOptMMA::createConstraintVec() {
   return prob->createConstraintVec();
+}
+
+/*
+  Create the subproblem quasi-definite matrix
+*/
+ParOptQuasiDefMat *ParOptMMA::createQuasiDefMat() {
+  return prob->createQuasiDefMat();
 }
 
 /*

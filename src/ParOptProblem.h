@@ -4,6 +4,50 @@
 #include "ParOptVec.h"
 
 /*
+  Abstract base class for the quasi-definite matrix
+*/
+class ParOptQuasiDefMat : public ParOptBase {
+ public:
+  virtual ~ParOptQuasiDefMat() {}
+
+  /*
+    Factor the matrix
+  */
+  virtual int factor(ParOptVec *x, ParOptVec *Dinv, ParOptVec *Cdiag) = 0;
+
+  /**
+    Solve the quasi-definite system of equations
+
+    [ D   Aw^{T} ][  yx ] = [ bx ]
+    [ Aw    - C  ][ -yw ] = [ 0  ]
+
+    Here bx is unmodified. Note the negative sign on the yw variables.
+
+    @param bx the design variable right-hand-side
+    @param yx the design variable solution
+    @param yw the sparse multiplier solution
+   */
+  virtual void apply(ParOptVec *bx, ParOptVec *yx, ParOptVec *yw) = 0;
+
+  /**
+    Solve the quasi-definite system of equations
+
+    [ D   Aw^{T} ][  yx ] = [ bx ]
+    [ Aw    - C  ][ -yw ] = [ bw ]
+
+    In the call bx and bw must remain unmodified. Note the negative sign on the
+    yw variables.
+
+    @param bx the design variable right-hand-side
+    @param bx the sparse multiplier right-hand-side
+    @param yx the design variable solution
+    @param yw the sparse multiplier solution
+   */
+  virtual void apply(ParOptVec *bx, ParOptVec *bw, ParOptVec *yx,
+                     ParOptVec *yw) = 0;
+};
+
+/*
   This code is the virtual base class problem definition for the
   parallel optimizer.
 
@@ -34,7 +78,6 @@
   nvars:   the number of local variables
   ncon:    the number of dense constraints
   nwcon:   the number of sparse constraints
-  nwblock: the block size of the Aw*D*Aw^{T} matrix
 */
 class ParOptProblem : public ParOptBase {
  public:
@@ -45,40 +88,9 @@ class ParOptProblem : public ParOptBase {
   */
   ParOptProblem(MPI_Comm _comm) {
     comm = _comm;
-    nvars = ncon = ninequality = nwcon = nwblock = 0;
+    nvars = ncon = ninequality = nwcon = nwinequality = 0;
   }
 
-  /**
-    Create a ParOptProblem class and define the problem layout.
-
-    @param _comm is the MPI communicator
-    @param _nvars the number of local design variables
-    @param _ncon the global number of dense constraints
-    @param _ninequality the number of inequality constraints
-    @param _nwcon the local number of sparse separable constraints
-    @param _nwblock the block size of the separable constraints
-  */
-  ParOptProblem(MPI_Comm _comm, int _nvars, int _ncon, int _ninequality,
-                int _nwcon, int _nwblock) {
-    comm = _comm;
-    nvars = _nvars;
-    ncon = _ncon;
-    ninequality = _ninequality;
-    if (ninequality > ncon) {
-      ninequality = ncon;
-    }
-    nwcon = _nwcon;
-    // if (nwinequality > nwcon){
-    //   nwinequality = nwcon;
-    // }
-
-    nwblock = _nwblock;
-
-    // Assign the values from the sparsity constraints
-    if (nwcon > 0 && nwcon % nwblock != 0) {
-      fprintf(stderr, "ParOpt: Weighted block size inconsistent\n");
-    }
-  }
   virtual ~ParOptProblem() {}
 
   /**
@@ -100,6 +112,13 @@ class ParOptProblem : public ParOptBase {
   }
 
   /**
+    Create a new quasi-definite matrix object
+
+    @return a new quasi-definite matrix object
+  */
+  virtual ParOptQuasiDefMat *createQuasiDefMat() = 0;
+
+  /**
     Get the communicator for the problem
 
     @return the MPI communicator for the problem
@@ -113,10 +132,10 @@ class ParOptProblem : public ParOptBase {
     @param _ncon the global number of dense constraints
     @param _ninequality the number of inequality constraints
     @param _nwcon the local number of sparse separable constraints
-    @param _nwblock the block size of the separable constraints
+    @param _nwinequality the block size of the separable constraints
   */
   void setProblemSizes(int _nvars, int _ncon, int _ninequality, int _nwcon,
-                       int _nwblock) {
+                       int _nwinequality) {
     nvars = _nvars;
     ncon = _ncon;
     ninequality = _ninequality;
@@ -124,7 +143,10 @@ class ParOptProblem : public ParOptBase {
       ninequality = ncon;
     }
     nwcon = _nwcon;
-    nwblock = _nwblock;
+    nwinequality = _nwinequality;
+    if (nwinequality > nwcon) {
+      nwinequality = nwcon;
+    }
   }
 
   /**
@@ -134,10 +156,10 @@ class ParOptProblem : public ParOptBase {
     @param _ncon the global number of dense constraints
     @param _ninequality the number of dense inequality constraints
     @param _nwcon the local number of sparse separable constraints
-    @param _nwblock the block size of the separable constraints
+    @param _nwinequality the block size of the separable constraints
   */
   void getProblemSizes(int *_nvars, int *_ncon, int *_ninequality, int *_nwcon,
-                       int *_nwblock) {
+                       int *_nwinequality) {
     if (_nvars) {
       *_nvars = nvars;
     }
@@ -150,8 +172,8 @@ class ParOptProblem : public ParOptBase {
     if (_nwcon) {
       *_nwcon = nwcon;
     }
-    if (_nwblock) {
-      *_nwblock = nwblock;
+    if (_nwinequality) {
+      *_nwinequality = nwinequality;
     }
   }
 
@@ -328,8 +350,12 @@ class ParOptProblem : public ParOptBase {
   virtual void writeOutput(int iter, ParOptVec *x) {}
 
  protected:
-  MPI_Comm comm;
-  int nvars, ncon, ninequality, nwcon, nwblock;
+  MPI_Comm comm;     // MPI communicator for the problem
+  int nvars;         // Number of variables
+  int ncon;          // Number of dense constraints
+  int ninequality;   // Number of inequality constraints < ncon
+  int nwcon;         // Number of sparse constraints
+  int nwinequality;  // Number of sparse inequality constraints < nwcon
 };
 
 #endif  // PAR_OPT_PROBLEM_H

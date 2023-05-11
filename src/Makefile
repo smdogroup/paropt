@@ -9,6 +9,7 @@ OBJS = ParOptOptions.o \
 	ParOptTrustRegion.o \
 	ParOptProblem.o \
 	ParOptOptimizer.o \
+	ParOptSparseMat.o \
 	ParOptCompactEigenvalueApprox.o \
 	CyParOptProblem.o
 

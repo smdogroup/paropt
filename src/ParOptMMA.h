@@ -74,6 +74,7 @@ class ParOptMMA : public ParOptProblem {
   // Create the design vectors
   ParOptVec *createDesignVec();
   ParOptVec *createConstraintVec();
+  ParOptQuasiDefMat *createQuasiDefMat();
 
   // Get the communicator for the problem
   MPI_Comm getMPIComm();

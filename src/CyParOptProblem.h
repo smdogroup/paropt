@@ -26,6 +26,10 @@ class CyParOptProblem : public ParOptProblem {
                   int _nwcon, int _nwblock);
   ~CyParOptProblem();
 
+  // Create the quasi-def matrix associated with the problem
+  // -------------------------------------------------------
+  ParOptQuasiDefMat *createQuasiDefMat();
+
   // Set options associated with the inequality constraints
   // ------------------------------------------------------
   void setInequalityOptions(int _isSparseInequal, int _useLower, int _useUpper);
@@ -145,6 +149,9 @@ class CyParOptProblem : public ParOptProblem {
   void (*addsparseinnerproduct)(void *self, int nvars, int nwcon, int nwblock,
                                 ParOptScalar alpha, ParOptVec *x, ParOptVec *c,
                                 ParOptScalar *A);
+
+  // Store the block size
+  int nwblock;
 
   // Store information about the type of problem to solve
   int isSparseInequal;
