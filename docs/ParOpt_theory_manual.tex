@@ -309,7 +309,7 @@ where the diagonal matrix $\mb{D}$ is defined as follows:
 This system of equations can be arranged as follows
 \begin{equation}
 \label{eqn:kkt-reduced}
-\begin{bmatrix} 
+\begin{bmatrix}
 \mb{D} & \mb{A}_{w}^{T} & \mb{A}^{T} \\
 \mb{A}_{w} & -\mb{C} & 0 \\
 \mb{A} & 0 & - \mb{C}_{0} \\
@@ -339,20 +339,20 @@ The right hand sides are defined as
 The reduced KKT system~\eqref{eqn:kkt-reduced} can be solved via a Schur complement on the dense constraints for the unknowns $\mb{p}_{z}$.
 First, we introduce the quasi-definite matrix $\mb{D}_{0}$ and the rectangular matrix $\mb{A}_{0}$
 \begin{equation*}
-	\mb{D}_{0} = 
-	\begin{bmatrix} 
+	\mb{D}_{0} =
+	\begin{bmatrix}
 	\mb{D} & \mb{A}_{w}^{T} \\
-	\mb{A}_{w} & - \mb{C} 
+	\mb{A}_{w} & - \mb{C}
 	\end{bmatrix},
 	\qquad\qquad
 	\mb{A}_{0} = \begin{bmatrix} \mb{A} & 0 \end{bmatrix}.
 \end{equation*}
-Since we assume that there are only a small number of global dense constraints, $\mb{A}$ has only a few rows. 
+Since we assume that there are only a small number of global dense constraints, $\mb{A}$ has only a few rows.
 %
-The system of equations to determine $\mb{p}_{z}$ is 
+The system of equations to determine $\mb{p}_{z}$ is
 %
 \begin{equation*}
-	\mb{G} \mb{p}_{z} \triangleq \left( \mb{C}_{0} + \mb{A}_{0} \mb{D}_{0}^{-1} \mb{A}_{0}^{T} \right)  \mb{p}_{z} = \mb{d}_{z} - \mb{A}_{0} \mb{D}_{0}^{-1} \begin{bmatrix} 
+	\mb{G} \mb{p}_{z} \triangleq \left( \mb{C}_{0} + \mb{A}_{0} \mb{D}_{0}^{-1} \mb{A}_{0}^{T} \right)  \mb{p}_{z} = \mb{d}_{z} - \mb{A}_{0} \mb{D}_{0}^{-1} \begin{bmatrix}
 	\mb{d}_{x} \\
 	\mb{d}_{z_{w}} \\
 	\end{bmatrix}.
@@ -360,14 +360,14 @@ The system of equations to determine $\mb{p}_{z}$ is
 Once the values of $\mb{p}_{z}$ are obtained, we can find the values for $\mb{p}_{x}$ and $\mb{p}_{z_{w}}$ by solving the equation
 %
 \begin{equation*}
-	\begin{bmatrix} 
+	\begin{bmatrix}
 	\mb{D} & \mb{A}_{w}^{T} \\
-	\mb{A}_{w} & - \mb{C} 
+	\mb{A}_{w} & - \mb{C}
 	\end{bmatrix}
 	\begin{bmatrix}
 		\mb{p}_{x} \\
 		-\mb{p}_{z_{w}} \\
-	\end{bmatrix} = 
+	\end{bmatrix} =
 	\begin{bmatrix}
 	\mb{d}_{x} + \mb{A}^{T} \mb{p}_{z} \\
 	\mb{d}_{z_{w}}
@@ -375,10 +375,10 @@ Once the values of $\mb{p}_{z}$ are obtained, we can find the values for $\mb{p}
 \end{equation*}
 %
 The key operation is the solution of the sparse linear system of the form of $\mb{D}_{0}$.
-This solution is obtained via sparse direct methods. 
+This solution is obtained via sparse direct methods.
 When the sparse constraints exhibit specific structure, then significant computational savings can often be achieved.
 
-%  
+%
 %  %
 %  Finally, $\mb{p}_{x}$ can be eliminated for $\mb{p}_{z}$ and $\mb{p}_{z_{w}}$ as follows
 %  \begin{equation}
@@ -401,9 +401,9 @@ When the sparse constraints exhibit specific structure, then significant computa
 %  \begin{equation*}
 %  \left[\mb{Z}_{s}^{-1}\mb{S} + \mb{Z}_{t}^{-1}\mb{T} + \mb{A}\mb{D}^{-1}\mb{A}^{T} - \mb{F}\mb{E}^{-1}\mb{F}^{T} \right]\mb{p}_{z} = \mb{d}_{z} - \mb{F}\mb{E}^{-1} \mb{d}_{z_{w}}
 %  \end{equation*}
-%  
+%
 %  This solution procedure is invoked each time a solution of the form $\mb{K}_{0}\mb{p} = \mb{b}$ is required.
-%  
+%
 
 \subsection{Inexact Hessian-vector product mode}
 
@@ -534,7 +534,7 @@ If GMRES fails to find an inexact solution that is also a descent direction, we 
 
 \section{Trust region algorithm}
 
-ParOpt also implements a trust region method to solve optimization problems. 
+ParOpt also implements a trust region method to solve optimization problems.
 For each trust region iteration, ParOpt constructs a quadratic model subproblem and solves the subproblem using the interior point solver.
 The general form of the optimization problem is same as Problem~\eqref{eqn:opt-problem}.
 Accordingly, the trust region quadratic subproblem with linearized constraints can be formulated as follows:
@@ -553,7 +553,7 @@ Accordingly, the trust region quadratic subproblem with linearized constraints c
 %
 where $\mb{p} = \mb{x}_{k+1} - \mb{x}_{k}$ is the update step.
 Note that for the rest equations of this section, we drop the subscript $k$ (which indicates the current trust region iteration) to simplify the notation:
-Similarly, $f = f(\mb{x}_k)$, $\mb{g} = \nabla_x f(\mb{x}_k)$ are the function value and gradient, respectively and $\mb{B} = \nabla_x^2 (f(\mb{x}_k) - \mb{z}^T \mb{c}(\mb{x}_k)-\mb{z}_w^T \mb{c}_w(\mb{x}_k))$ is the approximation of the Hessian of the Lagrangian. 
+Similarly, $f = f(\mb{x}_k)$, $\mb{g} = \nabla_x f(\mb{x}_k)$ are the function value and gradient, respectively and $\mb{B} = \nabla_x^2 (f(\mb{x}_k) - \mb{z}^T \mb{c}(\mb{x}_k)-\mb{z}_w^T \mb{c}_w(\mb{x}_k))$ is the approximation of the Hessian of the Lagrangian.
 The general and sparse constraints are denoted $\mb{c}$ and $\mb{c}_{w}$, respectively, and $\mb{A}$ and $\mb{A}_w$ are the Jacobians for the dense and sparse constraints.
 The trust-region radius is given by $\Delta$.
 
@@ -761,15 +761,13 @@ These functions will be described below.
 
 \subsection{ParOptProblem class methods}
 
-The constructor for the \texttt{ParOptProblem} class takes the following form:
+The constructor for the \texttt{ParOptProblem} class takes the \texttt{MPI\_Comm} communicator object:
 %
 \begin{verbatim}
-ParOptProblem( MPI_Comm _comm,
-               int _nvars, int _ncon,
-               int _nwcon, int _nwblock );
+ParOptProblem(MPI_Comm _comm);
 \end{verbatim}
 
-The arguments to this constructor are:
+Additionally, in the constructor of your base class, you will have to set the following information:
 \begin{itemize}
 \item \texttt{comm} is the MPI communicator for the problem.
 This communicator will be passed to the corresponding \texttt{ParOpt} optimizer class.
@@ -779,14 +777,10 @@ This communicator will be passed to the corresponding \texttt{ParOpt} optimizer 
 \item \texttt{ncon}: The global number of dense constraints.
 
 \item \texttt{nwcon}: The local number of sparse constraints that are owned by this processor
-
-\item \texttt{nwblock}: The size of the block in block-diagonal matrix formed from the weighting constraints $\mb{A}_{w}^{T}\mb{A}_{w}$. This size must be the same on all processors.
 \end{itemize}
 
 The following functions are used to specify the structure of the design problem:
 \begin{enumerate}
-\item \texttt{int isDenseInequality()}: Are the dense constraints inequality or equality constraints?
-\item \texttt{int isSparseInequality()}: Are the sparse constraints inequality or equality constraints?
 \item \texttt{int useLowerBounds()}: Should the optimizer use the lower bound constraints?
 \item \texttt{int useUpperBounds()}: Should the optimizer use the upper bound constraints?
 \end{enumerate}
@@ -901,6 +895,16 @@ Multiplier in the Eisenstat-Walker INK forcing equation
 eisenstat_walker_gamma                   1
 Range of values: lower limit 0  upper limit 1
 
+A small value that controls slanting envelope of the filter
+filter_gamma                             1e-05
+Range of values: lower limit 0  upper limit 1
+
+Use feasibility restoration for filter method
+filter_has_feas_restore_phase            True
+
+Use sufficient reduction criteria for filter
+filter_sufficient_reduction              True
+
 The absolute precision of the function and constraints
 function_precision                       1e-10
 Range of values: lower limit 0  upper limit 1
@@ -973,19 +977,19 @@ mma_bound_relax                          0
 Range of values: lower limit 0  upper limit 1e+20
 
 Regularization term applied in the MMA approximation
-mma_delta_regularization                 1e-05
+mma_delta_regularization                 0.001
 Range of values: lower limit 0  upper limit 1e+20
 
 Regularization term applied in the MMA approximation
-mma_eps_regularization                   0.001
+mma_eps_regularization                   1e-05
 Range of values: lower limit 0  upper limit 1e+20
 
 Infeasibility tolerance
 mma_infeas_tol                           1e-05
 Range of values: lower limit 0  upper limit 1e+20
 
-Initial aymptote offset from the variable bounds
-mma_init_asymptote_offset                0.25
+Initial asymptote offset from the variable bounds
+mma_init_asymptote_offset                0.5
 Range of values: lower limit 0  upper limit 1
 
 l1 tolerance for the optimality tolerance
@@ -1008,11 +1012,15 @@ Minimum asymptote offset from the variable bounds
 mma_min_asymptote_offset                 0.01
 Range of values: lower limit 0  upper limit 1e+20
 
+Move limit for design variables to prevent oscillation
+mma_move_limit                           0.2
+Range of values: lower limit 0  upper limit 1e+20
+
 Ouput file name for MMA
 mma_output_file                          paropt.mma
 
-If false, linearized the constraints
-mma_use_constraint_linearization         True
+Use a linearization of the constraints in the MMA subproblem
+mma_use_constraint_linearization         False
 
 Factor applied to the barrier update < 1
 monotone_barrier_fraction                0.25
@@ -1050,6 +1058,13 @@ Range of values: lower limit 0  upper limit 1e+20
 The problem name
 problem_name                             None
 
+The type of initial diagonal to use in the quasi-Newton approximation
+qn_diag_type                             yty_over_yts
+Range of values:                         yty_over_yts
+                                         yts_over_sts
+                                         inner_yty_over_yts
+                                         inner_yts_over_sts
+
 Scalar added to the diagonal of the quasi-Newton approximation > 0
 qn_sigma                                 0
 Range of values: lower limit 0  upper limit 1e+20
@@ -1058,9 +1073,11 @@ The maximum dimension of the quasi-Newton approximation
 qn_subspace_size                         10
 Range of values: lower limit 0  upper limit 1000
 
-The the of quasi-Newton approximation to use
+The type of quasi-Newton approximation to use, note that scaled_bfgs
+should be only used when there's single constraint and objective is linear
 qn_type                                  bfgs
 Range of values:                         bfgs
+                                         scaled_bfgs
                                          sr1
                                          none
 
@@ -1089,6 +1106,11 @@ starting_point_strategy                  affine_step
 Range of values:                         least_squares_multipliers
                                          affine_step
                                          no_start_strategy
+
+Which strategy to use to decide if a trial point can be accepted or not
+tr_accept_step_strategy                  penalty_method
+Range of values:                         penalty_method
+                                         filter_method
 
 The type of constraint to use for the adaptive penalty subproblem
 tr_adaptive_constraint                   linear_constraint
@@ -1136,6 +1158,10 @@ The maximum trust region radius
 tr_max_size                              1
 Range of values: lower limit 0  upper limit 1e+20
 
+Maximum number of trust region iterations
+tr_max_soc_iterations                    20
+Range of values: lower limit 0  upper limit 1000000
+
 The minimum trust region radius
 tr_min_size                              0.001
 Range of values: lower limit 0  upper limit 1e+20
@@ -1151,6 +1177,9 @@ Minimum value for the penalty parameter
 tr_penalty_gamma_min                     0
 Range of values: lower limit 0  upper limit 1e+20
 
+Update quasi-Newton approximation in second order correction steps
+tr_soc_update_qn                         False
+
 The barrier update strategy to use for the steering method subproblem
 tr_steering_barrier_strategy             mehrotra_predictor_corrector
 Range of values:                         monotone
@@ -1165,6 +1194,9 @@ Range of values:                         least_squares_multipliers
                                          affine_step
                                          no_start_strategy
                                          default
+
+Use second order correction when trial step is rejeccted
+tr_use_soc                               False
 
 Write output frequency
 tr_write_output_frequency                10
