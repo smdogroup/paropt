@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import numpy as np
 import mpi4py.MPI as MPI
 from paropt import ParOpt

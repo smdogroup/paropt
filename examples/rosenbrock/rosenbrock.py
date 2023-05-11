@@ -1,7 +1,3 @@
-from __future__ import print_function
-
-import os
-
 # Import some utilities
 import numpy as np
 import mpi4py.MPI as MPI
@@ -89,7 +85,7 @@ def plot_it_all(problem):
 
     options = {
         "algorithm": "tr",
-        "tr_init_size": 0.05,
+        "tr_init_size": 0.5,
         "tr_min_size": 1e-6,
         "tr_max_size": 10.0,
         "tr_eta": 0.1,
