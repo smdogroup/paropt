@@ -10,12 +10,22 @@ class Rosenbrock : public ParOptProblem {
  public:
   Rosenbrock(MPI_Comm comm, int _nvars, int _nwcon, int _nwstart, int _nw,
              int _nwskip)
-      : ParOptProblem(comm, _nvars, 2, 2, _nwcon, 1) {
+      : ParOptProblem(comm) {
+    // Set the base class problem sizes
+    int nwinequality = _nwcon;
+    setProblemSizes(_nvars, 2, 2, _nwcon, nwinequality);
+
+    nwblock = 1;
     nwcon = _nwcon;
     nwstart = _nwstart;
     nw = _nw;
     nwskip = _nwskip;
     scale = 1.0;
+  }
+
+  //! Create the quasi-def matrix associated with this problem
+  ParOptQuasiDefMat *createQuasiDefMat() {
+    return new ParOptQuasiDefBlockMat(this, nwblock);
   }
 
   //! Get the variables/bounds
@@ -172,6 +182,7 @@ class Rosenbrock : public ParOptProblem {
   }
 
   int nwcon;
+  int nwblock;
   int nwstart;
   int nw, nwskip;
   ParOptScalar scale;
