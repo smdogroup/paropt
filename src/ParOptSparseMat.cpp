@@ -214,3 +214,25 @@ int ParOptQuasiDefBlockMat::applyFactor(ParOptVec *vec) {
 
   return 0;
 }
+
+/*
+  A simple serial LDL sparse matrix factorization
+*/
+
+ParOptQuasiDefSparseMat::ParOptQuasiDefSparseMat(int _nvars, int _nwcon,
+                                                 const int *rowp,
+                                                 const int *cols) {}
+
+ParOptQuasiDefSparseMat::~ParOptQuasiDefSparseMat() {}
+
+/*
+  Compute the elements and factor the sparse matrix
+*/
+int ParOptQuasiDefSparseMat::factor(ParOptVec *x, ParOptVec *Dinv,
+                                    ParOptVec *C) {
+  return 0;
+}
+void ParOptQuasiDefSparseMat::apply(ParOptVec *bx, ParOptVec *yx,
+                                    ParOptVec *yw) {}
+void ParOptQuasiDefSparseMat::apply(ParOptVec *bx, ParOptVec *bw, ParOptVec *yx,
+                                    ParOptVec *yw) {}

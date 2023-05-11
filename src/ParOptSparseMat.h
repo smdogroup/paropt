@@ -78,4 +78,24 @@ class ParOptQuasiDefBlockMat : public ParOptQuasiDefMat {
   ParOptScalar *Cw;  // Block diagonal matrix
 };
 
+/*
+  Interface for a generic sparse quasi-definite matrix
+*/
+class ParOptQuasiDefSparseMat : public ParOptQuasiDefMat {
+ public:
+  ParOptQuasiDefSparseMat(int _nvars, int _nwcon, const int *rowp,
+                          const int *cols);
+  ~ParOptQuasiDefSparseMat();
+
+  int factor(ParOptVec *x, ParOptVec *Dinv, ParOptVec *C);
+  void apply(ParOptVec *bx, ParOptVec *yx, ParOptVec *yw);
+  void apply(ParOptVec *bx, ParOptVec *bw, ParOptVec *yx, ParOptVec *yw);
+
+ private:
+  int nwcon;
+  int nvars;
+  int *arowp;
+  int *acols;
+};
+
 #endif  //  PAR_OPT_SPARSE_MAT_H
