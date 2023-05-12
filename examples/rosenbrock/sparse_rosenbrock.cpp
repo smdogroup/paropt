@@ -40,7 +40,7 @@ class SparseRosenbrock : public ParOptSparseProblem {
 
     // Set the design variable bounds
     for (int i = 0; i < nvars; i++) {
-      x[i] = 0.0;
+      x[i] = -1.0;
       lb[i] = -2.0;
       ub[i] = 2.0;
     }
@@ -158,16 +158,14 @@ int main(int argc, char *argv[]) {
 
   options->setOption("algorithm", "tr");
   options->setOption("barrier_strategy", "mehrotra");
-  options->setOption("output_level", 1);
+  options->setOption("output_level", 0);
   options->setOption("qn_type", "bfgs");
   options->setOption("qn_subspace_size", 10);
   options->setOption("abs_res_tol", 1e-6);
   options->setOption("output_file", "paropt.out");
   options->setOption("tr_output_file", "paropt.tr");
   options->setOption("mma_output_file", "paropt.mma");
-
-  // options->setOption("use_line_search", 0);
-  // options->setOption("tr_steering_barrier_strategy", "monotone");
+  options->setOption("use_line_search", 0);
 
   ParOptOptimizer *opt = new ParOptOptimizer(rosen, options);
   opt->incref();

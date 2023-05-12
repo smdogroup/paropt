@@ -331,7 +331,8 @@ class ParOptInteriorPoint : public ParOptBase {
   // Evaluate the merit function
   ParOptScalar evalMeritFunc(ParOptScalar fk, const ParOptScalar *ck,
                              ParOptVec *xk, const ParOptScalar *sk,
-                             const ParOptScalar *tk, ParOptVec *swk);
+                             const ParOptScalar *tk, ParOptVec *swk,
+                             ParOptVec *twk);
 
   // Evaluate the directional derivative of the objective + barrier terms
   ParOptScalar evalObjBarrierDeriv(ParOptVars &vars, ParOptVars &step);
