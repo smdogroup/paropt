@@ -1131,7 +1131,7 @@ cdef class InteriorPoint:
         cdef ParOptVec *_zu = NULL
 
         # Get the problem size/vector for the values
-        self.ptr.getProblemSizes(NULL, &ncon, NULL, NULL, NULL)
+        self.ptr.getProblemSizes(NULL, &ncon, NULL)
         self.ptr.getOptimizedPoint(&_x, &_z, &_zw, &_zl, &_zu)
 
         # Set the default values
@@ -1171,7 +1171,7 @@ cdef class InteriorPoint:
         cdef ParOptVec *_tw = NULL
 
         # Get the problem size/vector for the values
-        self.ptr.getProblemSizes(NULL, &ncon, NULL, NULL, NULL)
+        self.ptr.getProblemSizes(NULL, &ncon, NULL)
         self.ptr.getOptimizedSlacks(&_s, &_t, &_sw, &_tw)
 
         s = None
@@ -1361,7 +1361,7 @@ cdef class Optimizer:
 
         # Get the problem size/vector for the values
         problem = self.ptr.getProblem()
-        problem.getProblemSizes(NULL, &ncon, NULL, NULL, NULL)
+        problem.getProblemSizes(NULL, &ncon, NULL)
         self.ptr.getOptimizedPoint(&_x, &_z, &_zw, &_zl, &_zu)
 
         # Set the default values

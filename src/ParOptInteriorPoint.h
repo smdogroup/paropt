@@ -149,8 +149,7 @@ class ParOptInteriorPoint : public ParOptBase {
 
   // Get the problem sizes from the underlying problem class
   // -------------------------------------------------------
-  void getProblemSizes(int *_nvars, int *_ncon, int *_inequality, int *_nwcon,
-                       int *_nwblock);
+  void getProblemSizes(int *_nvars, int *_ncon, int *_nwcon);
 
   // Retrieve the values of the design variables and multipliers
   // -----------------------------------------------------------

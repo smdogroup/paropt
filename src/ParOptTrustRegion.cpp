@@ -31,9 +31,13 @@ ParOptQuadraticSubproblem::ParOptQuadraticSubproblem(
   prob = _prob;
   prob->incref();
 
-  // Get the problem sizes
-  prob->getProblemSizes(&n, &m, &ninequality, &nwcon, &nwinequality);
-  setProblemSizes(n, m, ninequality, nwcon, nwinequality);
+  // Set the problem sizes
+  prob->getProblemSizes(&n, &m, &nwcon);
+  setProblemSizes(n, m, nwcon);
+
+  // Set the number of inequalities
+  prob->getNumInequalities(&ninequality, &nwinequality);
+  setNumInequalities(ninequality, nwinequality);
 
   // Set the quasi-Newton method
   if (_qn) {
@@ -475,9 +479,15 @@ ParOptInfeasSubproblem::ParOptInfeasSubproblem(
   subproblem_objective = _subproblem_objective;
   subproblem_constraint = _subproblem_constraint;
 
-  // Get the problem sizes
-  prob->getProblemSizes(&n, &m, &ninequality, &nwcon, &nwinequality);
-  setProblemSizes(n, m, ninequality, nwcon, nwinequality);
+  // Set the problem sizes
+  int _nwcon;
+  prob->getProblemSizes(&n, &m, &_nwcon);
+  setProblemSizes(n, m, _nwcon);
+
+  // Set the number of inequalities
+  int nineq, nwineq;
+  prob->getNumInequalities(&nineq, &nwineq);
+  setNumInequalities(nineq, nwineq);
 }
 
 ParOptInfeasSubproblem::~ParOptInfeasSubproblem() { prob->decref(); }
@@ -661,7 +671,10 @@ ParOptTrustRegion::ParOptTrustRegion(ParOptTrustRegionSubproblem *_subproblem,
   options->incref();
 
   // Get the subproblem sizes
-  subproblem->getProblemSizes(&n, &m, &nineq, &nwcon, &nwineq);
+  subproblem->getProblemSizes(&n, &m, &nwcon);
+
+  // Get the number of inequalities
+  subproblem->getNumInequalities(&nineq, &nwineq);
 
   // Set the penalty parameters
   const double gamma = options->getFloatOption("penalty_gamma");

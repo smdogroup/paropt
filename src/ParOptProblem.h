@@ -88,7 +88,8 @@ class ParOptProblem : public ParOptBase {
   */
   ParOptProblem(MPI_Comm _comm) {
     comm = _comm;
-    nvars = ncon = ninequality = nwcon = nwinequality = 0;
+    nvars = ncon = nwcon = 0;
+    ninequality = nwinequality = -1;
   }
 
   virtual ~ParOptProblem() {}
@@ -130,23 +131,31 @@ class ParOptProblem : public ParOptBase {
 
     @param _nvars the number of local design variables
     @param _ncon the global number of dense constraints
-    @param _ninequality the number of inequality constraints
     @param _nwcon the local number of sparse separable constraints
-    @param _nwinequality the block size of the separable constraints
   */
-  void setProblemSizes(int _nvars, int _ncon, int _ninequality, int _nwcon,
-                       int _nwinequality) {
+  void setProblemSizes(int _nvars, int _ncon, int _nwcon) {
     nvars = _nvars;
     ncon = _ncon;
-    ninequality = _ninequality;
-    if (ninequality > ncon) {
+    nwcon = _nwcon;
+
+    // By default, all the constraints are treated as inequalities
+    if (ninequality < 0) {
       ninequality = ncon;
     }
-    nwcon = _nwcon;
-    nwinequality = _nwinequality;
-    if (nwinequality > nwcon) {
+    if (nwinequality < 0) {
       nwinequality = nwcon;
     }
+  }
+
+  /**
+    Set the number of sparse or dense inequalities
+
+    @param _ninequality the number of inequality constraints
+    @param _nwinequality the block size of the separable constraints
+  */
+  void setNumInequalities(int _ninequality, int _nwinequality) {
+    ninequality = _ninequality;
+    nwinequality = _nwinequality;
   }
 
   /**
@@ -154,23 +163,29 @@ class ParOptProblem : public ParOptBase {
 
     @param _nvars the number of local design variables
     @param _ncon the global number of dense constraints
-    @param _ninequality the number of dense inequality constraints
     @param _nwcon the local number of sparse separable constraints
-    @param _nwinequality the block size of the separable constraints
   */
-  void getProblemSizes(int *_nvars, int *_ncon, int *_ninequality, int *_nwcon,
-                       int *_nwinequality) {
+  void getProblemSizes(int *_nvars, int *_ncon, int *_nwcon) {
     if (_nvars) {
       *_nvars = nvars;
     }
     if (_ncon) {
       *_ncon = ncon;
     }
-    if (_ninequality) {
-      *_ninequality = ninequality;
-    }
     if (_nwcon) {
       *_nwcon = nwcon;
+    }
+  }
+
+  /**
+    Get the number of inequalities
+
+    @param _ninequality the number of dense inequality constraints
+    @param _nwinequality the block size of the separable constraints
+  */
+  void getNumInequalities(int *_ninequality, int *_nwinequality) {
+    if (_ninequality) {
+      *_ninequality = ninequality;
     }
     if (_nwinequality) {
       *_nwinequality = nwinequality;

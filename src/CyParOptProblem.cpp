@@ -21,8 +21,10 @@
 CyParOptProblem::CyParOptProblem(MPI_Comm _comm, int _nvars, int _ncon,
                                  int _ninequality, int _nwcon, int _nwblock)
     : ParOptProblem(_comm) {
+  setProblemSizes(_nvars, _ncon, _nwcon);
+
   int nwinequality = _nwcon;
-  setProblemSizes(_nvars, _ncon, _ninequality, _nwcon, nwinequality);
+  setNumInequalities(_ninequality, nwinequality);
 
   nwblock = _nwblock;
 

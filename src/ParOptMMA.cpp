@@ -57,10 +57,15 @@ ParOptMMA::ParOptMMA(ParOptProblem *_prob, ParOptOptions *_options)
   const char *mma_output_file = options->getStringOption("mma_output_file");
   setOutputFile(mma_output_file);
 
-  // Get the problem sizes
-  int nineq, _nwcon, nwineq;
-  prob->getProblemSizes(&n, &m, &nineq, &_nwcon, &nwineq);
-  setProblemSizes(n, m, nineq, _nwcon, nwineq);
+  // Set the problem sizes
+  int _nwcon;
+  prob->getProblemSizes(&n, &m, &_nwcon);
+  setProblemSizes(n, m, _nwcon);
+
+  // Set the number of inequalities
+  int nineq, nwineq;
+  prob->getNumInequalities(&nineq, &nwineq);
+  setNumInequalities(nineq, nwineq);
 
   // Set the iteration counter
   mma_iter = 0;

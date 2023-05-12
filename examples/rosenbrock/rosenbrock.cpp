@@ -12,8 +12,10 @@ class Rosenbrock : public ParOptProblem {
              int _nwskip)
       : ParOptProblem(comm) {
     // Set the base class problem sizes
+    setProblemSizes(_nvars, 2, _nwcon);
+
     int nwinequality = _nwcon;
-    setProblemSizes(_nvars, 2, 2, _nwcon, nwinequality);
+    setNumInequalities(2, nwinequality);
 
     nwblock = 1;
     nwcon = _nwcon;

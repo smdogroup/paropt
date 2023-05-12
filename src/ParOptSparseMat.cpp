@@ -6,7 +6,7 @@ ParOptQuasiDefBlockMat::ParOptQuasiDefBlockMat(ParOptProblem *prob0,
 
   prob = prob0;
   prob->incref();
-  prob->getProblemSizes(&nvars, NULL, NULL, &nwcon, NULL);
+  prob->getProblemSizes(&nvars, NULL, &nwcon);
 
   x = NULL;
   Dinv = NULL;

@@ -123,8 +123,8 @@ void ParOptOptimizer::optimize() {
         ParOptLBFGS *bfgs = new ParOptLBFGS(problem, qn_subspace_size);
         if (strcmp(qn_type, "scaled_bfgs") == 0) {
           // This very specific type of bfgs is only used when ncon = 1
-          int nvars, ncon, nineq, nwcon, nwineq;
-          problem->getProblemSizes(&nvars, &ncon, &nineq, &nwcon, &nwineq);
+          int nvars, ncon, nwcon;
+          problem->getProblemSizes(&nvars, &ncon, &nwcon);
           if (ncon != 1) {
             if (rank == 0) {
               fprintf(stderr,

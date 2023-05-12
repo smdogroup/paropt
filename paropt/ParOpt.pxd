@@ -40,11 +40,10 @@ cdef extern from "ParOptProblem.h":
     cdef cppclass ParOptProblem(ParOptBase):
         ParOptProblem()
         ParOptProblem(MPI_Comm)
-        ParOptProblem(MPI_Comm, int, int, int, int, int)
         MPI_Comm getMPIComm()
         ParOptVec *createDesignVec()
         ParOptVec *createConstraintVec()
-        void getProblemSizes(int*, int*, int*, int*, int*)
+        void getProblemSizes(int*, int*, int*)
         void checkGradients(double, ParOptVec*, int)
 
 cdef extern from "ParOptQuasiNewton.h":
@@ -158,7 +157,7 @@ cdef extern from "ParOptInteriorPoint.h":
     cppclass ParOptInteriorPoint(ParOptBase):
         ParOptInteriorPoint(ParOptProblem*, ParOptOptions*) except +
         int optimize(const char*)
-        void getProblemSizes(int*, int*, int*, int*, int*)
+        void getProblemSizes(int*, int*, int*)
         void getOptimizedPoint(ParOptVec**,
                                ParOptScalar**, ParOptVec**,
                                ParOptVec**, ParOptVec**)

@@ -85,7 +85,7 @@ ParOptInteriorPoint::ParOptVars::~ParOptVars() {
 
 void ParOptInteriorPoint::ParOptVars::initialize(ParOptProblem *prob) {
   int ncon;
-  prob->getProblemSizes(NULL, &ncon, NULL, NULL, NULL);
+  prob->getProblemSizes(NULL, &ncon, NULL);
 
   x = prob->createDesignVec();
   x->incref();
@@ -157,7 +157,8 @@ ParOptInteriorPoint::ParOptInteriorPoint(ParOptProblem *_prob,
   opt_root = 0;
 
   // Get the number of variables/constraints
-  prob->getProblemSizes(&nvars, &ncon, &ninequality, &nwcon, &nwinequality);
+  prob->getProblemSizes(&nvars, &ncon, &nwcon);
+  prob->getNumInequalities(&ninequality, &nwinequality);
 
   // Set the sparse flag -- will be deprecated
   sparse_inequality = prob->isSparseInequality();
@@ -692,11 +693,14 @@ void ParOptInteriorPoint::resetProblemInstance(ParOptProblem *problem) {
   // Check to see if the new problem instance is congruent with
   // the previous problem instance - it has to be otherwise
   // we can't use it.
-  int _nvars, _ncon, _ninequality, _nwcon, _nwinequality;
-  problem->getProblemSizes(&_nvars, &_ncon, &_ninequality, &_nwcon,
-                           &_nwinequality);
+  int _nvars, _ncon, _nwcon;
+  problem->getProblemSizes(&_nvars, &_ncon, &_nwcon);
 
-  if (_nvars != nvars || _ncon != ncon || _nwcon != nwcon) {
+  int nineq, nwineq;
+  problem->getNumInequalities(&nineq, &nwineq);
+
+  if (_nvars != nvars || _ncon != ncon || _nwcon != nwcon ||
+      nineq != ninequality || nwineq != nwinequality) {
     fprintf(stderr, "ParOpt: Incompatible problem instance\n");
     problem = NULL;
   } else {
@@ -711,14 +715,11 @@ void ParOptInteriorPoint::resetProblemInstance(ParOptProblem *problem) {
 
    @param _nvars the local number of variables
    @param _ncon the number of global constraints
-   @param _inequality the number of global inequality constraints
    @param _nwcon the number of sparse constraints
-   @param _nwinequality the size of the sparse constraint block
 */
 void ParOptInteriorPoint::getProblemSizes(int *_nvars, int *_ncon,
-                                          int *_inequality, int *_nwcon,
-                                          int *_nwinequality) {
-  prob->getProblemSizes(_nvars, _ncon, _inequality, _nwcon, _nwinequality);
+                                          int *_nwcon) {
+  prob->getProblemSizes(_nvars, _ncon, _nwcon);
 }
 
 /**
