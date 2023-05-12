@@ -1,9 +1,59 @@
 #ifndef PAR_OPT_SPARSE_MAT_H
 #define PAR_OPT_SPARSE_MAT_H
 
+/*
+  Forward declare the matrices
+*/
+class ParOptQuasiDefMat;
+class ParOptQuasiDefSparseMat;
+
 #include "ParOptBlasLapack.h"
 #include "ParOptProblem.h"
 #include "ParOptVec.h"
+
+/*
+  Abstract base class for the quasi-definite matrix
+*/
+class ParOptQuasiDefMat : public ParOptBase {
+ public:
+  virtual ~ParOptQuasiDefMat() {}
+
+  /*
+    Factor the matrix
+  */
+  virtual int factor(ParOptVec *x, ParOptVec *Dinv, ParOptVec *Cdiag) = 0;
+
+  /**
+    Solve the quasi-definite system of equations
+
+    [ D   Aw^{T} ][  yx ] = [ bx ]
+    [ Aw    - C  ][ -yw ] = [ 0  ]
+
+    Here bx is unmodified. Note the negative sign on the yw variables.
+
+    @param bx the design variable right-hand-side
+    @param yx the design variable solution
+    @param yw the sparse multiplier solution
+   */
+  virtual void apply(ParOptVec *bx, ParOptVec *yx, ParOptVec *yw) = 0;
+
+  /**
+    Solve the quasi-definite system of equations
+
+    [ D   Aw^{T} ][  yx ] = [ bx ]
+    [ Aw    - C  ][ -yw ] = [ bw ]
+
+    In the call bx and bw must remain unmodified. Note the negative sign on the
+    yw variables.
+
+    @param bx the design variable right-hand-side
+    @param bx the sparse multiplier right-hand-side
+    @param yx the design variable solution
+    @param yw the sparse multiplier solution
+   */
+  virtual void apply(ParOptVec *bx, ParOptVec *bw, ParOptVec *yx,
+                     ParOptVec *yw) = 0;
+};
 
 /*
   Interface for the quasi-definite matrix
@@ -83,8 +133,7 @@ class ParOptQuasiDefBlockMat : public ParOptQuasiDefMat {
 */
 class ParOptQuasiDefSparseMat : public ParOptQuasiDefMat {
  public:
-  ParOptQuasiDefSparseMat(int _nvars, int _nwcon, const int *rowp,
-                          const int *cols);
+  ParOptQuasiDefSparseMat(ParOptSparseProblem *problem);
   ~ParOptQuasiDefSparseMat();
 
   int factor(ParOptVec *x, ParOptVec *Dinv, ParOptVec *C);
@@ -92,10 +141,18 @@ class ParOptQuasiDefSparseMat : public ParOptQuasiDefMat {
   void apply(ParOptVec *bx, ParOptVec *bw, ParOptVec *yx, ParOptVec *yw);
 
  private:
-  int nwcon;
-  int nvars;
-  int *arowp;
-  int *acols;
+  void solve(ParOptScalar *b);
+
+  // Return the index for the matrix
+  inline int index(int i, int j) { return j + i * (i + 1) / 2; }
+
+  ParOptSparseProblem *prob;
+
+  int nvars, nwcon;
+  int size;
+  ParOptScalar *diag;
+  ParOptScalar *L;
+  ParOptScalar *rhs;
 };
 
 #endif  //  PAR_OPT_SPARSE_MAT_H

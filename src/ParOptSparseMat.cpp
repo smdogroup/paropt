@@ -218,21 +218,158 @@ int ParOptQuasiDefBlockMat::applyFactor(ParOptVec *vec) {
 /*
   A simple serial LDL sparse matrix factorization
 */
+ParOptQuasiDefSparseMat::ParOptQuasiDefSparseMat(ParOptSparseProblem *problem) {
+  prob = problem;
+  prob->incref();
 
-ParOptQuasiDefSparseMat::ParOptQuasiDefSparseMat(int _nvars, int _nwcon,
-                                                 const int *rowp,
-                                                 const int *cols) {}
+  prob->getProblemSizes(&nvars, NULL, &nwcon);
 
-ParOptQuasiDefSparseMat::~ParOptQuasiDefSparseMat() {}
+  size = nvars + nwcon;
+
+  L = new ParOptScalar[size * (size + 1) / 2];
+  diag = new ParOptScalar[size];
+  rhs = new ParOptScalar[size];
+}
+
+ParOptQuasiDefSparseMat::~ParOptQuasiDefSparseMat() {
+  prob->decref();
+  delete[] L;
+  delete[] diag;
+  delete[] rhs;
+}
 
 /*
   Compute the elements and factor the sparse matrix
 */
 int ParOptQuasiDefSparseMat::factor(ParOptVec *x, ParOptVec *Dinv,
                                     ParOptVec *C) {
+  ParOptScalar *Dvals, *Cvals;
+  Dinv->getArray(&Dvals);
+  C->getArray(&Cvals);
+
+  // Zero the values in L
+  memset(L, 0, (size * (size + 1) / 2) * sizeof(ParOptScalar));
+  memset(rhs, 0, size * sizeof(ParOptScalar));
+
+  for (int i = 0; i < nvars; i++) {
+    diag[i] = 1.0 / Dvals[i];
+  }
+  for (int i = 0; i < nwcon; i++) {
+    diag[i + nvars] = -Cvals[i];
+  }
+
+  // for (int i = 0; i < size; i++) {
+  //   rhs[i] = diag[i];
+  // }
+
+  // Get the sparse Jacobian information in CSR format
+  const int *rowp = NULL, *cols = NULL;
+  const ParOptScalar *data = NULL;
+  prob->getSparseJacobianData(&rowp, &cols, &data);
+
+  for (int i = 0; i < nwcon; i++) {
+    for (int jp = rowp[i]; jp < rowp[i + 1]; jp++) {
+      int j = cols[jp];
+      L[index(i + nvars, j)] = data[jp];
+      // rhs[j] += data[jp];
+      // rhs[i + nvars] += data[jp];
+    }
+  }
+
+  // Factor the matrix
+  for (int j = 0; j < size; j++) {
+    for (int k = 0; k < j; k++) {
+      for (int i = j + 1; i < size; i++) {
+        L[index(i, j)] -= L[index(i, k)] * diag[k] * L[index(j, k)];
+      }
+    }
+
+    for (int i = j + 1; i < size; i++) {
+      L[index(i, j)] /= diag[j];
+    }
+
+    for (int i = j + 1; i < size; i++) {
+      diag[i] -= diag[j] * L[index(i, j)] * L[index(i, j)];
+    }
+  }
+
+  // solve(rhs);
+  // ParOptScalar err = 0.0;
+  // for (int i = 0; i < size; i++) {
+  //   err += (rhs[i] - 1.0) * (rhs[i] - 1.0);
+  // }
+  // printf("Error = %25.15e\n", err);
+
   return 0;
 }
+
 void ParOptQuasiDefSparseMat::apply(ParOptVec *bx, ParOptVec *yx,
-                                    ParOptVec *yw) {}
+                                    ParOptVec *yw) {
+  ParOptScalar *bx_array;
+  bx->getArray(&bx_array);
+
+  for (int i = 0; i < nvars; i++) {
+    rhs[i] = bx_array[i];
+  }
+  for (int i = 0; i < nwcon; i++) {
+    rhs[i + nvars] = 0.0;
+  }
+
+  solve(rhs);
+
+  ParOptScalar *yx_array, *yw_array;
+  yx->getArray(&yx_array);
+  yw->getArray(&yw_array);
+  for (int i = 0; i < nvars; i++) {
+    yx_array[i] = rhs[i];
+  }
+  for (int i = 0; i < nwcon; i++) {
+    yw_array[i] = -rhs[i + nvars];
+  }
+}
+
 void ParOptQuasiDefSparseMat::apply(ParOptVec *bx, ParOptVec *bw, ParOptVec *yx,
-                                    ParOptVec *yw) {}
+                                    ParOptVec *yw) {
+  ParOptScalar *bx_array, *bw_array;
+  bx->getArray(&bx_array);
+  bw->getArray(&bw_array);
+
+  for (int i = 0; i < nvars; i++) {
+    rhs[i] = bx_array[i];
+  }
+  for (int i = 0; i < nwcon; i++) {
+    rhs[i + nvars] = bw_array[i];
+  }
+
+  solve(rhs);
+
+  ParOptScalar *yx_array, *yw_array;
+  yx->getArray(&yx_array);
+  yw->getArray(&yw_array);
+  for (int i = 0; i < nvars; i++) {
+    yx_array[i] = rhs[i];
+  }
+  for (int i = 0; i < nwcon; i++) {
+    yw_array[i] = -rhs[i + nvars];
+  }
+}
+
+void ParOptQuasiDefSparseMat::solve(ParOptScalar *b) {
+  // Solve L * x = b in place
+  for (int i = 0; i < size; i++) {
+    for (int j = 0; j < i; j++) {
+      b[i] -= L[index(i, j)] * b[j];
+    }
+  }
+
+  for (int i = 0; i < size; i++) {
+    b[i] /= diag[i];
+  }
+
+  // Solve L^{T} * x = b in place
+  for (int i = size - 1; i >= 0; i--) {
+    for (int j = i + 1; j < size; j++) {
+      b[i] -= L[index(j, i)] * b[j];
+    }
+  }
+}

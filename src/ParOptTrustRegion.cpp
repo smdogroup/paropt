@@ -411,6 +411,7 @@ int ParOptQuadraticSubproblem::getLinearModel(ParOptVec **_xk,
 
   return m;
 }
+
 /**
   Evaluate SOC trial point and get data pair (func val, constr val)
 */
@@ -530,9 +531,9 @@ int ParOptInfeasSubproblem::useLowerBounds() { return 1; }
 int ParOptInfeasSubproblem::useUpperBounds() { return 1; }
 
 // Get the variables and bounds from the problem
-void ParOptInfeasSubproblem::getVarsAndBounds(ParOptVec *step, ParOptVec *l,
-                                              ParOptVec *u) {
-  prob->getVarsAndBounds(step, l, u);
+void ParOptInfeasSubproblem::getVarsAndBounds(ParOptVec *step, ParOptVec *lower,
+                                              ParOptVec *upper) {
+  prob->getVarsAndBounds(step, lower, upper);
 }
 
 /*

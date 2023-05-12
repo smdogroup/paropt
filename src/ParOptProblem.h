@@ -1,51 +1,14 @@
 #ifndef PAR_OPT_PROBLEM_H
 #define PAR_OPT_PROBLEM_H
 
-#include "ParOptVec.h"
-
 /*
-  Abstract base class for the quasi-definite matrix
+  Forward declare ParOptQuasiDefSparseMat
 */
-class ParOptQuasiDefMat : public ParOptBase {
- public:
-  virtual ~ParOptQuasiDefMat() {}
+class ParOptProblem;
+class ParOptSparseProblem;
 
-  /*
-    Factor the matrix
-  */
-  virtual int factor(ParOptVec *x, ParOptVec *Dinv, ParOptVec *Cdiag) = 0;
-
-  /**
-    Solve the quasi-definite system of equations
-
-    [ D   Aw^{T} ][  yx ] = [ bx ]
-    [ Aw    - C  ][ -yw ] = [ 0  ]
-
-    Here bx is unmodified. Note the negative sign on the yw variables.
-
-    @param bx the design variable right-hand-side
-    @param yx the design variable solution
-    @param yw the sparse multiplier solution
-   */
-  virtual void apply(ParOptVec *bx, ParOptVec *yx, ParOptVec *yw) = 0;
-
-  /**
-    Solve the quasi-definite system of equations
-
-    [ D   Aw^{T} ][  yx ] = [ bx ]
-    [ Aw    - C  ][ -yw ] = [ bw ]
-
-    In the call bx and bw must remain unmodified. Note the negative sign on the
-    yw variables.
-
-    @param bx the design variable right-hand-side
-    @param bx the sparse multiplier right-hand-side
-    @param yx the design variable solution
-    @param yw the sparse multiplier solution
-   */
-  virtual void apply(ParOptVec *bx, ParOptVec *bw, ParOptVec *yx,
-                     ParOptVec *yw) = 0;
-};
+#include "ParOptSparseMat.h"
+#include "ParOptVec.h"
 
 /*
   This code is the virtual base class problem definition for the
@@ -75,9 +38,6 @@ class ParOptQuasiDefMat : public ParOptBase {
 
   input:
   comm:    the communicator
-  nvars:   the number of local variables
-  ncon:    the number of dense constraints
-  nwcon:   the number of sparse constraints
 */
 class ParOptProblem : public ParOptBase {
  public:
@@ -86,31 +46,23 @@ class ParOptProblem : public ParOptBase {
 
     @param _comm is the MPI communicator
   */
-  ParOptProblem(MPI_Comm _comm) {
-    comm = _comm;
-    nvars = ncon = nwcon = 0;
-    ninequality = nwinequality = -1;
-  }
+  ParOptProblem(MPI_Comm _comm);
 
-  virtual ~ParOptProblem() {}
+  virtual ~ParOptProblem();
 
   /**
     Create a new distributed design vector
 
     @return a new distributed design vector
   */
-  virtual ParOptVec *createDesignVec() {
-    return new ParOptBasicVec(comm, nvars);
-  }
+  virtual ParOptVec *createDesignVec();
 
   /**
     Create a new distributed sparse constraint vector
 
     @return a new distributed sparse constraint vector
   */
-  virtual ParOptVec *createConstraintVec() {
-    return new ParOptBasicVec(comm, nwcon);
-  }
+  virtual ParOptVec *createConstraintVec();
 
   /**
     Create a new quasi-definite matrix object
@@ -124,7 +76,7 @@ class ParOptProblem : public ParOptBase {
 
     @return the MPI communicator for the problem
   */
-  MPI_Comm getMPIComm() { return comm; }
+  MPI_Comm getMPIComm();
 
   /**
     Set the problem size
@@ -133,19 +85,7 @@ class ParOptProblem : public ParOptBase {
     @param _ncon the global number of dense constraints
     @param _nwcon the local number of sparse separable constraints
   */
-  void setProblemSizes(int _nvars, int _ncon, int _nwcon) {
-    nvars = _nvars;
-    ncon = _ncon;
-    nwcon = _nwcon;
-
-    // By default, all the constraints are treated as inequalities
-    if (ninequality < 0) {
-      ninequality = ncon;
-    }
-    if (nwinequality < 0) {
-      nwinequality = nwcon;
-    }
-  }
+  void setProblemSizes(int _nvars, int _ncon, int _nwcon);
 
   /**
     Set the number of sparse or dense inequalities
@@ -153,10 +93,7 @@ class ParOptProblem : public ParOptBase {
     @param _ninequality the number of inequality constraints
     @param _nwinequality the block size of the separable constraints
   */
-  void setNumInequalities(int _ninequality, int _nwinequality) {
-    ninequality = _ninequality;
-    nwinequality = _nwinequality;
-  }
+  void setNumInequalities(int _ninequality, int _nwinequality);
 
   /**
     Get the problem size
@@ -165,17 +102,7 @@ class ParOptProblem : public ParOptBase {
     @param _ncon the global number of dense constraints
     @param _nwcon the local number of sparse separable constraints
   */
-  void getProblemSizes(int *_nvars, int *_ncon, int *_nwcon) {
-    if (_nvars) {
-      *_nvars = nvars;
-    }
-    if (_ncon) {
-      *_ncon = ncon;
-    }
-    if (_nwcon) {
-      *_nwcon = nwcon;
-    }
-  }
+  void getProblemSizes(int *_nvars, int *_ncon, int *_nwcon);
 
   /**
     Get the number of inequalities
@@ -183,35 +110,28 @@ class ParOptProblem : public ParOptBase {
     @param _ninequality the number of dense inequality constraints
     @param _nwinequality the block size of the separable constraints
   */
-  void getNumInequalities(int *_ninequality, int *_nwinequality) {
-    if (_ninequality) {
-      *_ninequality = ninequality;
-    }
-    if (_nwinequality) {
-      *_nwinequality = nwinequality;
-    }
-  }
+  void getNumInequalities(int *_ninequality, int *_nwinequality);
 
   /**
     Are the dense constraints inequalities? Default is true.
 
     @return flag indicating if the dense constraints are inequalities
   */
-  virtual int isSparseInequality() { return 1; }
+  virtual int isSparseInequality();
 
   /**
     Indicate whether to use the lower variable bounds. Default is true.
 
     @return flag indicating whether to use lower variable bound.
   */
-  virtual int useLowerBounds() { return 1; }
+  virtual int useLowerBounds();
 
   /**
      Indicate whether to use the upper variable bounds. Default is true.
 
      @return flag indicating whether to use upper variable bounds.
    */
-  virtual int useUpperBounds() { return 1; }
+  virtual int useUpperBounds();
 
   /**
     Get the initial variable values and bounds for the problem
@@ -266,9 +186,7 @@ class ParOptProblem : public ParOptBase {
     @return zero on success, non-zero flag on error
   */
   virtual int evalHvecProduct(ParOptVec *x, ParOptScalar *z, ParOptVec *zw,
-                              ParOptVec *px, ParOptVec *hvec) {
-    return 0;
-  }
+                              ParOptVec *px, ParOptVec *hvec);
 
   /**
     Evaluate the diagonal of the Hessian.
@@ -276,9 +194,7 @@ class ParOptProblem : public ParOptBase {
     This is only used by MMA.
   */
   virtual int evalHessianDiag(ParOptVec *x, ParOptScalar *z, ParOptVec *zw,
-                              ParOptVec *hdiag) {
-    return 0;
-  }
+                              ParOptVec *hdiag);
 
   /**
     Compute a correction or modification of the quasi-Newton update.
@@ -296,7 +212,7 @@ class ParOptProblem : public ParOptBase {
   */
   virtual void computeQuasiNewtonUpdateCorrection(ParOptVec *x, ParOptScalar *z,
                                                   ParOptVec *zw, ParOptVec *s,
-                                                  ParOptVec *y) {}
+                                                  ParOptVec *y);
 
   /**
     Evaluate the sparse constraints.
@@ -306,7 +222,7 @@ class ParOptProblem : public ParOptBase {
     @param x is the design variable vector
     @param out is the sparse constraint vector
   */
-  virtual void evalSparseCon(ParOptVec *x, ParOptVec *out) {}
+  virtual void evalSparseCon(ParOptVec *x, ParOptVec *out);
 
   /**
     Compute the Jacobian-vector product of the sparse constraints.
@@ -320,7 +236,7 @@ class ParOptProblem : public ParOptBase {
     @param out is the sparse product vector
   */
   virtual void addSparseJacobian(ParOptScalar alpha, ParOptVec *x,
-                                 ParOptVec *px, ParOptVec *out) {}
+                                 ParOptVec *px, ParOptVec *out);
 
   /**
     Compute the tranpose Jacobian-vector product of the sparse constraints.
@@ -335,7 +251,7 @@ class ParOptProblem : public ParOptBase {
     @param out is the sparse product vector
   */
   virtual void addSparseJacobianTranspose(ParOptScalar alpha, ParOptVec *x,
-                                          ParOptVec *pzw, ParOptVec *out) {}
+                                          ParOptVec *pzw, ParOptVec *out);
 
   /**
     Add the inner product of the constraints to the matrix such
@@ -347,7 +263,7 @@ class ParOptProblem : public ParOptBase {
     @param A is the output block-diagonal matrix
   */
   virtual void addSparseInnerProduct(ParOptScalar alpha, ParOptVec *x,
-                                     ParOptVec *cvec, ParOptScalar *A) {}
+                                     ParOptVec *cvec, ParOptScalar *A);
 
   /**
     Check the objective and constraint gradients for this problem instance
@@ -359,18 +275,129 @@ class ParOptProblem : public ParOptBase {
   void checkGradients(double dh, ParOptVec *x = NULL,
                       int check_hvec_product = 0);
 
-  //! Implement this function if you'd like to print out
-  //! something with the same frequency as the output files
-  // ------------------------------------------------------
-  virtual void writeOutput(int iter, ParOptVec *x) {}
+  /*
+    Implement this function if you'd like to print out
+    something with the same frequency as the output files
+  */
+  virtual void writeOutput(int iter, ParOptVec *x);
 
  protected:
   MPI_Comm comm;     // MPI communicator for the problem
   int nvars;         // Number of variables
   int ncon;          // Number of dense constraints
-  int ninequality;   // Number of inequality constraints < ncon
   int nwcon;         // Number of sparse constraints
+  int ninequality;   // Number of inequality constraints < ncon
   int nwinequality;  // Number of sparse inequality constraints < nwcon
+};
+
+/*
+  Problem with general sparse constraints
+*/
+class ParOptSparseProblem : public ParOptProblem {
+ public:
+  ParOptSparseProblem(MPI_Comm comm);
+  ~ParOptSparseProblem();
+
+  /*
+    Set the constraint Jacobian non-zero pattern.
+
+    Note: This must be called after a call to setProblemSizes() to set the
+    number of sparse constraints.
+  */
+  void setSparseJacobianData(const int *_rowp, const int *_cols);
+
+  /**
+    Get the sparse constraint Jacobian data
+
+    @param _rowp The pointer into each row
+    @param _cols The column indices
+    @param _data The constraint Jacobian entries
+  */
+  void getSparseJacobianData(const int **_rowp, const int **_cols,
+                             const ParOptScalar **_data);
+
+  /**
+    Create a new quasi-definite matrix object
+
+    @return a new quasi-definite matrix object
+  */
+  ParOptQuasiDefMat *createQuasiDefMat();
+
+  virtual int evalSparseObjCon(ParOptVec *x, ParOptScalar *fobj,
+                               ParOptScalar *cons, ParOptVec *sparse_con) = 0;
+
+  virtual int evalObjConSparseGradient(ParOptVec *x, ParOptVec *g,
+                                       ParOptVec **Ac, ParOptScalar *data) = 0;
+
+  /**
+    Evaluate the objective and constraints.
+
+    This makes a call to the sparse constraint implementation.
+
+    @param x is the design variable vector
+    @param fobj is the objective value at x
+    @param cons is the array of constraint vaules at x
+    @return zero on success, non-zero fail flag on error
+  */
+  int evalObjCon(ParOptVec *x, ParOptScalar *fobj, ParOptScalar *cons);
+
+  /**
+    Evaluate the objective and constraint gradients.
+
+    This makes a call to the sparse constraint Jacobian implementation.
+
+    @param x is the design variable vector
+    @param g is the gradient of the objective at x
+    @param Ac are the gradients of the dense constraints at x
+    @return zero on success, non-zero fail flag on error
+  */
+  int evalObjConGradient(ParOptVec *x, ParOptVec *g, ParOptVec **Ac);
+
+  /**
+    Evaluate the sparse constraints.
+
+    This copies the values of the sparse constraints into the output
+
+    @param x is the design variable vector
+    @param out is the sparse constraint vector
+  */
+  void evalSparseCon(ParOptVec *x, ParOptVec *out);
+
+  /**
+    Compute the Jacobian-vector product of the sparse constraints.
+
+    This code computes the sparse matrix-Jacobian product uing the stored data.
+
+    @param alpha is a scalar factor
+    @param x is the design variable vector
+    @param px is the input direction vector
+    @param out is the sparse product vector
+  */
+  void addSparseJacobian(ParOptScalar alpha, ParOptVec *x, ParOptVec *px,
+                         ParOptVec *out);
+
+  /**
+    Compute the tranpose Jacobian-vector product of the sparse constraints.
+
+    This code computes the transpose of the sparse
+
+    @param alpha is a scalar factor
+    @param x is the design variable vector
+    @param pzw is the input direction vector
+    @param out is the sparse product vector
+  */
+  void addSparseJacobianTranspose(ParOptScalar alpha, ParOptVec *x,
+                                  ParOptVec *pzw, ParOptVec *out);
+
+ private:
+  // Sparse constraint data
+  ParOptVec *cw;
+
+  // Sparse constraint Jacobian
+  int nnz;
+  int *rowp;
+  int *cols;
+  ParOptScalar *data;
 };
 
 #endif  // PAR_OPT_PROBLEM_H
