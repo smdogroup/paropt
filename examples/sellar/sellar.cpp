@@ -8,7 +8,16 @@ class Sellar : public ParOptProblem {
  public:
   static const int nvars = 4;
   static const int ncon = 1;
-  Sellar(MPI_Comm _comm) : ParOptProblem(_comm, nvars, ncon, ncon, 0, 0) {}
+  Sellar(MPI_Comm _comm) : ParOptProblem(_comm) {
+    setProblemSizes(nvars, ncon, 0);
+    setNumInequalities(0, 0);
+  }
+
+  //! Create the quasi-def matrix associated with this problem
+  ParOptQuasiDefMat *createQuasiDefMat() {
+    int nwblock = 0;
+    return new ParOptQuasiDefBlockMat(this, nwblock);
+  }
 
   //! Get the variables/bounds
   void getVarsAndBounds(ParOptVec *xvec, ParOptVec *lbvec, ParOptVec *ubvec) {
