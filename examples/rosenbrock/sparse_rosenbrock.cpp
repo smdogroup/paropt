@@ -161,7 +161,7 @@ int main(int argc, char *argv[]) {
   options->setOption("output_level", 0);
   options->setOption("qn_type", "bfgs");
   options->setOption("qn_subspace_size", 10);
-  options->setOption("abs_res_tol", 1e-6);
+  options->setOption("abs_res_tol", 1e-7);
   options->setOption("output_file", "paropt.out");
   options->setOption("tr_output_file", "paropt.tr");
   options->setOption("mma_output_file", "paropt.mma");

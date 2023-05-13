@@ -3147,12 +3147,12 @@ void ParOptInteriorPoint::checkMeritFuncGradient(ParOptVec *xpt, double dh) {
   ParOptVec *rtw = residual.tw;
 
   const ParOptScalar *s = variables.s;
-  ParOptScalar *rs = residual.s;
   ParOptScalar *ps = update.s;
+  ParOptScalar *rs = residual.s;
 
   const ParOptScalar *t = variables.t;
-  ParOptScalar *rt = residual.t;
   ParOptScalar *pt = update.t;
+  ParOptScalar *rt = residual.t;
 
   ParOptScalar *rc = residual.z;
 
@@ -3171,11 +3171,17 @@ void ParOptInteriorPoint::checkMeritFuncGradient(ParOptVec *xpt, double dh) {
 
     if (nwcon > 0) {
       psw->zeroEntries();
-      ParOptScalar *pswvals;
+      ptw->zeroEntries();
+      ParOptScalar *pswvals, *ptwvals;
       psw->getArray(&pswvals);
+      ptw->getArray(&ptwvals);
 
       for (int i = 0; i < nwcon; i++) {
         pswvals[i] = -0.419 * (1 + (i % 5));
+      }
+
+      for (int i = 0; i < nwcon; i++) {
+        ptwvals[i] = -0.7513 * (1 + (i % 19));
       }
     }
   }
@@ -3203,8 +3209,11 @@ void ParOptInteriorPoint::checkMeritFuncGradient(ParOptVec *xpt, double dh) {
   }
 
   if (nwcon > 0) {
-    rzw->copyValues(sw);
-    rzw->axpy(ParOptScalar(0.0, dh), psw);
+    rsw->copyValues(sw);
+    rsw->axpy(ParOptScalar(0.0, dh), psw);
+
+    rtw->copyValues(tw);
+    rtw->axpy(ParOptScalar(0.0, dh), ptw);
   }
 #else
   rx->copyValues(x);
@@ -3263,7 +3272,7 @@ void ParOptInteriorPoint::checkMeritFuncGradient(ParOptVec *xpt, double dh) {
 
   f(x) +
   mu*(log(s) + log(t) + log(x - xl) + log(xu - x)) +
-  rho*(||c(x) - s + t||_{2} + ||cw(x) - sw||_{2})
+  rho*(||c(x) - s + t||_{2} + ||cw(x) - sw + tw||_{2})
 
   output: The value of the merit function
 */
@@ -3543,7 +3552,9 @@ void ParOptInteriorPoint::evalMeritInitDeriv(ParOptVars &vars, ParOptVars &step,
     // Compute (cw(x) - sw + tw)^{T}*(Aw(x)*px - psw + ptw)
     wtmp2->zeroEntries();
     prob->addSparseJacobian(1.0, vars.x, step.x, wtmp2);
-    weight_proj = wtmp1->dot(wtmp2) - wtmp1->dot(step.sw) + wtmp1->dot(step.tw);
+    wtmp2->axpy(-1.0, step.sw);
+    wtmp2->axpy(1.0, step.tw);
+    weight_proj = wtmp1->dot(wtmp2);
 
     // Complete the weight projection computation
     if (ParOptRealPart(weight_infeas) > 0.0) {
@@ -5982,6 +5993,28 @@ void ParOptInteriorPoint::checkKKTStep(ParOptVars &vars, ParOptVars &step,
     printf("max |gamma - zt - z - pzt - pz|: %10.4e\n", max_val);
   }
 
+  if (nwcon > 0) {
+    res.zsw->copyValues(penalty_gamma_sw);
+    res.zsw->axpy(-1.0, vars.zsw);
+    res.zsw->axpy(1.0, vars.zw);
+    res.zsw->axpy(-1.0, step.zsw);
+    res.zsw->axpy(1.0, step.zw);
+    max_val = res.zsw->maxabs();
+    if (rank == opt_root) {
+      printf("max |gamma - zsw + zw - pzsw + pzw|: %10.4e\n", max_val);
+    }
+
+    res.ztw->copyValues(penalty_gamma_tw);
+    res.ztw->axpy(-1.0, vars.ztw);
+    res.ztw->axpy(-1.0, vars.zw);
+    res.ztw->axpy(-1.0, step.ztw);
+    res.ztw->axpy(-1.0, step.zw);
+    max_val = res.ztw->maxabs();
+    if (rank == opt_root) {
+      printf("max |gamma - ztw - zw - pztw - pzw|: %10.4e\n", max_val);
+    }
+  }
+
   max_val = 0.0;
   for (int i = 0; i < ncon; i++) {
     ParOptScalar val = vars.t[i] * step.zt[i] + vars.zt[i] * step.t[i] +
@@ -6004,6 +6037,38 @@ void ParOptInteriorPoint::checkKKTStep(ParOptVars &vars, ParOptVars &step,
   }
   if (rank == opt_root) {
     printf("max |Zs*ps + S*pz + (S*zs - mu)|: %10.4e\n", max_val);
+  }
+
+  if (nwcon > 0) {
+    ParOptScalar *rztw, *tw, *ztw, *ptw, *pztw;
+    res.ztw->getArray(&rztw);
+    vars.tw->getArray(&tw);
+    vars.ztw->getArray(&ztw);
+    step.tw->getArray(&ptw);
+    step.ztw->getArray(&pztw);
+    for (int i = 0; i < nwcon; i++) {
+      rztw[i] =
+          tw[i] * pztw[i] + ztw[i] * ptw[i] + (tw[i] * ztw[i] - barrier_param);
+    }
+    max_val = res.ztw->maxabs();
+    if (rank == opt_root) {
+      printf("max |Tw*pztw + Ztw*ptw + (Tw*ztw - mu)|: %10.4e\n", max_val);
+    }
+
+    ParOptScalar *rzsw, *sw, *zsw, *psw, *pzsw;
+    res.zsw->getArray(&rzsw);
+    vars.sw->getArray(&sw);
+    vars.zsw->getArray(&zsw);
+    step.sw->getArray(&psw);
+    step.zsw->getArray(&pzsw);
+    for (int i = 0; i < nwcon; i++) {
+      rzsw[i] =
+          sw[i] * pzsw[i] + zsw[i] * psw[i] + (zsw[i] * sw[i] - barrier_param);
+    }
+    max_val = res.ztw->maxabs();
+    if (rank == opt_root) {
+      printf("max |Zsw*psw + Sw*pzw + (Sw*zsw - mu)|: %10.4e\n", max_val);
+    }
   }
 
   // Find the maximum of the residual equations for the
