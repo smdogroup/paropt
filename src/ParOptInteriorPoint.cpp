@@ -748,15 +748,11 @@ void ParOptInteriorPoint::getOptimizedPoint(ParOptVec **_x, ParOptScalar **_z,
   }
   if (_z) {
     *_z = NULL;
-    if (ncon > 0) {
-      *_z = variables.z;
-    }
+    *_z = variables.z;
   }
   if (_zw) {
     *_zw = NULL;
-    if (nwcon > 0) {
-      *_zw = variables.zw;
-    }
+    *_zw = variables.zw;
   }
   if (_zl) {
     *_zl = NULL;
@@ -803,15 +799,11 @@ void ParOptInteriorPoint::getOptimizedSlacks(ParOptScalar **_s,
   }
   if (_sw) {
     *_sw = NULL;
-    if (nwcon > 0) {
-      *_sw = variables.sw;
-    }
+    *_sw = variables.sw;
   }
   if (_tw) {
     *_tw = NULL;
-    if (nwcon > 0) {
-      *_tw = variables.tw;
-    }
+    *_tw = variables.tw;
   }
 }
 
@@ -1361,52 +1353,50 @@ void ParOptInteriorPoint::computeKKTRes(ParOptVars &vars, double barrier,
       rzswvals[i] = barrier - swvals[i] * zswvals[i];
       rztwvals[i] = barrier - twvals[i] * ztwvals[i];
     }
-
-    // Account for the contributions to the norms (except for res.zw)
-    if (norm_type == PAROPT_INFTY_NORM) {
-      double dual_sw = res.sw->maxabs();
-      double dual_tw = res.tw->maxabs();
-      double dual_zsw = res.zsw->maxabs();
-      double dual_ztw = res.ztw->maxabs();
-      if (dual_sw > *max_dual) {
-        *max_dual = dual_sw;
-      }
-      if (dual_tw > *max_dual) {
-        *max_dual = dual_tw;
-      }
-      if (dual_zsw > *max_dual) {
-        *max_dual = dual_zsw;
-      }
-      if (dual_ztw > *max_dual) {
-        *max_dual = dual_ztw;
-      }
-    } else if (norm_type == PAROPT_L1_NORM) {
-      *max_dual += res.sw->l1norm();
-      *max_dual += res.tw->l1norm();
-      *max_dual += res.zsw->l1norm();
-      *max_dual += res.ztw->l1norm();
-    } else {  // norm_type == PAROPT_L2_NORM
-      double dual_sw = res.sw->l1norm();
-      double dual_tw = res.tw->l1norm();
-      double dual_zsw = res.zsw->l1norm();
-      double dual_ztw = res.ztw->l1norm();
-      *max_dual += (dual_sw * dual_sw + dual_tw * dual_tw +
-                    dual_zsw * dual_zsw + dual_ztw * dual_ztw);
-    }
   }
 
-  // Compute the error in the first KKT condition
+  // Compute the residuals in the KKT condition
+  // Account for the contributions to the norms
   if (norm_type == PAROPT_INFTY_NORM) {
     *max_prime = res.x->maxabs();
     *max_infeas = res.zw->maxabs();
+
+    double dual_sw = res.sw->maxabs();
+    double dual_tw = res.tw->maxabs();
+    double dual_zsw = res.zsw->maxabs();
+    double dual_ztw = res.ztw->maxabs();
+    if (dual_sw > *max_dual) {
+      *max_dual = dual_sw;
+    }
+    if (dual_tw > *max_dual) {
+      *max_dual = dual_tw;
+    }
+    if (dual_zsw > *max_dual) {
+      *max_dual = dual_zsw;
+    }
+    if (dual_ztw > *max_dual) {
+      *max_dual = dual_ztw;
+    }
   } else if (norm_type == PAROPT_L1_NORM) {
     *max_prime = res.x->l1norm();
     *max_infeas = res.zw->l1norm();
+
+    *max_dual += res.sw->l1norm();
+    *max_dual += res.tw->l1norm();
+    *max_dual += res.zsw->l1norm();
+    *max_dual += res.ztw->l1norm();
   } else {  // norm_type == PAROPT_L2_NORM
     double prime_rx = res.x->norm();
     double prime_rzw = res.zw->norm();
     *max_prime = prime_rx * prime_rx;
     *max_infeas = prime_rzw * prime_rzw;
+
+    double dual_sw = res.sw->l1norm();
+    double dual_tw = res.tw->l1norm();
+    double dual_zsw = res.zsw->l1norm();
+    double dual_ztw = res.ztw->l1norm();
+    *max_dual += (dual_sw * dual_sw + dual_tw * dual_tw + dual_zsw * dual_zsw +
+                  dual_ztw * dual_ztw);
   }
 
   // Evaluate the residuals differently depending on whether
