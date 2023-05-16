@@ -22,7 +22,7 @@ class Rosenbrock(ParOpt.Problem):
 
         # Initialize the base class
         super(Rosenbrock, self).__init__(
-            comm=self.comm,
+            self.comm,
             nvars=self.nvars,
             ncon=self.ncon,
             nwcon=self.nwcon,

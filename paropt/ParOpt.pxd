@@ -41,6 +41,8 @@ cdef extern from "ParOptProblem.h":
         ParOptProblem()
         ParOptProblem(MPI_Comm)
         MPI_Comm getMPIComm()
+        void setProblemSizes(int, int, int)
+        void setNumInequalities(int, int)
         ParOptVec *createDesignVec()
         ParOptVec *createConstraintVec()
         void getProblemSizes(int*, int*, int*)
@@ -85,6 +87,12 @@ cdef extern from "CyParOptProblem.h":
     ctypedef int (*evalobjcongradient)(void *_self, int nvars, int ncon,
                                        ParOptVec *x, ParOptVec *gobj,
                                        ParOptVec **A)
+    ctypedef int (*evalsparseobjcon)(void *_self, int nvars, int ncon, int nwcon,
+                                     ParOptVec *x, ParOptScalar *fobj,
+                                     ParOptScalar *cons, ParOptVec *sparse_con)
+    ctypedef int (*evalsparseobjcongradient)(void *_self, int nvars, int ncon, int nwcon,
+                                             ParOptVec *x, ParOptVec *gobj,
+                                             ParOptVec **A, int nnz, ParOptScalar *data)
     ctypedef int (*evalhvecproduct)(void *_self, int nvars, int ncon, int nwcon,
                                     ParOptVec *x, ParOptScalar *z,
                                     ParOptVec *zw, ParOptVec *px,
@@ -113,9 +121,9 @@ cdef extern from "CyParOptProblem.h":
                                            ParOptVec *x, ParOptVec *c,
                                            ParOptScalar *out)
 
-    cdef cppclass CyParOptProblem(ParOptProblem):
-        CyParOptProblem(MPI_Comm, int, int, int, int, int)
-        void setInequalityOptions(int, int, int)
+    cdef cppclass CyParOptBlockProblem(ParOptProblem):
+        CyParOptBlockProblem(MPI_Comm, int)
+        void setVarBoundOptions(int, int)
         void setSelfPointer(void *_self)
         void setGetVarsAndBounds(getvarsandbounds usr_func)
         void setEvalObjCon(evalobjcon usr_func)
@@ -127,6 +135,18 @@ cdef extern from "CyParOptProblem.h":
         void setAddSparseJacobian(addsparsejacobian usr_func)
         void setAddSparseJacobianTranspose(addsparsejacobiantranspose usr_func)
         void setAddSparseInnerProduct(addsparseinnerproduct usr_func)
+
+    cdef cppclass CyParOptSparseProblem(ParOptProblem):
+        CyParOptSparseProblem(MPI_Comm)
+        void setVarBoundOptions(int, int)
+        void setSparseJacobianData(const int *, const int*)
+        void setSelfPointer(void *_self)
+        void setGetVarsAndBounds(getvarsandbounds usr_func)
+        void setEvalObjCon(evalsparseobjcon usr_func)
+        void setEvalObjConGradient(evalsparseobjcongradient usr_func)
+        void setEvalHvecProduct(evalhvecproduct usr_func)
+        void setEvalHessianDiag(evalhessiandiag usr_func)
+        void setComputeQuasiNewtonUpdateCorrection(computequasinewtonupdatecorrection usr_func)
 
 cdef extern from "ParOptOptions.h":
     cppclass ParOptOptions(ParOptBase):

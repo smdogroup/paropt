@@ -341,6 +341,7 @@ void ParOptMMA::optimize(ParOptInteriorPoint *optimizer) {
   // Set the interior point optimizer data to be compatible
   ParOptOptions *options = optimizer->getOptions();
   options->setOption("use_diag_hessian", 1);
+  options->setOption("use_line_search", 0);
 
   initializeSubProblem(xvec);
   optimizer->resetDesignAndBounds();

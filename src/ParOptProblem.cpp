@@ -518,69 +518,72 @@ void ParOptProblem::checkGradients(double dh, ParOptVec *xvec,
           fabs(ParOptRealPart((d1 - d2) / d2)));
     }
 
-    // ParOptVec *Cvec = createDesignVec();
-    // Cvec->incref();
+    int nwblock = getSparseJacobianBlockSize();
+    if (nwblock > 0) {
+      ParOptVec *Cvec = createDesignVec();
+      Cvec->incref();
 
-    // // Set Cvec to something more-or-less random
-    // ParOptScalar *cvals;
-    // Cvec->getArray(&cvals);
-    // for (int i = 0; i < nvars; i++) {
-    //   cvals[i] = 0.05 + 0.25 * (i % 37);
-    // }
+      // Set Cvec to something more-or-less random
+      ParOptScalar *cvals;
+      Cvec->getArray(&cvals);
+      for (int i = 0; i < nvars; i++) {
+        cvals[i] = 0.05 + 0.25 * (i % 37);
+      }
 
-    // // Check the inner product zw^{T}*J(x)*cvec*J(x)^{T}*zw against the
-    // // matrix Cw
-    // ParOptScalar *Cw = new ParOptScalar[nwcon * (nwblock + 1) / 2];
-    // memset(Cw, 0, nwcon * (nwblock + 1) / 2 * sizeof(ParOptScalar));
-    // addSparseInnerProduct(1.0, x, Cvec, Cw);
+      // Check the inner product zw^{T}*J(x)*cvec*J(x)^{T}*zw against the
+      // matrix Cw
+      ParOptScalar *Cw = new ParOptScalar[nwcon * (nwblock + 1) / 2];
+      memset(Cw, 0, nwcon * (nwblock + 1) / 2 * sizeof(ParOptScalar));
+      addSparseInnerProduct(1.0, x, Cvec, Cw);
 
-    // // Compute the vector product using the Jacobians
-    // px->zeroEntries();
-    // addSparseJacobianTranspose(1.0, x, zw, px);
+      // Compute the vector product using the Jacobians
+      px->zeroEntries();
+      addSparseJacobianTranspose(1.0, x, zw, px);
 
-    // // Multiply component-wise
-    // for (int i = 0; i < nvars; i++) {
-    //   pxvals[i] *= cvals[i];
-    // }
-    // cw->zeroEntries();
-    // addSparseJacobian(1.0, x, px, cw);
-    // d1 = cw->dot(zw);
+      // Multiply component-wise
+      for (int i = 0; i < nvars; i++) {
+        pxvals[i] *= cvals[i];
+      }
+      cw->zeroEntries();
+      addSparseJacobian(1.0, x, px, cw);
+      d1 = cw->dot(zw);
 
-    // // Set the pointer into the Cw
-    // d2 = 0.0;
-    // ParOptScalar *cwvals = Cw;
+      // Set the pointer into the Cw
+      d2 = 0.0;
+      ParOptScalar *cwvals = Cw;
 
-    // ParOptScalar *zwvals;
-    // zw->getArray(&zwvals);
+      ParOptScalar *zwvals;
+      zw->getArray(&zwvals);
 
-    // // Iterate over each block matrix
-    // for (int i = 0; i < nwcon; i += nwblock) {
-    //   // Index into each block
-    //   for (int j = 0; j < nwblock; j++) {
-    //     for (int k = 0; k < j; k++) {
-    //       d2 += 2.0 * cwvals[0] * zwvals[i + j] * zwvals[i + k];
-    //       cwvals++;
-    //     }
+      // Iterate over each block matrix
+      for (int i = 0; i < nwcon; i += nwblock) {
+        // Index into each block
+        for (int j = 0; j < nwblock; j++) {
+          for (int k = 0; k < j; k++) {
+            d2 += 2.0 * cwvals[0] * zwvals[i + j] * zwvals[i + k];
+            cwvals++;
+          }
 
-    //     d2 += cwvals[0] * zwvals[i + j] * zwvals[i + j];
-    //     cwvals++;
-    //   }
-    // }
+          d2 += cwvals[0] * zwvals[i + j] * zwvals[i + j];
+          cwvals++;
+        }
+      }
 
-    // // Add the result across all processors
-    // ParOptScalar temp = d2;
-    // MPI_Reduce(&temp, &d2, 1, PAROPT_MPI_TYPE, MPI_SUM, 0, comm);
+      // Add the result across all processors
+      ParOptScalar temp = d2;
+      MPI_Reduce(&temp, &d2, 1, PAROPT_MPI_TYPE, MPI_SUM, 0, comm);
 
-    // if (rank == 0) {
-    //   printf("\nJ(x)*C^{-1}*J(x)^{T} test: \n");
-    //   printf("Product: %8.2e  Matrix: %8.2e  Err: %8.2e  Rel Err: %8.2e\n",
-    //          ParOptRealPart(d1), ParOptRealPart(d2),
-    //          fabs(ParOptRealPart(d1 - d2)),
-    //          fabs(ParOptRealPart((d1 - d2) / d2)));
-    // }
+      if (rank == 0) {
+        printf("\nJ(x)*C^{-1}*J(x)^{T} test: \n");
+        printf("Product: %8.2e  Matrix: %8.2e  Err: %8.2e  Rel Err: %8.2e\n",
+               ParOptRealPart(d1), ParOptRealPart(d2),
+               fabs(ParOptRealPart(d1 - d2)),
+               fabs(ParOptRealPart((d1 - d2) / d2)));
+      }
 
-    // delete[] Cw;
-    // Cvec->decref();
+      delete[] Cw;
+      Cvec->decref();
+    }
   }
 
   // Deallocate vector
@@ -682,9 +685,9 @@ ParOptSparseProblem::~ParOptSparseProblem() {
 /*
   Get the sparse constraint Jacobian data
 */
-void ParOptSparseProblem::getSparseJacobianData(const int **_rowp,
-                                                const int **_cols,
-                                                const ParOptScalar **_data) {
+int ParOptSparseProblem::getSparseJacobianData(const int **_rowp,
+                                               const int **_cols,
+                                               const ParOptScalar **_data) {
   if (_rowp) {
     *_rowp = rowp;
   }
@@ -694,6 +697,8 @@ void ParOptSparseProblem::getSparseJacobianData(const int **_rowp,
   if (_data) {
     *_data = data;
   }
+
+  return nnz;
 }
 
 /**
@@ -732,7 +737,7 @@ int ParOptSparseProblem::evalObjCon(ParOptVec *x, ParOptScalar *fobj,
 */
 int ParOptSparseProblem::evalObjConGradient(ParOptVec *x, ParOptVec *g,
                                             ParOptVec **Ac) {
-  return evalObjConSparseGradient(x, g, Ac, data);
+  return evalSparseObjConGradient(x, g, Ac, data);
 }
 
 /**

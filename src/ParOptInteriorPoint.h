@@ -242,7 +242,8 @@ class ParOptInteriorPoint : public ParOptBase {
   void initAndCheckDesignAndBounds();
 
   // Initialize the multipliers
-  void initLeastSquaresMultipliers(ParOptVars &vars);
+  void initLeastSquaresMultipliers(ParOptVars &vars, ParOptVars &res,
+                                   ParOptVec *yx);
   void initAffineStepMultipliers(ParOptVars &vars, ParOptVars &res,
                                  ParOptVars &step, ParOptNormType norm_type);
 

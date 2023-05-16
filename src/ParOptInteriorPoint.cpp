@@ -1714,9 +1714,6 @@ void ParOptInteriorPoint::setUpKKTDiagSystem(ParOptVars &vars, ParOptVec *xtmp,
     }
   }
 
-  // Set the value of the D matrix
-  memset(Gmat, 0, ncon * ncon * sizeof(ParOptScalar));
-
   Cdiag->zeroEntries();
   if (nwcon > 0) {
     // Compute C = Zsw^{-1} * Sw + Ztw^{-1} * Tw
@@ -1736,6 +1733,9 @@ void ParOptInteriorPoint::setUpKKTDiagSystem(ParOptVars &vars, ParOptVec *xtmp,
 
   // Factor the quasi-definite matrix
   mat->factor(vars.x, Dinv, Cdiag);
+
+  // Set the value of the G matrix
+  memset(Gmat, 0, ncon * ncon * sizeof(ParOptScalar));
 
   // Now, compute the Schur complement with the Dmatrix
   for (int j = 0; j < ncon; j++) {
@@ -2074,9 +2074,7 @@ void ParOptInteriorPoint::solveKKTDiagSystem(ParOptVars &vars, ParOptVec *bx,
   d1->copyValues(bx);
 
   // Compute the terms from the weighting constraints
-  if (nwcon > 0) {
-    d2->zeroEntries();
-  }
+  d2->zeroEntries();
 
   // Solve for the update and store in y.x
   mat->apply(d1, d2, y.x, y.zw);
@@ -3079,14 +3077,11 @@ int ParOptInteriorPoint::scaleKKTStep(ParOptVars &vars, ParOptVars &step,
     step.zu->scale(alpha_z);
   }
 
-  if (nwcon > 0) {
-    step.sw->scale(alpha_x);
-    step.tw->scale(alpha_x);
-    step.zw->scale(alpha_z);
-    step.zsw->scale(alpha_z);
-    step.ztw->scale(alpha_z);
-  }
-
+  step.sw->scale(alpha_x);
+  step.tw->scale(alpha_x);
+  step.zw->scale(alpha_z);
+  step.zsw->scale(alpha_z);
+  step.ztw->scale(alpha_z);
   scaleStep(alpha_x, ncon, step.s);
   scaleStep(alpha_x, ncon, step.t);
   scaleStep(alpha_z, ncon, step.z);
@@ -3214,13 +3209,11 @@ void ParOptInteriorPoint::checkMeritFuncGradient(ParOptVec *xpt, double dh) {
     rt[i] = t[i] + dh * pt[i];
   }
 
-  if (nwcon > 0) {
-    rsw->copyValues(sw);
-    rsw->axpy(dh, psw);
+  rsw->copyValues(sw);
+  rsw->axpy(dh, psw);
 
-    rtw->copyValues(tw);
-    rtw->axpy(dh, ptw);
-  }
+  rtw->copyValues(tw);
+  rtw->axpy(dh, ptw);
 #endif  // PAROPT_USE_COMPLEX
 
   // Evaluate the objective
@@ -4355,7 +4348,7 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
   if (starting_point_strategy == PAROPT_AFFINE_STEP) {
     initAffineStepMultipliers(variables, residual, update, norm_type);
   } else if (starting_point_strategy == PAROPT_LEAST_SQUARES_MULTIPLIERS) {
-    initLeastSquaresMultipliers(variables);
+    initLeastSquaresMultipliers(variables, residual, update.x);
   }
 
   // Some quasi-Newton methods can be updated with only the design variable
@@ -5065,8 +5058,38 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
 
 /*
   Compute an initial multiplier estimate using a least-squares method
+
+  The least squares multipliers can be found by solving the following system
+  of equations where eps is a small number:
+
+  [ [ I   Aw^{T} ]  A^{T} ][  yx ] = [ -(g - zl + zu) ]
+  [ [ Aw   -eps  ]     0  ][ -zw ] = [ 0 ]
+  [   A              -eps ][  -z ] = [ 0 ]
+
+  Defining
+
+  D0 =
+  [ I   Aw^{T} ]
+  [ Aw   -eps  ]
+
+  We can compute the Schur complement
+
+  G = eps + (A, 0) * D0^{-1} * (A, 0)^{T}
+
+  Then solve
+
+  G * z = (A, 0)^{T} * D0^{-1} * (g - zl + zu)
+
+  Then we can solve
+
+  [ I   Aw^{T} ][  yx ] = [ -(g - zl + zu ) + A^{T} * z ]
+  [ Aw   -eps  ][ -zw ] = [  0                          ]
+
+  for zw.
 */
-void ParOptInteriorPoint::initLeastSquaresMultipliers(ParOptVars &vars) {
+void ParOptInteriorPoint::initLeastSquaresMultipliers(ParOptVars &vars,
+                                                      ParOptVars &res,
+                                                      ParOptVec *yx) {
   const double max_bound_value = options->getFloatOption("max_bound_value");
   const double init_barrier_param =
       options->getFloatOption("init_barrier_param");
@@ -5080,14 +5103,17 @@ void ParOptInteriorPoint::initLeastSquaresMultipliers(ParOptVars &vars) {
   vars.zu->getArray(&zuvals);
 
   // Set the Largrange multipliers associated with the
-  // the lower/upper bounds to 1.0
+  // the lower/upper bounds to the initial barrier parameter
   vars.zl->set(init_barrier_param);
   vars.zu->set(init_barrier_param);
 
   // Set the Lagrange multipliers and slack variables
-  // associated with the sparse constraints to 1.0
+  // associated with the sparse constraints initial barrier parameter
   vars.zw->set(init_barrier_param);
   vars.sw->set(init_barrier_param);
+  vars.tw->set(init_barrier_param);
+  vars.zsw->set(init_barrier_param);
+  vars.ztw->set(init_barrier_param);
 
   // Set the Largrange multipliers and slack variables associated
   // with the dense constraints to 1.0
@@ -5095,8 +5121,8 @@ void ParOptInteriorPoint::initLeastSquaresMultipliers(ParOptVars &vars) {
     vars.z[i] = init_barrier_param;
     vars.s[i] = max2(init_barrier_param, c[i] + init_barrier_param);
     vars.t[i] = max2(init_barrier_param, -c[i] + init_barrier_param);
-    vars.zt[i] = init_barrier_param;
     vars.zs[i] = init_barrier_param;
+    vars.zt[i] = init_barrier_param;
   }
 
   // Zero the multipliers for bounds that are out-of-range
@@ -5109,45 +5135,123 @@ void ParOptInteriorPoint::initLeastSquaresMultipliers(ParOptVars &vars) {
     }
   }
 
-  // Form the right-hand-side of the least squares problem for the
-  // dense constraint multipliers
-  ParOptVec *xt = y_qn;
-  xt->copyValues(g);
-  xt->axpy(-1.0, vars.zl);
-  xt->axpy(1.0, vars.zu);
+  double small = 1e-4;
 
-  for (int i = 0; i < ncon; i++) {
-    vars.z[i] = Ac[i]->dot(xt);
+  // Set the components of the diagonal matrix
+  ParOptScalar *dvals, *cvals;
+  Dinv->getArray(&dvals);
+  Cdiag->getArray(&cvals);
+
+  for (int i = 0; i < nvars; i++) {
+    dvals[i] = 1.0;
+  }
+  for (int i = 0; i < nwcon; i++) {
+    cvals[i] = small;
   }
 
-  // Compute Dmat = A*A^{T}
-  for (int i = 0; i < ncon; i++) {
-    Ac[i]->mdot(Ac, ncon, &Gmat[i * ncon]);
+  // Factor the quasi-definite matrix
+  mat->factor(vars.x, Dinv, Cdiag);
+
+  // Set the value of the G matrix
+  memset(Gmat, 0, ncon * ncon * sizeof(ParOptScalar));
+
+  // Now, compute the Schur complement with the Dmatrix
+  for (int j = 0; j < ncon; j++) {
+    mat->apply(Ac[j], res.x, res.zw);
+
+    for (int i = j; i < ncon; i++) {
+      Gmat[i + ncon * j] += Ac[i]->dot(res.x);
+    }
+  }
+
+  // Populate the remainder of the matrix because it is
+  // symmetric
+  for (int j = 0; j < ncon; j++) {
+    for (int i = j + 1; i < ncon; i++) {
+      Gmat[j + ncon * i] = Gmat[i + ncon * j];
+    }
   }
 
   if (ncon > 0) {
-    // Compute the factorization of Dmat
-    int info;
-    LAPACKdgetrf(&ncon, &ncon, Gmat, &ncon, gpiv, &info);
+    int rank;
+    MPI_Comm_rank(comm, &rank);
 
-    // Solve the linear system
-    if (!info) {
-      int one = 1;
-      LAPACKdgetrs("N", &ncon, &one, Gmat, &ncon, gpiv, vars.z, &ncon, &info);
-
-      // Keep the Lagrange multipliers if they are within a
-      // reasonable range.
+    // Add the diagonal component to the matrix
+    if (rank == opt_root) {
       for (int i = 0; i < ncon; i++) {
-        double gamma =
-            10 * ParOptRealPart(max2(penalty_gamma_s[i], penalty_gamma_t[i]));
-        if (ParOptRealPart(vars.z[i]) < -gamma ||
-            ParOptRealPart(vars.z[i]) > gamma) {
-          vars.z[i] = 0.0;
-        }
+        Gmat[i * (ncon + 1)] += small;
       }
-    } else {
+    }
+
+    // Broadcast the result to all processors. Note that this ensures
+    // that the factorization will be the same on all processors
+    MPI_Bcast(Gmat, ncon * ncon, PAROPT_MPI_TYPE, opt_root, comm);
+
+    // Factor the matrix for future use
+    int info = 0;
+    LAPACKdgetrf(&ncon, &ncon, Gmat, &ncon, gpiv, &info);
+  }
+
+  // Compute the right-hand-side
+  // Note that we scale the right-hand-side to get rhs = -(g - zl + zu)
+  res.x->copyValues(g);
+  res.x->axpy(-1.0, vars.zl);
+  res.x->axpy(1.0, vars.zu);
+  res.x->scale(-1.0);
+
+  // Compute the terms from the weighting constraints
+  res.zw->zeroEntries();
+
+  // Solve for the update and store in y.x
+  mat->apply(res.x, res.zw, yx, vars.zw);
+
+  // Now, compute yz = A^{T} * y.x
+  memset(vars.z, 0, ncon * sizeof(ParOptScalar));
+  yx->mdot(Ac, ncon, vars.z);
+
+  if (ncon > 0) {
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+
+    // Compute the full right-hand-side on the root proc
+    if (rank == opt_root) {
       for (int i = 0; i < ncon; i++) {
-        vars.z[i] = 0.0;
+        vars.z[i] = -vars.z[i];
+      }
+
+      int one = 1, info = 0;
+      LAPACKdgetrs("N", &ncon, &one, Gmat, &ncon, gpiv, vars.z, &ncon, &info);
+    }
+
+    MPI_Bcast(vars.z, ncon, PAROPT_MPI_TYPE, opt_root, comm);
+  }
+
+  for (int i = 0; i < ncon; i++) {
+    res.x->axpy(vars.z[i], Ac[i]);
+  }
+
+  mat->apply(res.x, res.zw, yx, vars.zw);
+
+  // Keep the Lagrange multipliers if they are within a reasonable range.
+  for (int i = 0; i < ncon; i++) {
+    double gamma =
+        10 * ParOptRealPart(max2(penalty_gamma_s[i], penalty_gamma_t[i]));
+    if (ParOptRealPart(vars.z[i]) < -gamma ||
+        ParOptRealPart(vars.z[i]) > gamma) {
+      vars.z[i] = 0.0;
+    }
+  }
+
+  if (nwcon > 0) {
+    ParOptScalar *gamma_sw, *gamma_tw, *zw;
+    penalty_gamma_sw->getArray(&gamma_sw);
+    penalty_gamma_tw->getArray(&gamma_tw);
+    vars.zw->getArray(&zw);
+
+    for (int i = 0; i < nwcon; i++) {
+      double gamma = 10 * ParOptRealPart(max2(gamma_sw[i], gamma_tw[i]));
+      if (ParOptRealPart(zw[i]) < -gamma || ParOptRealPart(zw[i]) > gamma) {
+        zw[i] = 0.0;
       }
     }
   }
@@ -5166,9 +5270,9 @@ void ParOptInteriorPoint::initAffineStepMultipliers(ParOptVars &vars,
   const int use_qn_gmres_precon = options->getBoolOption("use_qn_gmres_precon");
   const int use_diag_hessian = options->getBoolOption("use_diag_hessian");
 
-  // Perform a preliminary estimate of the multipliers using the
-  // least-squares method
-  initLeastSquaresMultipliers(vars);
+  // Perform a preliminary estimate of the multipliers using the least-squares
+  // method
+  initLeastSquaresMultipliers(vars, res, step.x);
 
   // Set the largrange multipliers with bounds outside the
   // limits to zero
@@ -5237,7 +5341,7 @@ void ParOptInteriorPoint::initAffineStepMultipliers(ParOptVars &vars,
     step.zsw->getArray(&yzsw);
     step.ztw->getArray(&yztw);
 
-    for (int i = 0; i < ncon; i++) {
+    for (int i = 0; i < nwcon; i++) {
       zw[i] = zw[i] + yzw[i];
       sw[i] = max2(start_affine_multiplier_min,
                    fabs(ParOptRealPart(sw[i] + ysw[i])));

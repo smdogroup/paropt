@@ -85,7 +85,7 @@ class SparseRosenbrock : public ParOptSparseProblem {
   }
 
   //! Evaluate the objective and constraint gradients
-  int evalObjConSparseGradient(ParOptVec *xvec, ParOptVec *gvec, ParOptVec **Ac,
+  int evalSparseObjConGradient(ParOptVec *xvec, ParOptVec *gvec, ParOptVec **Ac,
                                ParOptScalar *data) {
     ParOptScalar *x, *g, *c;
     xvec->getArray(&x);

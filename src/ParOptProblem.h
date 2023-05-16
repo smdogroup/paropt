@@ -281,6 +281,11 @@ class ParOptProblem : public ParOptBase {
   */
   virtual void writeOutput(int iter, ParOptVec *x);
 
+  /*
+    This is only for backwards compatibility for testing
+  */
+  virtual int getSparseJacobianBlockSize() { return -1; }
+
  protected:
   MPI_Comm comm;     // MPI communicator for the problem
   int nvars;         // Number of variables
@@ -312,9 +317,10 @@ class ParOptSparseProblem : public ParOptProblem {
     @param _rowp The pointer into each row
     @param _cols The column indices
     @param _data The constraint Jacobian entries
+    @param nnz The number of Jacobian entries
   */
-  void getSparseJacobianData(const int **_rowp, const int **_cols,
-                             const ParOptScalar **_data);
+  int getSparseJacobianData(const int **_rowp, const int **_cols,
+                            const ParOptScalar **_data);
 
   /**
     Create a new quasi-definite matrix object
@@ -326,7 +332,7 @@ class ParOptSparseProblem : public ParOptProblem {
   virtual int evalSparseObjCon(ParOptVec *x, ParOptScalar *fobj,
                                ParOptScalar *cons, ParOptVec *sparse_con) = 0;
 
-  virtual int evalObjConSparseGradient(ParOptVec *x, ParOptVec *g,
+  virtual int evalSparseObjConGradient(ParOptVec *x, ParOptVec *g,
                                        ParOptVec **Ac, ParOptScalar *data) = 0;
 
   /**

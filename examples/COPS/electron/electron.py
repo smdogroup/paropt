@@ -20,11 +20,24 @@ class Electron(ParOpt.Problem):
         self.comm = MPI.COMM_WORLD
         self.n = n
         self.nvars = 3 * n
-        self.ncon = n
+        self.num_sparse_constraints = n
         self.epsilon = epsilon
 
+        rowp = [0]
+        cols = []
+        for i in range(self.n):
+            cols.extend([i, n + i, 2 * n + i])
+            rowp.append(len(cols))
+
         # Initialize the base class
-        super(Electron, self).__init__(self.comm, self.nvars, self.ncon)
+        super(Electron, self).__init__(
+            self.comm,
+            nvars=self.nvars,
+            num_sparse_constraints=self.num_sparse_constraints,
+            num_sparse_inequalities=0,
+            rowp=rowp,
+            cols=cols,
+        )
 
         return
 
@@ -46,7 +59,7 @@ class Electron(ParOpt.Problem):
 
         return
 
-    def evalObjCon(self, x):
+    def evalSparseObjCon(self, x, sparse_cons):
         """Evaluate the objective and constraint"""
         n = self.n
         epsilon = self.epsilon
@@ -62,15 +75,15 @@ class Electron(ParOpt.Problem):
                     dsq = epsilon
                 fobj += dsq ** (-1 / 2)
 
-        con = np.zeros(self.ncon)
         for i in range(n):
-            con[i] = 1.0 - (_x[i] ** 2 + _y[i] ** 2 + _z[i] ** 2)
+            sparse_cons[i] = 1.0 - (_x[i] ** 2 + _y[i] ** 2 + _z[i] ** 2)
 
+        con = []
         fail = 0
 
         return fail, fobj, con
 
-    def evalObjConGradient(self, x, g, A):
+    def evalSparseObjConGradient(self, x, g, A, data):
         """Evaluate the objective and constraint gradient"""
         n = self.n
         epsilon = self.epsilon
@@ -94,10 +107,9 @@ class Electron(ParOpt.Problem):
                     g[2 * n + j] += (_z[i] - _z[j]) * fact
 
         for i in range(n):
-            A[i][:] = 0.0
-            A[i][i] = -2.0 * _x[i]
-            A[i][n + i] = -2.0 * _y[i]
-            A[i][2 * n + i] = -2.0 * _z[i]
+            data[3 * i] = -2.0 * _x[i]
+            data[3 * i + 1] = -2.0 * _y[i]
+            data[3 * i + 2] = -2.0 * _z[i]
 
         fail = 0
 
@@ -142,7 +154,6 @@ if __name__ == "__main__":
             "tr_use_soc": False,
             "tr_max_iterations": 200,
             "max_major_iters": 100,
-            # 'use_line_search': False
         }
 
     problem = Electron(args.n, 1e-15)
