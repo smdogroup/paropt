@@ -608,6 +608,9 @@ int ParOptQuasiDefSparseMat::factor(ParOptVec *x, ParOptVec *Dinv,
                            ldiag, lcolp, lrows, lvals);
   delete[] temp;
 
+  printf("ParOptQuasiDefSparseMat: Factor error: %15.10e\n",
+         computeSolutionError());
+
   return fail;
 }
 

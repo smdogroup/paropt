@@ -329,6 +329,16 @@ class ParOptInteriorPoint : public ParOptBase {
   int computeStepAndUpdate(ParOptVars &vars, double alpha, ParOptVars &step,
                            int eval_obj_con, int perform_qn_update);
 
+  // Evaluate the infeasibility at the current point
+  ParOptScalar evalInfeas(const ParOptScalar *ck, ParOptVec *xk,
+                          const ParOptScalar *sk, const ParOptScalar *tk,
+                          ParOptVec *swk, ParOptVec *twk, ParOptVec *rw);
+
+  // Evaluate the derivative of the infeasibility
+  ParOptScalar evalInfeasDeriv(ParOptVars &vars, ParOptVars &step,
+                               ParOptScalar *pinfeas, ParOptVec *rw1,
+                               ParOptVec *rw2);
+
   // Evaluate the merit function
   ParOptScalar evalMeritFunc(ParOptScalar fk, const ParOptScalar *ck,
                              ParOptVec *xk, const ParOptScalar *sk,
@@ -433,9 +443,6 @@ class ParOptInteriorPoint : public ParOptBase {
 
   // Keep track of the number of objective and gradient evaluations
   int niter, neval, ngeval, nhvec;
-
-  // Sparse equalities or inequalities?
-  int sparse_inequality;
 
   // Flags to indicate whether to use the upper/lower bounds
   int use_lower, use_upper;

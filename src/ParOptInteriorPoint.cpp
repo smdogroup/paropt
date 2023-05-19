@@ -3193,13 +3193,11 @@ void ParOptInteriorPoint::checkMeritFuncGradient(ParOptVec *xpt, double dh) {
     rt[i] = t[i] + ParOptScalar(0.0, dh) * pt[i];
   }
 
-  if (nwcon > 0) {
-    rsw->copyValues(sw);
-    rsw->axpy(ParOptScalar(0.0, dh), psw);
+  rsw->copyValues(sw);
+  rsw->axpy(ParOptScalar(0.0, dh), psw);
 
-    rtw->copyValues(tw);
-    rtw->axpy(ParOptScalar(0.0, dh), ptw);
-  }
+  rtw->copyValues(tw);
+  rtw->axpy(ParOptScalar(0.0, dh), ptw);
 #else
   rx->copyValues(x);
   rx->axpy(dh, px);
@@ -3243,6 +3241,89 @@ void ParOptInteriorPoint::checkMeritFuncGradient(ParOptVec *xpt, double dh) {
         ParOptRealPart(fd), ParOptRealPart(dm0), fabs(ParOptRealPart(fd - dm0)),
         fabs(ParOptRealPart((fd - dm0) / fd)));
   }
+
+#ifdef PAROPT_USE_COMPLEX
+  // Evaluate the objective again back at the original x
+  fail_obj = prob->evalObjCon(x, &ftemp, rc);
+  neval++;
+  if (fail_obj) {
+    fprintf(stderr, "ParOpt: Function and constraint evaluation failed\n");
+    return;
+  }
+#endif
+}
+
+/*
+  Evaluate the infeasibility of the combined dense and sparse constraints
+*/
+ParOptScalar ParOptInteriorPoint::evalInfeas(
+    const ParOptScalar *ck, ParOptVec *xk, const ParOptScalar *sk,
+    const ParOptScalar *tk, ParOptVec *swk, ParOptVec *twk, ParOptVec *rw) {
+  // Compute the infeasibility
+  ParOptScalar dense_infeas = 0.0;
+  for (int i = 0; i < ncon; i++) {
+    ParOptScalar cval = (ck[i] - sk[i] + tk[i]);
+    dense_infeas += cval * cval;
+  }
+
+  // Compute the sparse infeasibility
+  if (nwcon > 0) {
+    prob->evalSparseCon(xk, rw);
+  }
+  rw->axpy(-1.0, swk);
+  rw->axpy(1.0, twk);
+  ParOptScalar sparse_infeas = rw->norm();
+
+  // Compute the l2 norm of the infeasibility
+  ParOptScalar infeas = sqrt(dense_infeas + sparse_infeas * sparse_infeas);
+
+  return infeas;
+}
+
+/*
+  Evaluate the directional derivative of the infeasibility
+*/
+ParOptScalar ParOptInteriorPoint::evalInfeasDeriv(ParOptVars &vars,
+                                                  ParOptVars &step,
+                                                  ParOptScalar *pinfeas,
+                                                  ParOptVec *rw1,
+                                                  ParOptVec *rw2) {
+  // Compute the infeasibility and directional derivative
+  ParOptScalar dense_infeas = 0.0;
+  ParOptScalar pdense_infeas = 0.0;
+  for (int i = 0; i < ncon; i++) {
+    ParOptScalar cval = (c[i] - vars.s[i] + vars.t[i]);
+    ParOptScalar pcval = (Ac[i]->dot(step.x) - step.s[i] + step.t[i]);
+
+    dense_infeas += cval * cval;
+    pdense_infeas += cval * pcval;
+  }
+
+  // Compute the contributions from the sparse constraints
+  if (nwcon > 0) {
+    prob->evalSparseCon(vars.x, rw1);
+  }
+  rw1->axpy(-1.0, vars.sw);
+  rw1->axpy(1.0, vars.tw);
+  ParOptScalar sparse_infeas = rw1->norm();
+
+  // Compute the l2 norm of the infeasibility
+  ParOptScalar infeas = sqrt(dense_infeas + sparse_infeas * sparse_infeas);
+
+  // Compute (cw(x) - sw + tw)^{T}*(Aw(x)*px - psw + ptw)
+  rw2->zeroEntries();
+  prob->addSparseJacobian(1.0, vars.x, step.x, rw2);
+  rw2->axpy(-1.0, step.sw);
+  rw2->axpy(1.0, step.tw);
+  ParOptScalar psparse_infeas = rw1->dot(rw2);
+
+  if (ParOptRealPart(infeas) > 0.0) {
+    *pinfeas = (pdense_infeas + psparse_infeas) / infeas;
+  } else {
+    *pinfeas = 0.0;
+  }
+
+  return infeas;
 }
 
 /*
@@ -3327,27 +3408,6 @@ ParOptScalar ParOptInteriorPoint::evalMeritFunc(
     }
   }
 
-  // Compute the norm of the weight constraint infeasibility
-  ParOptScalar weight_infeas = 0.0;
-  if (nwcon > 0) {
-    prob->evalSparseCon(xk, wtemp);
-    wtemp->axpy(-1.0, swk);
-    wtemp->axpy(1.0, twk);
-#ifdef PAROPT_USE_COMPLEX
-    ParOptScalar *wvals;
-    int wsize = wtemp->getArray(&wvals);
-    for (int i = 0; i < wsize; i++) {
-      weight_infeas += wvals[i] * wvals[i];
-    }
-    ParOptScalar weight_infeas_temp = weight_infeas;
-    MPI_Allreduce(&weight_infeas_temp, &weight_infeas, 1, PAROPT_MPI_TYPE,
-                  MPI_SUM, comm);
-    weight_infeas = sqrt(weight_infeas);
-#else
-    weight_infeas = wtemp->norm();
-#endif  // PAROPT_USE_COMPLEX
-  }
-
   // Sum up the result from all processors
   ParOptScalar input[2];
   ParOptScalar result[2];
@@ -3377,15 +3437,11 @@ ParOptScalar ParOptInteriorPoint::evalMeritFunc(
   int rank = 0;
   MPI_Comm_rank(comm, &rank);
 
+  // Compute the norm of the weight constraint infeasibility
+  ParOptScalar infeas = evalInfeas(ck, xk, sk, tk, swk, twk, wtemp);
+
   ParOptScalar merit = 0.0;
   if (rank == opt_root) {
-    // Compute the infeasibility
-    ParOptScalar dense_infeas = 0.0;
-    for (int i = 0; i < ncon; i++) {
-      dense_infeas += (ck[i] - sk[i] + tk[i]) * (ck[i] - sk[i] + tk[i]);
-    }
-    ParOptScalar infeas = sqrt(dense_infeas) + weight_infeas;
-
     // Add the contribution from the constraints
     merit = (fk - barrier_param * (pos_result + neg_result) +
              rho_penalty_search * infeas);
@@ -3521,30 +3577,6 @@ void ParOptInteriorPoint::evalMeritInitDeriv(ParOptVars &vars, ParOptVars &step,
     }
   }
 
-  // Compute the norm of the weight constraint infeasibility
-  ParOptScalar weight_infeas = 0.0, weight_proj = 0.0;
-  if (nwcon > 0) {
-    prob->evalSparseCon(vars.x, wtmp1);
-    wtmp1->axpy(-1.0, vars.sw);
-    wtmp1->axpy(1.0, vars.tw);
-    weight_infeas = wtmp1->norm();
-
-    // Compute the projection of the weight constraints
-    // onto the descent direction
-
-    // Compute (cw(x) - sw + tw)^{T}*(Aw(x)*px - psw + ptw)
-    wtmp2->zeroEntries();
-    prob->addSparseJacobian(1.0, vars.x, step.x, wtmp2);
-    wtmp2->axpy(-1.0, step.sw);
-    wtmp2->axpy(1.0, step.tw);
-    weight_proj = wtmp1->dot(wtmp2);
-
-    // Complete the weight projection computation
-    if (ParOptRealPart(weight_infeas) > 0.0) {
-      weight_proj = weight_proj / weight_infeas;
-    }
-  }
-
   // Sum up the result from all processors
   ParOptScalar input[4];
   ParOptScalar result[4];
@@ -3604,24 +3636,8 @@ void ParOptInteriorPoint::evalMeritInitDeriv(ParOptVars &vars, ParOptVars &step,
   ParOptScalar merit = 0.0;
   ParOptScalar pmerit = 0.0;
 
-  // Compute the infeasibility
-  ParOptScalar dense_infeas = 0.0, dense_proj = 0.0;
-  for (int i = 0; i < ncon; i++) {
-    dense_infeas += (c[i] - s[i] + t[i]) * (c[i] - s[i] + t[i]);
-  }
-  dense_infeas = sqrt(dense_infeas);
-
-  // Compute the projection depending on whether this is
-  // for an exact or inexact step
-  for (int i = 0; i < ncon; i++) {
-    dense_proj += (c[i] - s[i] + t[i]) * (Ac[i]->dot(step.x) - ps[i] + pt[i]);
-  }
-
-  // Complete the projected derivative computation for the dense
-  // constraints
-  if (ParOptRealPart(dense_infeas) > 0.0) {
-    dense_proj = dense_proj / dense_infeas;
-  }
+  ParOptScalar infeas_proj;
+  ParOptScalar infeas = evalInfeasDeriv(vars, step, &infeas_proj, wtmp1, wtmp2);
 
   // Compute the product px^{T}*B*px
   ParOptScalar pTBp = 0.0;
@@ -3639,10 +3655,6 @@ void ParOptInteriorPoint::evalMeritInitDeriv(ParOptVars &vars, ParOptVars &step,
   }
 
   if (rank == opt_root) {
-    // Now, set up the full problem infeasibility
-    ParOptScalar infeas = dense_infeas + weight_infeas;
-    ParOptScalar infeas_proj = dense_proj + weight_proj;
-
     // Compute the numerator term
     ParOptScalar numer = proj - barrier_param * (pos_presult + neg_presult);
     if (ParOptRealPart(pTBp) > 0.0) {
@@ -3791,13 +3803,10 @@ int ParOptInteriorPoint::lineSearch(double alpha_min, double *_alpha,
 
     // Set rsw = sw + alpha*psw
     ParOptScalar zero = 0.0;
-    if (nwcon > 0) {
-      rsw->copyValues(sw);
-      computeStepVec(rsw, alpha, psw, NULL, &zero, NULL, NULL);
-
-      rtw->copyValues(tw);
-      computeStepVec(rtw, alpha, ptw, NULL, &zero, NULL, NULL);
-    }
+    rsw->copyValues(sw);
+    computeStepVec(rsw, alpha, psw, NULL, &zero, NULL, NULL);
+    rtw->copyValues(tw);
+    computeStepVec(rtw, alpha, ptw, NULL, &zero, NULL, NULL);
 
     // Set rs = s + alpha*ps and rt = t + alpha*pt
     memcpy(rs, s, ncon * sizeof(ParOptScalar));
@@ -3968,13 +3977,11 @@ int ParOptInteriorPoint::computeStepAndUpdate(ParOptVars &vars, double alpha,
 
   // Set the new values of the variables
   ParOptScalar zero = 0.0;
-  if (nwcon > 0) {
-    computeStepVec(vars.sw, alpha, step.sw, NULL, &zero, NULL, NULL);
-    computeStepVec(vars.tw, alpha, step.tw, NULL, &zero, NULL, NULL);
-    computeStepVec(vars.zw, alpha, step.zw, NULL, NULL, NULL, NULL);
-    computeStepVec(vars.zsw, alpha, step.zsw, NULL, &zero, NULL, NULL);
-    computeStepVec(vars.ztw, alpha, step.ztw, NULL, &zero, NULL, NULL);
-  }
+  computeStepVec(vars.sw, alpha, step.sw, NULL, &zero, NULL, NULL);
+  computeStepVec(vars.tw, alpha, step.tw, NULL, &zero, NULL, NULL);
+  computeStepVec(vars.zw, alpha, step.zw, NULL, NULL, NULL, NULL);
+  computeStepVec(vars.zsw, alpha, step.zsw, NULL, &zero, NULL, NULL);
+  computeStepVec(vars.ztw, alpha, step.ztw, NULL, &zero, NULL, NULL);
 
   if (use_lower) {
     computeStepVec(vars.zl, alpha, step.zl, NULL, &zero, NULL, NULL);
@@ -4220,7 +4227,8 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
   }
 
   // Set the barrier strategy - always start with a monotone approach then
-  // switch to the specified strategy after the first barrier problem is solved
+  // switch to the specified strategy after the first barrier problem is
+  // solved
   const char *barrier_name = options->getEnumOption("barrier_strategy");
   ParOptBarrierStrategy barrier_strategy = PAROPT_MONOTONE;
 
@@ -4826,7 +4834,8 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
     // Keep track of whether the line search was skipped or not
     int line_search_skipped = 0;
 
-    // By default, we assume that there is an improvement in the merit function
+    // By default, we assume that there is an improvement in the merit
+    // function
     no_merit_function_improvement = 0;
 
     if (use_line_search) {
@@ -4860,10 +4869,11 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
           line_fail = PAROPT_LINE_SEARCH_NO_IMPROVEMENT;
         }
       } else {
-        // The derivative of the merit function is positive. We revert to one of
-        // two approaches. If the quasi-Newton method is defined and the
-        // diagonal contribution b0 is positive, then we use only this diagonal
-        // contribution to compute the KKT step, otherwise, we use an SLP step.
+        // The derivative of the merit function is positive. We revert to one
+        // of two approaches. If the quasi-Newton method is defined and the
+        // diagonal contribution b0 is positive, then we use only this
+        // diagonal contribution to compute the KKT step, otherwise, we use an
+        // SLP step.
         if (ParOptRealPart(dm0) >= 0.0) {
           // Try again by disbcarding the quasi-Newton approximation. This
           // should always generate a descent direction..
