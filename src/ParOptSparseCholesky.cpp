@@ -51,7 +51,7 @@ ParOptSparseCholesky::ParOptSparseCholesky(int _size, const int Acolp[],
   delete[] parent;
   delete[] Lnz;
 
-  data = new double[data_ptr[num_snodes]];
+  data = new ParOptScalar[data_ptr[num_snodes]];
 
   // Compute the work size
   work_size = 0;
@@ -82,7 +82,8 @@ ParOptSparseCholesky::~ParOptSparseCholesky() {
   @param Avals The numerical values
 */
 void ParOptSparseCholesky::setValues(int n, const int Acolp[],
-                                     const int Arows[], const double Avals[]) {
+                                     const int Arows[],
+                                     const ParOptScalar Avals[]) {
   for (int i = 0; i < data_ptr[num_snodes]; i++) {
     data[i] = 0.0;
   }
@@ -101,7 +102,7 @@ void ParOptSparseCholesky::setValues(int n, const int Acolp[],
           int jj = j - jfirst;
           int ii = i - jfirst;
 
-          double *D = get_diag_pointer(sj);
+          ParOptScalar *D = get_diag_pointer(sj);
           D[get_diag_index(ii, jj)] += Avals[ip];
         } else {
           int jj = j - jfirst;
@@ -109,7 +110,7 @@ void ParOptSparseCholesky::setValues(int n, const int Acolp[],
           // Look for the row
           for (int kp = colp[sj]; kp < colp[sj + 1]; kp++) {
             if (rows[kp] == i) {
-              double *L = get_factor_pointer(sj, jsize, kp);
+              ParOptScalar *L = get_factor_pointer(sj, jsize, kp);
               L[jj] += Avals[ip];
 
               break;
@@ -242,17 +243,17 @@ void ParOptSparseCholesky::buildNonzeroPattern(const int Acolp[],
 */
 void ParOptSparseCholesky::updateDiag(const int lsize, const int nlrows,
                                       const int lfirst_var, const int *lrows,
-                                      const double *L, const int diag_size,
-                                      double *diag) {
+                                      const ParOptScalar *L,
+                                      const int diag_size, ParOptScalar *diag) {
   for (int jj = 0; jj < nlrows; jj++) {
     int j = lrows[jj] - lfirst_var;
-    const double *Lj = &L[jj * lsize];
+    const ParOptScalar *Lj = &L[jj * lsize];
 
     for (int ii = 0; ii < jj + 1; ii++) {
       int i = lrows[ii] - lfirst_var;
-      const double *Li = &L[ii * lsize];
+      const ParOptScalar *Li = &L[ii * lsize];
 
-      double value = 0.0;
+      ParOptScalar value = 0.0;
       for (int k = 0; k < lsize; k++) {
         value += Li[k] * Lj[k];
       }
@@ -286,14 +287,15 @@ void ParOptSparseCholesky::updateDiag(const int lsize, const int nlrows,
   @param T The temporary vector
 */
 void ParOptSparseCholesky::updateWorkColumn(int lwidth, int n21rows,
-                                            double *L21, int n31rows,
-                                            double *L31, double *T) {
+                                            ParOptScalar *L21, int n31rows,
+                                            ParOptScalar *L31,
+                                            ParOptScalar *T) {
   // These matrices are stored in row-major order. To compute the result we
   // use LAPACK with the computation: T^{T} = L21 * L31^{T}
   // dimension of T^{T} is n21rows X n32rows
   // dimension of L21 is n21rows X lwidth
   // dimension of L31^{T} is lwidth X n31rows
-  double alpha = 1.0, beta = 0.0;
+  ParOptScalar alpha = 1.0, beta = 0.0;
   BLASgemm("T", "N", &n21rows, &n31rows, &lwidth, &alpha, L21, &lwidth, L31,
            &lwidth, &beta, T, &n21rows);
 }
@@ -317,8 +319,8 @@ void ParOptSparseCholesky::updateWorkColumn(int lwidth, int n21rows,
 void ParOptSparseCholesky::updateColumn(const int lwidth, const int nlcols,
                                         const int lfirst_var, const int *lrows,
                                         int nrows, const int *arows,
-                                        const double *A, const int *brows,
-                                        double *B) {
+                                        const ParOptScalar *A, const int *brows,
+                                        ParOptScalar *B) {
   for (int i = 0, bi = 0; i < nrows; i++) {
     while (brows[bi] < arows[i]) {
       bi++;
@@ -336,7 +338,7 @@ void ParOptSparseCholesky::updateColumn(const int lwidth, const int nlcols,
 /*
   Perform the dense Cholesky factorization of the diagonal components
 */
-int ParOptSparseCholesky::factorDiag(const int diag_size, double *D) {
+int ParOptSparseCholesky::factorDiag(const int diag_size, ParOptScalar *D) {
   int n = diag_size, info;
   LAPACKdpptrf("U", &n, D, &info);
 
@@ -346,8 +348,8 @@ int ParOptSparseCholesky::factorDiag(const int diag_size, double *D) {
 /*
   Solve L * y = x and output x = y
 */
-void ParOptSparseCholesky::solveDiag(int diag_size, double *L, int nrhs,
-                                     double *x) {
+void ParOptSparseCholesky::solveDiag(int diag_size, ParOptScalar *L, int nrhs,
+                                     ParOptScalar *x) {
   for (int k = 0; k < nrhs; k++) {
     for (int j = 0; j < diag_size; j++) {
       for (int i = 0; i < j; i++) {
@@ -362,8 +364,8 @@ void ParOptSparseCholesky::solveDiag(int diag_size, double *L, int nrhs,
 /*
   Solve L^{T} * y = x and output x = y
 */
-void ParOptSparseCholesky::solveDiagTranspose(int diag_size, double *L,
-                                              int nhrs, double *x) {
+void ParOptSparseCholesky::solveDiagTranspose(int diag_size, ParOptScalar *L,
+                                              int nhrs, ParOptScalar *x) {
   for (int k = 0; k < nhrs; k++) {
     for (int j = diag_size - 1; j >= 0; j--) {
       for (int i = j + 1; i < diag_size; i++) {
@@ -413,7 +415,7 @@ int ParOptSparseCholesky::factor() {
   int *first = new int[num_snodes];
 
   // Temporary numeric workspace for stuff
-  double *work_temp = new double[work_size];
+  ParOptScalar *work_temp = new ParOptScalar[work_size];
 
   // Initialize the linked list and copy the diagonal values
   for (int j = 0; j < num_snodes; j++) {
@@ -423,14 +425,14 @@ int ParOptSparseCholesky::factor() {
   for (int j = 0; j < num_snodes; j++) {
     // Keep track of the size of the supernode on the diagonal
     int diag_size = snode_size[j];
-    double *diag = get_diag_pointer(j);
+    ParOptScalar *diag = get_diag_pointer(j);
 
     // First variable associated with this supernode
     int jfirst_var = snode_to_first_var[j];
 
     // Set the pointer to the current column indices
     const int *jrows = &rows[colp[j]];
-    double *jptr = get_factor_pointer(j, diag_size);
+    ParOptScalar *jptr = get_factor_pointer(j, diag_size);
 
     // Go through the linked list of supernodes to find the super node columns
     // k with non-zero entries in row j
@@ -466,7 +468,7 @@ int ParOptSparseCholesky::factor() {
       // The number of rows in L21
       int nkrows = ip_next - ip_start;
       const int *krows = &rows[ip_start];
-      const double *kvals = get_factor_pointer(k, ksize, ip_start);
+      const ParOptScalar *kvals = get_factor_pointer(k, ksize, ip_start);
 
       // Perform the update to the diagonal by computing
       // diag <- diag - L21 * L21^{T}
@@ -514,20 +516,20 @@ int ParOptSparseCholesky::factor() {
 /*
   Solve the system of equations with the Cholesky factorization
 */
-void ParOptSparseCholesky::solve(double *x) {
+void ParOptSparseCholesky::solve(ParOptScalar *x) {
   // Solve L * x = x
   for (int j = 0; j < num_snodes; j++) {
     const int jsize = snode_size[j];
-    double *D = get_diag_pointer(j);
-    double *y = &x[snode_to_first_var[j]];
+    ParOptScalar *D = get_diag_pointer(j);
+    ParOptScalar *y = &x[snode_to_first_var[j]];
     solveDiag(jsize, D, 1, y);
 
     // Apply the update from the whole column
-    const double *L = get_factor_pointer(j, jsize);
+    const ParOptScalar *L = get_factor_pointer(j, jsize);
 
     int ip_end = colp[j + 1];
     for (int ip = colp[j]; ip < ip_end; ip++) {
-      double val = 0.0;
+      ParOptScalar val = 0.0;
       for (int ii = 0; ii < jsize; ii++) {
         val += L[ii] * y[ii];
       }
@@ -539,8 +541,8 @@ void ParOptSparseCholesky::solve(double *x) {
   // Solve L^{T} * x = x
   for (int j = num_snodes - 1; j >= 0; j--) {
     const int jsize = snode_size[j];
-    double *y = &x[snode_to_first_var[j]];
-    double *L = get_factor_pointer(j, jsize);
+    ParOptScalar *y = &x[snode_to_first_var[j]];
+    ParOptScalar *L = get_factor_pointer(j, jsize);
 
     int ip_end = colp[j + 1];
     for (int ip = colp[j]; ip < ip_end; ip++) {
@@ -550,7 +552,7 @@ void ParOptSparseCholesky::solve(double *x) {
       L += jsize;
     }
 
-    double *D = get_diag_pointer(j);
+    ParOptScalar *D = get_diag_pointer(j);
     solveDiagTranspose(jsize, D, 1, y);
   }
 }

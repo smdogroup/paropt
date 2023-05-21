@@ -1,6 +1,7 @@
 #ifndef PAR_OPT_SPARSE_CHOLESKY_H
 #define PAR_OPT_SPARSE_CHOLESKY_H
 
+#include "ParOptComplexStep.h"
 #include "ParOptVec.h"
 
 /*
@@ -16,13 +17,13 @@ class ParOptSparseCholesky {
 
   // Set values into the Cholesky matrix
   void setValues(int n, const int Acolp[], const int Arows[],
-                 const double Avals[]);
+                 const ParOptScalar Avals[]);
 
   // Factor the matrix
   int factor();
 
   // Solve the factored system with the specified right-hand-side
-  void solve(double *x);
+  void solve(ParOptScalar *x);
 
  private:
   // Build the elimination tree/forest
@@ -39,26 +40,27 @@ class ParOptSparseCholesky {
 
   // Perform the update to the diagonal matrix
   void updateDiag(const int lsize, const int nlrows, const int lfirst_var,
-                  const int *lrows, const double *L, const int diag_size,
-                  double *diag);
+                  const int *lrows, const ParOptScalar *L, const int diag_size,
+                  ParOptScalar *diag);
 
   // Apply the update to the work column - uses BLAS level 3
-  void updateWorkColumn(int lsize, int nl1rows, double *L1, int nl2rows,
-                        double *L2, double *T);
+  void updateWorkColumn(int lsize, int nl1rows, ParOptScalar *L1, int nl2rows,
+                        ParOptScalar *L2, ParOptScalar *T);
 
   // Apply the sparse column update
   void updateColumn(const int lwidth, const int nlcols, const int lfirst_var,
                     const int *lrows, int nrows, const int *arows,
-                    const double *A, const int *brows, double *B);
+                    const ParOptScalar *A, const int *brows, ParOptScalar *B);
 
   // Perform Cholesky factorization on the diagonal
-  int factorDiag(const int diag_size, double *D);
+  int factorDiag(const int diag_size, ParOptScalar *D);
 
   // Solve L * y = x and output x = y
-  void solveDiag(int diag_size, double *L, int nhrs, double *x);
+  void solveDiag(int diag_size, ParOptScalar *L, int nhrs, ParOptScalar *x);
 
   // Solve L^{T} * y = x and output x = y
-  void solveDiagTranspose(int diag_size, double *L, int nhrs, double *x);
+  void solveDiagTranspose(int diag_size, ParOptScalar *L, int nhrs,
+                          ParOptScalar *x);
 
   // Get the diagonal block index
   inline int get_diag_index(const int i, const int j) {
@@ -70,12 +72,14 @@ class ParOptSparseCholesky {
   }
 
   // Given the supernode index, return the pointer to the diagonal matrix
-  inline double *get_diag_pointer(const int i) { return &data[data_ptr[i]]; }
+  inline ParOptScalar *get_diag_pointer(const int i) {
+    return &data[data_ptr[i]];
+  }
 
   // Given the supernode index, the supernode size and the index into the rows
   // data, return the pointer to the lower factor
-  inline double *get_factor_pointer(const int i, const int size,
-                                    const int index) {
+  inline ParOptScalar *get_factor_pointer(const int i, const int size,
+                                          const int index) {
     const int dsize = size * (size + 1) / 2;
     const int offset = index - colp[i];
     return &data[data_ptr[i] + dsize + size * offset];
@@ -83,7 +87,7 @@ class ParOptSparseCholesky {
 
   // Given the supernode index, the supernode size and the index into the rows
   // data, return the pointer to the lower factor
-  inline double *get_factor_pointer(const int i, const int size) {
+  inline ParOptScalar *get_factor_pointer(const int i, const int size) {
     const int dsize = size * (size + 1) / 2;
     return &data[data_ptr[i] + dsize];
   }
@@ -123,7 +127,7 @@ class ParOptSparseCholesky {
   int work_size;
 
   // The numerical data for all entries size = data_ptr[num_snodes]
-  double *data;
+  ParOptScalar *data;
 };
 
 #endif  //  PAR_OPT_SPARSE_CHOLESKY_H

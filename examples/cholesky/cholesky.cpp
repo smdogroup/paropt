@@ -2,16 +2,16 @@
 #include "ParOptAMD.h"
 #include "ParOptSparseCholesky.h"
 
-void build_matrix(int nx, int *_size, int **_colp, int **_rows, double **_kvals,
-                  const int *iperm = NULL) {
-  double kmat[][4] = {
+void build_matrix(int nx, int *_size, int **_colp, int **_rows,
+                  ParOptScalar **_kvals, const int *iperm = NULL) {
+  ParOptScalar kmat[][4] = {
       {4.0, 2.0, 2.0, 1.0},
       {2.0, 4.0, 1.0, 2.0},
       {2.0, 1.0, 4.0, 2.0},
       {1.0, 2.0, 2.0, 4.0},
   };
 
-  double ke[64];
+  ParOptScalar ke[64];
   for (int k = 0; k < 64; k++) {
     ke[k] = 0.0;
   }
@@ -55,7 +55,7 @@ void build_matrix(int nx, int *_size, int **_colp, int **_rows, double **_kvals,
   colp[size] = nnz;
 
   int *rows = new int[nnz];
-  double *kvals = new double[nnz];
+  ParOptScalar *kvals = new ParOptScalar[nnz];
 
   for (int i = 0; i < nx; i++) {
     for (int j = 0; j < nx; j++) {
@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
   int size;
   int *colp;
   int *rows;
-  double *kvals;
+  ParOptScalar *kvals;
   build_matrix(nx, &size, &colp, &rows, &kvals, NULL);
 
   ParOptSortAndRemoveDuplicates(size, colp, rows);
@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
   delete[] perm;
   delete[] iperm;
 
-  double *b = new double[size];
+  ParOptScalar *b = new ParOptScalar[size];
   for (int i = 0; i < size; i++) {
     b[i] = 0.0;
   }
@@ -140,11 +140,11 @@ int main(int argc, char *argv[]) {
   chol->factor();
   chol->solve(b);
 
-  double err = 0.0;
+  ParOptScalar err = 0.0;
   for (int i = 0; i < size; i++) {
     err += (1.0 - b[i]) * (1.0 - b[i]);
   }
-  printf("||x - e||: %25.15e\n", sqrt(err));
+  printf("||x - e||: %25.15e\n", ParOptRealPart(sqrt(err)));
 
   delete chol;
 

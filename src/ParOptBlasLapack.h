@@ -38,15 +38,16 @@ extern void BLASdscal(int *n, ParOptScalar *a, ParOptScalar *x, int *incx);
 
 // Level 2 BLAS routines
 // y = alpha * A * x + beta * y, for a general matrix
-extern void BLASgemv(const char *c, int *m, int *n, double *alpha, double *a,
-                     int *lda, double *x, int *incx, double *beta, double *y,
-                     int *incy);
+extern void BLASgemv(const char *c, int *m, int *n, ParOptScalar *alpha,
+                     ParOptScalar *a, int *lda, ParOptScalar *x, int *incx,
+                     ParOptScalar *beta, ParOptScalar *y, int *incy);
 
 // Level 3 BLAS routines
 // C := alpha*op( A )*op( B ) + beta*C,
 extern void BLASgemm(const char *ta, const char *tb, int *m, int *n, int *k,
-                     double *alpha, double *a, int *lda, double *b, int *ldb,
-                     double *beta, double *c, int *ldc);
+                     ParOptScalar *alpha, ParOptScalar *a, int *lda,
+                     ParOptScalar *b, int *ldb, ParOptScalar *beta,
+                     ParOptScalar *c, int *ldc);
 
 // General factorization routines
 extern void LAPACKdgetrf(int *m, int *n, ParOptScalar *a, int *lda, int *ipiv,

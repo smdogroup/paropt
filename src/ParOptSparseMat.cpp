@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "ParOptComplexStep.h"
+
 ParOptQuasiDefBlockMat::ParOptQuasiDefBlockMat(ParOptProblem *prob0,
                                                int _nwblock) {
   nwblock = _nwblock;
@@ -609,7 +611,7 @@ int ParOptQuasiDefSparseMat::factor(ParOptVec *x, ParOptVec *Dinv,
   delete[] temp;
 
   printf("ParOptQuasiDefSparseMat: Factor error: %15.10e\n",
-         computeSolutionError());
+         ParOptRealPart(computeSolutionError()));
 
   return fail;
 }
