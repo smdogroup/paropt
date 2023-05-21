@@ -256,7 +256,6 @@ if __name__ == "__main__":
         "use_backtracking_alpha": True,
         "output_level": 1,
         "max_major_iters": 1000,
-        "gradient_verification_frequency": 5,
     }
 
     # use trust region algorithm

@@ -9,6 +9,8 @@
 #define BLASdnrm2 dznrm2_
 #define BLASdaxpy zaxpy_
 #define BLASdscal zscal_
+#define BLASgbmv zgbmv_
+#define BLASgemm zgemm_
 #define LAPACKdgetrf zgetrf_
 #define LAPACKdgetrs zgetrs_
 #define LAPACKdpptrf zpptrf_
@@ -18,6 +20,8 @@
 #define BLASdnrm2 dnrm2_
 #define BLASdaxpy daxpy_
 #define BLASdscal dscal_
+#define BLASgbmv dgbmv_
+#define BLASgemm dgemm_
 #define LAPACKdgetrf dgetrf_
 #define LAPACKdgetrs dgetrs_
 #define LAPACKdpptrf dpptrf_
@@ -31,6 +35,18 @@ extern double BLASdnrm2(int *n, ParOptScalar *x, int *incx);
 extern void BLASdaxpy(int *n, ParOptScalar *a, ParOptScalar *x, int *incx,
                       ParOptScalar *y, int *incy);
 extern void BLASdscal(int *n, ParOptScalar *a, ParOptScalar *x, int *incx);
+
+// Level 2 BLAS routines
+// y = alpha * A * x + beta * y, for a general matrix
+extern void BLASgemv(const char *c, int *m, int *n, double *alpha, double *a,
+                     int *lda, double *x, int *incx, double *beta, double *y,
+                     int *incy);
+
+// Level 3 BLAS routines
+// C := alpha*op( A )*op( B ) + beta*C,
+extern void BLASgemm(const char *ta, const char *tb, int *m, int *n, int *k,
+                     double *alpha, double *a, int *lda, double *b, int *ldb,
+                     double *beta, double *c, int *ldc);
 
 // General factorization routines
 extern void LAPACKdgetrf(int *m, int *n, ParOptScalar *a, int *lda, int *ipiv,

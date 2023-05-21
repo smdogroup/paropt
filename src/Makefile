@@ -11,7 +11,9 @@ OBJS = ParOptOptions.o \
 	ParOptOptimizer.o \
 	ParOptSparseMat.o \
 	ParOptCompactEigenvalueApprox.o \
-	CyParOptProblem.o
+	CyParOptProblem.o \
+	ParOptAMD.o \
+	ParOptSparseCholesky.o
 
 default: ${OBJS}
 	${AR} ${AR_FLAGS} ${PAROPT_LIB} ${OBJS}
