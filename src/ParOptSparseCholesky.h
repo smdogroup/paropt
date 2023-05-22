@@ -7,6 +7,10 @@
 /*
   Class for the sparse Cholesky factorization
 
+  This code uses a supernode/supervariable approach in which groups of columns
+  with the same nonzero pattern are aggregated into a single block column. This
+  enables the use of more level-3 BLAS.
+
   This is used as one method to solve the sparse systems that arise in the
   interior point method.
 */
@@ -62,6 +66,7 @@ class ParOptSparseCholesky {
   void solveDiagTranspose(int diag_size, ParOptScalar *L, int nhrs,
                           ParOptScalar *x);
 
+  // The following are short cut inline functions.
   // Get the diagonal block index
   inline int get_diag_index(const int i, const int j) {
     if (i >= j) {

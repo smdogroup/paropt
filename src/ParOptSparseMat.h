@@ -9,6 +9,8 @@ class ParOptQuasiDefSparseMat;
 
 #include "ParOptBlasLapack.h"
 #include "ParOptProblem.h"
+#include "ParOptSparseCholesky.h"
+#include "ParOptSparseUtils.h"
 #include "ParOptVec.h"
 
 /*
@@ -141,55 +143,25 @@ class ParOptQuasiDefSparseMat : public ParOptQuasiDefMat {
   void apply(ParOptVec *bx, ParOptVec *bw, ParOptVec *yx, ParOptVec *yw);
 
  private:
-  // Compute the non-zero pattern for the K matrix
-  void computeCSCSymbolic(const int nvars0, const int nwcon0, const int *rowp,
-                          const int *cols, int *colp, int *rows);
-
-  // Set the numerical values of the K matrix
-  void setCSCNumeric(const int nvars0, const int nwcon0,
-                     const ParOptScalar *dinv, const ParOptScalar *cvals,
-                     const int *rowp, const int *cols,
-                     const ParOptScalar *avals, ParOptScalar *kdiag, int *colp,
-                     const int *rows, ParOptScalar *kvals);
-
-  // Factor the matrix symbolically
-  int factorSymbolic(const int n, const int *colp, const int *rows, int *list,
-                     int *first, int *parent, int *flag, int *Lcolp,
-                     int *Lrows);
-
-  // Factor the matrix numerically
-  int factorNumeric(const int n, const ParOptScalar *Adiag, const int *colp,
-                    const int *rows, const ParOptScalar *Avals, int *list,
-                    int *first, ParOptScalar *y, ParOptScalar *Ldiag,
-                    const int *Lcolp, const int *Lrows, ParOptScalar *Lvals);
-
-  // Solve the system of equations
-  void solve(ParOptScalar *b);
-
-  // Compute the solution error for the right-hand-side b = K * 1
-  ParOptScalar computeSolutionError();
-
   // The sparse problem
   ParOptSparseProblem *prob;
 
+  // Sparse Cholesky factorization
+  ParOptSparseCholesky *chol;
+
+  // Vectors that point to the input data
+  ParOptVec *Dinv, *C;
+
   // Number of variables
   int nvars, nwcon;
-  int size;  // Size of the overall problem
 
-  // The permuation and inverse permutation
-  int *perm, *iperm;
+  // Non-zero pattern of the Jacobian matrix transpose
+  int *colp, *rows;
+  ParOptScalar *Atvals;
 
-  // The non-zero pattern for the K matrix
-  int Knnz;
+  // The values of the Schur complement C + A * D^{-1} * A^{T}
   int *Kcolp, *Krows;
   ParOptScalar *Kvals;
-  ParOptScalar *Kdiag;
-
-  // Factored matrix data
-  int lnnz;
-  int *lcolp, *lrows;
-  ParOptScalar *ldiag;
-  ParOptScalar *lvals;
 
   // Right-hand-side/solution data
   ParOptScalar *rhs;

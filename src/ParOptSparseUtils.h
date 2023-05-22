@@ -24,12 +24,21 @@ int ParOptMatMatTransSymbolic(int nrows, int ncols, const int *rowp,
                               const int *cols, const int *colp, const int *rows,
                               int *Bcolp, int *flag);
 
-// Compute the matrix-matrix product
+// Compute the matrix-matrix product A * A^{T}
 void ParOptMatMatTransNumeric(int nrows, int ncols, const int *rowp,
                               const int *cols, const ParOptScalar *Avals,
                               const int *colp, const int *rows,
                               const ParOptScalar *ATvals, const int *Bcolp,
                               int *Brows, ParOptScalar *Bvals, int *flag,
                               ParOptScalar *tmp);
+
+// Compute the result C + A * D * A^{T}, where C and D are diagonal
+void ParOptMatMatTransNumeric(int nrows, int ncols, const ParOptScalar *cvals,
+                              const int *rowp, const int *cols,
+                              const ParOptScalar *Avals,
+                              const ParOptScalar *dvals, const int *colp,
+                              const int *rows, const ParOptScalar *ATvals,
+                              const int *Bcolp, int *Brows, ParOptScalar *Bvals,
+                              int *flag, ParOptScalar *tmp);
 
 #endif  // PAR_OPT_SPARSE_UTILS_H
