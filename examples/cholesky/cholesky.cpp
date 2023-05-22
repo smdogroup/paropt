@@ -1,6 +1,7 @@
 
 #include "ParOptAMD.h"
 #include "ParOptSparseCholesky.h"
+#include "ParOptSparseUtils.h"
 
 void build_matrix(int nx, int *_size, int **_colp, int **_rows,
                   ParOptScalar **_kvals, const int *iperm = NULL) {

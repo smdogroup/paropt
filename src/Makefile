@@ -13,7 +13,8 @@ OBJS = ParOptOptions.o \
 	ParOptCompactEigenvalueApprox.o \
 	CyParOptProblem.o \
 	ParOptAMD.o \
-	ParOptSparseCholesky.o
+	ParOptSparseCholesky.o \
+	ParOptSparseUtils.o
 
 default: ${OBJS}
 	${AR} ${AR_FLAGS} ${PAROPT_LIB} ${OBJS}
