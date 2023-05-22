@@ -3311,11 +3311,14 @@ ParOptScalar ParOptInteriorPoint::evalInfeasDeriv(ParOptVars &vars,
   ParOptScalar infeas = sqrt(dense_infeas + sparse_infeas * sparse_infeas);
 
   // Compute (cw(x) - sw + tw)^{T}*(Aw(x)*px - psw + ptw)
-  rw2->zeroEntries();
-  prob->addSparseJacobian(1.0, vars.x, step.x, rw2);
-  rw2->axpy(-1.0, step.sw);
-  rw2->axpy(1.0, step.tw);
-  ParOptScalar psparse_infeas = rw1->dot(rw2);
+  ParOptScalar psparse_infeas = 0.0;
+  if (nwcon > 0) {
+    rw2->zeroEntries();
+    prob->addSparseJacobian(1.0, vars.x, step.x, rw2);
+    rw2->axpy(-1.0, step.sw);
+    rw2->axpy(1.0, step.tw);
+    rw1->dot(rw2);
+  }
 
   if (ParOptRealPart(infeas) > 0.0) {
     *pinfeas = (pdense_infeas + psparse_infeas) / infeas;
