@@ -95,31 +95,13 @@ void build_matrix(int nx, int *_size, int **_colp, int **_rows,
 }
 
 int main(int argc, char *argv[]) {
-  int nx = 100;
+  int nx = 128;
 
   int size;
   int *colp;
   int *rows;
   ParOptScalar *kvals;
   build_matrix(nx, &size, &colp, &rows, &kvals, NULL);
-
-  ParOptSortAndRemoveDuplicates(size, colp, rows);
-
-  int *perm = new int[size];
-  int use_exact_degree = 0;
-  ParOptAMD(size, colp, rows, perm, use_exact_degree);
-
-  delete[] colp;
-  delete[] rows;
-  delete[] kvals;
-
-  int *iperm = new int[size];
-  for (int i = 0; i < size; i++) {
-    iperm[perm[i]] = i;
-  }
-  build_matrix(nx, &size, &colp, &rows, &kvals, iperm);
-  delete[] perm;
-  delete[] iperm;
 
   ParOptScalar *b = new ParOptScalar[size];
   for (int i = 0; i < size; i++) {
@@ -131,7 +113,9 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  ParOptSparseCholesky *chol = new ParOptSparseCholesky(size, colp, rows);
+  int use_amd_order = 1;
+  ParOptSparseCholesky *chol =
+      new ParOptSparseCholesky(size, colp, rows, use_amd_order);
   chol->setValues(size, colp, rows, kvals);
 
   delete[] colp;

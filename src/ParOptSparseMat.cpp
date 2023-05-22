@@ -323,7 +323,8 @@ int ParOptQuasiDefSparseMat::factor(ParOptVec *x, ParOptVec *Dinv0,
     delete[] flag;
 
     // Allocate the sparse Cholesky factorization
-    chol = new ParOptSparseCholesky(nwcon, Kcolp, Krows);
+    int use_amd_order = 1;  // Use the AMD ordering
+    chol = new ParOptSparseCholesky(nwcon, Kcolp, Krows, use_amd_order);
   } else {
     int *flag = new int[nwcon];
     ParOptMatMatTransNumeric(nwcon, nvars, cvals, rowp, cols, data, dvals, colp,

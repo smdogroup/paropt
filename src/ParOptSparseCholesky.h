@@ -5,7 +5,13 @@
 #include "ParOptVec.h"
 
 /*
-  Class for the sparse Cholesky factorization
+  Class for the sparse Cholesky factorization.
+
+  This class computes the Cholesky factorization of the matrix A such that
+
+  L * L^{T} = P * A * P^{T}
+
+  where P is the optional permutation matrix.
 
   This code uses a supernode/supervariable approach in which groups of columns
   with the same nonzero pattern are aggregated into a single block column. This
@@ -16,7 +22,8 @@
 */
 class ParOptSparseCholesky {
  public:
-  ParOptSparseCholesky(int _size, const int Acolp[], const int Arows[]);
+  ParOptSparseCholesky(int _size, const int *Acolp, const int *Arows,
+                       int use_amd_order = 0, const int *_perm = NULL);
   ~ParOptSparseCholesky();
 
   // Set values into the Cholesky matrix
@@ -99,6 +106,14 @@ class ParOptSparseCholesky {
 
   // The dimension of the square matrix
   int size;
+
+  // Permutation and inverese permultation for the matrix. Both of these may be
+  // NULL.
+  int *perm, *iperm;
+
+  // Temporary vector for solving with the permutation arrays - only allocated
+  // if perm and iperm are allocated, otherwise it is NULL
+  ParOptScalar *temp;
 
   // The row indices for the strict lower-diagonal entries of each super node.
   // This does not contain the row indices for the supernode itself. Only

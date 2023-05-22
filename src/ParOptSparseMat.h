@@ -150,7 +150,7 @@ class ParOptQuasiDefSparseMat : public ParOptQuasiDefMat {
   ParOptSparseCholesky *chol;
 
   // Vectors that point to the input data
-  ParOptVec *Dinv, *C;
+  ParOptVec *Dinv;
 
   // Number of variables
   int nvars, nwcon;

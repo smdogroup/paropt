@@ -1,11 +1,60 @@
 #include "ParOptSparseCholesky.h"
 
+#include "ParOptAMD.h"
 #include "ParOptBlasLapack.h"
 
-ParOptSparseCholesky::ParOptSparseCholesky(int _size, const int Acolp[],
-                                           const int Arows[]) {
+ParOptSparseCholesky::ParOptSparseCholesky(int _size, const int *Acolp,
+                                           const int *Arows, int use_amd_order,
+                                           const int *_perm) {
   // Set the size of the sparse matrix
   size = _size;
+
+  perm = NULL;
+  iperm = NULL;
+  temp = NULL;
+
+  if (use_amd_order) {
+    int *copy_Acolp = new int[size + 1];
+    for (int i = 0; i < size + 1; i++) {
+      copy_Acolp[i] = Acolp[i];
+    }
+    int nnz = Acolp[size];
+    int *copy_Arows = new int[nnz];
+    for (int i = 0; i < nnz; i++) {
+      copy_Arows[i] = Arows[i];
+    }
+
+    // Set up the matrix for reordering
+    ParOptSortAndRemoveDuplicates(size, copy_Acolp, copy_Arows);
+
+    // Compute the permutation using approximate AMD implemented here...
+    perm = new int[size];
+    int use_exact_degree = 0;
+    ParOptAMD(size, copy_Acolp, copy_Arows, perm, use_exact_degree);
+    delete[] copy_Acolp;
+    delete[] copy_Arows;
+
+    iperm = new int[size];
+    for (int i = 0; i < size; i++) {
+      iperm[perm[i]] = i;
+    }
+  } else {
+    // Store the re-ordering
+    if (_perm) {
+      perm = new int[size];
+      for (int i = 0; i < size; i++) {
+        perm[i] = _perm[i];
+      }
+      iperm = new int[size];
+      for (int i = 0; i < size; i++) {
+        iperm[perm[i]] = i;
+      }
+    }
+  }
+
+  if (perm) {
+    temp = new ParOptScalar[size];
+  }
 
   // Perform a symbolic analysis to determine the size of the factorization
   int *parent = new int[size];  // Space for the etree
@@ -69,12 +118,19 @@ ParOptSparseCholesky::~ParOptSparseCholesky() {
   delete[] snode_to_first_var;
   delete[] data_ptr;
   delete[] data;
+
+  if (perm) {
+    delete[] perm;
+    delete[] iperm;
+    delete[] temp;
+  }
 }
 
 /**
   Set the values into the matrix.
 
-  Variables are added, so duplicates get summed.
+  This assumes that the inputs are in the original ordering - not the permuted
+  ordering. Contributions are added, so duplicates get summed.
 
   @param n The number of columns in the input
   @param Acolp Pointer into the columns
@@ -89,27 +145,35 @@ void ParOptSparseCholesky::setValues(int n, const int Acolp[],
   }
 
   for (int j = 0; j < n; j++) {
-    int sj = var_to_snode[j];
+    int ipj = j;
+    if (iperm) {
+      ipj = iperm[j];
+    }
+    int sj = var_to_snode[ipj];
     int jfirst = snode_to_first_var[sj];
     int jsize = snode_size[sj];
 
-    for (int ip = Acolp[j]; ip < Acolp[j + 1]; ip++) {
-      int i = Arows[ip];
+    int ip_end = Acolp[j + 1];
+    for (int ip = Acolp[j]; ip < ip_end; ip++) {
+      int ipi = Arows[ip];
+      if (iperm) {
+        ipi = iperm[ipi];
+      }
 
-      if (i >= j) {
+      if (ipi >= ipj) {
         // Check if this is a diagonal element
-        if (i < jfirst + jsize) {
-          int jj = j - jfirst;
-          int ii = i - jfirst;
+        if (ipi < jfirst + jsize) {
+          int jj = ipj - jfirst;
+          int ii = ipi - jfirst;
 
           ParOptScalar *D = get_diag_pointer(sj);
           D[get_diag_index(ii, jj)] += Avals[ip];
         } else {
-          int jj = j - jfirst;
+          int jj = ipj - jfirst;
 
           // Look for the row
           for (int kp = colp[sj]; kp < colp[sj + 1]; kp++) {
-            if (rows[kp] == i) {
+            if (rows[kp] == ipi) {
               ParOptScalar *L = get_factor_pointer(sj, jsize, kp);
               L[jj] += Avals[ip];
 
@@ -140,9 +204,19 @@ void ParOptSparseCholesky::buildForest(const int Acolp[], const int Arows[],
     flag[k] = k;
     Lnz[k] = 0;
 
-    // Loop over the k-th column
-    for (int ip = Acolp[k]; ip < Acolp[k + 1]; ip++) {
+    int pk = k;
+    if (perm) {
+      pk = perm[k];
+    }
+
+    // Loop over the k-th column of the original matrix
+    int ip_end = Acolp[pk + 1];
+    for (int ip = Acolp[pk]; ip < ip_end; ip++) {
       int i = Arows[ip];
+      if (iperm) {
+        i = iperm[i];
+      }
+
       if (i < k) {
         // Scan up the etree
         for (; flag[i] != k; i = parent[i]) {
@@ -209,9 +283,19 @@ void ParOptSparseCholesky::buildNonzeroPattern(const int Acolp[],
     flag[k] = k;
     Lnz[k] = 0;
 
+    int pk = k;
+    if (perm) {
+      pk = perm[k];
+    }
+
     // Loop over the k-th column
-    for (int ip = Acolp[k]; ip < Acolp[k + 1]; ip++) {
+    int ip_end = Acolp[pk + 1];
+    for (int ip = Acolp[pk]; ip < ip_end; ip++) {
       int i = Arows[ip];
+      if (iperm) {
+        i = iperm[i];
+      }
+
       if (i < k) {
         // Scan up the etree
         for (; flag[i] != k; i = parent[i]) {
@@ -517,11 +601,21 @@ int ParOptSparseCholesky::factor() {
   Solve the system of equations with the Cholesky factorization
 */
 void ParOptSparseCholesky::solve(ParOptScalar *x) {
+  ParOptScalar *xt = x;
+
+  // Compute temp = P * x
+  if (perm) {
+    for (int i = 0; i < size; i++) {
+      temp[i] = x[perm[i]];
+    }
+    xt = temp;
+  }
+
   // Solve L * x = x
   for (int j = 0; j < num_snodes; j++) {
     const int jsize = snode_size[j];
     ParOptScalar *D = get_diag_pointer(j);
-    ParOptScalar *y = &x[snode_to_first_var[j]];
+    ParOptScalar *y = &xt[snode_to_first_var[j]];
     solveDiag(jsize, D, 1, y);
 
     // Apply the update from the whole column
@@ -533,7 +627,7 @@ void ParOptSparseCholesky::solve(ParOptScalar *x) {
       for (int ii = 0; ii < jsize; ii++) {
         val += L[ii] * y[ii];
       }
-      x[rows[ip]] -= val;
+      xt[rows[ip]] -= val;
       L += jsize;
     }
   }
@@ -541,18 +635,25 @@ void ParOptSparseCholesky::solve(ParOptScalar *x) {
   // Solve L^{T} * x = x
   for (int j = num_snodes - 1; j >= 0; j--) {
     const int jsize = snode_size[j];
-    ParOptScalar *y = &x[snode_to_first_var[j]];
+    ParOptScalar *y = &xt[snode_to_first_var[j]];
     ParOptScalar *L = get_factor_pointer(j, jsize);
 
     int ip_end = colp[j + 1];
     for (int ip = colp[j]; ip < ip_end; ip++) {
       for (int ii = 0; ii < jsize; ii++) {
-        y[ii] -= L[ii] * x[rows[ip]];
+        y[ii] -= L[ii] * xt[rows[ip]];
       }
       L += jsize;
     }
 
     ParOptScalar *D = get_diag_pointer(j);
     solveDiagTranspose(jsize, D, 1, y);
+  }
+
+  // Compute x = P^{T} * temp
+  if (perm) {
+    for (int i = 0; i < size; i++) {
+      x[perm[i]] = temp[i];
+    }
   }
 }
