@@ -35,7 +35,7 @@ class ParOptDriver(Driver):
         **kwargs : dict of keyword arguments
             Keyword arguments that will be mapped into the Driver options.
         """
-        super(ParOptDriver, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self.result = None
         self._dvlist = None
@@ -100,7 +100,7 @@ class ParOptDriver(Driver):
             Pointer
         """
 
-        super(ParOptDriver, self)._setup_driver(problem)
+        super()._setup_driver(problem)
 
         # Raise error if multiple objectives are provided
         if len(self._objs) > 1:
@@ -204,7 +204,10 @@ class ParOptProblem(ParOpt.Problem):
 
         # Initialize the base class
         super(ParOptProblem, self).__init__(
-            self.comm, self.nvars, self.ncon, self.nineq
+            self.comm,
+            nvars=self.nvars,
+            num_dense_constraints=self.ncon,
+            num_dense_inequalities=self.nineq,
         )
 
         return

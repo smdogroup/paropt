@@ -178,7 +178,7 @@ int ParOptLBFGS::update(ParOptVec *x, const ParOptScalar *z, ParOptVec *zw,
       update_type = 2;
       return update_type;
     } else if (ParOptRealPart(yTs) <=
-               epsilon_precision * sqrt(ParOptRealPart(yTy * yTy))) {
+               epsilon_precision * sqrt(ParOptRealPart(yTy * sTs))) {
       update_type = 2;
       return update_type;
     }
@@ -233,6 +233,12 @@ int ParOptLBFGS::update(ParOptVec *x, const ParOptScalar *z, ParOptVec *zw,
     } else {
       b0 = yTy / yTs;
     }
+  }
+
+  if (b0 < epsilon_precision) {
+    reset();  // Nothing to do but reset
+    update_type = 3;
+    return update_type;
   }
 
   // Set up the new values

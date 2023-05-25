@@ -3317,7 +3317,7 @@ ParOptScalar ParOptInteriorPoint::evalInfeasDeriv(ParOptVars &vars,
     prob->addSparseJacobian(1.0, vars.x, step.x, rw2);
     rw2->axpy(-1.0, step.sw);
     rw2->axpy(1.0, step.tw);
-    rw1->dot(rw2);
+    psparse_infeas = rw1->dot(rw2);
   }
 
   if (ParOptRealPart(infeas) > 0.0) {
@@ -3337,8 +3337,7 @@ ParOptScalar ParOptInteriorPoint::evalInfeasDeriv(ParOptVars &vars,
 
   varphi(alpha) =
 
-  f(x) +
-  mu*(log(s) + log(t) + log(x - xl) + log(xu - x)) +
+  f(x) - mu*(log(s) + log(t) + log(x - xl) + log(xu - x)) +
   rho*(||c(x) - s + t||_{2} + ||cw(x) - sw + tw||_{2})
 
   output: The value of the merit function
@@ -3443,18 +3442,14 @@ ParOptScalar ParOptInteriorPoint::evalMeritFunc(
   // Compute the norm of the weight constraint infeasibility
   ParOptScalar infeas = evalInfeas(ck, xk, sk, tk, swk, twk, wtemp);
 
-  ParOptScalar merit = 0.0;
-  if (rank == opt_root) {
-    // Add the contribution from the constraints
-    merit = (fk - barrier_param * (pos_result + neg_result) +
-             rho_penalty_search * infeas);
+  // The values of the merit function and its derivative
+  ParOptScalar merit =
+      fk + (penalty_gamma_sw->dot(swk) + penalty_gamma_tw->dot(twk)) -
+      barrier_param * (pos_result + neg_result) + rho_penalty_search * infeas;
 
-    for (int i = 0; i < ncon; i++) {
-      merit += (penalty_gamma_s[i] * sk[i] + penalty_gamma_t[i] * tk[i]);
-    }
+  for (int i = 0; i < ncon; i++) {
+    merit += (penalty_gamma_s[i] * sk[i] + penalty_gamma_t[i] * tk[i]);
   }
-
-  merit += penalty_gamma_sw->dot(swk) + penalty_gamma_tw->dot(twk);
 
   // Broadcast the result to all processors
   MPI_Bcast(&merit, 1, PAROPT_MPI_TYPE, opt_root, comm);
@@ -3488,6 +3483,9 @@ void ParOptInteriorPoint::evalMeritInitDeriv(ParOptVars &vars, ParOptVars &step,
   double rel_bound_barrier = options->getFloatOption("rel_bound_barrier");
   const double abs_res_tol = options->getFloatOption("abs_res_tol");
   const int use_diag_hessian = options->getBoolOption("use_diag_hessian");
+  const int sequential_linear_method =
+      options->getBoolOption("sequential_linear_method");
+  const double penalty_gamma = options->getFloatOption("penalty_gamma");
 
   // Retrieve the values of the design variables, the design
   // variable step, and the lower/upper bounds
@@ -3596,48 +3594,36 @@ void ParOptInteriorPoint::evalMeritInitDeriv(ParOptVars &vars, ParOptVars &step,
   pos_presult = result[2];
   neg_presult = result[3];
 
-  ParOptScalar *s = vars.s;
-  ParOptScalar *ps = step.s;
-  ParOptScalar *t = vars.t;
-  ParOptScalar *pt = step.t;
-
   // Add the contribution from the slack variables
   for (int i = 0; i < ncon; i++) {
     // Add the terms from the s-slack variables
-    if (ParOptRealPart(s[i]) > 1.0) {
-      pos_result += log(s[i]);
+    if (ParOptRealPart(vars.s[i]) > 1.0) {
+      pos_result += log(vars.s[i]);
     } else {
-      neg_result += log(s[i]);
+      neg_result += log(vars.s[i]);
     }
-    if (ParOptRealPart(ps[i]) > 0.0) {
-      pos_presult += ps[i] / s[i];
+    if (ParOptRealPart(step.s[i]) > 0.0) {
+      pos_presult += step.s[i] / vars.s[i];
     } else {
-      neg_presult += ps[i] / s[i];
+      neg_presult += step.s[i] / vars.s[i];
     }
 
     // Add the terms from the t-slack variables
-    if (ParOptRealPart(t[i]) > 1.0) {
-      pos_result += log(t[i]);
+    if (ParOptRealPart(vars.t[i]) > 1.0) {
+      pos_result += log(vars.t[i]);
     } else {
-      neg_result += log(t[i]);
+      neg_result += log(vars.t[i]);
     }
-    if (ParOptRealPart(pt[i]) > 0.0) {
-      pos_presult += pt[i] / t[i];
+    if (ParOptRealPart(step.t[i]) > 0.0) {
+      pos_presult += step.t[i] / vars.t[i];
     } else {
-      neg_presult += pt[i] / t[i];
+      neg_presult += step.t[i] / vars.t[i];
     }
   }
-
-  // Compute the projected derivative
-  ParOptScalar proj = g->dot(step.x);
 
   // Perform the computations only on the root processor
   int rank = 0;
   MPI_Comm_rank(comm, &rank);
-
-  // The values of the merit function and its derivative
-  ParOptScalar merit = 0.0;
-  ParOptScalar pmerit = 0.0;
 
   ParOptScalar infeas_proj;
   ParOptScalar infeas = evalInfeasDeriv(vars, step, &infeas_proj, wtmp1, wtmp2);
@@ -3652,69 +3638,115 @@ void ParOptInteriorPoint::evalMeritInitDeriv(ParOptVars &vars, ParOptVars &step,
       local += pxvals[i] * pxvals[i] * hvals[i];
     }
     MPI_Allreduce(&local, &pTBp, 1, PAROPT_MPI_TYPE, MPI_SUM, comm);
-  } else if (qn) {
+  } else if (qn && !sequential_linear_method) {
     qn->mult(step.x, xtmp);
     pTBp = 0.5 * xtmp->dot(step.x);
   }
 
-  if (rank == opt_root) {
-    // Compute the numerator term
-    ParOptScalar numer = proj - barrier_param * (pos_presult + neg_presult);
-    if (ParOptRealPart(pTBp) > 0.0) {
-      numer += 0.5 * pTBp;
-    }
+  // The values of the merit function and its derivative
+  ParOptScalar merit =
+      fobj + (penalty_gamma_sw->dot(vars.sw) + penalty_gamma_tw->dot(vars.tw)) -
+      barrier_param * (pos_result + neg_result);
+  ParOptScalar pmerit =
+      g->dot(step.x) +
+      (penalty_gamma_sw->dot(step.sw) + penalty_gamma_tw->dot(step.tw)) -
+      barrier_param * (pos_presult + neg_presult);
 
-    // Compute the new penalty parameter initial guess:
-    // numer + rho*infeas_proj <= - penalty_descent_frac*rho*max_x*infeas
-    // numer <= rho*(-infeas_proj - penalty_descent_frac*max_x*infeas)
-    // We must have that:
-    //     -infeas_proj - penalty_descent_frac*max_x*infeas > 0
+  for (int i = 0; i < ncon; i++) {
+    merit += (penalty_gamma_s[i] * vars.s[i] + penalty_gamma_t[i] * vars.t[i]);
+    pmerit += (penalty_gamma_s[i] * step.s[i] + penalty_gamma_t[i] * step.t[i]);
+  }
 
-    // Therefore rho >= -numer/(infeas_proj +
-    //                          penalty_descent_fraction*max_x*infeas)
-    // Note that if we have taken an exact step:
-    //      infeas_proj = -max_x*infeas
+  // Compute the numerator term
+  ParOptScalar numer = pmerit;
+  if (ParOptRealPart(pTBp) > 0.0) {
+    numer += 0.5 * pTBp;
+  }
 
-    double rho_hat = 0.0;
-    if (ParOptRealPart(infeas) > 0.01 * abs_res_tol) {
-      rho_hat = -ParOptRealPart(numer) /
-                ParOptRealPart(infeas_proj +
-                               penalty_descent_fraction * max_x * infeas);
-    }
+  // Compute the new penalty parameter initial guess:
+  // numer + rho*infeas_proj <= - penalty_descent_frac*rho*max_x*infeas
+  // numer <= rho*(-infeas_proj - penalty_descent_frac*max_x*infeas)
+  // We must have that:
+  //     -infeas_proj - penalty_descent_frac*max_x*infeas > 0
 
-    // Set the penalty parameter to the smallest value
-    // if it is greater than the old value
-    if (rho_hat > rho_penalty_search) {
-      rho_penalty_search = rho_hat;
+  // Therefore rho >= -numer/(infeas_proj +
+  //                          penalty_descent_fraction*max_x*infeas)
+  // Note that if we have taken an exact step:
+  //      infeas_proj = -max_x*infeas
+
+  double rho_hat = 0.0;
+
+  // min_descent is always positive. We want to enforce that
+  // the descent direction is at most as negative as min_descent.
+  ParOptScalar min_descent =
+      rho_penalty_search * penalty_descent_fraction * max_x * infeas;
+  if (ParOptRealPart(infeas) < 0.1 * abs_res_tol) {
+    // Since the infeasibility is small, estimate the descent direction
+    // infeas_proj = - max_x * infeas
+    ParOptScalar denom = -(1.0 - penalty_descent_fraction) * max_x * infeas;
+    if (ParOptRealPart(numer) >= 0.0 && ParOptRealPart(denom) < 0.0) {
+      rho_hat = -ParOptRealPart(numer / denom);
     } else {
-      // Damp the value of the penalty parameter
-      rho_penalty_search *= 0.5;
-      if (rho_penalty_search < rho_hat) {
-        rho_penalty_search = rho_hat;
-      }
+      // Assuming here that denom < 0.0
+      rho_hat = 0.0;
     }
+  } else {
+    // We now need to increase rho somehow to meet our criteria.
+    ParOptScalar denom =
+        infeas_proj + penalty_descent_fraction * max_x * infeas;
 
-    // Last check: Make sure that the penalty parameter is at
-    // least larger than the minimum allowable value
-    if (rho_penalty_search < min_rho_penalty_search) {
-      rho_penalty_search = min_rho_penalty_search;
-    }
-
-    // Now, evaluate the merit function and its derivative
-    // based on the new value of the penalty parameter
-    merit = (fobj - barrier_param * (pos_result + neg_result) +
-             rho_penalty_search * infeas);
-    pmerit = (proj - barrier_param * (pos_presult + neg_presult) +
-              rho_penalty_search * infeas_proj);
-
-    for (int i = 0; i < ncon; i++) {
-      merit += (penalty_gamma_s[i] * s[i] + penalty_gamma_t[i] * t[i]);
-      pmerit += (penalty_gamma_s[i] * ps[i] + penalty_gamma_t[i] * pt[i]);
+    // If numer is positive and denom is sufficiently negative, we
+    // can compute an estimate for rho_hat
+    if (ParOptRealPart(numer) >= 0.0 && ParOptRealPart(denom) < 0.0) {
+      rho_hat = -ParOptRealPart(numer / denom);
+    } else if (ParOptRealPart(pmerit) >= 0.0 && ParOptRealPart(denom) < 0.0) {
+      // Try the relaxed condition
+      // pmerit + rho * infease_proj <= - penalty_descent_frac * rho * max_x *
+      // infeas
+      rho_hat = -ParOptRealPart(pmerit / denom);
+    } else if (ParOptRealPart(infeas_proj) < 0.0 &&
+               ParOptRealPart(min_descent + numer) < 0.0) {
+      // Try a relaxed criterial
+      rho_hat = -ParOptRealPart((min_descent + numer) / infeas_proj);
+    } else if (ParOptRealPart(numer) >= 0.0) {
+      denom = -(1.0 - penalty_descent_fraction) * max_x * infeas;
+      rho_hat = -ParOptRealPart(numer / denom);
+    } else {
+      // Assuming here that numer < 0.0
+      rho_hat = 0.0;
     }
   }
 
-  merit += penalty_gamma_sw->dot(vars.sw) + penalty_gamma_tw->dot(vars.tw);
-  pmerit += penalty_gamma_sw->dot(step.sw) + penalty_gamma_tw->dot(step.tw);
+  if (rho_hat >= penalty_gamma) {
+    rho_hat = penalty_gamma;
+  }
+
+  // Set the penalty parameter to the smallest value
+  // if it is greater than the old value
+  if (rho_hat > rho_penalty_search) {
+    rho_penalty_search = rho_hat;
+  } else {
+    // Damp the value of the penalty parameter
+    rho_penalty_search *= 0.5;
+    if (rho_penalty_search < rho_hat) {
+      rho_penalty_search = rho_hat;
+    }
+  }
+
+  // Last check: Make sure that the penalty parameter is at
+  // least larger than the minimum allowable value
+  if (rho_penalty_search < min_rho_penalty_search) {
+    rho_penalty_search = min_rho_penalty_search;
+  }
+
+  // Now, evaluate the merit function and its derivative
+  // based on the new value of the penalty parameter
+  merit += rho_penalty_search * infeas;
+  if (ParOptRealPart(infeas) < 0.1 * abs_res_tol) {
+    pmerit -= rho_penalty_search * max_x * infeas;
+  } else {
+    pmerit += rho_penalty_search * infeas_proj;
+  }
 
   input[0] = merit;
   input[1] = pmerit;
@@ -4401,15 +4433,13 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
   memset(info, '\0', sizeof(info));
 
   for (int k = 0; k < max_major_iters; k++, niter++) {
+    // Keep track if the quasi-Newton Hessian was reset
+    int qn_hessian_reset = 0;
     if (qn && !sequential_linear_method) {
       if (k > 0 && k % hessian_reset_freq == 0 && use_quasi_newton_update) {
         // Reset the quasi-Newton Hessian approximation
         qn->reset();
-
-        // Add a reset flag to the output
-        if (rank == opt_root) {
-          addToInfo(sizeof(info), info, "resetH");
-        }
+        qn_hessian_reset = 1;
       }
     }
 
@@ -4873,15 +4903,14 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
         }
       } else {
         // The derivative of the merit function is positive. We revert to one
-        // of two approaches. If the quasi-Newton method is defined and the
-        // diagonal contribution b0 is positive, then we use only this
-        // diagonal contribution to compute the KKT step, otherwise, we use an
-        // SLP step.
+        // of two approaches. We reset the Hessian approximation and try
+        // again.
         if (ParOptRealPart(dm0) >= 0.0) {
-          // Try again by disbcarding the quasi-Newton approximation. This
-          // should always generate a descent direction..
-          seq_linear_step = 1;
-          diagonal_quasi_newton_step = 0;
+          // Reset the Hessian approximation
+          if (qn) {
+            qn_hessian_reset = 1;
+            qn->reset();
+          }
 
           // Re-compute the KKT residuals since they may be over-written
           // during the line search step
@@ -4889,15 +4918,11 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
                         &max_prime, &max_dual, &max_infeas);
 
           // Set up the KKT diagonal system
-          int use_qn = 0;
-          if (diagonal_quasi_newton_step) {
-            use_qn = 1;
-          }
+          diagonal_quasi_newton_step = 1;
+          int use_qn = 1;
           setUpKKTDiagSystem(variables, s_qn, wtemp, use_qn);
 
-          // Solve for the KKT step. Both modifications do not use the
-          // quasi-Newton method at this point
-          use_qn = 0;
+          // Compute the step
           computeKKTStep(variables, residual, update, ztemp, s_qn, y_qn, wtemp,
                          use_qn);
 
@@ -5006,6 +5031,7 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
     // Reset the quasi-Newton Hessian if there is a line search failure
     if (qn && use_quasi_newton_update &&
         (line_fail & PAROPT_LINE_SEARCH_FAILURE)) {
+      qn_hessian_reset = 1;
       qn->reset();
     }
 
@@ -5022,6 +5048,10 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
       } else if (update_type == 2) {
         // Skipped update
         addToInfo(sizeof(info), info, "%s ", "skipH");
+      }
+      if (qn_hessian_reset) {
+        // Hessian reset
+        addToInfo(sizeof(info), info, "%s ", "resetH");
       }
       if (line_fail & PAROPT_LINE_SEARCH_FAILURE) {
         // Line search failure

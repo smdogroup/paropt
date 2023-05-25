@@ -248,12 +248,11 @@ if __name__ == "__main__":
     options = {
         "algorithm": "ip",
         "qn_type": "bfgs",
-        "qn_update_type": "skip_negative_curvature",
+        "qn_update_type": "damped_update",
         "qn_subspace_size": 10,
         "abs_res_tol": 1e-6,
         "barrier_strategy": "monotone",
         "starting_point_strategy": "affine_step",
-        "use_backtracking_alpha": True,
         "output_level": 1,
         "max_major_iters": 1000,
     }
