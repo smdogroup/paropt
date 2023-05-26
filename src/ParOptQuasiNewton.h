@@ -114,6 +114,9 @@ class ParOptLBFGS : public ParOptCompactQuasiNewton {
   int getMaxLimitedMemorySize();
 
  protected:
+  // Update the coefficients
+  void computeMatUpdate();
+
   // Store the type of curvature handling update
   ParOptBFGSUpdateType hessian_update_type;
   ParOptQuasiNewtonDiagonalType diagonal_type;

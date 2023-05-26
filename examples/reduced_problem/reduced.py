@@ -25,7 +25,7 @@ class OriginalProblem(ParOpt.Problem):
         self.ncon = 1
 
         # Initialize the base class
-        super().__init__(self.comm, self.nvars, self.ncon)
+        super().__init__(self.comm, nvars=self.nvars, ncon=self.ncon)
 
         return
 
@@ -91,7 +91,7 @@ class ReducedProblem(ParOpt.Problem):
         self._ub = self.prob.createDesignVec()
         self.prob.getVarsAndBounds(self._x0, self._lb, self._ub)
 
-        super().__init__(self.comm, self.nvars, self.ncon)
+        super().__init__(self.comm, nvars=self.nvars, ncon=self.ncon)
         return
 
     def getVarsAndBounds(self, x, lb, ub):

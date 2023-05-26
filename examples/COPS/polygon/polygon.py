@@ -277,8 +277,6 @@ if __name__ == "__main__":
             "tr_penalty_gamma_max": 1e5,
             "tr_penalty_gamma_min": 1e-5,
             "tr_max_iterations": 200,
-            # 'use_backtracking_alpha': True,
-            # 'use_line_search': False
         }
 
     polygon = Polygon(args.n)

@@ -24,7 +24,7 @@ class ConvexProblem(ParOpt.Problem):
         self.obj_scale = -1.0
 
         # Initialize the base class
-        super(ConvexProblem, self).__init__(self.comm, self.nvars, self.ncon)
+        super(ConvexProblem, self).__init__(self.comm, nvars=self.nvars, ncon=self.ncon)
 
         return
 
@@ -157,11 +157,11 @@ def solve_problem(eigs, filename=None, data_type="orthogonal", use_tr=False):
 # Parse the arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("--n", type=int, default=100, help="Dimension of the problem")
-parser.add_argument("--optimizer", type=str, default="ip")
+parser.add_argument("--algorithm", type=str, default="ip")
 args = parser.parse_args()
 
 use_tr = False
-if args.optimizer != "ip":
+if args.algorithm != "ip":
     use_tr = True
 
 # Set the eigenvalues for the matrix

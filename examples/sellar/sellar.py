@@ -9,7 +9,7 @@ class Sellar(ParOpt.Problem):
         # Initialize the base class
         nvars = 4
         ncon = 1
-        super(Sellar, self).__init__(MPI.COMM_SELF, nvars, ncon)
+        super(Sellar, self).__init__(MPI.COMM_SELF, nvars=nvars, ncon=ncon)
 
         return
 
@@ -60,7 +60,4 @@ problem = Sellar()
 # Set up the optimization problem
 options = {}
 opt = ParOpt.Optimizer(problem, options)
-opt.optimize()
-
-# Optimize
 opt.optimize()

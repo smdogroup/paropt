@@ -186,12 +186,12 @@ phase.add_control(
 # Minimize J
 phase.add_objective("J", loc="final")
 
-# Create the test driver
+# Create the driver
 p.driver = ParOptTestDriver()
 
 options = {
     "algorithm": "ip",
-    "norm_type": "infinity",
+    "norm_type": "l1",
     "qn_subspace_size": 10,
     "qn_update_type": "damped_update",
     "abs_res_tol": 1e-6,

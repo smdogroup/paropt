@@ -4036,6 +4036,7 @@ int ParOptInteriorPoint::computeStepAndUpdate(ParOptVars &vars, double alpha,
   if (qn && perform_qn_update && use_quasi_newton_update) {
     y_qn->copyValues(g);
     y_qn->scale(-1.0);
+
     for (int i = 0; i < ncon; i++) {
       y_qn->axpy(vars.z[i], Ac[i]);
     }

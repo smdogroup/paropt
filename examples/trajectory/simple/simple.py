@@ -4,6 +4,11 @@ import dymos as dm
 import matplotlib.pyplot as plt
 import argparse
 
+import sys
+
+sys.path.append("../cart_pole_dymos")
+from test_driver import ParOptTestDriver
+
 
 class SimpleODE(om.ExplicitComponent):
     def initialize(self):
@@ -76,9 +81,8 @@ traj = dm.Trajectory()
 p.model.add_subsystem("traj", subsys=traj)
 
 # Define a Dymos Phase object with GaussLobatto Transcription
-phase = dm.Phase(
-    ode_class=SimpleODE, transcription=dm.GaussLobatto(num_segments=10, order=3)
-)
+transcript = dm.GaussLobatto(num_segments=10, order=3)
+phase = dm.Phase(ode_class=SimpleODE, transcription=transcript)
 
 traj.add_phase(name="phase0", phase=phase)
 
@@ -86,22 +90,25 @@ traj.add_phase(name="phase0", phase=phase)
 phase.set_time_options(fix_initial=True, fix_duration=True, duration_val=5.0, units="s")
 
 # Define state variables
-phase.add_state("x", units="m", rate_source="xdot")
-phase.add_state("J", units="N*N*s", rate_source="Jdot")
-phase.add_state("v", units="m/s", rate_source="vdot", targets=["v"])
-
-# Add constraints
-phase.add_boundary_constraint("x", loc="initial", equals=0.0)
-phase.add_boundary_constraint("x", loc="final", equals=5.0)
-phase.add_boundary_constraint("v", loc="initial", equals=0.0)
-phase.add_boundary_constraint("v", loc="final", equals=0.0)
-phase.add_boundary_constraint("J", loc="initial", equals=0.0)
+phase.add_state("x", units="m", fix_initial=True, fix_final=True, rate_source="xdot")
+phase.add_state(
+    "v",
+    units="m/s",
+    fix_initial=True,
+    fix_final=True,
+    rate_source="vdot",
+    targets=["v"],
+)
+phase.add_state(
+    "J", units="N*N*s", fix_initial=True, fix_final=False, rate_source="Jdot"
+)
 
 # Define control variable
 if less_force:
     max_force = 0.5
 else:
     max_force = 10.0
+
 phase.add_control(
     name="u",
     units="N",
@@ -115,50 +122,12 @@ phase.add_control(
 # Minimize final time.
 phase.add_objective("J", loc="final")
 
-# Set the driver.
-p.driver = om.pyOptSparseDriver()
-
-if optimizer == "SLSQP":
-    p.driver.options["optimizer"] = "SLSQP"
-
-elif optimizer == "SNOPT":
-    p.driver.options["optimizer"] = "SNOPT"
-
-elif optimizer == "IPOPT":
-    p.driver.options["optimizer"] = "IPOPT"
-
-else:
-    p.driver.options["optimizer"] = "ParOpt"
-
-    if algorithm == "tr":
-        p.driver.opt_settings["algorithm"] = "tr"
-        p.driver.opt_settings["tr_linfty_tol"] = 1e-30
-        p.driver.opt_settings["tr_l1_tol"] = 1e-30
-        p.driver.opt_settings["output_level"] = 0
-        p.driver.opt_settings["tr_max_size"] = 1e3
-        p.driver.opt_settings["tr_min_size"] = 1e-2
-        p.driver.opt_settings["penalty_gamma"] = 1e2
-        p.driver.opt_settings["tr_adaptive_gamma_update"] = False
-        p.driver.opt_settings["tr_accept_step_strategy"] = "penalty_method"
-        p.driver.opt_settings["tr_use_soc"] = False
-        p.driver.opt_settings["tr_max_iterations"] = 100
-        p.driver.opt_settings["max_major_iters"] = 100
-        # p.driver.opt_settings['qn_type'] = 'none'
-        # p.driver.opt_settings['sequential_linear_method'] = True
-
-    else:
-        p.driver.opt_settings["algorithm"] = "ip"
-        p.driver.opt_settings["norm_type"] = "infinity"
-        p.driver.opt_settings["max_major_iters"] = 1000
-        p.driver.opt_settings["barrier_strategy"] = "monotone"
-        p.driver.opt_settings["starting_point_strategy"] = "affine_step"
-
 # Setup the problem
 p.setup(check=True)
 
 # Now that the OpenMDAO problem is setup, we can set the values of the states.
 p.set_val(
-    "traj.phase0.states:x", phase.interpolate(ys=[0, 0], nodes="state_input"), units="m"
+    "traj.phase0.states:x", phase.interpolate(ys=[0, 5], nodes="state_input"), units="m"
 )
 
 p.set_val(
@@ -172,6 +141,25 @@ p.set_val(
     phase.interpolate(ys=[0, 0], nodes="control_input"),
     units="N",
 )
+
+# Create the driver
+p.driver = ParOptTestDriver()
+
+options = {
+    "algorithm": "ip",
+    "norm_type": "l1",
+    "qn_subspace_size": 10,
+    "qn_update_type": "damped_update",
+    "abs_res_tol": 1e-6,
+    "barrier_strategy": "monotone",
+    "output_level": 0,
+    "armijo_constant": 1e-5,
+    "max_major_iters": 500,
+    "penalty_gamma": 2.0e2,
+}
+
+for key in options:
+    p.driver.options[key] = options[key]
 
 # Run the driver to solve the problem
 p.run_driver()

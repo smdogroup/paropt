@@ -17,7 +17,7 @@ class Toy(ParOpt.Problem):
         self.x_hist = []
 
         # Initialize the base class
-        super(Toy, self).__init__(self.comm, self.nvars, self.ncon)
+        super(Toy, self).__init__(self.comm, nvars=self.nvars, ncon=self.ncon)
 
         return
 

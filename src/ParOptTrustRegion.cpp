@@ -1140,7 +1140,6 @@ void ParOptTrustRegion::minimizeInfeas(
   if (strcmp(tr_starting_strategy, "default") != 0) {
     ip_options->setOption("starting_point_strategy", tr_starting_strategy);
   }
-  ip_options->setOption("use_line_search", 0);
 
   // Check if this is an compact representation using the eigenvalue Hessian
   ParOptCompactQuasiNewton *qn = subproblem->getQuasiNewton();

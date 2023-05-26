@@ -33,7 +33,7 @@ class TopoAnalysis(ParOpt.Problem):
         plane stress analysis of a square, plane stress structure.
         This is probably only useful for topology optimization.
         """
-        super(TopoAnalysis, self).__init__(MPI.COMM_SELF, nxelems * nyelems, 1)
+        super().__init__(MPI.COMM_SELF, nvars=nxelems * nyelems, ncon=1)
 
         self.nxelems = nxelems
         self.nyelems = nyelems

@@ -51,7 +51,9 @@ class SpectralAggregate(ParOpt.Problem):
         self.B0 = np.dot(Qb, np.dot(np.diag(lamb), Qb.T))
 
         # Initialize the base class
-        super(SpectralAggregate, self).__init__(self.comm, self.ndv, self.ncon)
+        super(SpectralAggregate, self).__init__(
+            self.comm, nvars=self.ndv, ncon=self.ncon
+        )
 
         return
 

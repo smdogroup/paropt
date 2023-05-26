@@ -771,11 +771,11 @@ void ParOptSparseProblem::addSparseJacobian(ParOptScalar alpha, ParOptVec *x,
   const ParOptScalar *vals = data;
   for (int i = 0; i < nwcon; i++) {
     int jp = rowp[i];
-    int jp_end = rowp[i + 1];
+    const ParOptScalar *end = &data[rowp[i + 1]];
     const int *j = &cols[jp];
 
     ParOptScalar out_val = 0.0;
-    for (; jp < jp_end; jp++, j++, vals++) {
+    for (; vals < end; j++, vals++) {
       out_val += vals[0] * px_array[j[0]];
     }
     out_array[0] += alpha * out_val;
@@ -804,11 +804,12 @@ void ParOptSparseProblem::addSparseJacobianTranspose(ParOptScalar alpha,
   const ParOptScalar *vals = data;
   for (int i = 0; i < nwcon; i++) {
     int jp = rowp[i];
-    int jp_end = rowp[i + 1];
+    const ParOptScalar *end = &data[rowp[i + 1]];
     const int *j = &cols[jp];
 
-    for (; jp < jp_end; jp++, j++, vals++) {
-      out_array[j[0]] += alpha * vals[0] * pzw_array[0];
+    ParOptScalar value = alpha * pzw_array[0];
+    for (; vals < end; j++, vals++) {
+      out_array[j[0]] += value * vals[0];
     }
     pzw_array++;
   }

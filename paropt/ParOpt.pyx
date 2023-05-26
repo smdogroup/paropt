@@ -821,11 +821,15 @@ cdef class Problem(ProblemBase):
             ninequality = kwargs["num_dense_inequalities"]
         elif "ninequality" in kwargs:
             ninequality = kwargs["ninequality"]
+        else:
+            ninequality = ncon
 
         if "num_sparse_inequalities" in kwargs:
             nwinequality = kwargs["num_sparse_inequalities"]
         elif "nwinequality" in kwargs:
             nwinequality = kwargs["nwinequality"]
+        else:
+            nwinequality = nwcon
 
         # Options for the upper/lower bound constraints
         if "use_lower" in kwargs:

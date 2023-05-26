@@ -163,57 +163,80 @@ int ParOptLBFGS::update(ParOptVec *x, const ParOptScalar *z, ParOptVec *zw,
                         ParOptVec *s, ParOptVec *y) {
   int update_type = 0;
 
-  // Set the pointer for the new value of y
-  ParOptVec *new_y = NULL;
-
   // Compute dot products that are required for the matrix
   // updating scheme
   ParOptScalar yTy = y->dot(y);
   ParOptScalar yTs = y->dot(s);
   ParOptScalar sTs = s->dot(s);
+  ParOptScalar sTBs = 0.0;
+
+  // Skip the update altogether if the change in slope is much larger than the
+  // change in the design variables
+  const double nocedal_constant = 1e-8;
+  if (nocedal_constant * ParOptRealPart(yTy) >= fabs(ParOptRealPart(yTs))) {
+    update_type = 2;
+    return update_type;
+  }
+
+  // Compute the step times the old Hessian approximation
+  // and store the result in the r vector
+  mult(s, r);
+
+  // Compute sTBs = s^{T} * B * s
+  sTBs = r->dot(s);
+
+  // Keep track of if we will actually perform the update and re-compute the
+  // coefficients.
+  int perform_update = 0;
+
+  // Set the pointer for the new value of y
+  ParOptVec *y_update = NULL;
+
+  // First, try to find an acceptable value for b0. If the curvature is
+  // positive, then we can apply a regular update. However, if the curvature
+  // is negative, we have to do something different.
+  ParOptScalar b0_init = b0;
+  if (ParOptRealPart(yTs) >= epsilon_precision) {
+    if (diagonal_type == PAROPT_YTS_OVER_STS) {
+      b0_init = yTs / sTs;
+    } else {
+      b0_init = yTy / yTs;
+    }
+  } else {
+    // Use the geometric mean of yTs / sTs and yTy / yTs. This is always
+    // positive, but doesn't always work well.
+    // b0_init = sqrt(yTy / sTs);
+
+    // Would the average of the absolute values work better?
+    b0_init = 0.5 * (fabs(ParOptRealPart(yTy / yTs)) +
+                     fabs(ParOptRealPart(yTs / sTs)));
+  }
 
   if (hessian_update_type == PAROPT_SKIP_NEGATIVE_CURVATURE) {
-    // Check if we should skip the update
-    if (ParOptRealPart(sTs) <= epsilon_precision * epsilon_precision) {
-      update_type = 2;
-      return update_type;
-    } else if (ParOptRealPart(yTs) <=
-               epsilon_precision * sqrt(ParOptRealPart(yTy * sTs))) {
-      update_type = 2;
-      return update_type;
-    }
+    // Should there be another check here for values too large or small?
+    if (ParOptRealPart(yTs) >= 0.01 * ParOptRealPart(sTBs)) {
+      y_update = y;
+      perform_update = 1;
+      update_type = 0;
 
-    // Compute the scalar parameter
-    if (diagonal_type == PAROPT_YTS_OVER_STS) {
-      b0 = yTs / sTs;
+      // Since yTs > 0 then b0_init will be well defined
+      b0 = b0_init;
     } else {
-      b0 = yTy / yTs;
+      perform_update = 0;
+      update_type = 2;  // Skipped update
     }
-
-    // Set the pointer to the new y value
-    new_y = y;
   } else if (hessian_update_type == PAROPT_DAMPED_UPDATE) {
-    // If the Hessian approximation has not been initialized,
-    // guess an initial value for the b0 value
-    if (msub == 0) {
-      b0 = yTy / yTs;
-      if (ParOptRealPart(b0) <= 0.0) {
-        b0 = 1.0;
-      }
-    }
+    if (ParOptRealPart(yTs) >= 0.01 * ParOptRealPart(sTBs)) {
+      y_update = y;
+      perform_update = 1;
+      update_type = 0;
 
-    // Set the new value of y (this pointer may be reset to r if a
-    // damped update is required)
-    new_y = y;
-
-    // Compute the step times the old Hessian approximation
-    // and store the result in the r vector
-    mult(s, r);
-
-    // Compute s^{T}*B*s
-    ParOptScalar sTBs = r->dot(s);
-    if (ParOptRealPart(yTs) <= 0.2 * ParOptRealPart(sTBs)) {
+      // Since yTs > 0 then b0_init will be well defined
+      b0 = b0_init;
+    } else {
+      // Damped update
       update_type = 1;
+      perform_update = 1;
 
       // Compute the value of theta
       ParOptScalar theta = 0.8 * sTBs / (sTBs - yTs);
@@ -222,82 +245,98 @@ int ParOptLBFGS::update(ParOptVec *x, const ParOptScalar *z, ParOptVec *zw,
       r->scale(1.0 - theta);
       r->axpy(theta, y);
 
-      new_y = r;
-      yTy = new_y->dot(new_y);
-      yTs = s->dot(new_y);
-    }
+      // The new update will be a damped update unless it violates the
+      // conditions below.
+      y_update = r;
 
-    // Set the new value of b0
-    if (diagonal_type == PAROPT_YTS_OVER_STS) {
-      b0 = yTs / sTs;
-    } else {
-      b0 = yTy / yTs;
+      // Set the updated values of yTy and yTs
+      yTy = y_update->dot(y_update);
+      yTs = s->dot(y_update);
+
+      if (diagonal_type == PAROPT_YTS_OVER_STS) {
+        b0_init = yTs / sTs;
+      } else {
+        b0_init = yTy / yTs;
+      }
+      b0 = b0_init;
     }
   }
 
-  if (b0 < epsilon_precision) {
-    reset();  // Nothing to do but reset
-    update_type = 3;
-    return update_type;
-  }
+  if (perform_update) {
+    // Set up the new values
+    if (msub < msub_max) {
+      S[msub]->copyValues(s);
+      Y[msub]->copyValues(y_update);
+      msub++;
+    } else if (msub == msub_max && msub_max > 0) {
+      // Shift the pointers to the vectors so that everything
+      // will work out
+      S[0]->copyValues(s);
+      Y[0]->copyValues(y_update);
 
-  // Set up the new values
-  if (msub < msub_max) {
-    S[msub]->copyValues(s);
-    Y[msub]->copyValues(new_y);
-    msub++;
-  } else if (msub == msub_max && msub_max > 0) {
-    // Shift the pointers to the vectors so that everything
-    // will work out
-    S[0]->copyValues(s);
-    Y[0]->copyValues(new_y);
+      // Shift the pointers
+      ParOptVec *stemp = S[0];
+      ParOptVec *ytemp = Y[0];
+      for (int i = 0; i < msub - 1; i++) {
+        S[i] = S[i + 1];
+        Y[i] = Y[i + 1];
+      }
+      S[msub - 1] = stemp;
+      Y[msub - 1] = ytemp;
 
-    // Shift the pointers
-    ParOptVec *stemp = S[0];
-    ParOptVec *ytemp = Y[0];
-    for (int i = 0; i < msub - 1; i++) {
-      S[i] = S[i + 1];
-      Y[i] = Y[i + 1];
-    }
-    S[msub - 1] = stemp;
-    Y[msub - 1] = ytemp;
+      // Now, shift the values in the matrices
+      for (int i = 0; i < msub - 1; i++) {
+        D[i] = D[i + 1];
+      }
 
-    // Now, shift the values in the matrices
-    for (int i = 0; i < msub - 1; i++) {
-      D[i] = D[i + 1];
-    }
+      for (int i = 0; i < msub - 1; i++) {
+        for (int j = 0; j < msub - 1; j++) {
+          B[i + j * msub_max] = B[i + 1 + (j + 1) * msub_max];
+        }
+      }
 
-    for (int i = 0; i < msub - 1; i++) {
-      for (int j = 0; j < msub - 1; j++) {
-        B[i + j * msub_max] = B[i + 1 + (j + 1) * msub_max];
+      for (int i = 0; i < msub - 1; i++) {
+        for (int j = 0; j < i; j++) {
+          L[i + j * msub_max] = L[i + 1 + (j + 1) * msub_max];
+        }
       }
     }
 
-    for (int i = 0; i < msub - 1; i++) {
-      for (int j = 0; j < i; j++) {
-        L[i + j * msub_max] = L[i + 1 + (j + 1) * msub_max];
-      }
+    // Update the matrices required for the limited-memory update.
+    // Update the S^{T}S matrix:
+    for (int i = 0; i < msub; i++) {
+      B[msub - 1 + i * msub_max] = S[msub - 1]->dot(S[i]);
+      B[i + (msub - 1) * msub_max] = B[msub - 1 + i * msub_max];
     }
+
+    // Update the diagonal D-matrix
+    if (msub > 0) {
+      D[msub - 1] = S[msub - 1]->dot(Y[msub - 1]);
+    }
+
+    // By definition, we have the L matrix:
+    // For j < i: L[i + j*msub_max] = S[i]->dot(Y[j]);
+    for (int i = 0; i < msub - 1; i++) {
+      L[msub - 1 + i * msub_max] = S[msub - 1]->dot(Y[i]);
+    }
+
+    // Copy over the new ordering for the Z-vectors
+    for (int i = 0; i < msub; i++) {
+      // Set the vector ordering
+      Z[i] = S[i];
+      Z[i + msub] = Y[i];
+    }
+
+    computeMatUpdate();
   }
 
-  // Update the matrices required for the limited-memory update.
-  // Update the S^{T}S matrix:
-  for (int i = 0; i < msub; i++) {
-    B[msub - 1 + i * msub_max] = S[msub - 1]->dot(S[i]);
-    B[i + (msub - 1) * msub_max] = B[msub - 1 + i * msub_max];
-  }
+  return update_type;
+}
 
-  // Update the diagonal D-matrix
-  if (msub > 0) {
-    D[msub - 1] = S[msub - 1]->dot(Y[msub - 1]);
-  }
+/*
+  Whenever we adjust the coefficients for */
 
-  // By definition, we have the L matrix:
-  // For j < i: L[i + j*msub_max] = S[i]->dot(Y[j]);
-  for (int i = 0; i < msub - 1; i++) {
-    L[msub - 1 + i * msub_max] = S[msub - 1]->dot(Y[i]);
-  }
-
+void ParOptLBFGS::computeMatUpdate() {
   // Set the values into the M-matrix
   memset(M, 0, 4 * msub * msub * sizeof(ParOptScalar));
 
@@ -321,13 +360,8 @@ int ParOptLBFGS::update(ParOptVec *x, const ParOptScalar *z, ParOptVec *zw,
     M[msub + i + 2 * msub * (msub + i)] = -D[i];
   }
 
-  // Copy over the new ordering for the Z-vectors
+  // Set the values of the diagonal vector b0
   for (int i = 0; i < msub; i++) {
-    // Set the vector ordering
-    Z[i] = S[i];
-    Z[i + msub] = Y[i];
-
-    // Set the values of the diagonal vector b0
     d0[i] = b0;
     d0[i + msub] = 1.0;
   }
@@ -340,8 +374,6 @@ int ParOptLBFGS::update(ParOptVec *x, const ParOptScalar *z, ParOptVec *zw,
     int n = 2 * msub, info = 0;
     LAPACKdgetrf(&n, &n, M_factor, &n, mfpiv, &info);
   }
-
-  return update_type;
 }
 
 /**
