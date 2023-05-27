@@ -4358,7 +4358,7 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
 
   // If no quasi-Newton method is defined, use a sequential linear method
   // instead
-  if (!sequential_linear_method && !qn) {
+  if (!use_diag_hessian && !sequential_linear_method && !qn) {
     if (rank == 0) {
       fprintf(stderr,
               "ParOpt Error: Must use a sequential linear method if no "

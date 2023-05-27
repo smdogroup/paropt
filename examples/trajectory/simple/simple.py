@@ -147,7 +147,7 @@ p.driver = ParOptTestDriver()
 
 options = {
     "algorithm": "ip",
-    "norm_type": "l1",
+    "norm_type": "l2",
     "qn_subspace_size": 10,
     "qn_update_type": "damped_update",
     "abs_res_tol": 1e-6,

@@ -329,7 +329,7 @@ void ParOptMMA::optimize(ParOptInteriorPoint *optimizer) {
   const double l1_tol = options->getFloatOption("mma_l1_tol");
   const double linfty_tol = options->getFloatOption("mma_linfty_tol");
 
-  // Set what type of sub-problem wer'e going to use. Check if the flag
+  // Set what type of sub-problem we're going to use. Check if the flag
   // has been set to use a linearization of the constraints. If so, then
   // we're not using the "use_true_mma" option.
   int use_linearized =

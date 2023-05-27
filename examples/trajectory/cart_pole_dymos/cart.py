@@ -135,16 +135,11 @@ parser.add_argument("--nn", type=int, default=25, help="number of nodes")
 parser.add_argument(
     "--order", type=int, default=3, help="order of Gauss-Lobatto collocation"
 )
-parser.add_argument(
-    "--optimizer", default="ParOpt", help="Optimizer name from pyOptSparse"
-)
 parser.add_argument("--algorithm", default="tr", help="Algorithm used in ParOpt")
 args = parser.parse_args()
 
 nn = args.nn
 order = args.order
-optimizer = args.optimizer
-algorithm = args.algorithm
 
 # Define the OpenMDAO problem
 p = om.Problem(model=om.Group())
@@ -189,18 +184,52 @@ phase.add_objective("J", loc="final")
 # Create the driver
 p.driver = ParOptTestDriver()
 
-options = {
-    "algorithm": "ip",
-    "norm_type": "l1",
-    "qn_subspace_size": 10,
-    "qn_update_type": "damped_update",
-    "abs_res_tol": 1e-6,
-    "barrier_strategy": "monotone",
-    "output_level": 0,
-    "armijo_constant": 1e-5,
-    "max_major_iters": 500,
-    "penalty_gamma": 2.0e2,
-}
+if args.algorithm == "ip":
+    options = {
+        "algorithm": "ip",
+        "norm_type": "l2",
+        "qn_subspace_size": 10,
+        "qn_update_type": "damped_update",
+        "abs_res_tol": 1e-6,
+        "barrier_strategy": "monotone",
+        "output_level": 0,
+        "armijo_constant": 1e-5,
+        "max_major_iters": 500,
+        "penalty_gamma": 2.0e2,
+    }
+elif args.algorithm == "mma":
+    options = {
+        "algorithm": "mma",
+        "qn_type": "none",
+        "max_major_iters": 100,
+        "abs_res_tol": 1e-8,
+        "starting_point_strategy": "affine_step",
+        "barrier_strategy": "mehrotra_predictor_corrector",
+        "use_line_search": False,
+        "mma_use_constraint_linearization": True,
+        "mma_max_iterations": 1000,
+    }
+elif args.algorithm == "tr":
+    options = {
+        "algorithm": "tr",
+        "tr_init_size": 0.05,
+        "tr_min_size": 1e-6,
+        "tr_max_size": 10.0,
+        "tr_eta": 0.25,
+        "tr_infeas_tol": 1e-6,
+        "tr_l1_tol": 1e-3,
+        "tr_linfty_tol": 0.0,
+        "tr_adaptive_gamma_update": True,
+        "tr_max_iterations": 1000,
+        "max_major_iters": 100,
+        "penalty_gamma": 1e3,
+        "qn_subspace_size": 10,
+        "qn_type": "bfgs",
+        "abs_res_tol": 1e-8,
+        "starting_point_strategy": "affine_step",
+        "barrier_strategy": "mehrotra",
+        "use_line_search": False,
+    }
 
 for key in options:
     p.driver.options[key] = options[key]
