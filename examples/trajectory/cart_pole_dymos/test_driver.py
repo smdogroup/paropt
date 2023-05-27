@@ -254,9 +254,9 @@ class ParOptTestDriver(Driver):
             last = self._con_list_ptr[icon + 1]
             if self._con_type[icon] == "equal":
                 con[first:last] = con_dict[name]
-            elif self._con_type == "lower":
+            elif self._con_type[icon] == "lower":
                 con[first:last] = con_dict[name] - self._cons[name]["lower"]
-            elif self._con_type == "upper":
+            elif self._con_type[icon] == "upper":
                 con[first:last] = self._cons[name]["upper"] - con_dict[name]
 
         return fobj, con
@@ -348,7 +348,7 @@ class ParOptTestDriver(Driver):
                     meta["lower"] > self.constr_lower_limit
                     or meta["upper"] < self.constr_upper_limit
                 ):
-                    self._inequalities(name)
+                    self._inequalities.append(name)
                 if meta["lower"] > self.constr_lower_limit:
                     self.num_inequalities += meta["size"]
                 if meta["upper"] < self.constr_upper_limit:
