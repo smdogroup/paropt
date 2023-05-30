@@ -4616,6 +4616,13 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
                 rho_penalty_search, info);
       }
 
+      if (output_level > 0) {
+        const char *inform = mat->getFactorInfo();
+        if (inform) {
+          fprintf(outfp, "MatInfo: %s\n", inform);
+        }
+      }
+
       // Flush the buffer so that we can see things immediately
       fflush(outfp);
     }

@@ -154,30 +154,6 @@ def pen_f(r0, r1, r2):
 # Define the OpenMDAO problem
 p = om.Problem(model=om.Group())
 
-p.driver = ParOptTestDriver()
-
-options = {
-    "algorithm": "ip",
-    "tr_linfty_tol": 1e-30,
-    "tr_l1_tol": 1e-30,
-    "output_level": 0,
-    "qn_type": "bfgs",
-    "max_major_iters": 500,
-    "tr_max_iterations": 200,
-    "qn_update_type": "damped_update",
-    "penalty_gamma": 1e3,
-    "tr_min_size": 1e-2,
-    "tr_adaptive_gamma_update": False,
-    "tr_accept_step_strategy": "penalty_method",
-    "tr_use_soc": False,
-}
-
-for key in options:
-    p.driver.options[key] = options[key]
-
-# Allow OpenMDAO to automatically determine our sparsity pattern.
-# Doing so can significantly speed up the execution of Dymos.
-p.driver.declare_coloring()
 
 # Define a Trajectory object
 traj = p.model.add_subsystem("traj", subsys=dm.Trajectory())
@@ -263,6 +239,32 @@ p.set_val(
 
 p["traj.phase0.t_duration"] = 3.0
 p["traj.phase0.t_initial"] = 0.0
+
+# Set up the optimization driver
+p.driver = ParOptTestDriver()
+
+options = {
+    "algorithm": "ip",
+    "tr_linfty_tol": 1e-30,
+    "tr_l1_tol": 1e-30,
+    "output_level": 2,
+    "qn_type": "bfgs",
+    "max_major_iters": 500,
+    "tr_max_iterations": 200,
+    "qn_update_type": "damped_update",
+    "penalty_gamma": 1e3,
+    "tr_min_size": 1e-2,
+    "tr_adaptive_gamma_update": False,
+    "tr_accept_step_strategy": "penalty_method",
+    "tr_use_soc": False,
+}
+
+for key in options:
+    p.driver.options[key] = options[key]
+
+# Allow OpenMDAO to automatically determine our sparsity pattern.
+# Doing so can significantly speed up the execution of Dymos.
+p.driver.declare_coloring(show_summary=True, show_sparsity=True)
 
 # Run the driver to solve the problem
 p.run_driver()

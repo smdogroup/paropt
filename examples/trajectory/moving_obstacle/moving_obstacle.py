@@ -196,31 +196,6 @@ phase.add_path_constraint(name="p3", lower=1, upper=None, units="m")
 # Minimize final time.
 phase.add_objective("time", loc="final")
 
-p.driver = ParOptTestDriver()
-
-options = {
-    "algorithm": "ip",
-    "tr_linfty_tol": 1e-30,
-    "tr_l1_tol": 1e-30,
-    "output_level": 0,
-    "qn_type": "bfgs",
-    "max_major_iters": 500,
-    "tr_max_iterations": 200,
-    "qn_update_type": "damped_update",
-    "penalty_gamma": 1e3,
-    "tr_min_size": 1e-2,
-    "tr_adaptive_gamma_update": False,
-    "tr_accept_step_strategy": "penalty_method",
-    "tr_use_soc": False,
-}
-
-for key in options:
-    p.driver.options[key] = options[key]
-
-# Allow OpenMDAO to automatically determine our sparsity pattern.
-# Doing so can significant speed up the execution of Dymos.
-p.driver.declare_coloring()
-
 # Setup the problem
 p.setup(check=True)
 
@@ -240,6 +215,31 @@ p.set_val(
     phase.interpolate(ys=[90, 90], nodes="control_input"),
     units="deg",
 )
+
+p.driver = ParOptTestDriver()
+
+options = {
+    "algorithm": "ip",
+    "tr_linfty_tol": 1e-30,
+    "tr_l1_tol": 1e-30,
+    "output_level": 2,
+    "qn_type": "bfgs",
+    "max_major_iters": 500,
+    "tr_max_iterations": 200,
+    "qn_update_type": "damped_update",
+    "penalty_gamma": 1e3,
+    "tr_min_size": 1e-2,
+    "tr_adaptive_gamma_update": False,
+    "tr_accept_step_strategy": "penalty_method",
+    "tr_use_soc": False,
+}
+
+for key in options:
+    p.driver.options[key] = options[key]
+
+# Allow OpenMDAO to automatically determine our sparsity pattern.
+# Doing so can significant speed up the execution of Dymos.
+p.driver.declare_coloring()
 
 # Run the driver to solve the problem
 p.run_driver()

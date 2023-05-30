@@ -55,6 +55,11 @@ class ParOptQuasiDefMat : public ParOptBase {
    */
   virtual void apply(ParOptVec *bx, ParOptVec *bw, ParOptVec *yx,
                      ParOptVec *yw) = 0;
+
+  /*
+    Get a description of the factorization for the print file
+  */
+  virtual const char *getFactorInfo() { return NULL; }
 };
 
 /*
@@ -110,6 +115,11 @@ class ParOptQuasiDefBlockMat : public ParOptQuasiDefMat {
   */
   void apply(ParOptVec *bx, ParOptVec *bw, ParOptVec *yx, ParOptVec *yw);
 
+  /*
+    Get a description of the factorization for the print file
+  */
+  const char *getFactorInfo();
+
  private:
   /*
     Apply the factored Cw-matrix that is stored as a series of block-symmetric
@@ -128,6 +138,9 @@ class ParOptQuasiDefBlockMat : public ParOptQuasiDefMat {
   int nwcon;         // The number of sparse constraints
   int nwblock;       // The nuber of constraints per block
   ParOptScalar *Cw;  // Block diagonal matrix
+
+  // Information about the factorization
+  char info[128];
 };
 
 /*
@@ -141,6 +154,7 @@ class ParOptQuasiDefSparseMat : public ParOptQuasiDefMat {
   int factor(ParOptVec *x, ParOptVec *Dinv, ParOptVec *C);
   void apply(ParOptVec *bx, ParOptVec *yx, ParOptVec *yw);
   void apply(ParOptVec *bx, ParOptVec *bw, ParOptVec *yx, ParOptVec *yw);
+  const char *getFactorInfo();
 
  private:
   // The sparse problem
@@ -165,6 +179,9 @@ class ParOptQuasiDefSparseMat : public ParOptQuasiDefMat {
 
   // Right-hand-side/solution data
   ParOptScalar *rhs;
+
+  // Information about the factorization
+  char info[128];
 };
 
 #endif  //  PAR_OPT_SPARSE_MAT_H

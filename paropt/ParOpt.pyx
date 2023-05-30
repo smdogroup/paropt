@@ -95,7 +95,7 @@ def unpack_output(filename):
                     line = lines[index]
                     index += 1
                     counter += 1
-                    if len(line.split()) < len(args):
+                    if line[0:7] == "MatInfo" or len(line.split()) < len(args):
                         break
 
                     # Scan through the format list and determine how to

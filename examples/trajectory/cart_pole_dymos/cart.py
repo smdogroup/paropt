@@ -135,11 +135,18 @@ parser.add_argument("--nn", type=int, default=25, help="number of nodes")
 parser.add_argument(
     "--order", type=int, default=3, help="order of Gauss-Lobatto collocation"
 )
-parser.add_argument("--algorithm", default="tr", help="Algorithm used in ParOpt")
+parser.add_argument("--algorithm", default="ip", help="Algorithm used in ParOpt")
+parser.add_argument(
+    "--show_sparsity",
+    default=False,
+    action="store_true",
+    help="Show the sparsity pattern",
+)
 args = parser.parse_args()
 
 nn = args.nn
 order = args.order
+show_sparsity = args.show_sparsity
 
 # Define the OpenMDAO problem
 p = om.Problem(model=om.Group())
@@ -181,18 +188,31 @@ phase.add_control(
 # Minimize J
 phase.add_objective("J", loc="final")
 
+# Setup the problem
+p.setup(check=True)
+
+# Now that the OpenMDAO problem is setup, we can set the values of the states.
+p.set_val("traj.phase0.states:q1", phase.interp("q1", ys=[0, 1.0]))
+p.set_val("traj.phase0.states:q2", phase.interp("q2", ys=[0, np.pi]))
+p.set_val("traj.phase0.states:q3", phase.interp("q3", ys=[0, 0]))
+p.set_val("traj.phase0.states:q4", phase.interp("q4", ys=[0, 0]))
+p.set_val(
+    "traj.phase0.controls:u", phase.interp("u", ys=[0, 1.0], nodes="control_input")
+)
+p.set_val("traj.phase0.states:J", phase.interp("J", ys=[0, 1]))
+
 # Create the driver
 p.driver = ParOptTestDriver()
 
 if args.algorithm == "ip":
     options = {
         "algorithm": "ip",
-        "norm_type": "l2",
+        "output_level": 2,
+        "norm_type": "infinity",
         "qn_subspace_size": 10,
         "qn_update_type": "damped_update",
         "abs_res_tol": 1e-6,
         "barrier_strategy": "monotone",
-        "output_level": 0,
         "armijo_constant": 1e-5,
         "max_major_iters": 500,
         "penalty_gamma": 2.0e2,
@@ -234,22 +254,9 @@ elif args.algorithm == "tr":
 for key in options:
     p.driver.options[key] = options[key]
 
-# Setup the problem
-p.setup(check=True)
-
-# Now that the OpenMDAO problem is setup, we can set the values of the states.
-p.set_val("traj.phase0.states:q1", phase.interp("q1", ys=[0, 1.0]))
-p.set_val("traj.phase0.states:q2", phase.interp("q2", ys=[0, np.pi]))
-p.set_val("traj.phase0.states:q3", phase.interp("q3", ys=[0, 0]))
-p.set_val("traj.phase0.states:q4", phase.interp("q4", ys=[0, 0]))
-p.set_val(
-    "traj.phase0.controls:u", phase.interp("u", ys=[0, 1.0], nodes="control_input")
-)
-p.set_val("traj.phase0.states:J", phase.interp("J", ys=[0, 1]))
-
 # Allow OpenMDAO to automatically determine our sparsity pattern.
 # Doing so can significant speed up the execution of Dymos.
-p.driver.declare_coloring()
+p.driver.declare_coloring(show_summary=True, show_sparsity=show_sparsity)
 
 # Run the driver to solve the problem
 p.run_driver()

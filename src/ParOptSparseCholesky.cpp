@@ -127,6 +127,26 @@ ParOptSparseCholesky::~ParOptSparseCholesky() {
 }
 
 /**
+  Get information about the sparse Cholesky factorization
+
+  @param size The dimension of the matrix
+  @param num_snodes The number of supernodes
+  @param nnzA The number of non-zeros in the original matrix
+  @param nnzL The number of non-zeros in the factorized matrix
+*/
+void ParOptSparseCholesky::getInfo(int *_size, int *_num_snodes, int *_nnzL) {
+  if (_size) {
+    *_size = size;
+  }
+  if (_num_snodes) {
+    *_num_snodes = num_snodes;
+  }
+  if (_nnzL) {
+    *_nnzL = data_ptr[num_snodes];
+  }
+}
+
+/**
   Set the values into the matrix.
 
   This assumes that the inputs are in the original ordering - not the permuted
@@ -251,9 +271,7 @@ int ParOptSparseCholesky::initSupernodes(const int parent[], const int Lnz[],
     vtn[i] = snode;
     i++;
 
-    while (i < size &&
-           (parent[i - 1] == i || (parent[i - 1] == -1 && parent[i] == -1)) &&
-           Lnz[i] == Lnz[i - 1] - 1) {
+    while (i < size && (parent[i - 1] == i) && Lnz[i] == Lnz[i - 1] - 1) {
       vtn[i] = snode;
       i++;
     }
@@ -425,7 +443,6 @@ void ParOptSparseCholesky::updateColumn(const int lwidth, const int nlcols,
 int ParOptSparseCholesky::factorDiag(const int diag_size, ParOptScalar *D) {
   int n = diag_size, info;
   LAPACKdpptrf("U", &n, D, &info);
-
   return info;
 }
 
@@ -434,13 +451,9 @@ int ParOptSparseCholesky::factorDiag(const int diag_size, ParOptScalar *D) {
 */
 void ParOptSparseCholesky::solveDiag(int diag_size, ParOptScalar *L, int nrhs,
                                      ParOptScalar *x) {
+  int incr = 1;
   for (int k = 0; k < nrhs; k++) {
-    for (int j = 0; j < diag_size; j++) {
-      for (int i = 0; i < j; i++) {
-        x[j] = x[j] - L[get_diag_index(j, i)] * x[i];
-      }
-      x[j] /= L[get_diag_index(j, j)];
-    }
+    BLAStpsv("U", "T", "N", &diag_size, L, x, &incr);
     x += diag_size;
   }
 }
@@ -449,14 +462,10 @@ void ParOptSparseCholesky::solveDiag(int diag_size, ParOptScalar *L, int nrhs,
   Solve L^{T} * y = x and output x = y
 */
 void ParOptSparseCholesky::solveDiagTranspose(int diag_size, ParOptScalar *L,
-                                              int nhrs, ParOptScalar *x) {
-  for (int k = 0; k < nhrs; k++) {
-    for (int j = diag_size - 1; j >= 0; j--) {
-      for (int i = j + 1; i < diag_size; i++) {
-        x[j] = x[j] - L[get_diag_index(i, j)] * x[i];
-      }
-      x[j] /= L[get_diag_index(j, j)];
-    }
+                                              int nrhs, ParOptScalar *x) {
+  int incr = 1;
+  for (int k = 0; k < nrhs; k++) {
+    BLAStpsv("U", "N", "N", &diag_size, L, x, &incr);
     x += diag_size;
   }
 }

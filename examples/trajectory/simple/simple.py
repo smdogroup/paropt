@@ -65,12 +65,14 @@ parser.add_argument(
 )
 parser.add_argument("--algorithm", default="tr", help="algorithm used in ParOpt")
 parser.add_argument("--less_force", action="store_true", default=False)
+parser.add_argument("--show_sparsity", action="store_true", default=False)
 
 args = parser.parse_args()
 
 optimizer = args.optimizer
 algorithm = args.algorithm
 less_force = args.less_force
+show_sparsity = args.show_sparsity
 
 # Define the OpenMDAO problem
 p = om.Problem(model=om.Group())
@@ -81,7 +83,7 @@ traj = dm.Trajectory()
 p.model.add_subsystem("traj", subsys=traj)
 
 # Define a Dymos Phase object with GaussLobatto Transcription
-transcript = dm.GaussLobatto(num_segments=10, order=3)
+transcript = dm.GaussLobatto(num_segments=20, order=3)
 phase = dm.Phase(ode_class=SimpleODE, transcription=transcript)
 
 traj.add_phase(name="phase0", phase=phase)
@@ -148,11 +150,11 @@ p.driver = ParOptTestDriver()
 options = {
     "algorithm": "ip",
     "norm_type": "l2",
+    "output_level": 2,
     "qn_subspace_size": 10,
     "qn_update_type": "damped_update",
     "abs_res_tol": 1e-6,
     "barrier_strategy": "monotone",
-    "output_level": 0,
     "armijo_constant": 1e-5,
     "max_major_iters": 500,
     "penalty_gamma": 2.0e2,
@@ -160,6 +162,10 @@ options = {
 
 for key in options:
     p.driver.options[key] = options[key]
+
+# Allow OpenMDAO to automatically determine our sparsity pattern.
+# Doing so can significantly speed up the execution of Dymos.
+p.driver.declare_coloring(show_summary=True, show_sparsity=show_sparsity)
 
 # Run the driver to solve the problem
 p.run_driver()

@@ -221,6 +221,11 @@ int ParOptQuasiDefBlockMat::applyFactor(ParOptVec *vec) {
   return 0;
 }
 
+const char *ParOptQuasiDefBlockMat::getFactorInfo() {
+  snprintf(info, sizeof(info), "nblock: %d", nwblock);
+  return info;
+}
+
 /*
   A simple serial LDL sparse matrix factorization
 */
@@ -234,6 +239,7 @@ ParOptQuasiDefSparseMat::ParOptQuasiDefSparseMat(ParOptSparseProblem *problem) {
   const int *rowp = NULL, *cols = NULL;
   prob->getSparseJacobianData(&rowp, &cols, NULL);
 
+  // Compute the sparse matrix transpose
   colp = new int[nvars + 1];
   rows = new int[rowp[nwcon]];
   ParOptSparseTranspose(nwcon, nvars, rowp, cols, NULL, colp, rows, NULL);
@@ -411,4 +417,24 @@ void ParOptQuasiDefSparseMat::apply(ParOptVec *bx, ParOptVec *bw, ParOptVec *yx,
   for (int i = 0; i < nvars; i++) {
     yx_array[i] = dvals[i] * (bx_array[i] + rhs[i]);
   }
+}
+
+const char *ParOptQuasiDefSparseMat::getFactorInfo() {
+  if (Kcolp && chol) {
+    // Only count the non-zeros in the symmetric part of the matrix
+    int nnzK = (Kcolp[nwcon] + nwcon) / 2;
+
+    // Get information from the factorization
+    int n, num_snodes, nnzL;
+    chol->getInfo(&n, &num_snodes, &nnzL);
+
+    snprintf(info, sizeof(info),
+             "n %5d nsnodes %5d nnz(C + A * D^{-1} * A^{T}) "
+             "%7d nnz(L) %7d nnz(L) / nnz(K) %8.4f sparsity(L) %8.2e",
+             nwcon, num_snodes, nnzK, nnzL, 1.0 * nnzL / nnzK,
+             1.0 * nnzL / (nwcon * nwcon));
+
+    return info;
+  }
+  return NULL;
 }

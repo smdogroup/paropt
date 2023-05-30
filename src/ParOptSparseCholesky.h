@@ -36,6 +36,9 @@ class ParOptSparseCholesky {
   // Solve the factored system with the specified right-hand-side
   void solve(ParOptScalar *x);
 
+  // Get information about the factorization
+  void getInfo(int *_size, int *_num_snodes, int *_nnzL);
+
  private:
   // Build the elimination tree/forest
   void buildForest(const int Acolp[], const int Arows[], int parent[],

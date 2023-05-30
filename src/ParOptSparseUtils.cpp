@@ -221,7 +221,7 @@ void ParOptMatMatTransNumeric(int nrows, int ncols, const int *rowp,
   }
 }
 
-// Compute the number of entries in the matrix product A * A^{T}
+// Compute the matrix C + A * D * A^{T}
 void ParOptMatMatTransNumeric(int nrows, int ncols, const ParOptScalar *cvals,
                               const int *rowp, const int *cols,
                               const ParOptScalar *Avals,

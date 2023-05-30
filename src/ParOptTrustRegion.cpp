@@ -1101,8 +1101,8 @@ void ParOptTrustRegion::initialize() {
 }
 
 /*
- Minimize the infeasibility, this can be used for either
- adaptive penalty gamma update or in the filterSQP method
+  Minimize the infeasibility, this can be used for either adaptive penalty gamma
+  update or in the filterSQP method
 */
 void ParOptTrustRegion::minimizeInfeas(
     ParOptInteriorPoint *optimizer, ParOptInfeasSubproblem *infeas_problem,

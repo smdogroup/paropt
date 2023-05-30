@@ -13,7 +13,6 @@ from test_driver import ParOptTestDriver
 
 # Initialize the Problem and the optimization driver
 p = om.Problem(model=om.Group())
-p.driver.declare_coloring()
 
 # Create a trajectory and add a phase to it
 traj = p.model.add_subsystem("traj", dm.Trajectory())
@@ -80,15 +79,17 @@ p.setup()
 p["traj.phase0.t_initial"] = 0.0
 p["traj.phase0.t_duration"] = 2.0
 
-p["traj.phase0.states:x"] = phase.interpolate(ys=[0, 10], nodes="state_input")
-p["traj.phase0.states:y"] = phase.interpolate(ys=[10, 5], nodes="state_input")
-p["traj.phase0.states:v"] = phase.interpolate(ys=[0, 9.9], nodes="state_input")
-p["traj.phase0.controls:theta"] = phase.interpolate(
-    ys=[5, 100.5], nodes="control_input"
-)
+p["traj.phase0.states:x"] = phase.interp(ys=[0, 10], nodes="state_input")
+p["traj.phase0.states:y"] = phase.interp(ys=[10, 5], nodes="state_input")
+p["traj.phase0.states:v"] = phase.interp(ys=[0, 9.9], nodes="state_input")
+p["traj.phase0.controls:theta"] = phase.interp(ys=[5, 100.5], nodes="control_input")
 
 # Create the driver
 p.driver = ParOptTestDriver()
+
+# Allow OpenMDAO to automatically determine our sparsity pattern.
+# Doing so can significant speed up the execution of Dymos.
+p.driver.declare_coloring(show_summary=True, show_sparsity=True)
 
 options = {
     "algorithm": "ip",
@@ -97,7 +98,7 @@ options = {
     "qn_update_type": "damped_update",
     "abs_res_tol": 1e-6,
     "barrier_strategy": "monotone",
-    "output_level": 0,
+    "output_level": 2,
     "armijo_constant": 1e-5,
     "max_major_iters": 500,
     "penalty_gamma": 2.0e2,

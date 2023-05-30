@@ -9,6 +9,7 @@
 #define BLASdnrm2 dznrm2_
 #define BLASdaxpy zaxpy_
 #define BLASdscal zscal_
+#define BLAStpsv ztpsv_
 #define BLASgbmv zgbmv_
 #define BLASgemm zgemm_
 #define LAPACKdgetrf zgetrf_
@@ -20,6 +21,7 @@
 #define BLASdnrm2 dnrm2_
 #define BLASdaxpy daxpy_
 #define BLASdscal dscal_
+#define BLAStpsv dtpsv_
 #define BLASgbmv dgbmv_
 #define BLASgemm dgemm_
 #define LAPACKdgetrf dgetrf_
@@ -35,6 +37,10 @@ extern double BLASdnrm2(int *n, ParOptScalar *x, int *incx);
 extern void BLASdaxpy(int *n, ParOptScalar *a, ParOptScalar *x, int *incx,
                       ParOptScalar *y, int *incy);
 extern void BLASdscal(int *n, ParOptScalar *a, ParOptScalar *x, int *incx);
+
+// Solve A*x = b or A^T*x = b where A is in packed format
+extern void BLAStpsv(const char *uplo, const char *transa, const char *diag,
+                     int *n, ParOptScalar *a, ParOptScalar *x, int *incx);
 
 // Level 2 BLAS routines
 // y = alpha * A * x + beta * y, for a general matrix
