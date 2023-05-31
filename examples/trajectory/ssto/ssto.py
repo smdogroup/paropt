@@ -159,26 +159,66 @@ phase.set_time_options(fix_initial=True, duration_bounds=(10, 1000), units="s")
 
 # Set the state options.  We include rate_source, units, and targets here since the ODE
 # is not decorated with their default values.
-phase.add_state("x", fix_initial=True, lower=0, rate_source="eom.xdot")
-phase.add_state("y", fix_initial=True, lower=0, rate_source="eom.ydot")
+phase.add_state(
+    "x",
+    fix_initial=True,
+    lower=-1.0,
+    upper=1e7,
+    rate_source="eom.xdot",
+    ref=1000.0,
+    defect_ref=100.0,
+)
+phase.add_state(
+    "y",
+    fix_initial=True,
+    lower=0.0,
+    upper=1e7,
+    rate_source="eom.ydot",
+    ref=1000.0,
+    defect_ref=100.0,
+)
 phase.add_state(
     "vx",
     fix_initial=True,
     lower=0,
+    upper=1e4,
     rate_source="eom.vxdot",
     units="m/s",
     targets=["eom.vx"],
+    ref=100.0,
+    defect_ref=100.0,
 )
 phase.add_state(
-    "vy", fix_initial=True, rate_source="eom.vydot", units="m/s", targets=["eom.vy"]
+    "vy",
+    fix_initial=True,
+    rate_source="eom.vydot",
+    units="m/s",
+    targets=["eom.vy"],
+    ref=100.0,
+    lower=-1e4,
+    upper=1e4,
+    defect_ref=100.0,
 )
 phase.add_state(
-    "m", fix_initial=True, rate_source="eom.mdot", units="kg", targets=["eom.m"]
+    "m",
+    fix_initial=True,
+    rate_source="eom.mdot",
+    units="kg",
+    targets=["eom.m"],
+    lower=0,
+    upper=1e6,
+    ref=100.0,
+    defect_ref=100.0,
 )
 
 # The tangent of theta is modeled as a linear polynomial over the duration of the phase.
 phase.add_polynomial_control(
-    "tan_theta", order=1, units=None, opt=True, targets=["guidance.tan_theta"]
+    "tan_theta",
+    order=1,
+    units=None,
+    opt=True,
+    targets=["guidance.tan_theta"],
+    ref=1.0,
 )
 
 # Parameters values for thrust and specific impulse are design parameters. They are
@@ -191,9 +231,9 @@ phase.add_parameter("Isp", units="s", opt=False, val=1.0e6, targets=["eom.Isp"])
 
 # Set the boundary constraints.  These are all states which could also be handled
 # by setting fix_final=True and including the correct final value in the initial guess.
-phase.add_boundary_constraint("y", loc="final", equals=1.85e5, linear=True)
-phase.add_boundary_constraint("vx", loc="final", equals=1627.0)
-phase.add_boundary_constraint("vy", loc="final", equals=0.0)
+phase.add_boundary_constraint("y", loc="final", equals=1.85e5, linear=True, ref=10000.0)
+phase.add_boundary_constraint("vx", loc="final", equals=1627.0, ref=100.0)
+phase.add_boundary_constraint("vy", loc="final", equals=0.0, ref=100.0)
 
 phase.add_objective("time", index=-1, scaler=0.01)
 
@@ -224,12 +264,14 @@ p.driver = ParOptTestDriver()
 
 options = {
     "algorithm": "ip",
-    "output_level": 2,
+    "output_level": 0,
+    "norm_type": "l2",
     "qn_type": "bfgs",
     "qn_subspace_size": 10,
+    "starting_point_strategy": "least_squares_multipliers",
     "qn_update_type": "damped_update",
     "barrier_strategy": "monotone",
-    "max_major_iters": 1000,
+    "max_major_iters": 2000,
     "use_line_search": True,
     "penalty_gamma": 1000.0,
 }
@@ -237,7 +279,7 @@ options = {
 for key in options:
     p.driver.options[key] = options[key]
 
-p.driver.declare_coloring(show_sparsity=True)
+p.driver.declare_coloring()
 
 # Solve the problem.
 p.run_driver()

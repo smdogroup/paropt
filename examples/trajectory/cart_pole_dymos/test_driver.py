@@ -91,6 +91,13 @@ class ParOptTestDriver(Driver):
         Declare options before kwargs are processed in the init method.
         """
 
+        self.options.declare(
+            "check_sparse_jacobian",
+            False,
+            types=bool,
+            desc="Check the partial derivatives",
+        )
+
         info = ParOpt.getOptionsInfo()
 
         for name in info:
@@ -308,7 +315,7 @@ class ParOptTestDriver(Driver):
 
         return gobj, rowp, cols, data
 
-    def check_sparse_gradient(self, x=None, dh=1e-6):
+    def check_sparse_jacobian(self, x=None, dh=1e-6):
         if x is None:
             x, lb, ub = self.get_paropt_vars_and_bounds()
 
@@ -450,6 +457,9 @@ class ParOptTestDriver(Driver):
         self.paropt_problem = ParOptSparseProblem(
             comm, nvars, self.num_constraints, self.num_inequalities, rowp, cols, self
         )
+
+        if self.options["check_sparse_jacobian"]:
+            self.check_sparse_jacobian()
 
         # Take only the options declared from ParOpt
         info = ParOpt.getOptionsInfo()

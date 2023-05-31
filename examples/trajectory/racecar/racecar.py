@@ -78,6 +78,8 @@ phase.add_state(
     rate_source="dt_ds",
     ref=100,
 )  # time
+
+n_ref = 4.0
 phase.add_state(
     "n",
     fix_initial=False,
@@ -87,21 +89,23 @@ phase.add_state(
     lower=-4.0,
     rate_source="dn_ds",
     targets=["n"],
-    ref=4.0,
+    ref=n_ref,
 )  # normal distance to centerline. The bounds on n define the
 # width of the track
+V_ref = 40.0
 phase.add_state(
     "V",
     fix_initial=False,
     fix_final=False,
     units="m/s",
-    ref=40,
+    ref=V_ref,
     ref0=5,
     lower=-500.0,
     upper=500.0,
     rate_source="dV_ds",
     targets=["V"],
 )  # velocity
+alpha_ref = 0.15
 phase.add_state(
     "alpha",
     fix_initial=False,
@@ -111,8 +115,9 @@ phase.add_state(
     units="rad",
     rate_source="dalpha_ds",
     targets=["alpha"],
-    ref=0.15,
+    ref=alpha_ref,
 )  # vehicle heading angle with respect to centerline
+lambda_ref = 0.01
 phase.add_state(
     "lambda",
     fix_initial=False,
@@ -122,9 +127,10 @@ phase.add_state(
     units="rad",
     rate_source="dlambda_ds",
     targets=["lambda"],
-    ref=0.01,
+    ref=lambda_ref,
 )  # vehicle slip angle, or angle between the axis of the vehicle
 # and velocity vector (all cars drift a little)
+omega_ref = 0.3
 phase.add_state(
     "omega",
     fix_initial=False,
@@ -134,8 +140,9 @@ phase.add_state(
     units="rad/s",
     rate_source="domega_ds",
     targets=["omega"],
-    ref=0.3,
+    ref=omega_ref,
 )  # yaw rate
+ax_ref = 8
 phase.add_state(
     "ax",
     fix_initial=False,
@@ -145,8 +152,9 @@ phase.add_state(
     units="m/s**2",
     rate_source="dax_ds",
     targets=["ax"],
-    ref=8,
+    ref=ax_ref,
 )  # longitudinal acceleration
+ay_ref = 8
 phase.add_state(
     "ay",
     fix_initial=False,
@@ -156,12 +164,13 @@ phase.add_state(
     units="m/s**2",
     rate_source="day_ds",
     targets=["ay"],
-    ref=8,
+    ref=ay_ref,
 )  # lateral acceleration
 
 # Define Controls
 
 # steering angle
+delta_ref = 0.04
 phase.add_control(
     name="delta",
     units="rad",
@@ -169,14 +178,16 @@ phase.add_control(
     fix_final=False,
     lower=-0.5 * np.pi,
     upper=0.5 * np.pi,
-    ref=0.04,
+    ref=delta_ref,
     rate_continuity=True,
 )
 
 # the thrust controls the longitudinal force of the rear tires and is positive
 # while accelerating, negative while braking
+thrust_ref = 10.0
 phase.add_control(
     name="thrust",
+    ref=thrust_ref,
     units=None,
     lower=-1000.0,
     upper=1000.0,
@@ -234,14 +245,64 @@ phase.add_timeseries_output("*")
 phase.add_timeseries_output("t", output_name="time")
 
 # Link the states at the start and end of the phase in order to ensure a continous lap
+# traj.link_phases(
+#     phases=["phase0", "phase0"],
+#     vars=["V", "n", "alpha", "omega", "lambda", "ax", "ay"],
+#     locs=("final", "initial"))
+
 traj.link_phases(
     phases=["phase0", "phase0"],
-    vars=["V", "n", "alpha", "omega", "lambda", "ax", "ay"],
-    locs=("final", "initial"),
+    linear=True,
+    vars="V",
+    ref=V_ref,
+    locs=["final", "initial"],
+)
+traj.link_phases(
+    phases=["phase0", "phase0"],
+    linear=True,
+    vars="n",
+    ref=n_ref,
+    locs=["final", "initial"],
+)
+traj.link_phases(
+    phases=["phase0", "phase0"],
+    linear=True,
+    vars="alpha",
+    ref=alpha_ref,
+    locs=["final", "initial"],
+)
+traj.link_phases(
+    phases=["phase0", "phase0"],
+    linear=True,
+    vars="omega",
+    ref=omega_ref,
+    locs=["final", "initial"],
+)
+traj.link_phases(
+    phases=["phase0", "phase0"],
+    linear=True,
+    vars="lambda",
+    ref=lambda_ref,
+    locs=["final", "initial"],
+)
+traj.link_phases(
+    phases=["phase0", "phase0"],
+    linear=True,
+    vars="ax",
+    ref=ax_ref,
+    locs=["final", "initial"],
+)
+traj.link_phases(
+    phases=["phase0", "phase0"],
+    linear=True,
+    vars="ay",
+    ref=ay_ref,
+    locs=["final", "initial"],
 )
 
+
 # Setup the problem
-p.setup(check=True)  # force_alloc_complex=True
+p.setup(check=True)
 
 # States
 # Nonzero velocity to avoid division by zero errors
@@ -268,21 +329,21 @@ p.set_val("traj.phase0.controls:thrust", phase.interp("thrust", [0.1, 0.1]), uni
 # Set up the optimization driver
 p.driver = ParOptTestDriver()
 
+p.driver.options["check_sparse_jacobian"] = True
+
 options = {
     "algorithm": "ip",
     "output_level": 2,
     "norm_type": "l2",
-    "qn_type": "none",
-    "qn_sigma": 1.0,
-    "sequential_linear_method": True,
-    "qn_subspace_size": 10,
+    "qn_type": "bfgs",
+    "qn_subspace_size": 5,
+    "starting_point_strategy": "least_squares_multipliers",
     "qn_update_type": "damped_update",
     "abs_res_tol": 1e-6,
     "barrier_strategy": "monotone",
     "armijo_constant": 1e-5,
     "penalty_gamma": 10.0,
     "max_major_iters": 1000,
-    "gradient_verification_frequency": 1,
 }
 
 for key in options:
