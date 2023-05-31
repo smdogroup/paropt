@@ -253,8 +253,9 @@ if __name__ == "__main__":
         "abs_res_tol": 1e-6,
         "barrier_strategy": "monotone",
         "starting_point_strategy": "affine_step",
-        "output_level": 1,
+        "output_level": 2,
         "max_major_iters": 1000,
+        "penalty_gamma": 10.0,
     }
 
     # use trust region algorithm

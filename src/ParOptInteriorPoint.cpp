@@ -3676,10 +3676,6 @@ void ParOptInteriorPoint::evalMeritInitDeriv(ParOptVars &vars, ParOptVars &step,
 
   double rho_hat = 0.0;
 
-  // min_descent is always positive. We want to enforce that
-  // the descent direction is at most as negative as min_descent.
-  ParOptScalar min_descent =
-      rho_penalty_search * penalty_descent_fraction * max_x * infeas;
   if (ParOptRealPart(infeas) < 0.1 * abs_res_tol) {
     // Since the infeasibility is small, estimate the descent direction
     // infeas_proj = - max_x * infeas
@@ -3697,28 +3693,17 @@ void ParOptInteriorPoint::evalMeritInitDeriv(ParOptVars &vars, ParOptVars &step,
 
     // If numer is positive and denom is sufficiently negative, we
     // can compute an estimate for rho_hat
-    if (ParOptRealPart(numer) >= 0.0 && ParOptRealPart(denom) < 0.0) {
-      rho_hat = -ParOptRealPart(numer / denom);
-    } else if (ParOptRealPart(pmerit) >= 0.0 && ParOptRealPart(denom) < 0.0) {
-      // Try the relaxed condition
-      // pmerit + rho * infease_proj <= - penalty_descent_frac * rho * max_x *
-      // infeas
-      rho_hat = -ParOptRealPart(pmerit / denom);
-    } else if (ParOptRealPart(infeas_proj) < 0.0 &&
-               ParOptRealPart(min_descent + numer) < 0.0) {
-      // Try a relaxed criterial
-      rho_hat = -ParOptRealPart((min_descent + numer) / infeas_proj);
-    } else if (ParOptRealPart(numer) >= 0.0) {
-      denom = -(1.0 - penalty_descent_fraction) * max_x * infeas;
-      rho_hat = -ParOptRealPart(numer / denom);
+    if (ParOptRealPart(numer) >= 0.0) {
+      if (ParOptRealPart(denom) < 0.0) {
+        rho_hat = -ParOptRealPart(numer / denom);
+      } else {
+        denom = -(1.0 - penalty_descent_fraction) * max_x * infeas;
+        rho_hat = -ParOptRealPart(numer / denom);
+      }
     } else {
-      // Assuming here that numer < 0.0
+      // Since numer < 0.0
       rho_hat = 0.0;
     }
-  }
-
-  if (rho_hat >= penalty_gamma) {
-    rho_hat = penalty_gamma;
   }
 
   // Set the penalty parameter to the smallest value
@@ -5167,11 +5152,11 @@ void ParOptInteriorPoint::initLeastSquaresMultipliers(ParOptVars &vars,
   vars.ztw->set(init_barrier_param);
 
   // Set the Largrange multipliers and slack variables associated
-  // with the dense constraints to 1.0
+  // with the dense constraints to the initial barrier parameter
   for (int i = 0; i < ncon; i++) {
     vars.z[i] = init_barrier_param;
-    vars.s[i] = max2(init_barrier_param, c[i] + init_barrier_param);
-    vars.t[i] = max2(init_barrier_param, -c[i] + init_barrier_param);
+    vars.s[i] = init_barrier_param;
+    vars.t[i] = init_barrier_param;
     vars.zs[i] = init_barrier_param;
     vars.zt[i] = init_barrier_param;
   }
@@ -6050,9 +6035,11 @@ void ParOptInteriorPoint::checkKKTStep(ParOptVars &vars, ParOptVars &step,
   } else {
     if (qn && !sequential_linear_method) {
       qn->mult(step.x, res.x);
-      res.x->axpy(qn_sigma, step.x);
     } else {
       res.x->zeroEntries();
+    }
+    if (qn_sigma != 0.0) {
+      res.x->axpy(qn_sigma, step.x);
     }
   }
   for (int i = 0; i < ncon; i++) {

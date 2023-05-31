@@ -67,11 +67,16 @@ class ParOptTestDriver(Driver):
         self.supports["integer_design_vars"] = False
         self.supports["distributed_design_vars"] = False
         self.supports["multiple_objectives"] = False
-        self.supports["linear_constraints"] = False
+        self.supports["linear_constraints"] = True
         self.supports._read_only = True
 
         self._indep_list = []
-        self._quantities = []
+        self._nonlinear_quantities = []
+        self._linear_quantities = []
+        self._linear_sens_dict = None
+
+        # Set the Jacobian data to None
+        self._jac_dict = None
 
         self._total_jac_format = "dict"
 
@@ -145,44 +150,58 @@ class ParOptTestDriver(Driver):
         Convert the constraint Jacobian to a CSR data structure
         """
 
+        # Store a consistent design variable list for each constraint. This
+        # way the ordering will always be the same for subsequent calls.
+        if self._jac_dict is None:
+            self._jac_dict = {}
+            for cname in self._con_list:
+                dvs = []
+                for name in sens_dict[cname].keys():
+                    dvs.append(name)
+                self._jac_dict[cname] = dvs
+
         # Convert to global COO ordering
         rows = []
         cols = []
         data = []
-        for jdv, dvname in enumerate(self._indep_list):
-            dvoffset = self._indep_list_ptr[jdv]
-            dvsize = self._indep_list_ptr[jdv + 1] - dvoffset
-            for icon, cname in enumerate(self._con_list):
-                coffset = self._con_list_ptr[icon]
-                csize = self._con_list_ptr[icon + 1] - coffset
-                ctype = self._con_type[icon]
 
-                # Do a conversion depending on if sparse or not
+        for icon, cname in enumerate(self._con_list):
+            coffset = self._con_list_ptr[icon]
+            csize = self._con_list_ptr[icon + 1] - coffset
+            ctype = self._con_type[icon]
+
+            for dvname in self._jac_dict[cname]:
+                dvoffset = self._indep_offset_dict[dvname]
+                dvsize = self._indep_size_dict[dvname]
+
+                # Do a conversion to COO
                 if cname in self._res_subjacs and dvname in self._res_subjacs[cname]:
-                    arr = sens_dict[cname][dvname]
                     coo = self._res_subjacs[cname][dvname]
                     row, col, _ = coo["coo"]
+
+                    arr = sens_dict[cname][dvname]
+                    if ctype == "equals" or ctype == "lower":
+                        data.extend(arr[row, col])
+                    elif ctype == "upper":
+                        data.extend(-arr[row, col])
 
                     # Add the offsets into the row and column
                     cols.extend(col + dvoffset)
                     rows.extend(row + coffset)
-
-                    if ctype == "equal" or ctype == "lower":
-                        data.extend(arr[row, col].flatten())
-                    elif ctype == "upper":
-                        data.extend(-arr[row, col].flatten())
                 else:
                     # This is a dense format
-                    arr = sens_dict[cname][dvname]
                     col = np.mod(np.arange(csize * dvsize), dvsize)
                     row = np.arange(csize * dvsize) // dvsize
-                    cols.extend(col + dvoffset)
-                    rows.extend(row + coffset)
 
-                    if ctype == "equal" or ctype == "lower":
+                    arr = sens_dict[cname][dvname]
+                    if ctype == "equals" or ctype == "lower":
                         data.extend(arr.flatten())
                     elif ctype == "upper":
                         data.extend(-arr.flatten())
+
+                    # Add the offsets into the row and column
+                    cols.extend(col + dvoffset)
+                    rows.extend(row + coffset)
 
         # Number of constraints x number of variables
         ncon = self._con_list_ptr[-1]
@@ -252,8 +271,8 @@ class ParOptTestDriver(Driver):
         for icon, name in enumerate(self._con_list):
             first = self._con_list_ptr[icon]
             last = self._con_list_ptr[icon + 1]
-            if self._con_type[icon] == "equal":
-                con[first:last] = con_dict[name]
+            if self._con_type[icon] == "equals":
+                con[first:last] = con_dict[name] - self._cons[name]["equals"]
             elif self._con_type[icon] == "lower":
                 con[first:last] = con_dict[name] - self._cons[name]["lower"]
             elif self._con_type[icon] == "upper":
@@ -262,12 +281,18 @@ class ParOptTestDriver(Driver):
         return fobj, con
 
     def get_paropt_objcon_gradient(self):
-        # Compute the total derivatives
-        sens_dict = self._compute_totals(
-            of=self._quantities,
+        # Extract a dictionary of total derivatives for the nonlinear parts
+        total_dict = self._compute_totals(
+            of=self._nonlinear_quantities,
             wrt=self._indep_list,
             return_format=self._total_jac_format,
         )
+
+        # Create a new dictionary - OpenMDAO saves "total_dict" and so modifying
+        # it will cause an error.
+        sens_dict = {}
+        sens_dict.update(self._linear_sens_dict)
+        sens_dict.update(total_dict)
 
         # Extract the
         gobj = np.zeros(self._indep_list_ptr[-1])
@@ -317,51 +342,63 @@ class ParOptTestDriver(Driver):
         objs = self.get_objective_values()
         for name in objs:
             self._obj_name = name
-            self._quantities.append(name)
+
+            # The objective is always added to the nonlinear quantities because a
+            # constraint can be linear, but an objective can't be???
+            self._nonlinear_quantities.append(name)
 
         # Make a list of design variables. Capture the offset into the design variable list that
         # we'll use to inject the variables into the ParOpt design vector
         self._indep_list = list(self._designvars)
         self._indep_list_ptr = [0]
+        self._indep_offset_dict = {}
+        self._indep_size_dict = {}
         for i, name in enumerate(self._indep_list):
             index = self._indep_list_ptr[i] + self._designvars[name]["size"]
             self._indep_list_ptr.append(index)
+            self._indep_offset_dict[name] = self._indep_list_ptr[i]
+            self._indep_size_dict[name] = self._designvars[name]["size"]
 
         # Number of variables in the problem
         nvars = self._indep_list_ptr[-1]
 
         # Capture the constraints - look first for the inequality constraints that must be ordered first.
         # If they are two-sided constraints, we have to repeat them since ParOpt enforces c(x) >= 0.
-        self._equalities = []
-        self._inequalities = []
+        equalities = []
+        inequalities = []
 
-        self.num_equalities = 0
-        self.num_inequalities = 0
+        num_equalities = 0
+        num_inequalities = 0
         for name, meta in self._cons.items():
             # If current constraint is equality constraint
             if meta["equals"] is not None:
-                self._equalities.append(name)
-                self.num_equalities += meta["size"]
+                equalities.append(name)
+                num_equalities += meta["size"]
             # Else, current constraint is inequality constraint
             else:
                 if (
                     meta["lower"] > self.constr_lower_limit
                     or meta["upper"] < self.constr_upper_limit
                 ):
-                    self._inequalities.append(name)
+                    inequalities.append(name)
                 if meta["lower"] > self.constr_lower_limit:
-                    self.num_inequalities += meta["size"]
+                    num_inequalities += meta["size"]
                 if meta["upper"] < self.constr_upper_limit:
-                    self.num_inequalities += meta["size"]
+                    num_inequalities += meta["size"]
 
-        self.num_constraints = self.num_inequalities + self.num_equalities
-        self._quantities.extend(self._inequalities)
-        self._quantities.extend(self._equalities)
+            if meta["linear"]:
+                self._linear_quantities.append(name)
+            else:
+                self._nonlinear_quantities.append(name)
+
+        self.num_equalities = num_equalities
+        self.num_inequalities = num_inequalities
+        self.num_constraints = num_inequalities + num_equalities
 
         self._con_list_ptr = [0]
         self._con_list = []
         self._con_type = []
-        for name in self._inequalities:
+        for name in inequalities:
             meta = self._cons[name]
             if meta["lower"] > self.constr_lower_limit:
                 self._con_list.append(name)
@@ -372,14 +409,42 @@ class ParOptTestDriver(Driver):
                 self._con_type.append("upper")
                 self._con_list_ptr.append(self._con_list_ptr[-1] + meta["size"])
 
-        for name in self._equalities:
+        for name in equalities:
             meta = self._cons[name]
             self._con_list.append(name)
-            self._con_type.append("equal")
+            self._con_type.append("equals")
             self._con_list_ptr.append(self._con_list_ptr[-1] + meta["size"])
 
-        # Evaluate the sparse constraints
-        gobj, rowp, cols, data = self.get_paropt_objcon_gradient()
+        # Set the design variables - invoking run_solve_nonlinear
+        model = self._problem().model
+        model.run_solve_nonlinear()
+
+        # Compute the total derivatives for the linear constraints
+        if self._linear_sens_dict is None:
+            if len(self._linear_quantities) > 0:
+                self._linear_sens_dict = self._compute_totals(
+                    of=self._linear_quantities,
+                    wrt=self._indep_list,
+                    return_format=self._total_jac_format,
+                )
+            else:
+                self._linear_sens_dict = {}
+
+        # Extract a dictionary of total derivatives for the nonlinear parts
+        total_dict = self._compute_totals(
+            of=self._nonlinear_quantities,
+            wrt=self._indep_list,
+            return_format=self._total_jac_format,
+        )
+
+        # Create a new dictionary - OpenMDAO saves "total_dict" and so modifying
+        # it will cause an error.
+        sens_dict = {}
+        sens_dict.update(self._linear_sens_dict)
+        sens_dict.update(total_dict)
+
+        # Extract the constraint Jacobian
+        rowp, cols, _ = self._convert_jacobian_to_csr(sens_dict)
 
         comm = problem.comm
         self.paropt_problem = ParOptSparseProblem(
@@ -432,8 +497,6 @@ class ParOptTestDriver(Driver):
         ) in total_sparsity.items():  # res are 'driver' names (prom name or alias)
             if res in self._objs:  # skip objectives
                 continue
-            # if res in self._responses and self._responses[res]['alias'] is not None:
-            #     res = self._responses[res]['source']
             self._res_subjacs[res] = {}
             for dv, (rows, cols, shape) in dvdict.items():  # dvs are src names
                 rows = np.array(rows, dtype=np.intc)
@@ -443,3 +506,5 @@ class ParOptTestDriver(Driver):
                     "coo": [rows, cols, np.zeros(rows.size)],
                     "shape": shape,
                 }
+
+        return

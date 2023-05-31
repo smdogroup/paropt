@@ -429,10 +429,10 @@ const char *ParOptQuasiDefSparseMat::getFactorInfo() {
     chol->getInfo(&n, &num_snodes, &nnzL);
 
     snprintf(info, sizeof(info),
-             "n %5d nsnodes %5d nnz(C + A * D^{-1} * A^{T}) "
-             "%7d nnz(L) %7d nnz(L) / nnz(K) %8.4f sparsity(L) %8.2e",
+             "n %5d nsnodes %5d nnz(K) %7d nnz(L) %7d nnz(L) / nnz(K) %8.4f "
+             "sparsity(L) %8.2e",
              nwcon, num_snodes, nnzK, nnzL, 1.0 * nnzL / nnzK,
-             1.0 * nnzL / (nwcon * nwcon));
+             1.0 * nnzL / (nwcon * (nwcon + 1) / 2));
 
     return info;
   }
