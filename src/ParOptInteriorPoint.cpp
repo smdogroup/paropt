@@ -4575,6 +4575,15 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
 
     // Print all the information we can to the screen...
     if (outfp && rank == opt_root) {
+      if (output_level > 0 || k == 0) {
+        if (mat) {
+          const char *inform = mat->getFactorInfo();
+          if (inform) {
+            fprintf(outfp, "MatInfo: %s\n", inform);
+          }
+        }
+      }
+
       if (k % 10 == 0 || output_level > 0) {
         fprintf(outfp,
                 "\n%4s %4s %4s %4s %7s %7s %7s %12s %7s %7s %7s "
@@ -4599,13 +4608,6 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
                 ParOptRealPart(fobj), max_prime, max_infeas, max_dual,
                 barrier_param, ParOptRealPart(comp), ParOptRealPart(dm0_prev),
                 rho_penalty_search, info);
-      }
-
-      if (output_level > 0) {
-        const char *inform = mat->getFactorInfo();
-        if (inform) {
-          fprintf(outfp, "MatInfo: %s\n", inform);
-        }
       }
 
       // Flush the buffer so that we can see things immediately

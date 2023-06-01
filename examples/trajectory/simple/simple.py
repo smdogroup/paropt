@@ -149,15 +149,16 @@ p.driver = ParOptTestDriver()
 
 options = {
     "algorithm": "ip",
-    "norm_type": "l2",
-    "output_level": 2,
+    "norm_type": "infinity",
+    "qn_type": "bfgs",
     "qn_subspace_size": 10,
+    "starting_point_strategy": "least_squares_multipliers",
     "qn_update_type": "damped_update",
     "abs_res_tol": 1e-6,
     "barrier_strategy": "monotone",
     "armijo_constant": 1e-5,
+    "penalty_gamma": 100.0,
     "max_major_iters": 500,
-    "penalty_gamma": 2.0e2,
 }
 
 for key in options:

@@ -169,6 +169,9 @@ class ParOptQuasiDefSparseMat : public ParOptQuasiDefMat {
   // Number of variables
   int nvars, nwcon;
 
+  // Number of dense or nearly dense columns in A with over 50 % fill in
+  int ndense;
+
   // Non-zero pattern of the Jacobian matrix transpose
   int *colp, *rows;
   ParOptScalar *Atvals;

@@ -19,7 +19,7 @@ from dymos.examples.racecar.spline import (
     transform_gates,
 )
 from dymos.examples.racecar.linewidthhelper import linewidth_from_data_units
-from dymos.examples.racecar.tracks import ovaltrack, Monaco
+from dymos.examples.racecar.tracks import ovaltrack
 
 
 # change track here and in curvature.py. Tracks are defined in tracks.py
@@ -45,7 +45,7 @@ p.model.add_subsystem("traj", subsys=traj)
 # Define a Dymos Phase object with GaussLobatto Transcription
 phase = dm.Phase(
     ode_class=CombinedODE,
-    transcription=dm.GaussLobatto(num_segments=50, order=3, compressed=True),
+    transcription=dm.GaussLobatto(num_segments=80, order=3, compressed=True),
 )
 
 traj.add_phase(name="phase0", phase=phase)
@@ -67,6 +67,18 @@ phase.set_time_options(
     duration_ref0=10,
 )
 
+# Set the reference values
+t_ref = 100.0
+n_ref = 4.0
+V_ref = 40.0
+lambda_ref = 0.01
+alpha_ref = 0.15
+omega_ref = 0.3
+ax_ref = 8.0
+ay_ref = 8.0
+delta_ref = 0.04
+thrust_ref = 10.0
+
 # Define states
 phase.add_state(
     "t",
@@ -76,115 +88,118 @@ phase.add_state(
     lower=0.0,
     upper=10000.0,
     rate_source="dt_ds",
-    ref=100,
-)  # time
+    ref=t_ref,
+)
 
-n_ref = 4.0
+# Normal distance to centerline. The bounds on n define the width of the track
 phase.add_state(
     "n",
+    units="m",
     fix_initial=False,
     fix_final=False,
-    units="m",
     upper=4.0,
     lower=-4.0,
     rate_source="dn_ds",
     targets=["n"],
     ref=n_ref,
-)  # normal distance to centerline. The bounds on n define the
-# width of the track
-V_ref = 40.0
+)
+
+# velocity
 phase.add_state(
     "V",
-    fix_initial=False,
-    fix_final=False,
-    units="m/s",
     ref=V_ref,
     ref0=5,
+    units="m/s",
+    fix_initial=False,
+    fix_final=False,
     lower=-500.0,
     upper=500.0,
     rate_source="dV_ds",
     targets=["V"],
-)  # velocity
-alpha_ref = 0.15
+)
+
+# vehicle heading angle with respect to centerline
 phase.add_state(
     "alpha",
+    ref=alpha_ref,
+    units="rad",
     fix_initial=False,
     fix_final=False,
     lower=-0.5 * np.pi,
     upper=0.5 * np.pi,
-    units="rad",
     rate_source="dalpha_ds",
     targets=["alpha"],
-    ref=alpha_ref,
-)  # vehicle heading angle with respect to centerline
-lambda_ref = 0.01
+)
+
+# vehicle slip angle, or angle between the axis of the vehicle
+# and velocity vector (all cars drift a little)
 phase.add_state(
     "lambda",
+    ref=lambda_ref,
+    units="rad",
     fix_initial=False,
     fix_final=False,
     lower=-0.5 * np.pi,
     upper=0.5 * np.pi,
-    units="rad",
     rate_source="dlambda_ds",
     targets=["lambda"],
-    ref=lambda_ref,
-)  # vehicle slip angle, or angle between the axis of the vehicle
-# and velocity vector (all cars drift a little)
-omega_ref = 0.3
+)
+
+# yaw rate
 phase.add_state(
     "omega",
+    ref=omega_ref,
+    units="rad/s",
     fix_initial=False,
     fix_final=False,
     lower=-30.0,
     upper=30.0,
-    units="rad/s",
     rate_source="domega_ds",
     targets=["omega"],
-    ref=omega_ref,
-)  # yaw rate
-ax_ref = 8
+)
+
+# longitudinal acceleration
 phase.add_state(
     "ax",
+    ref=ax_ref,
+    units="m/s**2",
     fix_initial=False,
     fix_final=False,
     lower=-100.0,
     upper=100.0,
-    units="m/s**2",
     rate_source="dax_ds",
     targets=["ax"],
-    ref=ax_ref,
-)  # longitudinal acceleration
-ay_ref = 8
+)
+
+# Lateral acceleration
 phase.add_state(
     "ay",
+    ref=ay_ref,
+    units="m/s**2",
     fix_initial=False,
     fix_final=False,
     lower=-100.0,
     upper=100.0,
-    units="m/s**2",
     rate_source="day_ds",
     targets=["ay"],
-    ref=ay_ref,
-)  # lateral acceleration
+)
 
 # Define Controls
 
 # steering angle
-delta_ref = 0.04
 phase.add_control(
     name="delta",
+    ref=delta_ref,
     units="rad",
     fix_initial=False,
     fix_final=False,
     lower=-0.5 * np.pi,
     upper=0.5 * np.pi,
-    ref=delta_ref,
     rate_continuity=True,
 )
 
 # the thrust controls the longitudinal force of the rear tires and is positive
 # while accelerating, negative while braking
-thrust_ref = 10.0
 phase.add_control(
     name="thrust",
     ref=thrust_ref,
@@ -209,6 +224,7 @@ phase.add_path_constraint("c_fl", upper=1.0)
 
 # Some of the vehicle design parameters are available to set here. Other parameters can
 # be found in their respective ODE files.
+# vehicle mass
 phase.add_parameter(
     "M",
     val=800.0,
@@ -216,25 +232,37 @@ phase.add_parameter(
     opt=False,
     targets=["car.M", "tire.M", "tireconstraint.M", "normal.M"],
     static_target=True,
-)  # vehicle mass
+)
+
+# brake bias
 phase.add_parameter(
     "beta", val=0.62, units=None, opt=False, targets=["tire.beta"], static_target=True
-)  # brake bias
+)
+
+# center of pressure location
 phase.add_parameter(
     "CoP", val=1.6, units="m", opt=False, targets=["normal.CoP"], static_target=True
-)  # center of pressure location
+)
+
+# center of gravity height
 phase.add_parameter(
     "h", val=0.3, units="m", opt=False, targets=["normal.h"], static_target=True
-)  # center of gravity height
+)
+
+# roll stiffness
 phase.add_parameter(
     "chi", val=0.5, units=None, opt=False, targets=["normal.chi"], static_target=True
-)  # roll stiffness
+)
+
+# downforce coefficient*area
 phase.add_parameter(
     "ClA", val=4.0, units="m**2", opt=False, targets=["normal.ClA"], static_target=True
-)  # downforce coefficient*area
+)
+
+# drag coefficient*area
 phase.add_parameter(
     "CdA", val=2.0, units="m**2", opt=False, targets=["car.CdA"], static_target=True
-)  # drag coefficient*area
+)
 
 # Minimize final time.
 # note that we use the 'state' time instead of Dymos 'time'
@@ -245,61 +273,36 @@ phase.add_timeseries_output("*")
 phase.add_timeseries_output("t", output_name="time")
 
 # Link the states at the start and end of the phase in order to ensure a continous lap
-# traj.link_phases(
-#     phases=["phase0", "phase0"],
-#     vars=["V", "n", "alpha", "omega", "lambda", "ax", "ay"],
-#     locs=("final", "initial"))
-
 traj.link_phases(
     phases=["phase0", "phase0"],
-    linear=True,
-    vars="V",
-    ref=V_ref,
+    vars=["V", "n", "alpha", "omega", "lambda", "ax", "ay"],
     locs=["final", "initial"],
-)
-traj.link_phases(
-    phases=["phase0", "phase0"],
-    linear=True,
-    vars="n",
-    ref=n_ref,
-    locs=["final", "initial"],
-)
-traj.link_phases(
-    phases=["phase0", "phase0"],
-    linear=True,
-    vars="alpha",
-    ref=alpha_ref,
-    locs=["final", "initial"],
-)
-traj.link_phases(
-    phases=["phase0", "phase0"],
-    linear=True,
-    vars="omega",
-    ref=omega_ref,
-    locs=["final", "initial"],
-)
-traj.link_phases(
-    phases=["phase0", "phase0"],
-    linear=True,
-    vars="lambda",
-    ref=lambda_ref,
-    locs=["final", "initial"],
-)
-traj.link_phases(
-    phases=["phase0", "phase0"],
-    linear=True,
-    vars="ax",
-    ref=ax_ref,
-    locs=["final", "initial"],
-)
-traj.link_phases(
-    phases=["phase0", "phase0"],
-    linear=True,
-    vars="ay",
-    ref=ay_ref,
-    locs=["final", "initial"],
+    connected=True,
 )
 
+# Set up the optimization driver
+p.driver = ParOptTestDriver()
+
+options = {
+    "algorithm": "ip",
+    "norm_type": "infinity",
+    "qn_type": "bfgs",
+    "qn_subspace_size": 10,
+    "starting_point_strategy": "least_squares_multipliers",
+    "qn_update_type": "damped_update",
+    "abs_res_tol": 1e-6,
+    "barrier_strategy": "monotone",
+    "armijo_constant": 1e-5,
+    "penalty_gamma": 100.0,
+    "max_major_iters": 500,
+}
+
+for key in options:
+    p.driver.options[key] = options[key]
+
+# Allow OpenMDAO to automatically determine our sparsity pattern.
+# Doing so can significant speed up the execution of Dymos.
+p.driver.declare_coloring(show_summary=True, show_sparsity=False)
 
 # Setup the problem
 p.setup(check=True)
@@ -325,33 +328,6 @@ p.set_val("traj.phase0.states:t", phase.interp("t", [0.0, 100.0]), units="s")
 # A small amount of thrust can speed up convergence
 p.set_val("traj.phase0.controls:delta", phase.interp("delta", [0.0, 0.0]), units="rad")
 p.set_val("traj.phase0.controls:thrust", phase.interp("thrust", [0.1, 0.1]), units=None)
-
-# Set up the optimization driver
-p.driver = ParOptTestDriver()
-
-p.driver.options["check_sparse_jacobian"] = True
-
-options = {
-    "algorithm": "ip",
-    "output_level": 2,
-    "norm_type": "l2",
-    "qn_type": "bfgs",
-    "qn_subspace_size": 5,
-    "starting_point_strategy": "least_squares_multipliers",
-    "qn_update_type": "damped_update",
-    "abs_res_tol": 1e-6,
-    "barrier_strategy": "monotone",
-    "armijo_constant": 1e-5,
-    "penalty_gamma": 10.0,
-    "max_major_iters": 1000,
-}
-
-for key in options:
-    p.driver.options[key] = options[key]
-
-# Allow OpenMDAO to automatically determine our sparsity pattern.
-# Doing so can significant speed up the execution of Dymos.
-p.driver.declare_coloring(show_summary=True, show_sparsity=False)
 
 p.run_driver()
 print("Optimization finished")

@@ -460,6 +460,7 @@ class ParOptTestDriver(Driver):
 
         if self.options["check_sparse_jacobian"]:
             self.check_sparse_jacobian()
+            exit(0)
 
         # Take only the options declared from ParOpt
         info = ParOpt.getOptionsInfo()

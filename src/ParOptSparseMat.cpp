@@ -244,6 +244,14 @@ ParOptQuasiDefSparseMat::ParOptQuasiDefSparseMat(ParOptSparseProblem *problem) {
   rows = new int[rowp[nwcon]];
   ParOptSparseTranspose(nwcon, nvars, rowp, cols, NULL, colp, rows, NULL);
 
+  // Count up the number of dense columns
+  ndense = 0;
+  for (int i = 0; i < nvars; i++) {
+    if ((colp[i + 1] - colp[i] > 0.5 * nwcon)) {
+      ndense++;
+    }
+  }
+
   int rhs_size = nwcon;
   if (nvars > nwcon) {
     rhs_size = nvars;
@@ -429,9 +437,9 @@ const char *ParOptQuasiDefSparseMat::getFactorInfo() {
     chol->getInfo(&n, &num_snodes, &nnzL);
 
     snprintf(info, sizeof(info),
-             "n %5d nsnodes %5d nnz(K) %7d nnz(L) %7d nnz(L) / nnz(K) %8.4f "
-             "sparsity(L) %8.2e",
-             nwcon, num_snodes, nnzK, nnzL, 1.0 * nnzL / nnzK,
+             "n %5d nsnodes %5d ndense %3d nnz(K) %7d nnz(L) %7d nnz(L) / "
+             "nnz(K) %8.4f sparsity(L) %8.2e",
+             nwcon, num_snodes, ndense, nnzK, nnzL, 1.0 * nnzL / nnzK,
              1.0 * nnzL / (nwcon * (nwcon + 1) / 2));
 
     return info;
