@@ -218,19 +218,6 @@ if args.algorithm == "ip":
         "penalty_gamma": 100.0,
         "max_major_iters": 500,
     }
-
-    # options = {
-    #     "algorithm": "ip",
-    #     "output_level": 2,
-    #     "norm_type": "infinity",
-    #     "qn_subspace_size": 10,
-    #     "qn_update_type": "damped_update",
-    #     "abs_res_tol": 1e-6,
-    #     "barrier_strategy": "monotone",
-    #     "armijo_constant": 1e-5,
-    #     "max_major_iters": 500,
-    #     "penalty_gamma": 2.0e2,
-    # }
 elif args.algorithm == "mma":
     options = {
         "algorithm": "mma",
