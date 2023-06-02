@@ -247,15 +247,16 @@ if __name__ == "__main__":
     # use interior point algorithm
     options = {
         "algorithm": "ip",
+        "norm_type": "infinity",
         "qn_type": "bfgs",
-        "qn_update_type": "damped_update",
         "qn_subspace_size": 10,
+        "starting_point_strategy": "least_squares_multipliers",
+        "qn_update_type": "damped_update",
         "abs_res_tol": 1e-6,
         "barrier_strategy": "monotone",
-        "starting_point_strategy": "affine_step",
-        "output_level": 2,
-        "max_major_iters": 1000,
-        "penalty_gamma": 10.0,
+        "armijo_constant": 1e-5,
+        "penalty_gamma": 100.0,
+        "max_major_iters": 500,
     }
 
     # use trust region algorithm

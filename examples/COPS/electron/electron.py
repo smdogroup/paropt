@@ -130,17 +130,15 @@ if __name__ == "__main__":
     # use interior point algorithm
     options = {
         "algorithm": "ip",
+        "norm_type": "infinity",
         "qn_type": "bfgs",
-        # "qn_update_type": "damped_update",
-        "qn_update_type": "skip_negative_curvature",
-        "qn_diag_type": "yty_over_yts",
-        # "norm_type": "l2",
-        "norm_type": "l1",
         "qn_subspace_size": 10,
+        "starting_point_strategy": "least_squares_multipliers",
+        "qn_update_type": "damped_update",
         "abs_res_tol": 1e-6,
         "barrier_strategy": "monotone",
-        "output_level": 1,
         "armijo_constant": 1e-5,
+        "penalty_gamma": 100.0,
         "max_major_iters": 500,
     }
 
