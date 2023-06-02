@@ -4,7 +4,7 @@ import dymos as dm
 import matplotlib.pyplot as plt
 import argparse
 import numpy
-from test_driver import ParOptTestDriver
+from paropt.paropt_sparse_driver import ParOptSparseDriver
 
 numpy.seterr(all="warn")
 
@@ -186,7 +186,7 @@ phase.add_control(
 )
 
 # Minimize J
-phase.add_objective("J", loc="final")
+phase.add_objective("J", loc="final", ref=10.0)
 
 # Setup the problem
 p.setup(check=True)
@@ -202,7 +202,7 @@ p.set_val(
 p.set_val("traj.phase0.states:J", phase.interp("J", ys=[0, 1]))
 
 # Create the driver
-p.driver = ParOptTestDriver()
+p.driver = ParOptSparseDriver()
 
 if args.algorithm == "ip":
     options = {

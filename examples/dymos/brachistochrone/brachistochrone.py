@@ -4,12 +4,7 @@ import dymos as dm
 from dymos.examples.plotting import plot_results
 from dymos.examples.brachistochrone import BrachistochroneODE
 import matplotlib.pyplot as plt
-import argparse
-
-import sys
-
-sys.path.append("../cart_pole_dymos")
-from test_driver import ParOptTestDriver
+from paropt.paropt_sparse_driver import ParOptSparseDriver
 
 # Initialize the Problem and the optimization driver
 p = om.Problem(model=om.Group())
@@ -85,7 +80,7 @@ p["traj.phase0.states:v"] = phase.interp(ys=[0, 9.9], nodes="state_input")
 p["traj.phase0.controls:theta"] = phase.interp(ys=[5, 100.5], nodes="control_input")
 
 # Create the driver
-p.driver = ParOptTestDriver()
+p.driver = ParOptSparseDriver()
 
 # Allow OpenMDAO to automatically determine our sparsity pattern.
 # Doing so can significant speed up the execution of Dymos.

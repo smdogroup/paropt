@@ -1,12 +1,9 @@
 # Import libraries
-import sys
 import openmdao.api as om
 import numpy as np
 import dymos as dm
 import matplotlib.pyplot as plt
-
-sys.path.append("../cart_pole_dymos")
-from test_driver import ParOptTestDriver
+from paropt.paropt_sparse_driver import ParOptSparseDriver
 
 
 class ODESystem1(om.ExplicitComponent):
@@ -241,22 +238,20 @@ p["traj.phase0.t_duration"] = 3.0
 p["traj.phase0.t_initial"] = 0.0
 
 # Set up the optimization driver
-p.driver = ParOptTestDriver()
+p.driver = ParOptSparseDriver()
 
 options = {
     "algorithm": "ip",
-    "tr_linfty_tol": 1e-30,
-    "tr_l1_tol": 1e-30,
-    "output_level": 2,
+    "norm_type": "infinity",
     "qn_type": "bfgs",
-    "max_major_iters": 500,
-    "tr_max_iterations": 200,
+    "qn_subspace_size": 10,
+    "starting_point_strategy": "least_squares_multipliers",
     "qn_update_type": "damped_update",
-    "penalty_gamma": 1e3,
-    "tr_min_size": 1e-2,
-    "tr_adaptive_gamma_update": False,
-    "tr_accept_step_strategy": "penalty_method",
-    "tr_use_soc": False,
+    "abs_res_tol": 1e-6,
+    "barrier_strategy": "monotone",
+    "armijo_constant": 1e-5,
+    "penalty_gamma": 100.0,
+    "max_major_iters": 500,
 }
 
 for key in options:

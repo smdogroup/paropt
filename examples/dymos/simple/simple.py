@@ -3,11 +3,7 @@ import openmdao.api as om
 import dymos as dm
 import matplotlib.pyplot as plt
 import argparse
-
-import sys
-
-sys.path.append("../cart_pole_dymos")
-from test_driver import ParOptTestDriver
+from paropt.paropt_sparse_driver import ParOptSparseDriver
 
 
 class SimpleODE(om.ExplicitComponent):
@@ -145,7 +141,7 @@ p.set_val(
 )
 
 # Create the driver
-p.driver = ParOptTestDriver()
+p.driver = ParOptSparseDriver()
 
 options = {
     "algorithm": "ip",

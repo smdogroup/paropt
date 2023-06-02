@@ -1,8 +1,3 @@
-import sys
-
-sys.path.append("../cart_pole_dymos")
-from test_driver import ParOptTestDriver
-
 import numpy as np
 import openmdao.api as om
 import dymos as dm
@@ -10,17 +5,10 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 from dymos.examples.racecar.combinedODE import CombinedODE
-from dymos.examples.racecar.spline import (
-    get_spline,
-    get_track_points,
-    get_gate_normals,
-    reverse_transform_gates,
-    set_gate_displacements,
-    transform_gates,
-)
-from dymos.examples.racecar.linewidthhelper import linewidth_from_data_units
+from dymos.examples.racecar.spline import get_spline, get_track_points
 from dymos.examples.racecar.tracks import ovaltrack
 
+from paropt.paropt_sparse_driver import ParOptSparseDriver
 
 # change track here and in curvature.py. Tracks are defined in tracks.py
 track = ovaltrack
@@ -82,18 +70,19 @@ thrust_ref = 10.0
 # Define states
 phase.add_state(
     "t",
+    ref=t_ref,
+    units="s",
     fix_initial=True,
     fix_final=False,
-    units="s",
     lower=0.0,
     upper=10000.0,
     rate_source="dt_ds",
-    ref=t_ref,
 )
 
 # Normal distance to centerline. The bounds on n define the width of the track
 phase.add_state(
     "n",
+    ref=n_ref,
     units="m",
     fix_initial=False,
     fix_final=False,
@@ -101,7 +90,6 @@ phase.add_state(
     lower=-4.0,
     rate_source="dn_ds",
     targets=["n"],
-    ref=n_ref,
 )
 
 # velocity
@@ -281,7 +269,7 @@ traj.link_phases(
 )
 
 # Set up the optimization driver
-p.driver = ParOptTestDriver()
+p.driver = ParOptSparseDriver()
 
 options = {
     "algorithm": "ip",
@@ -341,134 +329,6 @@ delta = p.get_val("traj.phase0.timeseries.controls:delta")
 power = p.get_val("traj.phase0.timeseries.power", units="W")
 
 print("Plotting")
-
-# We know the optimal distance from the centerline (n). To transform this into the racing
-# line we fit a spline to the displaced points. This will let us plot the racing line in
-# x/y coordinates
-normals = get_gate_normals(finespline, slope)
-newgates = []
-newnormals = []
-newn = []
-for i in range(len(n)):
-    index = ((s[i] / s_final) * np.array(finespline).shape[1]).astype(
-        int
-    )  # interpolation to find the appropriate index
-    if index[0] == np.array(finespline).shape[1]:
-        index[0] = np.array(finespline).shape[1] - 1
-    if i > 0 and s[i] == s[i - 1]:
-        continue
-    else:
-        newgates.append([finespline[0][index[0]], finespline[1][index[0]]])
-        newnormals.append(normals[index[0]])
-        newn.append(n[i][0])
-
-newgates = reverse_transform_gates(newgates)
-displaced_gates = set_gate_displacements(newn, newgates, newnormals)
-displaced_gates = np.array((transform_gates(displaced_gates)))
-
-npoints = 1000
-# fit the racing line spline to npoints
-displaced_spline, gates, gatesd, curv, slope = get_spline(
-    displaced_gates, 1 / npoints, 0
-)
-
-plt.rcParams.update({"font.size": 12})
-
-
-def plot_track_with_data(state, s):
-    # this function plots the track
-    state = np.array(state)[:, 0]
-    s = np.array(s)[:, 0]
-    s_new = np.linspace(0, s_final, npoints)
-
-    # Colormap and norm of the track plot
-    cmap = mpl.cm.get_cmap("viridis")
-    norm = mpl.colors.Normalize(vmin=np.amin(state), vmax=np.amax(state))
-
-    fig, ax = plt.subplots(figsize=(15, 6))
-    # establishes the figure axis limits needed for plotting the track below
-    plt.plot(
-        displaced_spline[0], displaced_spline[1], linewidth=0.1, solid_capstyle="butt"
-    )
-
-    plt.axis("equal")
-    # the linewidth is set in order to match the width of the track
-    plt.plot(
-        finespline[0],
-        finespline[1],
-        "k",
-        linewidth=linewidth_from_data_units(8.5, ax),
-        solid_capstyle="butt",
-    )
-    plt.plot(
-        finespline[0],
-        finespline[1],
-        "w",
-        linewidth=linewidth_from_data_units(8, ax),
-        solid_capstyle="butt",
-    )  # 8 is the width, and the 8.5 wide line draws 'kerbs'
-    plt.xlabel("x (m)")
-    plt.ylabel("y (m)")
-
-    # plot spline with color
-    for i in range(1, len(displaced_spline[0])):
-        s_spline = s_new[i]
-        index_greater = np.argwhere(s >= s_spline)[0][0]
-        index_less = np.argwhere(s < s_spline)[-1][0]
-
-        x = s_spline
-        xp = np.array([s[index_less], s[index_greater]])
-        fp = np.array([state[index_less], state[index_greater]])
-        interp_state = np.interp(
-            x, xp, fp
-        )  # interpolate the given state to calculate the color
-
-        # calculate the appropriate color
-        state_color = norm(interp_state)
-        color = cmap(state_color)
-        color = mpl.colors.to_hex(color)
-
-        # the track plot consists of thousands of tiny lines:
-        point = [displaced_spline[0][i], displaced_spline[1][i]]
-        prevpoint = [displaced_spline[0][i - 1], displaced_spline[1][i - 1]]
-        if i <= 5 or i == len(displaced_spline[0]) - 1:
-            plt.plot(
-                [point[0], prevpoint[0]],
-                [point[1], prevpoint[1]],
-                color,
-                linewidth=linewidth_from_data_units(1.5, ax),
-                solid_capstyle="butt",
-                antialiased=True,
-            )
-        else:
-            plt.plot(
-                [point[0], prevpoint[0]],
-                [point[1], prevpoint[1]],
-                color,
-                linewidth=linewidth_from_data_units(1.5, ax),
-                solid_capstyle="projecting",
-                antialiased=True,
-            )
-
-    clb = plt.colorbar(
-        mpl.cm.ScalarMappable(norm=norm, cmap=cmap), fraction=0.02, ax=ax, pad=0.04
-    )  # add colorbar
-
-    if np.array_equal(state, V[:, 0]):
-        clb.set_label("Velocity (m/s)")
-    elif np.array_equal(state, thrust[:, 0]):
-        clb.set_label("Thrust")
-    elif np.array_equal(state, delta[:, 0]):
-        clb.set_label("Delta")
-
-    plt.tight_layout()
-    plt.grid()
-
-
-# Create the plots
-plot_track_with_data(V, s)
-plot_track_with_data(thrust, s)
-plot_track_with_data(delta, s)
 
 # Plot the main vehicle telemetry
 fig, axes = plt.subplots(nrows=4, ncols=1, figsize=(15, 8))

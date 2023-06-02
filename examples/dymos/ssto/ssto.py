@@ -1,12 +1,8 @@
-import sys
-
-sys.path.append("../cart_pole_dymos")
-from test_driver import ParOptTestDriver
-
 import numpy as np
 import matplotlib.pyplot as plt
 import openmdao.api as om
 import dymos as dm
+from paropt.paropt_sparse_driver import ParOptSparseDriver
 
 g = 1.61544  # lunar gravity, m/s**2
 
@@ -260,7 +256,7 @@ p["phase0.polynomial_controls:tan_theta"] = [[0.5 * np.pi], [0.0]]
 
 
 # Set the optimizer
-p.driver = ParOptTestDriver()
+p.driver = ParOptSparseDriver()
 
 options = {
     "algorithm": "ip",

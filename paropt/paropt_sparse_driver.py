@@ -50,7 +50,7 @@ class ParOptSparseProblem(ParOpt.Problem):
         return fail
 
 
-class ParOptTestDriver(Driver):
+class ParOptSparseDriver(Driver):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 

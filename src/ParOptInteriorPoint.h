@@ -245,14 +245,20 @@ class ParOptInteriorPoint : public ParOptBase {
   void initLeastSquaresMultipliers(ParOptVars &vars, ParOptVars &res,
                                    ParOptVec *yx);
   void initAffineStepMultipliers(ParOptVars &vars, ParOptVars &res,
-                                 ParOptVars &step, ParOptNormType norm_type);
+                                 ParOptVars &step);
 
   // Compute the negative of the KKT residuals - return
   // the maximum primal, dual residuals and the max infeasibility
-  void computeKKTRes(ParOptVars &vars, double barrier, ParOptVars &res,
-                     ParOptNormType norm_type, double *max_prime,
-                     double *max_dual, double *max_infeas,
-                     double *res_norm = NULL);
+  void computeKKTRes(ParOptVars &vars, double barrier, ParOptVars &res);
+
+  // Add the step contributions to the residual
+  void addKKTResStep(ParOptVars &vars, ParOptVars &step, ParOptVars &res,
+                     ParOptVec *xtmp, int inexact_newton_step);
+
+  // Compute the residual norm
+  void computeResNorm(ParOptNormType norm_type, ParOptVars &res,
+                      double *max_prime, double *max_dual, double *max_infeas,
+                      double *res_norm = NULL);
 
   // Add the corrector components to the residual to compute the MPC step
   void addMehrotraCorrectorResidual(ParOptVars &step, ParOptVars &res);
@@ -299,7 +305,7 @@ class ParOptInteriorPoint : public ParOptBase {
 
   // Check that the KKT step is computed correctly
   void checkKKTStep(ParOptVars &vars, ParOptVars &step, ParOptVars &res,
-                    int iteration, int is_newton);
+                    ParOptVec *xtmp, int iteration, int is_newton);
 
   // Compute the maximum step length to maintain positivity of
   // all components of the design variables
@@ -369,8 +375,11 @@ class ParOptInteriorPoint : public ParOptBase {
     ParOptVars();
     ~ParOptVars();
     void initialize(ParOptProblem *prob);
+    void add(ParOptVars &update);
+    void subtract(ParOptVars &update);
 
     // The variables in the optimization problem
+    int ncon;
     ParOptVec *x;               // The design point
     ParOptVec *zl, *zu;         // Multipliers for the upper/lower bounds
     ParOptScalar *z, *zs, *zt;  // Multipliers for the dense constraints
@@ -404,6 +413,7 @@ class ParOptInteriorPoint : public ParOptBase {
   ParOptVars variables;  // The solution variables
   ParOptVars residual;   // The residual variables
   ParOptVars update;     // The step variables
+  ParOptVars refine;     // The variables used in iterative refinement
 
   // Temporary vectors for internal usage
   ParOptVec *xtemp;
