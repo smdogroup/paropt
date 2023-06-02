@@ -270,7 +270,7 @@ class TopoAnalysis(ParOpt.Problem):
         self.K = K.tocsc()
 
         # Solve the sparse linear system for the load vector
-        self.LU = linalg.dsolve.factorized(self.K)
+        self.LU = linalg.factorized(self.K)
 
         # Compute the solution to the linear system K*u = f
         self.u = self.LU(self.f)
@@ -369,7 +369,7 @@ class TopoAnalysis(ParOpt.Problem):
         self.K = K.tocsc()
 
         # Solve the sparse linear system for the load vector
-        self.LU = linalg.dsolve.factorized(self.K)
+        self.LU = linalg.factorized(self.K)
 
         # Compute the solution to the linear system K*u = f
         self.u = self.LU(self.f)
