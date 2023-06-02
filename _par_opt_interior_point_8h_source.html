@@ -78,149 +78,149 @@ $(function() {
 <div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="preprocessor">#include &quot;ParOptProblem.h&quot;</span></div>
 <div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="preprocessor">#include &quot;ParOptQuasiNewton.h&quot;</span></div>
 <div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;<span class="preprocessor">#include &quot;ParOptScaledQuasiNewton.h&quot;</span></div>
-<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="preprocessor">#include &quot;ParOptVec.h&quot;</span></div>
-<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160; </div>
-<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="comment">/*</span></div>
-<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="comment">  Different options for use within ParOpt</span></div>
-<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="comment">*/</span></div>
-<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="keyword">enum</span> ParOptNormType { PAROPT_INFTY_NORM, PAROPT_L1_NORM, PAROPT_L2_NORM };</div>
-<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160; </div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="keyword">enum</span> ParOptQuasiNewtonType {</div>
-<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;  PAROPT_BFGS,</div>
-<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;  PAROPT_SR1,</div>
-<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;  PAROPT_NO_HESSIAN_APPROX</div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;};</div>
-<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160; </div>
-<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;<span class="keyword">enum</span> ParOptBarrierStrategy {</div>
-<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;  PAROPT_MONOTONE,</div>
-<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;  PAROPT_MEHROTRA,</div>
-<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;  PAROPT_MEHROTRA_PREDICTOR_CORRECTOR,</div>
-<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;  PAROPT_COMPLEMENTARITY_FRACTION</div>
-<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;};</div>
-<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160; </div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;<span class="keyword">enum</span> ParOptStartingPointStrategy {</div>
-<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;  PAROPT_NO_START_STRATEGY,</div>
-<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;  PAROPT_LEAST_SQUARES_MULTIPLIERS,</div>
-<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;  PAROPT_AFFINE_STEP</div>
-<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;};</div>
-<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160; </div>
-<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;<span class="comment">/*</span></div>
-<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;<span class="comment">  ParOptInteriorPoint is a parallel interior-point optimizer</span></div>
-<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;<span class="comment">  implemented in C++ for large-scale constrained optimization.</span></div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;<span class="comment">  This code uses an interior-point method to perform gradient-based</span></div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;<span class="comment">  design optimization. The KKT system is solved using a bordered</span></div>
-<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;<span class="comment">  solution technique that may suffer from numerical precision issues</span></div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;<span class="comment">  under some circumstances, but is well-suited for large-scale</span></div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;<span class="comment">  applications.</span></div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;<span class="comment">  The optimization problem is formulated as follows:</span></div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;<span class="comment">  min f(x)</span></div>
-<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;<span class="comment">  s.t.  c(x) &gt;= 0</span></div>
-<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;<span class="comment">  s.t.  cw(x) &gt;= 0</span></div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;<span class="comment">  s.t.  lb &lt;= x &lt;= ub</span></div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;<span class="comment">  where c(x) is a small (&lt; 100) vector of constraints, cw(x) is a</span></div>
-<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;<span class="comment">  (possibly) nonlinear constraint with a special sparse Jacobian</span></div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;<span class="comment">  structure and lb/ub are the lower and upper bounds,</span></div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;<span class="comment">  respectively. The perturbed KKT conditions for this problem are:</span></div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;<span class="comment">  g(x) - A(x)^{T}*z - Aw^{T}*zw - zl + zu = 0</span></div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;<span class="comment">  gamma_s + z - zs = 0</span></div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;<span class="comment">  gamma_t - z - zt = 0</span></div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;<span class="comment">  c(x) - s = 0</span></div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;<span class="comment">  cw(x) - sw = 0</span></div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;<span class="comment">  S*z - mu*e = 0</span></div>
-<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;<span class="comment">  T*zt - mu*e = 0</span></div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;<span class="comment">  Sw*zw - mu*e = 0</span></div>
-<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;<span class="comment">  (X - Xl)*zl - mu*e = 0</span></div>
-<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;<span class="comment">  (Xu - X)*zu - mu*e = 0</span></div>
-<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;<span class="comment">  where g = grad f(x), A(x) = grad c(x) and Aw(x) = grad cw(x). The</span></div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;<span class="comment">  Lagrange multipliers are z, zw, zl, and zu, respectively.</span></div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;<span class="comment">  At each step of the optimization, we compute a solution to the</span></div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;<span class="comment">  linear system above, using:</span></div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;<span class="comment">  ||K(q)*p + r(q)|| &lt;= eta*||r(q)||</span></div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;<span class="comment">  where q are all the optimization variables, r(q) are the perturbed</span></div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;<span class="comment">  KKT residuals and K(q) is either an approximate or exact</span></div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;<span class="comment">  linearization of r(q). The parameter eta is a forcing term that</span></div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;<span class="comment">  controls how tightly the linearization is solved. The inexact</span></div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;<span class="comment">  solution p is a search direction that is subsequently used in a line</span></div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;<span class="comment">  search.</span></div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;<span class="comment">  During the early stages of the optimization, we use a quasi-Newton</span></div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;<span class="comment">  Hessian approximations based either on compact limited-memory BFGS</span></div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;<span class="comment">  or SR1 updates. In this case, we can compute an exact solution to</span></div>
-<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;<span class="comment">  the update equations using the Sherman-Morrison-Woodbury formula.</span></div>
-<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;<span class="comment">  When these formula are used, we can represent the update formula as</span></div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;<span class="comment">  follows:</span></div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;<span class="comment">  B = b0*I - Z*M*Z^{T}</span></div>
-<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;<span class="comment">  where b0 is a scalar, M is a small matrix and Z is a matrix with</span></div>
-<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;<span class="comment">  small column dimension that is stored as a series of vectors. The</span></div>
-<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;<span class="comment">  form of these matrices depends on whether the limited-memory BFGS or</span></div>
-<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;<span class="comment">  SR1 technique is used.</span></div>
-<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;<span class="comment">  After certain transition criteria are met, we employ an exact</span></div>
-<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;<span class="comment">  Hessian, accessible through Hessian-vector products, and instead</span></div>
-<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;<span class="comment">  solve exact linearization inexactly using a forcing parameter such</span></div>
-<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;<span class="comment">  that eta &gt; 0. We use this technique because the Hessian-vector</span></div>
-<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;<span class="comment">  products are costly to compute and may not provide a benefit early</span></div>
-<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;<span class="comment">  in the optimization.</span></div>
-<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;<span class="comment">  In the inexact phase, we select the forcing parameter based on the</span></div>
-<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;<span class="comment">  work of Eisenstat and Walker as follows:</span></div>
-<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;<span class="comment">  eta = gamma*(||r(q_{k})||_{infty}/||r(q_{k-1})||_{infty})^{alpha}</span></div>
-<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;<span class="comment">  where gamma and alpha are parameters such that 0 &lt; gamma &lt;= 1.0, and</span></div>
-<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;<span class="comment">  1 &lt; alpha &lt;= 2.  The transition from the approximate to the inexact</span></div>
-<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;<span class="comment">  optimization phase depends on two factors:</span></div>
-<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;<span class="comment">  1. The KKT residuals measured in the infinity norm ||r(q)||_{infty}</span></div>
-<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;<span class="comment">  must be reduced below a specified tolerance</span></div>
-<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;<span class="comment">  2. The eta parameter predicted by the Eisenstat-Walker formula must</span></div>
-<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;<span class="comment">  be below some maximum tolerance.</span></div>
-<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;<span class="comment"></span> </div>
-<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;<span class="comment">  Once both of these criteria are satisifed, we compute updates using</span></div>
-<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;<span class="comment">  the exact linearization with right-preconditioned GMRES scheme. This</span></div>
-<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;<span class="comment">  method utilizes the limited-memory BFGS or SR1 quasi-Newton</span></div>
-<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;<span class="comment">  approximation as a preconditioner. The preconditioned operator,</span></div>
-<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;<span class="comment">  K*K_{B}^{-1}, takes a special form where only entries associated</span></div>
-<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;<span class="comment">  with the design vector need to be stored.</span></div>
-<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;<span class="comment">*/</span></div>
-<div class="line"><a name="l00127"></a><span class="lineno"><a class="line" href="class_par_opt_interior_point.html">  127</a></span>&#160;<span class="keyword">class </span><a class="code" href="class_par_opt_interior_point.html">ParOptInteriorPoint</a> : <span class="keyword">public</span> <a class="code" href="class_par_opt_base.html">ParOptBase</a> {</div>
-<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160; <span class="keyword">public</span>:</div>
-<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;  <a class="code" href="class_par_opt_interior_point.html#a260b8c3fa111ae1cdcf87a5ae1b0b23f">ParOptInteriorPoint</a>(<a class="code" href="class_par_opt_problem.html">ParOptProblem</a> *_prob, <a class="code" href="class_par_opt_options.html">ParOptOptions</a> *_options = NULL);</div>
-<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;  <a class="code" href="class_par_opt_interior_point.html#ae4d829a5ece19b7ce649712ac003ae0e">~ParOptInteriorPoint</a>();</div>
-<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160; </div>
-<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;  <span class="comment">// Set the default arguments and values</span></div>
-<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160;  <span class="comment">// ------------------------------------</span></div>
-<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;  <span class="keyword">static</span> <span class="keywordtype">void</span> <a class="code" href="class_par_opt_interior_point.html#abe37182b854ece6269fc786e461329b7">addDefaultOptions</a>(<a class="code" href="class_par_opt_options.html">ParOptOptions</a> *options);</div>
-<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;  <a class="code" href="class_par_opt_options.html">ParOptOptions</a> *<a class="code" href="class_par_opt_interior_point.html#a4ba31f240bbd6630e8142eb57e769b9b">getOptions</a>();</div>
-<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160; </div>
-<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160;  <span class="comment">// Retrieve the optimization problem class</span></div>
-<div class="line"><a name="l00138"></a><span class="lineno">  138</span>&#160;  <span class="comment">// ---------------------------------------</span></div>
-<div class="line"><a name="l00139"></a><span class="lineno">  139</span>&#160;  <a class="code" href="class_par_opt_problem.html">ParOptProblem</a> *getOptProblem() { <span class="keywordflow">return</span> prob; }</div>
-<div class="line"><a name="l00140"></a><span class="lineno">  140</span>&#160; </div>
-<div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160;  <span class="comment">// Reset the problem instance - problem sizes must remain the same</span></div>
-<div class="line"><a name="l00142"></a><span class="lineno">  142</span>&#160;  <span class="comment">// ---------------------------------------------------------------</span></div>
-<div class="line"><a name="l00143"></a><span class="lineno">  143</span>&#160;  <span class="keywordtype">void</span> <a class="code" href="class_par_opt_interior_point.html#a03a14f51e90c0ca161d5b0a3bb07ad3a">resetProblemInstance</a>(<a class="code" href="class_par_opt_problem.html">ParOptProblem</a> *_prob);</div>
-<div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160; </div>
-<div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160;  <span class="comment">// Perform the optimization</span></div>
-<div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160;  <span class="comment">// ------------------------</span></div>
-<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;  <span class="keywordtype">int</span> <a class="code" href="class_par_opt_interior_point.html#aedc8fd27ea31aec52b0d536b68823397">optimize</a>(<span class="keyword">const</span> <span class="keywordtype">char</span> *checkpoint = NULL);</div>
-<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160; </div>
-<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;  <span class="comment">// Get the problem sizes from the underlying problem class</span></div>
-<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;  <span class="comment">// -------------------------------------------------------</span></div>
-<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;  <span class="keywordtype">void</span> <a class="code" href="class_par_opt_interior_point.html#a6590bb83011fce885fca5582e25f3708">getProblemSizes</a>(<span class="keywordtype">int</span> *_nvars, <span class="keywordtype">int</span> *_ncon, <span class="keywordtype">int</span> *_inequality, <span class="keywordtype">int</span> *_nwcon,</div>
-<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;                       <span class="keywordtype">int</span> *_nwblock);</div>
+<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="preprocessor">#include &quot;ParOptSparseMat.h&quot;</span></div>
+<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="preprocessor">#include &quot;ParOptVec.h&quot;</span></div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160; </div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="comment">/*</span></div>
+<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="comment">  Different options for use within ParOpt</span></div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="comment">*/</span></div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="keyword">enum</span> ParOptNormType { PAROPT_INFTY_NORM, PAROPT_L1_NORM, PAROPT_L2_NORM };</div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160; </div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="keyword">enum</span> ParOptQuasiNewtonType {</div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;  PAROPT_BFGS,</div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;  PAROPT_SR1,</div>
+<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;  PAROPT_NO_HESSIAN_APPROX</div>
+<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;};</div>
+<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160; </div>
+<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;<span class="keyword">enum</span> ParOptBarrierStrategy {</div>
+<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;  PAROPT_MONOTONE,</div>
+<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;  PAROPT_MEHROTRA,</div>
+<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;  PAROPT_MEHROTRA_PREDICTOR_CORRECTOR,</div>
+<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;  PAROPT_COMPLEMENTARITY_FRACTION</div>
+<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;};</div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160; </div>
+<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;<span class="keyword">enum</span> ParOptStartingPointStrategy {</div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;  PAROPT_NO_START_STRATEGY,</div>
+<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;  PAROPT_LEAST_SQUARES_MULTIPLIERS,</div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;  PAROPT_AFFINE_STEP</div>
+<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;};</div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160; </div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;<span class="comment">/*</span></div>
+<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;<span class="comment">  ParOptInteriorPoint is a parallel interior-point optimizer</span></div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;<span class="comment">  implemented in C++ for large-scale constrained optimization.</span></div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;<span class="comment">  This code uses an interior-point method to perform gradient-based</span></div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;<span class="comment">  design optimization. The KKT system is solved using a bordered</span></div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;<span class="comment">  solution technique that may suffer from numerical precision issues</span></div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;<span class="comment">  under some circumstances, but is well-suited for large-scale</span></div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="comment">  applications.</span></div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;<span class="comment">  The optimization problem is formulated as follows:</span></div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;<span class="comment">  min f(x)</span></div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;<span class="comment">  s.t.  c(x) &gt;= 0</span></div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;<span class="comment">  s.t.  cw(x) &gt;= 0</span></div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;<span class="comment">  s.t.  lb &lt;= x &lt;= ub</span></div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;<span class="comment">  where c(x) is a small (&lt; 100) vector of constraints, cw(x) is a</span></div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;<span class="comment">  (possibly) nonlinear constraint with a special sparse Jacobian</span></div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;<span class="comment">  structure and lb/ub are the lower and upper bounds,</span></div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;<span class="comment">  respectively. The perturbed KKT conditions for this problem are:</span></div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;<span class="comment">  g(x) - A(x)^{T}*z - Aw^{T}*zw - zl + zu = 0</span></div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;<span class="comment">  gamma_s + z - zs = 0</span></div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;<span class="comment">  gamma_t - z - zt = 0</span></div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;<span class="comment">  c(x) - s + t = 0</span></div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;<span class="comment">  cw(x) - sw = 0</span></div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;<span class="comment">  S*z - mu*e = 0</span></div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;<span class="comment">  T*zt - mu*e = 0</span></div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;<span class="comment">  Sw*zw - mu*e = 0</span></div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;<span class="comment">  (X - Xl)*zl - mu*e = 0</span></div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;<span class="comment">  (Xu - X)*zu - mu*e = 0</span></div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;<span class="comment">  where g = grad f(x), A(x) = grad c(x) and Aw(x) = grad cw(x). The</span></div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;<span class="comment">  Lagrange multipliers are z, zw, zl, and zu, respectively.</span></div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;<span class="comment">  At each step of the optimization, we compute a solution to the</span></div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;<span class="comment">  linear system above, using:</span></div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;<span class="comment">  ||K(q)*p + r(q)|| &lt;= eta*||r(q)||</span></div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;<span class="comment">  where q are all the optimization variables, r(q) are the perturbed</span></div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;<span class="comment">  KKT residuals and K(q) is either an approximate or exact</span></div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;<span class="comment">  linearization of r(q). The parameter eta is a forcing term that</span></div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;<span class="comment">  controls how tightly the linearization is solved. The inexact</span></div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;<span class="comment">  solution p is a search direction that is subsequently used in a line</span></div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;<span class="comment">  search.</span></div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;<span class="comment">  During the early stages of the optimization, we use a quasi-Newton</span></div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;<span class="comment">  Hessian approximations based either on compact limited-memory BFGS</span></div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;<span class="comment">  or SR1 updates. In this case, we can compute an exact solution to</span></div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;<span class="comment">  the update equations using the Sherman-Morrison-Woodbury formula.</span></div>
+<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;<span class="comment">  When these formula are used, we can represent the update formula as</span></div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;<span class="comment">  follows:</span></div>
+<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;<span class="comment">  B = b0*I - Z*M*Z^{T}</span></div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;<span class="comment">  where b0 is a scalar, M is a small matrix and Z is a matrix with</span></div>
+<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;<span class="comment">  small column dimension that is stored as a series of vectors. The</span></div>
+<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;<span class="comment">  form of these matrices depends on whether the limited-memory BFGS or</span></div>
+<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;<span class="comment">  SR1 technique is used.</span></div>
+<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;<span class="comment">  After certain transition criteria are met, we employ an exact</span></div>
+<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;<span class="comment">  Hessian, accessible through Hessian-vector products, and instead</span></div>
+<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;<span class="comment">  solve exact linearization inexactly using a forcing parameter such</span></div>
+<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;<span class="comment">  that eta &gt; 0. We use this technique because the Hessian-vector</span></div>
+<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;<span class="comment">  products are costly to compute and may not provide a benefit early</span></div>
+<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;<span class="comment">  in the optimization.</span></div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;<span class="comment">  In the inexact phase, we select the forcing parameter based on the</span></div>
+<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;<span class="comment">  work of Eisenstat and Walker as follows:</span></div>
+<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;<span class="comment">  eta = gamma*(||r(q_{k})||_{infty}/||r(q_{k-1})||_{infty})^{alpha}</span></div>
+<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;<span class="comment">  where gamma and alpha are parameters such that 0 &lt; gamma &lt;= 1.0, and</span></div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;<span class="comment">  1 &lt; alpha &lt;= 2.  The transition from the approximate to the inexact</span></div>
+<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;<span class="comment">  optimization phase depends on two factors:</span></div>
+<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;<span class="comment">  1. The KKT residuals measured in the infinity norm ||r(q)||_{infty}</span></div>
+<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;<span class="comment">  must be reduced below a specified tolerance</span></div>
+<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;<span class="comment">  2. The eta parameter predicted by the Eisenstat-Walker formula must</span></div>
+<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;<span class="comment">  be below some maximum tolerance.</span></div>
+<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;<span class="comment"></span> </div>
+<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;<span class="comment">  Once both of these criteria are satisifed, we compute updates using</span></div>
+<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;<span class="comment">  the exact linearization with right-preconditioned GMRES scheme. This</span></div>
+<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;<span class="comment">  method utilizes the limited-memory BFGS or SR1 quasi-Newton</span></div>
+<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;<span class="comment">  approximation as a preconditioner. The preconditioned operator,</span></div>
+<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;<span class="comment">  K*K_{B}^{-1}, takes a special form where only entries associated</span></div>
+<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;<span class="comment">  with the design vector need to be stored.</span></div>
+<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;<span class="comment">*/</span></div>
+<div class="line"><a name="l00128"></a><span class="lineno"><a class="line" href="class_par_opt_interior_point.html">  128</a></span>&#160;<span class="keyword">class </span><a class="code" href="class_par_opt_interior_point.html">ParOptInteriorPoint</a> : <span class="keyword">public</span> <a class="code" href="class_par_opt_base.html">ParOptBase</a> {</div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160; <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;  <a class="code" href="class_par_opt_interior_point.html#a260b8c3fa111ae1cdcf87a5ae1b0b23f">ParOptInteriorPoint</a>(<a class="code" href="class_par_opt_problem.html">ParOptProblem</a> *_prob, <a class="code" href="class_par_opt_options.html">ParOptOptions</a> *_options = NULL);</div>
+<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;  <a class="code" href="class_par_opt_interior_point.html#ae4d829a5ece19b7ce649712ac003ae0e">~ParOptInteriorPoint</a>();</div>
+<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160; </div>
+<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160;  <span class="comment">// Set the default arguments and values</span></div>
+<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;  <span class="comment">// ------------------------------------</span></div>
+<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;  <span class="keyword">static</span> <span class="keywordtype">void</span> <a class="code" href="class_par_opt_interior_point.html#abe37182b854ece6269fc786e461329b7">addDefaultOptions</a>(<a class="code" href="class_par_opt_options.html">ParOptOptions</a> *options);</div>
+<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;  <a class="code" href="class_par_opt_options.html">ParOptOptions</a> *<a class="code" href="class_par_opt_interior_point.html#a4ba31f240bbd6630e8142eb57e769b9b">getOptions</a>();</div>
+<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160; </div>
+<div class="line"><a name="l00138"></a><span class="lineno">  138</span>&#160;  <span class="comment">// Retrieve the optimization problem class</span></div>
+<div class="line"><a name="l00139"></a><span class="lineno">  139</span>&#160;  <span class="comment">// ---------------------------------------</span></div>
+<div class="line"><a name="l00140"></a><span class="lineno">  140</span>&#160;  <a class="code" href="class_par_opt_problem.html">ParOptProblem</a> *getOptProblem() { <span class="keywordflow">return</span> prob; }</div>
+<div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160; </div>
+<div class="line"><a name="l00142"></a><span class="lineno">  142</span>&#160;  <span class="comment">// Reset the problem instance - problem sizes must remain the same</span></div>
+<div class="line"><a name="l00143"></a><span class="lineno">  143</span>&#160;  <span class="comment">// ---------------------------------------------------------------</span></div>
+<div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160;  <span class="keywordtype">void</span> <a class="code" href="class_par_opt_interior_point.html#a03a14f51e90c0ca161d5b0a3bb07ad3a">resetProblemInstance</a>(<a class="code" href="class_par_opt_problem.html">ParOptProblem</a> *_prob);</div>
+<div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160; </div>
+<div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160;  <span class="comment">// Perform the optimization</span></div>
+<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;  <span class="comment">// ------------------------</span></div>
+<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;  <span class="keywordtype">int</span> <a class="code" href="class_par_opt_interior_point.html#aedc8fd27ea31aec52b0d536b68823397">optimize</a>(<span class="keyword">const</span> <span class="keywordtype">char</span> *checkpoint = NULL);</div>
+<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160; </div>
+<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;  <span class="comment">// Get the problem sizes from the underlying problem class</span></div>
+<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;  <span class="comment">// -------------------------------------------------------</span></div>
+<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;  <span class="keywordtype">void</span> <a class="code" href="class_par_opt_interior_point.html#aafdc3012bf0a5bbe5f31ba93044263c1">getProblemSizes</a>(<span class="keywordtype">int</span> *_nvars, <span class="keywordtype">int</span> *_ncon, <span class="keywordtype">int</span> *_nwcon);</div>
 <div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160; </div>
 <div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;  <span class="comment">// Retrieve the values of the design variables and multipliers</span></div>
 <div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160;  <span class="comment">// -----------------------------------------------------------</span></div>
@@ -229,8 +229,8 @@ $(function() {
 <div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160; </div>
 <div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;  <span class="comment">// Retrieve the optimized slack variable values</span></div>
 <div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;  <span class="comment">// --------------------------------------------</span></div>
-<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;  <span class="keywordtype">void</span> <a class="code" href="class_par_opt_interior_point.html#a6d33920dcbe309b2bc13aeb6602f27d0">getOptimizedSlacks</a>(ParOptScalar **_s, ParOptScalar **_t,</div>
-<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;                          <a class="code" href="class_par_opt_vec.html">ParOptVec</a> **_sw);</div>
+<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;  <span class="keywordtype">void</span> <a class="code" href="class_par_opt_interior_point.html#a4e174a8b9f599b6d1db212d2112d3178">getOptimizedSlacks</a>(ParOptScalar **_s, ParOptScalar **_t, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> **_sw,</div>
+<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;                          <a class="code" href="class_par_opt_vec.html">ParOptVec</a> **_tw);</div>
 <div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160; </div>
 <div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;  <span class="comment">// Check the objective and constraint gradients</span></div>
 <div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;  <span class="comment">// --------------------------------------------</span></div>
@@ -240,324 +240,335 @@ $(function() {
 <div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160;  <span class="comment">// ------------------------</span></div>
 <div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160;  <span class="keywordtype">void</span> <a class="code" href="class_par_opt_interior_point.html#a24e821c7ad1e95e1e0dce44a7f200b9d">setPenaltyGamma</a>(<span class="keywordtype">double</span> gamma);</div>
 <div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;  <span class="keywordtype">void</span> <a class="code" href="class_par_opt_interior_point.html#a24e821c7ad1e95e1e0dce44a7f200b9d">setPenaltyGamma</a>(<span class="keyword">const</span> <span class="keywordtype">double</span> *gamma);</div>
-<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;  <span class="keywordtype">int</span> <a class="code" href="class_par_opt_interior_point.html#a2e3ce67f64b60e22551339dd2dfabae5">getPenaltyGamma</a>(<span class="keyword">const</span> <span class="keywordtype">double</span> **gamma);</div>
-<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;  <span class="keywordtype">void</span> <a class="code" href="class_par_opt_interior_point.html#abb28109c38fb3eada3ce444f1bbd8d1a">setBFGSUpdateType</a>(ParOptBFGSUpdateType bfgs_update);</div>
-<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160; </div>
-<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;  <span class="comment">// Get the barrier parameter and complementarity measure</span></div>
-<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;  <span class="comment">// -----------------------------------------------------</span></div>
-<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;  <span class="keywordtype">double</span> <a class="code" href="class_par_opt_interior_point.html#a5e303b429db8fcf03a4091fd6d857f52">getBarrierParameter</a>();</div>
-<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160;  ParOptScalar <a class="code" href="class_par_opt_interior_point.html#a358e0877902ab5337d580f067a646e66">getComplementarity</a>();</div>
-<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160; </div>
-<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160;  <span class="comment">// Set the parameter to set/use a diagonal Hessian</span></div>
-<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;  <span class="comment">// -----------------------------------------------</span></div>
-<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160;  <span class="keywordtype">void</span> setUseDiagHessian(<span class="keywordtype">int</span> truth);</div>
-<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160; </div>
-<div class="line"><a name="l00184"></a><span class="lineno">  184</span>&#160;  <span class="comment">// Quasi-Newton options</span></div>
-<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;  <span class="comment">// --------------------</span></div>
-<div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160;  <span class="keywordtype">void</span> <a class="code" href="class_par_opt_interior_point.html#a1fe73211ec57241c89f17003e0253f97">setQuasiNewton</a>(<a class="code" href="class_par_opt_compact_quasi_newton.html">ParOptCompactQuasiNewton</a> *_qn);</div>
-<div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160;  <span class="keywordtype">void</span> <a class="code" href="class_par_opt_interior_point.html#a2f31caaede09ae441ea1a5cfa6ac115e">resetQuasiNewtonHessian</a>();</div>
-<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160; </div>
-<div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160;  <span class="comment">// Reset the design point and the bounds using the problem instance</span></div>
-<div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160;  <span class="comment">// ----------------------------------------------------------------</span></div>
-<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;  <span class="keywordtype">void</span> <a class="code" href="class_par_opt_interior_point.html#a2c87b5544d722c245ee16c6dfd02d18a">resetDesignAndBounds</a>();</div>
-<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160; </div>
-<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;  <span class="comment">// Write out the design variables to a binary format (fast MPI/IO)</span></div>
-<div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;  <span class="comment">// ---------------------------------------------------------------</span></div>
-<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160;  <span class="keywordtype">int</span> <a class="code" href="class_par_opt_interior_point.html#ae69326b953f80f501499c878b77c562b">writeSolutionFile</a>(<span class="keyword">const</span> <span class="keywordtype">char</span> *filename);</div>
-<div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160;  <span class="keywordtype">int</span> <a class="code" href="class_par_opt_interior_point.html#a4157ed66c2d34bc409d1d8ac9b44b3b3">readSolutionFile</a>(<span class="keyword">const</span> <span class="keywordtype">char</span> *filename);</div>
-<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160; </div>
-<div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160;  <span class="comment">// Check the merit function derivative at the given point</span></div>
-<div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160;  <span class="comment">// ------------------------------------------------------</span></div>
-<div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160;  <span class="keywordtype">void</span> checkMeritFuncGradient(<a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xpt = NULL, <span class="keywordtype">double</span> dh = 1e-6);</div>
-<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160; </div>
-<div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160;  <span class="comment">// Get the iteration counts</span></div>
-<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;  <span class="comment">// ------------------------</span></div>
-<div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160;  <span class="keywordtype">void</span> getIterationCounters(<span class="keywordtype">int</span> *_niter = NULL, <span class="keywordtype">int</span> *_neval = NULL,</div>
-<div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160;                            <span class="keywordtype">int</span> *_ngeval = NULL, <span class="keywordtype">int</span> *_nhvec = NULL) {</div>
-<div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160;    <span class="keywordflow">if</span> (_niter) {</div>
-<div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160;      *_niter = niter;</div>
-<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160;    }</div>
-<div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160;    <span class="keywordflow">if</span> (_neval) {</div>
-<div class="line"><a name="l00210"></a><span class="lineno">  210</span>&#160;      *_neval = neval;</div>
-<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160;    }</div>
-<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160;    <span class="keywordflow">if</span> (_ngeval) {</div>
-<div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160;      *_ngeval = ngeval;</div>
-<div class="line"><a name="l00214"></a><span class="lineno">  214</span>&#160;    }</div>
-<div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160;    <span class="keywordflow">if</span> (_nhvec) {</div>
-<div class="line"><a name="l00216"></a><span class="lineno">  216</span>&#160;      *_nhvec = nhvec;</div>
-<div class="line"><a name="l00217"></a><span class="lineno">  217</span>&#160;    }</div>
-<div class="line"><a name="l00218"></a><span class="lineno">  218</span>&#160;  }</div>
-<div class="line"><a name="l00219"></a><span class="lineno">  219</span>&#160; </div>
-<div class="line"><a name="l00220"></a><span class="lineno">  220</span>&#160; <span class="keyword">private</span>:</div>
-<div class="line"><a name="l00221"></a><span class="lineno">  221</span>&#160;  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> PAROPT_LINE_SEARCH_SUCCESS = 1;</div>
-<div class="line"><a name="l00222"></a><span class="lineno">  222</span>&#160;  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> PAROPT_LINE_SEARCH_FAILURE = 2;</div>
-<div class="line"><a name="l00223"></a><span class="lineno">  223</span>&#160;  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> PAROPT_LINE_SEARCH_MIN_STEP = 4;</div>
-<div class="line"><a name="l00224"></a><span class="lineno">  224</span>&#160;  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> PAROPT_LINE_SEARCH_MAX_ITERS = 8;</div>
-<div class="line"><a name="l00225"></a><span class="lineno">  225</span>&#160;  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> PAROPT_LINE_SEARCH_NO_IMPROVEMENT = 16;</div>
-<div class="line"><a name="l00226"></a><span class="lineno">  226</span>&#160;  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> PAROPT_LINE_SEARCH_SHORT_STEP = 32;</div>
-<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160; </div>
-<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160;  <span class="comment">// Set the size of the GMRES subspace</span></div>
-<div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160;  <span class="keywordtype">void</span> setGMRESSubspaceSize(<span class="keywordtype">int</span> m);</div>
-<div class="line"><a name="l00230"></a><span class="lineno">  230</span>&#160; </div>
-<div class="line"><a name="l00231"></a><span class="lineno">  231</span>&#160;  <span class="comment">// Set the output file name and write the options summary</span></div>
-<div class="line"><a name="l00232"></a><span class="lineno">  232</span>&#160;  <span class="keywordtype">void</span> setOutputFile(<span class="keyword">const</span> <span class="keywordtype">char</span> *filename);</div>
-<div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160; </div>
-<div class="line"><a name="l00234"></a><span class="lineno">  234</span>&#160;  <span class="comment">// Print out the optimizer options to a file</span></div>
-<div class="line"><a name="l00235"></a><span class="lineno">  235</span>&#160;  <span class="keywordtype">void</span> printOptionSummary(FILE *fp);</div>
-<div class="line"><a name="l00236"></a><span class="lineno">  236</span>&#160; </div>
-<div class="line"><a name="l00237"></a><span class="lineno">  237</span>&#160;  <span class="comment">// Add to the info string</span></div>
-<div class="line"><a name="l00238"></a><span class="lineno">  238</span>&#160;  <span class="keywordtype">void</span> addToInfo(<span class="keywordtype">size_t</span> info_size, <span class="keywordtype">char</span> *info, <span class="keyword">const</span> <span class="keywordtype">char</span> *format, ...);</div>
-<div class="line"><a name="l00239"></a><span class="lineno">  239</span>&#160; </div>
-<div class="line"><a name="l00240"></a><span class="lineno">  240</span>&#160;  <span class="comment">// Check and initialize the design variables and their bounds</span></div>
-<div class="line"><a name="l00241"></a><span class="lineno">  241</span>&#160;  <span class="keywordtype">void</span> initAndCheckDesignAndBounds();</div>
-<div class="line"><a name="l00242"></a><span class="lineno">  242</span>&#160; </div>
-<div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160;  <span class="comment">// Initialize the multipliers</span></div>
-<div class="line"><a name="l00244"></a><span class="lineno">  244</span>&#160;  <span class="keywordtype">void</span> initLeastSquaresMultipliers();</div>
-<div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160;  <span class="keywordtype">void</span> initAffineStepMultipliers(ParOptNormType norm_type);</div>
-<div class="line"><a name="l00246"></a><span class="lineno">  246</span>&#160;  <span class="keywordtype">void</span> initMehrotraMultipliers();</div>
-<div class="line"><a name="l00247"></a><span class="lineno">  247</span>&#160; </div>
-<div class="line"><a name="l00248"></a><span class="lineno">  248</span>&#160;  <span class="comment">// Factor/apply the Cw matrix</span></div>
-<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160;  <span class="keywordtype">int</span> factorCw();</div>
-<div class="line"><a name="l00250"></a><span class="lineno">  250</span>&#160;  <span class="keywordtype">int</span> applyCwFactor(<a class="code" href="class_par_opt_vec.html">ParOptVec</a> *vec);</div>
-<div class="line"><a name="l00251"></a><span class="lineno">  251</span>&#160; </div>
-<div class="line"><a name="l00252"></a><span class="lineno">  252</span>&#160;  <span class="comment">// Compute the negative of the KKT residuals - return</span></div>
-<div class="line"><a name="l00253"></a><span class="lineno">  253</span>&#160;  <span class="comment">// the maximum primal, dual residuals and the max infeasibility</span></div>
-<div class="line"><a name="l00254"></a><span class="lineno">  254</span>&#160;  <span class="keywordtype">void</span> computeKKTRes(<span class="keywordtype">double</span> barrier, ParOptNormType norm_type,</div>
-<div class="line"><a name="l00255"></a><span class="lineno">  255</span>&#160;                     <span class="keywordtype">double</span> *max_prime, <span class="keywordtype">double</span> *max_dual, <span class="keywordtype">double</span> *max_infeas,</div>
-<div class="line"><a name="l00256"></a><span class="lineno">  256</span>&#160;                     <span class="keywordtype">double</span> *res_norm = NULL);</div>
+<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;  <span class="keywordtype">void</span> <a class="code" href="class_par_opt_interior_point.html#abb28109c38fb3eada3ce444f1bbd8d1a">setBFGSUpdateType</a>(ParOptBFGSUpdateType bfgs_update);</div>
+<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160; </div>
+<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160;  <span class="comment">// Get the barrier parameter and complementarity measure</span></div>
+<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;  <span class="comment">// -----------------------------------------------------</span></div>
+<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;  <span class="keywordtype">double</span> <a class="code" href="class_par_opt_interior_point.html#a5e303b429db8fcf03a4091fd6d857f52">getBarrierParameter</a>();</div>
+<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;  ParOptScalar <a class="code" href="class_par_opt_interior_point.html#a358e0877902ab5337d580f067a646e66">getComplementarity</a>();</div>
+<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160; </div>
+<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;  <span class="comment">// Set the parameter to set/use a diagonal Hessian</span></div>
+<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160;  <span class="comment">// -----------------------------------------------</span></div>
+<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;  <span class="keywordtype">void</span> setUseDiagHessian(<span class="keywordtype">int</span> truth);</div>
+<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160; </div>
+<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160;  <span class="comment">// Quasi-Newton options</span></div>
+<div class="line"><a name="l00184"></a><span class="lineno">  184</span>&#160;  <span class="comment">// --------------------</span></div>
+<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;  <span class="keywordtype">void</span> <a class="code" href="class_par_opt_interior_point.html#a1fe73211ec57241c89f17003e0253f97">setQuasiNewton</a>(<a class="code" href="class_par_opt_compact_quasi_newton.html">ParOptCompactQuasiNewton</a> *_qn);</div>
+<div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160;  <span class="keywordtype">void</span> <a class="code" href="class_par_opt_interior_point.html#a2f31caaede09ae441ea1a5cfa6ac115e">resetQuasiNewtonHessian</a>();</div>
+<div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160; </div>
+<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160;  <span class="comment">// Reset the design point and the bounds using the problem instance</span></div>
+<div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160;  <span class="comment">// ----------------------------------------------------------------</span></div>
+<div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160;  <span class="keywordtype">void</span> <a class="code" href="class_par_opt_interior_point.html#a2c87b5544d722c245ee16c6dfd02d18a">resetDesignAndBounds</a>();</div>
+<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160; </div>
+<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;  <span class="comment">// Write out the design variables to a binary format (fast MPI/IO)</span></div>
+<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;  <span class="comment">// ---------------------------------------------------------------</span></div>
+<div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;  <span class="keywordtype">int</span> <a class="code" href="class_par_opt_interior_point.html#ae69326b953f80f501499c878b77c562b">writeSolutionFile</a>(<span class="keyword">const</span> <span class="keywordtype">char</span> *filename);</div>
+<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160;  <span class="keywordtype">int</span> <a class="code" href="class_par_opt_interior_point.html#a4157ed66c2d34bc409d1d8ac9b44b3b3">readSolutionFile</a>(<span class="keyword">const</span> <span class="keywordtype">char</span> *filename);</div>
+<div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160; </div>
+<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160;  <span class="comment">// Check the merit function derivative at the given point</span></div>
+<div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160;  <span class="comment">// ------------------------------------------------------</span></div>
+<div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160;  <span class="keywordtype">void</span> checkMeritFuncGradient(<a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xpt = NULL, <span class="keywordtype">double</span> dh = 1e-6);</div>
+<div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160; </div>
+<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160;  <span class="comment">// Get the iteration counts</span></div>
+<div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160;  <span class="comment">// ------------------------</span></div>
+<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;  <span class="keywordtype">void</span> getIterationCounters(<span class="keywordtype">int</span> *_niter = NULL, <span class="keywordtype">int</span> *_neval = NULL,</div>
+<div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160;                            <span class="keywordtype">int</span> *_ngeval = NULL, <span class="keywordtype">int</span> *_nhvec = NULL) {</div>
+<div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160;    <span class="keywordflow">if</span> (_niter) {</div>
+<div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160;      *_niter = niter;</div>
+<div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160;    }</div>
+<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160;    <span class="keywordflow">if</span> (_neval) {</div>
+<div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160;      *_neval = neval;</div>
+<div class="line"><a name="l00210"></a><span class="lineno">  210</span>&#160;    }</div>
+<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160;    <span class="keywordflow">if</span> (_ngeval) {</div>
+<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160;      *_ngeval = ngeval;</div>
+<div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160;    }</div>
+<div class="line"><a name="l00214"></a><span class="lineno">  214</span>&#160;    <span class="keywordflow">if</span> (_nhvec) {</div>
+<div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160;      *_nhvec = nhvec;</div>
+<div class="line"><a name="l00216"></a><span class="lineno">  216</span>&#160;    }</div>
+<div class="line"><a name="l00217"></a><span class="lineno">  217</span>&#160;  }</div>
+<div class="line"><a name="l00218"></a><span class="lineno">  218</span>&#160; </div>
+<div class="line"><a name="l00219"></a><span class="lineno">  219</span>&#160; <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00220"></a><span class="lineno">  220</span>&#160;  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> PAROPT_LINE_SEARCH_SUCCESS = 1;</div>
+<div class="line"><a name="l00221"></a><span class="lineno">  221</span>&#160;  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> PAROPT_LINE_SEARCH_FAILURE = 2;</div>
+<div class="line"><a name="l00222"></a><span class="lineno">  222</span>&#160;  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> PAROPT_LINE_SEARCH_MIN_STEP = 4;</div>
+<div class="line"><a name="l00223"></a><span class="lineno">  223</span>&#160;  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> PAROPT_LINE_SEARCH_MAX_ITERS = 8;</div>
+<div class="line"><a name="l00224"></a><span class="lineno">  224</span>&#160;  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> PAROPT_LINE_SEARCH_NO_IMPROVEMENT = 16;</div>
+<div class="line"><a name="l00225"></a><span class="lineno">  225</span>&#160;  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> PAROPT_LINE_SEARCH_SHORT_STEP = 32;</div>
+<div class="line"><a name="l00226"></a><span class="lineno">  226</span>&#160; </div>
+<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;  <span class="keyword">class </span>ParOptVars;</div>
+<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160; </div>
+<div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160;  <span class="comment">// Set the size of the GMRES subspace</span></div>
+<div class="line"><a name="l00230"></a><span class="lineno">  230</span>&#160;  <span class="keywordtype">void</span> setGMRESSubspaceSize(<span class="keywordtype">int</span> m);</div>
+<div class="line"><a name="l00231"></a><span class="lineno">  231</span>&#160; </div>
+<div class="line"><a name="l00232"></a><span class="lineno">  232</span>&#160;  <span class="comment">// Set the output file name and write the options summary</span></div>
+<div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160;  <span class="keywordtype">void</span> setOutputFile(<span class="keyword">const</span> <span class="keywordtype">char</span> *filename);</div>
+<div class="line"><a name="l00234"></a><span class="lineno">  234</span>&#160; </div>
+<div class="line"><a name="l00235"></a><span class="lineno">  235</span>&#160;  <span class="comment">// Print out the optimizer options to a file</span></div>
+<div class="line"><a name="l00236"></a><span class="lineno">  236</span>&#160;  <span class="keywordtype">void</span> printOptionSummary(FILE *fp);</div>
+<div class="line"><a name="l00237"></a><span class="lineno">  237</span>&#160; </div>
+<div class="line"><a name="l00238"></a><span class="lineno">  238</span>&#160;  <span class="comment">// Add to the info string</span></div>
+<div class="line"><a name="l00239"></a><span class="lineno">  239</span>&#160;  <span class="keywordtype">void</span> addToInfo(<span class="keywordtype">size_t</span> info_size, <span class="keywordtype">char</span> *info, <span class="keyword">const</span> <span class="keywordtype">char</span> *format, ...);</div>
+<div class="line"><a name="l00240"></a><span class="lineno">  240</span>&#160; </div>
+<div class="line"><a name="l00241"></a><span class="lineno">  241</span>&#160;  <span class="comment">// Check and initialize the design variables and their bounds</span></div>
+<div class="line"><a name="l00242"></a><span class="lineno">  242</span>&#160;  <span class="keywordtype">void</span> initAndCheckDesignAndBounds();</div>
+<div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160; </div>
+<div class="line"><a name="l00244"></a><span class="lineno">  244</span>&#160;  <span class="comment">// Initialize the multipliers</span></div>
+<div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160;  <span class="keywordtype">void</span> initLeastSquaresMultipliers(ParOptVars &amp;vars, ParOptVars &amp;res,</div>
+<div class="line"><a name="l00246"></a><span class="lineno">  246</span>&#160;                                   <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *yx);</div>
+<div class="line"><a name="l00247"></a><span class="lineno">  247</span>&#160;  <span class="keywordtype">void</span> initAffineStepMultipliers(ParOptVars &amp;vars, ParOptVars &amp;res,</div>
+<div class="line"><a name="l00248"></a><span class="lineno">  248</span>&#160;                                 ParOptVars &amp;step);</div>
+<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160; </div>
+<div class="line"><a name="l00250"></a><span class="lineno">  250</span>&#160;  <span class="comment">// Compute the negative of the KKT residuals - return</span></div>
+<div class="line"><a name="l00251"></a><span class="lineno">  251</span>&#160;  <span class="comment">// the maximum primal, dual residuals and the max infeasibility</span></div>
+<div class="line"><a name="l00252"></a><span class="lineno">  252</span>&#160;  <span class="keywordtype">void</span> computeKKTRes(ParOptVars &amp;vars, <span class="keywordtype">double</span> barrier, ParOptVars &amp;res);</div>
+<div class="line"><a name="l00253"></a><span class="lineno">  253</span>&#160; </div>
+<div class="line"><a name="l00254"></a><span class="lineno">  254</span>&#160;  <span class="comment">// Add the step contributions to the residual</span></div>
+<div class="line"><a name="l00255"></a><span class="lineno">  255</span>&#160;  <span class="keywordtype">void</span> addKKTResStep(ParOptVars &amp;vars, ParOptVars &amp;step, ParOptVars &amp;res,</div>
+<div class="line"><a name="l00256"></a><span class="lineno">  256</span>&#160;                     <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtmp, <span class="keywordtype">int</span> inexact_newton_step);</div>
 <div class="line"><a name="l00257"></a><span class="lineno">  257</span>&#160; </div>
-<div class="line"><a name="l00258"></a><span class="lineno">  258</span>&#160;  <span class="comment">// Add the corrector components to the residual to compute the MPC step</span></div>
-<div class="line"><a name="l00259"></a><span class="lineno">  259</span>&#160;  <span class="keywordtype">void</span> addMehrotraCorrectorResidual();</div>
-<div class="line"><a name="l00260"></a><span class="lineno">  260</span>&#160; </div>
-<div class="line"><a name="l00261"></a><span class="lineno">  261</span>&#160;  <span class="comment">// Compute the norm of the step</span></div>
-<div class="line"><a name="l00262"></a><span class="lineno">  262</span>&#160;  <span class="keywordtype">double</span> computeStepNorm(ParOptNormType norm_type);</div>
-<div class="line"><a name="l00263"></a><span class="lineno">  263</span>&#160; </div>
-<div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160;  <span class="comment">// Set up the diagonal KKT system</span></div>
-<div class="line"><a name="l00265"></a><span class="lineno">  265</span>&#160;  <span class="keywordtype">void</span> setUpKKTDiagSystem(<a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xt, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wt, <span class="keywordtype">int</span> use_qn);</div>
-<div class="line"><a name="l00266"></a><span class="lineno">  266</span>&#160; </div>
-<div class="line"><a name="l00267"></a><span class="lineno">  267</span>&#160;  <span class="comment">// Solve the diagonal KKT system</span></div>
-<div class="line"><a name="l00268"></a><span class="lineno">  268</span>&#160;  <span class="keywordtype">void</span> solveKKTDiagSystem(<a class="code" href="class_par_opt_vec.html">ParOptVec</a> *bx, ParOptScalar *bs, ParOptScalar *bt,</div>
-<div class="line"><a name="l00269"></a><span class="lineno">  269</span>&#160;                          ParOptScalar *bc, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *bcw, ParOptScalar *bzs,</div>
-<div class="line"><a name="l00270"></a><span class="lineno">  270</span>&#160;                          ParOptScalar *bzt, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *bzw, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *bzl,</div>
-<div class="line"><a name="l00271"></a><span class="lineno">  271</span>&#160;                          <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *bzu, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *yx, ParOptScalar *ys,</div>
-<div class="line"><a name="l00272"></a><span class="lineno">  272</span>&#160;                          ParOptScalar *yt, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *ysw, ParOptScalar *yz,</div>
-<div class="line"><a name="l00273"></a><span class="lineno">  273</span>&#160;                          ParOptScalar *yzs, ParOptScalar *yzt, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *yzw,</div>
-<div class="line"><a name="l00274"></a><span class="lineno">  274</span>&#160;                          <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *yzl, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *yzu, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtmp,</div>
-<div class="line"><a name="l00275"></a><span class="lineno">  275</span>&#160;                          <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wtmp);</div>
+<div class="line"><a name="l00258"></a><span class="lineno">  258</span>&#160;  <span class="comment">// Compute the residual norm</span></div>
+<div class="line"><a name="l00259"></a><span class="lineno">  259</span>&#160;  <span class="keywordtype">void</span> computeResNorm(ParOptNormType norm_type, ParOptVars &amp;res,</div>
+<div class="line"><a name="l00260"></a><span class="lineno">  260</span>&#160;                      <span class="keywordtype">double</span> *max_prime, <span class="keywordtype">double</span> *max_dual, <span class="keywordtype">double</span> *max_infeas,</div>
+<div class="line"><a name="l00261"></a><span class="lineno">  261</span>&#160;                      <span class="keywordtype">double</span> *res_norm = NULL);</div>
+<div class="line"><a name="l00262"></a><span class="lineno">  262</span>&#160; </div>
+<div class="line"><a name="l00263"></a><span class="lineno">  263</span>&#160;  <span class="comment">// Add the corrector components to the residual to compute the MPC step</span></div>
+<div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160;  <span class="keywordtype">void</span> addMehrotraCorrectorResidual(ParOptVars &amp;step, ParOptVars &amp;res);</div>
+<div class="line"><a name="l00265"></a><span class="lineno">  265</span>&#160; </div>
+<div class="line"><a name="l00266"></a><span class="lineno">  266</span>&#160;  <span class="comment">// Compute the norm of the step</span></div>
+<div class="line"><a name="l00267"></a><span class="lineno">  267</span>&#160;  <span class="keywordtype">double</span> computeStepNorm(ParOptNormType norm_type, ParOptVars &amp;step);</div>
+<div class="line"><a name="l00268"></a><span class="lineno">  268</span>&#160; </div>
+<div class="line"><a name="l00269"></a><span class="lineno">  269</span>&#160;  <span class="comment">// Set up the diagonal KKT system</span></div>
+<div class="line"><a name="l00270"></a><span class="lineno">  270</span>&#160;  <span class="keywordtype">void</span> setUpKKTDiagSystem(ParOptVars &amp;vars, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtmp, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wtmp,</div>
+<div class="line"><a name="l00271"></a><span class="lineno">  271</span>&#160;                          <span class="keywordtype">int</span> use_qn);</div>
+<div class="line"><a name="l00272"></a><span class="lineno">  272</span>&#160; </div>
+<div class="line"><a name="l00273"></a><span class="lineno">  273</span>&#160;  <span class="comment">// Solve the diagonal KKT system</span></div>
+<div class="line"><a name="l00274"></a><span class="lineno">  274</span>&#160;  <span class="keywordtype">void</span> solveKKTDiagSystem(ParOptVars &amp;vars, ParOptVars &amp;b, ParOptVars &amp;y,</div>
+<div class="line"><a name="l00275"></a><span class="lineno">  275</span>&#160;                          <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *d1, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *d2);</div>
 <div class="line"><a name="l00276"></a><span class="lineno">  276</span>&#160; </div>
 <div class="line"><a name="l00277"></a><span class="lineno">  277</span>&#160;  <span class="comment">// Solve the diagonal KKT system with a specific RHS structure</span></div>
-<div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160;  <span class="keywordtype">void</span> solveKKTDiagSystem(<a class="code" href="class_par_opt_vec.html">ParOptVec</a> *bx, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *yx, ParOptScalar *ys,</div>
-<div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160;                          ParOptScalar *yt, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *ysw, ParOptScalar *yz,</div>
-<div class="line"><a name="l00280"></a><span class="lineno">  280</span>&#160;                          ParOptScalar *yzs, ParOptScalar *yzt, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *yzw,</div>
-<div class="line"><a name="l00281"></a><span class="lineno">  281</span>&#160;                          <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *yzl, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *yzu, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtmp,</div>
-<div class="line"><a name="l00282"></a><span class="lineno">  282</span>&#160;                          <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wtmp);</div>
-<div class="line"><a name="l00283"></a><span class="lineno">  283</span>&#160; </div>
-<div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160;  <span class="comment">// Solve the diagonal KKT system but only return the components</span></div>
-<div class="line"><a name="l00285"></a><span class="lineno">  285</span>&#160;  <span class="comment">// corresponding to the design variables</span></div>
-<div class="line"><a name="l00286"></a><span class="lineno">  286</span>&#160;  <span class="keywordtype">void</span> solveKKTDiagSystem(<a class="code" href="class_par_opt_vec.html">ParOptVec</a> *bx, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *yx, ParOptScalar *zt,</div>
-<div class="line"><a name="l00287"></a><span class="lineno">  287</span>&#160;                          <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xt, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wt);</div>
-<div class="line"><a name="l00288"></a><span class="lineno">  288</span>&#160; </div>
-<div class="line"><a name="l00289"></a><span class="lineno">  289</span>&#160;  <span class="comment">// Solve the diagonal system</span></div>
-<div class="line"><a name="l00290"></a><span class="lineno">  290</span>&#160;  <span class="keywordtype">void</span> solveKKTDiagSystem(<a class="code" href="class_par_opt_vec.html">ParOptVec</a> *bx, ParOptScalar alpha, ParOptScalar *bs,</div>
-<div class="line"><a name="l00291"></a><span class="lineno">  291</span>&#160;                          ParOptScalar *bt, ParOptScalar *bc, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *bcw,</div>
-<div class="line"><a name="l00292"></a><span class="lineno">  292</span>&#160;                          ParOptScalar *bzs, ParOptScalar *bzt, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *bzw,</div>
-<div class="line"><a name="l00293"></a><span class="lineno">  293</span>&#160;                          <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *bzl, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *bzu, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *yx,</div>
-<div class="line"><a name="l00294"></a><span class="lineno">  294</span>&#160;                          ParOptScalar *ys, ParOptScalar *yt, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *ysw,</div>
-<div class="line"><a name="l00295"></a><span class="lineno">  295</span>&#160;                          ParOptScalar *yz, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtmp, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wtmp);</div>
-<div class="line"><a name="l00296"></a><span class="lineno">  296</span>&#160; </div>
-<div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160;  <span class="comment">// Set up the full KKT system</span></div>
-<div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160;  <span class="keywordtype">void</span> setUpKKTSystem(ParOptScalar *zt, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xt1, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xt2,</div>
-<div class="line"><a name="l00299"></a><span class="lineno">  299</span>&#160;                      <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wt, <span class="keywordtype">int</span> use_bfgs);</div>
-<div class="line"><a name="l00300"></a><span class="lineno">  300</span>&#160; </div>
-<div class="line"><a name="l00301"></a><span class="lineno">  301</span>&#160;  <span class="comment">// Solve for the KKT step</span></div>
-<div class="line"><a name="l00302"></a><span class="lineno">  302</span>&#160;  <span class="keywordtype">void</span> computeKKTStep(ParOptScalar *zt, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xt1, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xt2,</div>
-<div class="line"><a name="l00303"></a><span class="lineno">  303</span>&#160;                      <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wt, <span class="keywordtype">int</span> use_bfgs);</div>
-<div class="line"><a name="l00304"></a><span class="lineno">  304</span>&#160; </div>
-<div class="line"><a name="l00305"></a><span class="lineno">  305</span>&#160;  <span class="comment">// Set up the least-squares multiplier problem</span></div>
-<div class="line"><a name="l00306"></a><span class="lineno">  306</span>&#160;  <span class="keywordtype">void</span> setUpLeastSquaresSystem(<span class="keywordtype">double</span> alpha, <span class="keywordtype">double</span> beta, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtmp,</div>
-<div class="line"><a name="l00307"></a><span class="lineno">  307</span>&#160;                               <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wtmp, <span class="keywordtype">int</span> use_sparse);</div>
-<div class="line"><a name="l00308"></a><span class="lineno">  308</span>&#160; </div>
-<div class="line"><a name="l00309"></a><span class="lineno">  309</span>&#160;  <span class="comment">// Solve the least-squares system</span></div>
-<div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160;  <span class="keywordtype">void</span> solveLeastSquaresSystem(ParOptScalar *bz, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *bzw,</div>
-<div class="line"><a name="l00311"></a><span class="lineno">  311</span>&#160;                               ParOptScalar *yz, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *yzw,</div>
-<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160;                               <span class="keywordtype">int</span> use_sparse);</div>
-<div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160; </div>
-<div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160;  <span class="comment">// Compute the full KKT step</span></div>
-<div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160;  <span class="keywordtype">int</span> computeKKTGMRESStep(ParOptScalar *ztmp, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtmp1,</div>
-<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160;                          <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtmp2, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wtmp, <span class="keywordtype">double</span> rtol,</div>
-<div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160;                          <span class="keywordtype">double</span> atol, <span class="keywordtype">int</span> use_qn);</div>
-<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160; </div>
-<div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;  <span class="comment">// Check that the KKT step is computed correctly</span></div>
-<div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160;  <span class="keywordtype">void</span> checkKKTStep(<span class="keywordtype">int</span> iteration, <span class="keywordtype">int</span> is_newton);</div>
-<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160; </div>
-<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160;  <span class="comment">// Compute the maximum step length to maintain positivity of</span></div>
-<div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160;  <span class="comment">// all components of the design variables</span></div>
-<div class="line"><a name="l00324"></a><span class="lineno">  324</span>&#160;  <span class="keywordtype">void</span> computeMaxStep(<span class="keywordtype">double</span> tau, <span class="keywordtype">double</span> *_max_x, <span class="keywordtype">double</span> *_max_z);</div>
-<div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160; </div>
-<div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160;  <span class="comment">// Compute the step so that it satisfies the required bounds</span></div>
-<div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160;  <span class="keywordtype">void</span> scaleStep(ParOptScalar alpha, <span class="keywordtype">int</span> nvals, ParOptScalar *);</div>
-<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160;  <span class="keywordtype">void</span> computeStepVec(<a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xvec, ParOptScalar alpha, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *pvec,</div>
-<div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160;                      <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *lower, ParOptScalar *lower_value,</div>
-<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;                      <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *upper, ParOptScalar *upper_value);</div>
-<div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160;  <span class="keywordtype">void</span> computeStep(<span class="keywordtype">int</span> nvals, ParOptScalar *xvals, ParOptScalar alpha,</div>
-<div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160;                   <span class="keyword">const</span> ParOptScalar *pvals, <span class="keyword">const</span> ParOptScalar *lbvals,</div>
-<div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160;                   <span class="keyword">const</span> ParOptScalar *lower_value, <span class="keyword">const</span> ParOptScalar *ubvals,</div>
-<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;                   <span class="keyword">const</span> ParOptScalar *upper_value);</div>
-<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160; </div>
-<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;  <span class="comment">// Perform the line search</span></div>
-<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;  <span class="keywordtype">int</span> lineSearch(<span class="keywordtype">double</span> alpha_min, <span class="keywordtype">double</span> *_alpha, ParOptScalar m0,</div>
-<div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160;                 ParOptScalar dm0);</div>
-<div class="line"><a name="l00339"></a><span class="lineno">  339</span>&#160; </div>
-<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160;  <span class="comment">// Scale the step by the distance-to-the-boundary rule</span></div>
-<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160;  <span class="keywordtype">int</span> scaleKKTStep(<span class="keywordtype">double</span> tau, ParOptScalar comp, <span class="keywordtype">int</span> inexact_newton_step,</div>
-<div class="line"><a name="l00342"></a><span class="lineno">  342</span>&#160;                   <span class="keywordtype">double</span> *_alpha_x, <span class="keywordtype">double</span> *_alpha_z);</div>
-<div class="line"><a name="l00343"></a><span class="lineno">  343</span>&#160; </div>
-<div class="line"><a name="l00344"></a><span class="lineno">  344</span>&#160;  <span class="comment">// Perform a primal/dual update and optionally upate the quasi-Newton Hessian</span></div>
-<div class="line"><a name="l00345"></a><span class="lineno">  345</span>&#160;  <span class="keywordtype">int</span> computeStepAndUpdate(<span class="keywordtype">double</span> alpha, <span class="keywordtype">int</span> eval_obj_con,</div>
-<div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160;                           <span class="keywordtype">int</span> perform_qn_update);</div>
+<div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160;  <span class="keywordtype">void</span> solveKKTDiagSystem(ParOptVars &amp;vars, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *bx, ParOptVars &amp;y,</div>
+<div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160;                          <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *d1, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *d2);</div>
+<div class="line"><a name="l00280"></a><span class="lineno">  280</span>&#160; </div>
+<div class="line"><a name="l00281"></a><span class="lineno">  281</span>&#160;  <span class="comment">// Solve the diagonal KKT system but only return the components</span></div>
+<div class="line"><a name="l00282"></a><span class="lineno">  282</span>&#160;  <span class="comment">// corresponding to the design variables</span></div>
+<div class="line"><a name="l00283"></a><span class="lineno">  283</span>&#160;  <span class="keywordtype">void</span> solveKKTDiagSystem(ParOptVars &amp;vars, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *bx, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *yx,</div>
+<div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160;                          ParOptScalar *yz, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *d1, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *yzw);</div>
+<div class="line"><a name="l00285"></a><span class="lineno">  285</span>&#160; </div>
+<div class="line"><a name="l00286"></a><span class="lineno">  286</span>&#160;  <span class="comment">// Solve the diagonal system</span></div>
+<div class="line"><a name="l00287"></a><span class="lineno">  287</span>&#160;  <span class="keywordtype">void</span> solveKKTDiagSystem(ParOptVars &amp;vars, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *bx, ParOptScalar alpha,</div>
+<div class="line"><a name="l00288"></a><span class="lineno">  288</span>&#160;                          ParOptVars &amp;b, ParOptVars &amp;y, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *d1,</div>
+<div class="line"><a name="l00289"></a><span class="lineno">  289</span>&#160;                          <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *d2);</div>
+<div class="line"><a name="l00290"></a><span class="lineno">  290</span>&#160; </div>
+<div class="line"><a name="l00291"></a><span class="lineno">  291</span>&#160;  <span class="comment">// Set up the full KKT system</span></div>
+<div class="line"><a name="l00292"></a><span class="lineno">  292</span>&#160;  <span class="keywordtype">void</span> setUpKKTSystem(ParOptVars &amp;vars, ParOptScalar *ztmp, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtmp1,</div>
+<div class="line"><a name="l00293"></a><span class="lineno">  293</span>&#160;                      <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtmp2, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wtmp, <span class="keywordtype">int</span> use_qn);</div>
+<div class="line"><a name="l00294"></a><span class="lineno">  294</span>&#160; </div>
+<div class="line"><a name="l00295"></a><span class="lineno">  295</span>&#160;  <span class="comment">// Solve for the KKT step</span></div>
+<div class="line"><a name="l00296"></a><span class="lineno">  296</span>&#160;  <span class="keywordtype">void</span> computeKKTStep(ParOptVars &amp;vars, ParOptVars &amp;res, ParOptVars &amp;step,</div>
+<div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160;                      ParOptScalar *ztmp, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtmp1, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtmp2,</div>
+<div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160;                      <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wtmp, <span class="keywordtype">int</span> use_qn);</div>
+<div class="line"><a name="l00299"></a><span class="lineno">  299</span>&#160; </div>
+<div class="line"><a name="l00300"></a><span class="lineno">  300</span>&#160;  <span class="comment">// Compute the full KKT step</span></div>
+<div class="line"><a name="l00301"></a><span class="lineno">  301</span>&#160;  <span class="keywordtype">int</span> computeKKTGMRESStep(ParOptVars &amp;vars, ParOptVars &amp;res, ParOptVars &amp;step,</div>
+<div class="line"><a name="l00302"></a><span class="lineno">  302</span>&#160;                          ParOptScalar *ztmp, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtmp1,</div>
+<div class="line"><a name="l00303"></a><span class="lineno">  303</span>&#160;                          <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtmp2, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wtmp, <span class="keywordtype">double</span> rtol,</div>
+<div class="line"><a name="l00304"></a><span class="lineno">  304</span>&#160;                          <span class="keywordtype">double</span> atol, <span class="keywordtype">int</span> use_qn);</div>
+<div class="line"><a name="l00305"></a><span class="lineno">  305</span>&#160; </div>
+<div class="line"><a name="l00306"></a><span class="lineno">  306</span>&#160;  <span class="comment">// Check that the KKT step is computed correctly</span></div>
+<div class="line"><a name="l00307"></a><span class="lineno">  307</span>&#160;  <span class="keywordtype">void</span> checkKKTStep(ParOptVars &amp;vars, ParOptVars &amp;step, ParOptVars &amp;res,</div>
+<div class="line"><a name="l00308"></a><span class="lineno">  308</span>&#160;                    <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtmp, <span class="keywordtype">int</span> iteration, <span class="keywordtype">int</span> is_newton);</div>
+<div class="line"><a name="l00309"></a><span class="lineno">  309</span>&#160; </div>
+<div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160;  <span class="comment">// Compute the maximum step length to maintain positivity of</span></div>
+<div class="line"><a name="l00311"></a><span class="lineno">  311</span>&#160;  <span class="comment">// all components of the design variables</span></div>
+<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160;  <span class="keywordtype">void</span> computeMaxStep(ParOptVars &amp;vars, <span class="keywordtype">double</span> tau, ParOptVars &amp;step,</div>
+<div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160;                      <span class="keywordtype">double</span> *_max_x, <span class="keywordtype">double</span> *_max_z);</div>
+<div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160; </div>
+<div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160;  <span class="comment">// Compute the step so that it satisfies the required bounds</span></div>
+<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160;  <span class="keywordtype">void</span> scaleStep(ParOptScalar alpha, <span class="keywordtype">int</span> nvals, ParOptScalar *);</div>
+<div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160;  <span class="keywordtype">void</span> computeStepVec(<a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xvec, ParOptScalar alpha, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *pvec,</div>
+<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160;                      <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *lower, ParOptScalar *lower_value,</div>
+<div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;                      <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *upper, ParOptScalar *upper_value);</div>
+<div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160;  <span class="keywordtype">void</span> computeStep(<span class="keywordtype">int</span> nvals, ParOptScalar *xvals, ParOptScalar alpha,</div>
+<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160;                   <span class="keyword">const</span> ParOptScalar *pvals, <span class="keyword">const</span> ParOptScalar *lbvals,</div>
+<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160;                   <span class="keyword">const</span> ParOptScalar *lower_value, <span class="keyword">const</span> ParOptScalar *ubvals,</div>
+<div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160;                   <span class="keyword">const</span> ParOptScalar *upper_value);</div>
+<div class="line"><a name="l00324"></a><span class="lineno">  324</span>&#160; </div>
+<div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160;  <span class="comment">// Perform the line search</span></div>
+<div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160;  <span class="keywordtype">int</span> lineSearch(<span class="keywordtype">double</span> alpha_min, <span class="keywordtype">double</span> *_alpha, ParOptScalar m0,</div>
+<div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160;                 ParOptScalar dm0);</div>
+<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160; </div>
+<div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160;  <span class="comment">// Scale the step by the distance-to-the-boundary rule</span></div>
+<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;  <span class="keywordtype">int</span> scaleKKTStep(ParOptVars &amp;vars, ParOptVars &amp;step, <span class="keywordtype">double</span> tau,</div>
+<div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160;                   ParOptScalar comp, <span class="keywordtype">int</span> inexact_newton_step, <span class="keywordtype">double</span> *_alpha_x,</div>
+<div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160;                   <span class="keywordtype">double</span> *_alpha_z);</div>
+<div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160; </div>
+<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;  <span class="comment">// Perform a primal/dual update and optionally upate the quasi-Newton Hessian</span></div>
+<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160;  <span class="keywordtype">int</span> computeStepAndUpdate(ParOptVars &amp;vars, <span class="keywordtype">double</span> alpha, ParOptVars &amp;step,</div>
+<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;                           <span class="keywordtype">int</span> eval_obj_con, <span class="keywordtype">int</span> perform_qn_update);</div>
+<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160; </div>
+<div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160;  <span class="comment">// Evaluate the infeasibility at the current point</span></div>
+<div class="line"><a name="l00339"></a><span class="lineno">  339</span>&#160;  ParOptScalar evalInfeas(<span class="keyword">const</span> ParOptScalar *ck, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xk,</div>
+<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160;                          <span class="keyword">const</span> ParOptScalar *sk, <span class="keyword">const</span> ParOptScalar *tk,</div>
+<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160;                          <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *swk, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *twk, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *rw);</div>
+<div class="line"><a name="l00342"></a><span class="lineno">  342</span>&#160; </div>
+<div class="line"><a name="l00343"></a><span class="lineno">  343</span>&#160;  <span class="comment">// Evaluate the derivative of the infeasibility</span></div>
+<div class="line"><a name="l00344"></a><span class="lineno">  344</span>&#160;  ParOptScalar evalInfeasDeriv(ParOptVars &amp;vars, ParOptVars &amp;step,</div>
+<div class="line"><a name="l00345"></a><span class="lineno">  345</span>&#160;                               ParOptScalar *pinfeas, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *rw1,</div>
+<div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160;                               <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *rw2);</div>
 <div class="line"><a name="l00347"></a><span class="lineno">  347</span>&#160; </div>
 <div class="line"><a name="l00348"></a><span class="lineno">  348</span>&#160;  <span class="comment">// Evaluate the merit function</span></div>
 <div class="line"><a name="l00349"></a><span class="lineno">  349</span>&#160;  ParOptScalar evalMeritFunc(ParOptScalar fk, <span class="keyword">const</span> ParOptScalar *ck,</div>
 <div class="line"><a name="l00350"></a><span class="lineno">  350</span>&#160;                             <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xk, <span class="keyword">const</span> ParOptScalar *sk,</div>
-<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160;                             <span class="keyword">const</span> ParOptScalar *tk, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *swk);</div>
-<div class="line"><a name="l00352"></a><span class="lineno">  352</span>&#160; </div>
-<div class="line"><a name="l00353"></a><span class="lineno">  353</span>&#160;  <span class="comment">// Evaluate the directional derivative of the objective + barrier terms</span></div>
-<div class="line"><a name="l00354"></a><span class="lineno">  354</span>&#160;  ParOptScalar evalObjBarrierDeriv();</div>
-<div class="line"><a name="l00355"></a><span class="lineno">  355</span>&#160; </div>
-<div class="line"><a name="l00356"></a><span class="lineno">  356</span>&#160;  <span class="comment">// Evaluate the merit function, its derivative and the new penalty</span></div>
-<div class="line"><a name="l00357"></a><span class="lineno">  357</span>&#160;  <span class="comment">// parameter</span></div>
-<div class="line"><a name="l00358"></a><span class="lineno">  358</span>&#160;  <span class="keywordtype">void</span> evalMeritInitDeriv(<span class="keywordtype">double</span> max_x, ParOptScalar *_merit,</div>
-<div class="line"><a name="l00359"></a><span class="lineno">  359</span>&#160;                          ParOptScalar *_pmerit, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtmp,</div>
-<div class="line"><a name="l00360"></a><span class="lineno">  360</span>&#160;                          <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wtmp1, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wtmp2);</div>
-<div class="line"><a name="l00361"></a><span class="lineno">  361</span>&#160; </div>
-<div class="line"><a name="l00362"></a><span class="lineno">  362</span>&#160;  <span class="comment">// Compute the average of the complementarity products at the</span></div>
-<div class="line"><a name="l00363"></a><span class="lineno">  363</span>&#160;  <span class="comment">// current point: Complementarity at (x + p)</span></div>
-<div class="line"><a name="l00364"></a><span class="lineno">  364</span>&#160;  ParOptScalar computeComp();</div>
-<div class="line"><a name="l00365"></a><span class="lineno">  365</span>&#160;  ParOptScalar computeCompStep(<span class="keywordtype">double</span> alpha_x, <span class="keywordtype">double</span> alpha_z);</div>
-<div class="line"><a name="l00366"></a><span class="lineno">  366</span>&#160; </div>
-<div class="line"><a name="l00367"></a><span class="lineno">  367</span>&#160;  <span class="comment">// Check the step</span></div>
-<div class="line"><a name="l00368"></a><span class="lineno">  368</span>&#160;  <span class="keywordtype">void</span> checkStep();</div>
-<div class="line"><a name="l00369"></a><span class="lineno">  369</span>&#160; </div>
-<div class="line"><a name="l00370"></a><span class="lineno">  370</span>&#160;  <span class="comment">// The parallel optimizer problem and constraints</span></div>
-<div class="line"><a name="l00371"></a><span class="lineno">  371</span>&#160;  <a class="code" href="class_par_opt_problem.html">ParOptProblem</a> *prob;</div>
-<div class="line"><a name="l00372"></a><span class="lineno">  372</span>&#160; </div>
-<div class="line"><a name="l00373"></a><span class="lineno">  373</span>&#160;  <span class="comment">// All of the optimizer options</span></div>
-<div class="line"><a name="l00374"></a><span class="lineno">  374</span>&#160;  <a class="code" href="class_par_opt_options.html">ParOptOptions</a> *options;</div>
-<div class="line"><a name="l00375"></a><span class="lineno">  375</span>&#160; </div>
-<div class="line"><a name="l00376"></a><span class="lineno">  376</span>&#160;  <span class="comment">// Communicator info</span></div>
-<div class="line"><a name="l00377"></a><span class="lineno">  377</span>&#160;  MPI_Comm comm;</div>
-<div class="line"><a name="l00378"></a><span class="lineno">  378</span>&#160;  <span class="keywordtype">int</span> opt_root;</div>
-<div class="line"><a name="l00379"></a><span class="lineno">  379</span>&#160; </div>
-<div class="line"><a name="l00380"></a><span class="lineno">  380</span>&#160;  <span class="comment">// The number of variables and constraints in the problem</span></div>
-<div class="line"><a name="l00381"></a><span class="lineno">  381</span>&#160;  <span class="keywordtype">int</span> nvars;        <span class="comment">// The number of local (on-processor) variables</span></div>
-<div class="line"><a name="l00382"></a><span class="lineno">  382</span>&#160;  <span class="keywordtype">int</span> ncon;         <span class="comment">// The number of constraints in the problem</span></div>
-<div class="line"><a name="l00383"></a><span class="lineno">  383</span>&#160;  <span class="keywordtype">int</span> ninequality;  <span class="comment">// The number of inequality constraints</span></div>
-<div class="line"><a name="l00384"></a><span class="lineno">  384</span>&#160;  <span class="keywordtype">int</span> nwcon;        <span class="comment">// The number of specially constructed weighting constraints</span></div>
-<div class="line"><a name="l00385"></a><span class="lineno">  385</span>&#160;  <span class="keywordtype">int</span> nwblock;      <span class="comment">// The nuber of constraints per block</span></div>
-<div class="line"><a name="l00386"></a><span class="lineno">  386</span>&#160;  <span class="keywordtype">int</span> nvars_total;  <span class="comment">// The total number of variables</span></div>
-<div class="line"><a name="l00387"></a><span class="lineno">  387</span>&#160; </div>
-<div class="line"><a name="l00388"></a><span class="lineno">  388</span>&#160;  <span class="comment">// Distributed variable/constriant ranges</span></div>
-<div class="line"><a name="l00389"></a><span class="lineno">  389</span>&#160;  <span class="keywordtype">int</span> *var_range, *wcon_range;</div>
+<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160;                             <span class="keyword">const</span> ParOptScalar *tk, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *swk,</div>
+<div class="line"><a name="l00352"></a><span class="lineno">  352</span>&#160;                             <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *twk);</div>
+<div class="line"><a name="l00353"></a><span class="lineno">  353</span>&#160; </div>
+<div class="line"><a name="l00354"></a><span class="lineno">  354</span>&#160;  <span class="comment">// Evaluate the directional derivative of the objective + barrier terms</span></div>
+<div class="line"><a name="l00355"></a><span class="lineno">  355</span>&#160;  ParOptScalar evalObjBarrierDeriv(ParOptVars &amp;vars, ParOptVars &amp;step);</div>
+<div class="line"><a name="l00356"></a><span class="lineno">  356</span>&#160; </div>
+<div class="line"><a name="l00357"></a><span class="lineno">  357</span>&#160;  <span class="comment">// Evaluate the merit function, its derivative and the new penalty</span></div>
+<div class="line"><a name="l00358"></a><span class="lineno">  358</span>&#160;  <span class="comment">// parameter</span></div>
+<div class="line"><a name="l00359"></a><span class="lineno">  359</span>&#160;  <span class="keywordtype">void</span> evalMeritInitDeriv(ParOptVars &amp;vars, ParOptVars &amp;step, <span class="keywordtype">double</span> max_x,</div>
+<div class="line"><a name="l00360"></a><span class="lineno">  360</span>&#160;                          ParOptScalar *_merit, ParOptScalar *_pmerit,</div>
+<div class="line"><a name="l00361"></a><span class="lineno">  361</span>&#160;                          <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtmp, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wtmp1, <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wtmp2);</div>
+<div class="line"><a name="l00362"></a><span class="lineno">  362</span>&#160; </div>
+<div class="line"><a name="l00363"></a><span class="lineno">  363</span>&#160;  <span class="comment">// Compute the average of the complementarity products at the</span></div>
+<div class="line"><a name="l00364"></a><span class="lineno">  364</span>&#160;  <span class="comment">// current point: Complementarity at (x + p)</span></div>
+<div class="line"><a name="l00365"></a><span class="lineno">  365</span>&#160;  ParOptScalar computeComp(ParOptVars &amp;vars);</div>
+<div class="line"><a name="l00366"></a><span class="lineno">  366</span>&#160;  ParOptScalar computeCompStep(ParOptVars &amp;vars, <span class="keywordtype">double</span> alpha_x, <span class="keywordtype">double</span> alpha_z,</div>
+<div class="line"><a name="l00367"></a><span class="lineno">  367</span>&#160;                               ParOptVars &amp;step);</div>
+<div class="line"><a name="l00368"></a><span class="lineno">  368</span>&#160; </div>
+<div class="line"><a name="l00369"></a><span class="lineno">  369</span>&#160;  <span class="comment">// Check the step</span></div>
+<div class="line"><a name="l00370"></a><span class="lineno">  370</span>&#160;  <span class="keywordtype">void</span> checkStep();</div>
+<div class="line"><a name="l00371"></a><span class="lineno">  371</span>&#160; </div>
+<div class="line"><a name="l00372"></a><span class="lineno">  372</span>&#160;  <span class="comment">// All the variables in a solution vector</span></div>
+<div class="line"><a name="l00373"></a><span class="lineno">  373</span>&#160;  <span class="keyword">class </span>ParOptVars {</div>
+<div class="line"><a name="l00374"></a><span class="lineno">  374</span>&#160;   <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00375"></a><span class="lineno">  375</span>&#160;    ParOptVars();</div>
+<div class="line"><a name="l00376"></a><span class="lineno">  376</span>&#160;    ~ParOptVars();</div>
+<div class="line"><a name="l00377"></a><span class="lineno">  377</span>&#160;    <span class="keywordtype">void</span> initialize(<a class="code" href="class_par_opt_problem.html">ParOptProblem</a> *prob);</div>
+<div class="line"><a name="l00378"></a><span class="lineno">  378</span>&#160;    <span class="keywordtype">void</span> add(ParOptVars &amp;update);</div>
+<div class="line"><a name="l00379"></a><span class="lineno">  379</span>&#160;    <span class="keywordtype">void</span> subtract(ParOptVars &amp;update);</div>
+<div class="line"><a name="l00380"></a><span class="lineno">  380</span>&#160; </div>
+<div class="line"><a name="l00381"></a><span class="lineno">  381</span>&#160;    <span class="comment">// The variables in the optimization problem</span></div>
+<div class="line"><a name="l00382"></a><span class="lineno">  382</span>&#160;    <span class="keywordtype">int</span> ncon;</div>
+<div class="line"><a name="l00383"></a><span class="lineno">  383</span>&#160;    <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *x;               <span class="comment">// The design point</span></div>
+<div class="line"><a name="l00384"></a><span class="lineno">  384</span>&#160;    <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *zl, *zu;         <span class="comment">// Multipliers for the upper/lower bounds</span></div>
+<div class="line"><a name="l00385"></a><span class="lineno">  385</span>&#160;    ParOptScalar *z, *zs, *zt;  <span class="comment">// Multipliers for the dense constraints</span></div>
+<div class="line"><a name="l00386"></a><span class="lineno">  386</span>&#160;    <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *zw, *zsw, *ztw;  <span class="comment">// Multipliers for the sparse constraints</span></div>
+<div class="line"><a name="l00387"></a><span class="lineno">  387</span>&#160;    ParOptScalar *s, *t;        <span class="comment">// Slack variables</span></div>
+<div class="line"><a name="l00388"></a><span class="lineno">  388</span>&#160;    <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *sw, *tw;         <span class="comment">// Slack variables for the sparse constraints</span></div>
+<div class="line"><a name="l00389"></a><span class="lineno">  389</span>&#160;  };</div>
 <div class="line"><a name="l00390"></a><span class="lineno">  390</span>&#160; </div>
-<div class="line"><a name="l00391"></a><span class="lineno">  391</span>&#160;  <span class="comment">// Temporary vectors for internal usage</span></div>
-<div class="line"><a name="l00392"></a><span class="lineno">  392</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtemp;</div>
-<div class="line"><a name="l00393"></a><span class="lineno">  393</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wtemp;</div>
-<div class="line"><a name="l00394"></a><span class="lineno">  394</span>&#160;  ParOptScalar *ztemp;</div>
-<div class="line"><a name="l00395"></a><span class="lineno">  395</span>&#160; </div>
-<div class="line"><a name="l00396"></a><span class="lineno">  396</span>&#160;  <span class="comment">// The variables in the optimization problem</span></div>
-<div class="line"><a name="l00397"></a><span class="lineno">  397</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *x;               <span class="comment">// The design point</span></div>
-<div class="line"><a name="l00398"></a><span class="lineno">  398</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *zl, *zu;         <span class="comment">// Multipliers for the upper/lower bounds</span></div>
-<div class="line"><a name="l00399"></a><span class="lineno">  399</span>&#160;  ParOptScalar *z, *zs, *zt;  <span class="comment">// Multipliers for the dense constraints</span></div>
-<div class="line"><a name="l00400"></a><span class="lineno">  400</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *zw;              <span class="comment">// Multipliers for the sparse constraints</span></div>
-<div class="line"><a name="l00401"></a><span class="lineno">  401</span>&#160;  ParOptScalar *s, *t;        <span class="comment">// Slack variables</span></div>
-<div class="line"><a name="l00402"></a><span class="lineno">  402</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *sw;              <span class="comment">// Slack variables for the sparse constraints</span></div>
-<div class="line"><a name="l00403"></a><span class="lineno">  403</span>&#160; </div>
-<div class="line"><a name="l00404"></a><span class="lineno">  404</span>&#160;  <span class="comment">// The lower/upper bounds on the variables</span></div>
-<div class="line"><a name="l00405"></a><span class="lineno">  405</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *lb, *ub;</div>
-<div class="line"><a name="l00406"></a><span class="lineno">  406</span>&#160; </div>
-<div class="line"><a name="l00407"></a><span class="lineno">  407</span>&#160;  <span class="comment">// The steps in the variables</span></div>
-<div class="line"><a name="l00408"></a><span class="lineno">  408</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *px, *pzl, *pzu, *pzw, *psw;</div>
-<div class="line"><a name="l00409"></a><span class="lineno">  409</span>&#160;  ParOptScalar *ps, *pt, *pz, *pzs, *pzt;</div>
-<div class="line"><a name="l00410"></a><span class="lineno">  410</span>&#160; </div>
-<div class="line"><a name="l00411"></a><span class="lineno">  411</span>&#160;  <span class="comment">// The residuals</span></div>
-<div class="line"><a name="l00412"></a><span class="lineno">  412</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *rx, *rzl, *rzu;</div>
-<div class="line"><a name="l00413"></a><span class="lineno">  413</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *rcw, *rzw;</div>
-<div class="line"><a name="l00414"></a><span class="lineno">  414</span>&#160;  ParOptScalar *rc, *rs, *rt, *rzs, *rzt;</div>
-<div class="line"><a name="l00415"></a><span class="lineno">  415</span>&#160; </div>
-<div class="line"><a name="l00416"></a><span class="lineno">  416</span>&#160;  <span class="comment">// The objective, gradient, constraints, and constraint gradients</span></div>
-<div class="line"><a name="l00417"></a><span class="lineno">  417</span>&#160;  ParOptScalar fobj, *c;</div>
-<div class="line"><a name="l00418"></a><span class="lineno">  418</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *g, **Ac;</div>
-<div class="line"><a name="l00419"></a><span class="lineno">  419</span>&#160; </div>
-<div class="line"><a name="l00420"></a><span class="lineno">  420</span>&#160;  <span class="comment">// The l1-penalty parameters for the dense constraints</span></div>
-<div class="line"><a name="l00421"></a><span class="lineno">  421</span>&#160;  <span class="keywordtype">double</span> *penalty_gamma_s;</div>
-<div class="line"><a name="l00422"></a><span class="lineno">  422</span>&#160;  <span class="keywordtype">double</span> *penalty_gamma_t;</div>
-<div class="line"><a name="l00423"></a><span class="lineno">  423</span>&#160; </div>
-<div class="line"><a name="l00424"></a><span class="lineno">  424</span>&#160;  <span class="comment">// The data for the block-diagonal matrix</span></div>
-<div class="line"><a name="l00425"></a><span class="lineno">  425</span>&#160;  ParOptScalar *Cw;</div>
-<div class="line"><a name="l00426"></a><span class="lineno">  426</span>&#160; </div>
-<div class="line"><a name="l00427"></a><span class="lineno">  427</span>&#160;  <span class="comment">// Data required for solving the KKT system</span></div>
-<div class="line"><a name="l00428"></a><span class="lineno">  428</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *Cvec;</div>
-<div class="line"><a name="l00429"></a><span class="lineno">  429</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> **Ew;</div>
-<div class="line"><a name="l00430"></a><span class="lineno">  430</span>&#160;  ParOptScalar *Dmat, *Ce;</div>
-<div class="line"><a name="l00431"></a><span class="lineno">  431</span>&#160;  <span class="keywordtype">int</span> *dpiv, *cpiv;</div>
-<div class="line"><a name="l00432"></a><span class="lineno">  432</span>&#160; </div>
-<div class="line"><a name="l00433"></a><span class="lineno">  433</span>&#160;  <span class="comment">// Storage for the Quasi-Newton updates</span></div>
-<div class="line"><a name="l00434"></a><span class="lineno">  434</span>&#160;  <a class="code" href="class_par_opt_compact_quasi_newton.html">ParOptCompactQuasiNewton</a> *qn;</div>
-<div class="line"><a name="l00435"></a><span class="lineno">  435</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *y_qn, *s_qn;</div>
-<div class="line"><a name="l00436"></a><span class="lineno">  436</span>&#160; </div>
-<div class="line"><a name="l00437"></a><span class="lineno">  437</span>&#160;  <span class="comment">// Control of exact diagonal Hessian</span></div>
-<div class="line"><a name="l00438"></a><span class="lineno">  438</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *hdiag;</div>
-<div class="line"><a name="l00439"></a><span class="lineno">  439</span>&#160; </div>
-<div class="line"><a name="l00440"></a><span class="lineno">  440</span>&#160;  <span class="comment">// Keep track of the number of objective and gradient evaluations</span></div>
-<div class="line"><a name="l00441"></a><span class="lineno">  441</span>&#160;  <span class="keywordtype">int</span> niter, neval, ngeval, nhvec;</div>
+<div class="line"><a name="l00391"></a><span class="lineno">  391</span>&#160;  <span class="comment">// The parallel optimizer problem and constraints</span></div>
+<div class="line"><a name="l00392"></a><span class="lineno">  392</span>&#160;  <a class="code" href="class_par_opt_problem.html">ParOptProblem</a> *prob;</div>
+<div class="line"><a name="l00393"></a><span class="lineno">  393</span>&#160; </div>
+<div class="line"><a name="l00394"></a><span class="lineno">  394</span>&#160;  <span class="comment">// All of the optimizer options</span></div>
+<div class="line"><a name="l00395"></a><span class="lineno">  395</span>&#160;  <a class="code" href="class_par_opt_options.html">ParOptOptions</a> *options;</div>
+<div class="line"><a name="l00396"></a><span class="lineno">  396</span>&#160; </div>
+<div class="line"><a name="l00397"></a><span class="lineno">  397</span>&#160;  <span class="comment">// Communicator info</span></div>
+<div class="line"><a name="l00398"></a><span class="lineno">  398</span>&#160;  MPI_Comm comm;</div>
+<div class="line"><a name="l00399"></a><span class="lineno">  399</span>&#160;  <span class="keywordtype">int</span> opt_root;</div>
+<div class="line"><a name="l00400"></a><span class="lineno">  400</span>&#160; </div>
+<div class="line"><a name="l00401"></a><span class="lineno">  401</span>&#160;  <span class="comment">// The number of variables and constraints in the problem</span></div>
+<div class="line"><a name="l00402"></a><span class="lineno">  402</span>&#160;  <span class="keywordtype">int</span> nvars;        <span class="comment">// The number of local (on-processor) variables</span></div>
+<div class="line"><a name="l00403"></a><span class="lineno">  403</span>&#160;  <span class="keywordtype">int</span> ncon;         <span class="comment">// The number of constraints in the problem</span></div>
+<div class="line"><a name="l00404"></a><span class="lineno">  404</span>&#160;  <span class="keywordtype">int</span> ninequality;  <span class="comment">// The number of inequality constraints</span></div>
+<div class="line"><a name="l00405"></a><span class="lineno">  405</span>&#160;  <span class="keywordtype">int</span> nwcon;        <span class="comment">// The number of specially constructed weighting constraints</span></div>
+<div class="line"><a name="l00406"></a><span class="lineno">  406</span>&#160;  <span class="keywordtype">int</span> nwinequality;  <span class="comment">// The number of sparse inequality constraints</span></div>
+<div class="line"><a name="l00407"></a><span class="lineno">  407</span>&#160;  <span class="keywordtype">int</span> nvars_total;   <span class="comment">// The total number of variables</span></div>
+<div class="line"><a name="l00408"></a><span class="lineno">  408</span>&#160; </div>
+<div class="line"><a name="l00409"></a><span class="lineno">  409</span>&#160;  <span class="comment">// Distributed variable/constriant ranges</span></div>
+<div class="line"><a name="l00410"></a><span class="lineno">  410</span>&#160;  <span class="keywordtype">int</span> *var_range, *wcon_range;</div>
+<div class="line"><a name="l00411"></a><span class="lineno">  411</span>&#160; </div>
+<div class="line"><a name="l00412"></a><span class="lineno">  412</span>&#160;  <span class="comment">// Variables</span></div>
+<div class="line"><a name="l00413"></a><span class="lineno">  413</span>&#160;  ParOptVars variables;  <span class="comment">// The solution variables</span></div>
+<div class="line"><a name="l00414"></a><span class="lineno">  414</span>&#160;  ParOptVars residual;   <span class="comment">// The residual variables</span></div>
+<div class="line"><a name="l00415"></a><span class="lineno">  415</span>&#160;  ParOptVars update;     <span class="comment">// The step variables</span></div>
+<div class="line"><a name="l00416"></a><span class="lineno">  416</span>&#160;  ParOptVars refine;     <span class="comment">// The variables used in iterative refinement</span></div>
+<div class="line"><a name="l00417"></a><span class="lineno">  417</span>&#160; </div>
+<div class="line"><a name="l00418"></a><span class="lineno">  418</span>&#160;  <span class="comment">// Temporary vectors for internal usage</span></div>
+<div class="line"><a name="l00419"></a><span class="lineno">  419</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *xtemp;</div>
+<div class="line"><a name="l00420"></a><span class="lineno">  420</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *wtemp;</div>
+<div class="line"><a name="l00421"></a><span class="lineno">  421</span>&#160;  ParOptScalar *ztemp;</div>
+<div class="line"><a name="l00422"></a><span class="lineno">  422</span>&#160; </div>
+<div class="line"><a name="l00423"></a><span class="lineno">  423</span>&#160;  <span class="comment">// The lower/upper bounds on the variables</span></div>
+<div class="line"><a name="l00424"></a><span class="lineno">  424</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *lb, *ub;</div>
+<div class="line"><a name="l00425"></a><span class="lineno">  425</span>&#160; </div>
+<div class="line"><a name="l00426"></a><span class="lineno">  426</span>&#160;  <span class="comment">// The objective, gradient, constraints, and constraint gradients</span></div>
+<div class="line"><a name="l00427"></a><span class="lineno">  427</span>&#160;  ParOptScalar fobj, *c;</div>
+<div class="line"><a name="l00428"></a><span class="lineno">  428</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *g, **Ac;</div>
+<div class="line"><a name="l00429"></a><span class="lineno">  429</span>&#160; </div>
+<div class="line"><a name="l00430"></a><span class="lineno">  430</span>&#160;  <span class="comment">// The l1-penalty parameters for the dense constraints and sparse constraints</span></div>
+<div class="line"><a name="l00431"></a><span class="lineno">  431</span>&#160;  <span class="keywordtype">double</span> *penalty_gamma_s, *penalty_gamma_t;</div>
+<div class="line"><a name="l00432"></a><span class="lineno">  432</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *penalty_gamma_sw, *penalty_gamma_tw;</div>
+<div class="line"><a name="l00433"></a><span class="lineno">  433</span>&#160; </div>
+<div class="line"><a name="l00434"></a><span class="lineno">  434</span>&#160;  <a class="code" href="class_par_opt_quasi_def_mat.html">ParOptQuasiDefMat</a> *mat;</div>
+<div class="line"><a name="l00435"></a><span class="lineno">  435</span>&#160; </div>
+<div class="line"><a name="l00436"></a><span class="lineno">  436</span>&#160;  <span class="comment">// Data required for solving the KKT system</span></div>
+<div class="line"><a name="l00437"></a><span class="lineno">  437</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *Dinv, *Cdiag;</div>
+<div class="line"><a name="l00438"></a><span class="lineno">  438</span>&#160; </div>
+<div class="line"><a name="l00439"></a><span class="lineno">  439</span>&#160;  <span class="comment">// The Schur complement for the dense constraints</span></div>
+<div class="line"><a name="l00440"></a><span class="lineno">  440</span>&#160;  ParOptScalar *Gmat;</div>
+<div class="line"><a name="l00441"></a><span class="lineno">  441</span>&#160;  <span class="keywordtype">int</span> *gpiv;</div>
 <div class="line"><a name="l00442"></a><span class="lineno">  442</span>&#160; </div>
-<div class="line"><a name="l00443"></a><span class="lineno">  443</span>&#160;  <span class="comment">// Sparse equalities or inequalities?</span></div>
-<div class="line"><a name="l00444"></a><span class="lineno">  444</span>&#160;  <span class="keywordtype">int</span> sparse_inequality;</div>
-<div class="line"><a name="l00445"></a><span class="lineno">  445</span>&#160; </div>
-<div class="line"><a name="l00446"></a><span class="lineno">  446</span>&#160;  <span class="comment">// Flags to indicate whether to use the upper/lower bounds</span></div>
-<div class="line"><a name="l00447"></a><span class="lineno">  447</span>&#160;  <span class="keywordtype">int</span> use_lower, use_upper;</div>
-<div class="line"><a name="l00448"></a><span class="lineno">  448</span>&#160; </div>
-<div class="line"><a name="l00449"></a><span class="lineno">  449</span>&#160;  <span class="comment">// The barrier parameter</span></div>
-<div class="line"><a name="l00450"></a><span class="lineno">  450</span>&#160;  <span class="keywordtype">double</span> barrier_param;</div>
-<div class="line"><a name="l00451"></a><span class="lineno">  451</span>&#160; </div>
-<div class="line"><a name="l00452"></a><span class="lineno">  452</span>&#160;  <span class="comment">// Penalty parameter for the line search</span></div>
-<div class="line"><a name="l00453"></a><span class="lineno">  453</span>&#160;  <span class="keywordtype">double</span> rho_penalty_search;</div>
-<div class="line"><a name="l00454"></a><span class="lineno">  454</span>&#160; </div>
-<div class="line"><a name="l00455"></a><span class="lineno">  455</span>&#160;  <span class="comment">// Internal information about GMRES</span></div>
-<div class="line"><a name="l00456"></a><span class="lineno">  456</span>&#160;  <span class="keywordtype">int</span> gmres_subspace_size;</div>
-<div class="line"><a name="l00457"></a><span class="lineno">  457</span>&#160;  ParOptScalar *gmres_H, *gmres_alpha, *gmres_res, *gmres_Q;</div>
-<div class="line"><a name="l00458"></a><span class="lineno">  458</span>&#160;  ParOptScalar *gmres_y, *gmres_fproj, *gmres_aproj, *gmres_awproj;</div>
-<div class="line"><a name="l00459"></a><span class="lineno">  459</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> **gmres_W;</div>
-<div class="line"><a name="l00460"></a><span class="lineno">  460</span>&#160; </div>
-<div class="line"><a name="l00461"></a><span class="lineno">  461</span>&#160;  <span class="comment">// The file pointer to use for printing things out</span></div>
-<div class="line"><a name="l00462"></a><span class="lineno">  462</span>&#160;  FILE *outfp;</div>
-<div class="line"><a name="l00463"></a><span class="lineno">  463</span>&#160;};</div>
-<div class="line"><a name="l00464"></a><span class="lineno">  464</span>&#160; </div>
-<div class="line"><a name="l00465"></a><span class="lineno">  465</span>&#160;<span class="preprocessor">#endif  </span><span class="comment">// PAR_OPT_INTERIOR_POINT_H</span></div>
+<div class="line"><a name="l00443"></a><span class="lineno">  443</span>&#160;  <span class="comment">// The Schur complement for the quasi-Newton Hessian approximation</span></div>
+<div class="line"><a name="l00444"></a><span class="lineno">  444</span>&#160;  ParOptScalar *Ce;</div>
+<div class="line"><a name="l00445"></a><span class="lineno">  445</span>&#160;  <span class="keywordtype">int</span> *cpiv;</div>
+<div class="line"><a name="l00446"></a><span class="lineno">  446</span>&#160; </div>
+<div class="line"><a name="l00447"></a><span class="lineno">  447</span>&#160;  <span class="comment">// Storage for the Quasi-Newton updates</span></div>
+<div class="line"><a name="l00448"></a><span class="lineno">  448</span>&#160;  <a class="code" href="class_par_opt_compact_quasi_newton.html">ParOptCompactQuasiNewton</a> *qn;</div>
+<div class="line"><a name="l00449"></a><span class="lineno">  449</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *y_qn, *s_qn;</div>
+<div class="line"><a name="l00450"></a><span class="lineno">  450</span>&#160; </div>
+<div class="line"><a name="l00451"></a><span class="lineno">  451</span>&#160;  <span class="comment">// Control of exact diagonal Hessian</span></div>
+<div class="line"><a name="l00452"></a><span class="lineno">  452</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> *hdiag;</div>
+<div class="line"><a name="l00453"></a><span class="lineno">  453</span>&#160; </div>
+<div class="line"><a name="l00454"></a><span class="lineno">  454</span>&#160;  <span class="comment">// Keep track of the number of objective and gradient evaluations</span></div>
+<div class="line"><a name="l00455"></a><span class="lineno">  455</span>&#160;  <span class="keywordtype">int</span> niter, neval, ngeval, nhvec;</div>
+<div class="line"><a name="l00456"></a><span class="lineno">  456</span>&#160; </div>
+<div class="line"><a name="l00457"></a><span class="lineno">  457</span>&#160;  <span class="comment">// Flags to indicate whether to use the upper/lower bounds</span></div>
+<div class="line"><a name="l00458"></a><span class="lineno">  458</span>&#160;  <span class="keywordtype">int</span> use_lower, use_upper;</div>
+<div class="line"><a name="l00459"></a><span class="lineno">  459</span>&#160; </div>
+<div class="line"><a name="l00460"></a><span class="lineno">  460</span>&#160;  <span class="comment">// The barrier parameter</span></div>
+<div class="line"><a name="l00461"></a><span class="lineno">  461</span>&#160;  <span class="keywordtype">double</span> barrier_param;</div>
+<div class="line"><a name="l00462"></a><span class="lineno">  462</span>&#160; </div>
+<div class="line"><a name="l00463"></a><span class="lineno">  463</span>&#160;  <span class="comment">// Penalty parameter for the line search</span></div>
+<div class="line"><a name="l00464"></a><span class="lineno">  464</span>&#160;  <span class="keywordtype">double</span> rho_penalty_search;</div>
+<div class="line"><a name="l00465"></a><span class="lineno">  465</span>&#160; </div>
+<div class="line"><a name="l00466"></a><span class="lineno">  466</span>&#160;  <span class="comment">// Internal information about GMRES</span></div>
+<div class="line"><a name="l00467"></a><span class="lineno">  467</span>&#160;  <span class="keywordtype">int</span> gmres_subspace_size;</div>
+<div class="line"><a name="l00468"></a><span class="lineno">  468</span>&#160;  ParOptScalar *gmres_H, *gmres_alpha, *gmres_res, *gmres_Q;</div>
+<div class="line"><a name="l00469"></a><span class="lineno">  469</span>&#160;  ParOptScalar *gmres_y, *gmres_fproj, *gmres_aproj, *gmres_awproj;</div>
+<div class="line"><a name="l00470"></a><span class="lineno">  470</span>&#160;  <a class="code" href="class_par_opt_vec.html">ParOptVec</a> **gmres_W;</div>
+<div class="line"><a name="l00471"></a><span class="lineno">  471</span>&#160; </div>
+<div class="line"><a name="l00472"></a><span class="lineno">  472</span>&#160;  <span class="comment">// The file pointer to use for printing things out</span></div>
+<div class="line"><a name="l00473"></a><span class="lineno">  473</span>&#160;  FILE *outfp;</div>
+<div class="line"><a name="l00474"></a><span class="lineno">  474</span>&#160;};</div>
+<div class="line"><a name="l00475"></a><span class="lineno">  475</span>&#160; </div>
+<div class="line"><a name="l00476"></a><span class="lineno">  476</span>&#160;<span class="preprocessor">#endif  </span><span class="comment">// PAR_OPT_INTERIOR_POINT_H</span></div>
 <div class="ttc" id="aclass_par_opt_base_html"><div class="ttname"><a href="class_par_opt_base.html">ParOptBase</a></div><div class="ttdef"><b>Definition:</b> ParOptVec.h:28</div></div>
 <div class="ttc" id="aclass_par_opt_compact_quasi_newton_html"><div class="ttname"><a href="class_par_opt_compact_quasi_newton.html">ParOptCompactQuasiNewton</a></div><div class="ttdef"><b>Definition:</b> ParOptQuasiNewton.h:32</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html"><div class="ttname"><a href="class_par_opt_interior_point.html">ParOptInteriorPoint</a></div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.h:127</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_a03a14f51e90c0ca161d5b0a3bb07ad3a"><div class="ttname"><a href="class_par_opt_interior_point.html#a03a14f51e90c0ca161d5b0a3bb07ad3a">ParOptInteriorPoint::resetProblemInstance</a></div><div class="ttdeci">void resetProblemInstance(ParOptProblem *_prob)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:674</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_a1fe73211ec57241c89f17003e0253f97"><div class="ttname"><a href="class_par_opt_interior_point.html#a1fe73211ec57241c89f17003e0253f97">ParOptInteriorPoint::setQuasiNewton</a></div><div class="ttdeci">void setQuasiNewton(ParOptCompactQuasiNewton *_qn)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:1113</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_a24e821c7ad1e95e1e0dce44a7f200b9d"><div class="ttname"><a href="class_par_opt_interior_point.html#a24e821c7ad1e95e1e0dce44a7f200b9d">ParOptInteriorPoint::setPenaltyGamma</a></div><div class="ttdeci">void setPenaltyGamma(double gamma)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:1049</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_a260b8c3fa111ae1cdcf87a5ae1b0b23f"><div class="ttname"><a href="class_par_opt_interior_point.html#a260b8c3fa111ae1cdcf87a5ae1b0b23f">ParOptInteriorPoint::ParOptInteriorPoint</a></div><div class="ttdeci">ParOptInteriorPoint(ParOptProblem *_prob, ParOptOptions *_options=NULL)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:41</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_a2c87b5544d722c245ee16c6dfd02d18a"><div class="ttname"><a href="class_par_opt_interior_point.html#a2c87b5544d722c245ee16c6dfd02d18a">ParOptInteriorPoint::resetDesignAndBounds</a></div><div class="ttdeci">void resetDesignAndBounds()</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:1169</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_a2e3ce67f64b60e22551339dd2dfabae5"><div class="ttname"><a href="class_par_opt_interior_point.html#a2e3ce67f64b60e22551339dd2dfabae5">ParOptInteriorPoint::getPenaltyGamma</a></div><div class="ttdeci">int getPenaltyGamma(const double **gamma)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:1087</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_a2f31caaede09ae441ea1a5cfa6ac115e"><div class="ttname"><a href="class_par_opt_interior_point.html#a2f31caaede09ae441ea1a5cfa6ac115e">ParOptInteriorPoint::resetQuasiNewtonHessian</a></div><div class="ttdeci">void resetQuasiNewtonHessian()</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:1160</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_a358e0877902ab5337d580f067a646e66"><div class="ttname"><a href="class_par_opt_interior_point.html#a358e0877902ab5337d580f067a646e66">ParOptInteriorPoint::getComplementarity</a></div><div class="ttdeci">ParOptScalar getComplementarity()</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:1042</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_a4157ed66c2d34bc409d1d8ac9b44b3b3"><div class="ttname"><a href="class_par_opt_interior_point.html#a4157ed66c2d34bc409d1d8ac9b44b3b3">ParOptInteriorPoint::readSolutionFile</a></div><div class="ttdeci">int readSolutionFile(const char *filename)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:911</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_a4ba31f240bbd6630e8142eb57e769b9b"><div class="ttname"><a href="class_par_opt_interior_point.html#a4ba31f240bbd6630e8142eb57e769b9b">ParOptInteriorPoint::getOptions</a></div><div class="ttdeci">ParOptOptions * getOptions()</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:663</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_a5cf602e5359da9fec86d96504dc286e5"><div class="ttname"><a href="class_par_opt_interior_point.html#a5cf602e5359da9fec86d96504dc286e5">ParOptInteriorPoint::getOptimizedPoint</a></div><div class="ttdeci">void getOptimizedPoint(ParOptVec **_x, ParOptScalar **_z, ParOptVec **_zw, ParOptVec **_zl, ParOptVec **_zu)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:722</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_a5e303b429db8fcf03a4091fd6d857f52"><div class="ttname"><a href="class_par_opt_interior_point.html#a5e303b429db8fcf03a4091fd6d857f52">ParOptInteriorPoint::getBarrierParameter</a></div><div class="ttdeci">double getBarrierParameter()</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:1034</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_a6590bb83011fce885fca5582e25f3708"><div class="ttname"><a href="class_par_opt_interior_point.html#a6590bb83011fce885fca5582e25f3708">ParOptInteriorPoint::getProblemSizes</a></div><div class="ttdeci">void getProblemSizes(int *_nvars, int *_ncon, int *_inequality, int *_nwcon, int *_nwblock)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:701</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_a6d33920dcbe309b2bc13aeb6602f27d0"><div class="ttname"><a href="class_par_opt_interior_point.html#a6d33920dcbe309b2bc13aeb6602f27d0">ParOptInteriorPoint::getOptimizedSlacks</a></div><div class="ttdeci">void getOptimizedSlacks(ParOptScalar **_s, ParOptScalar **_t, ParOptVec **_sw)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:773</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_abb28109c38fb3eada3ce444f1bbd8d1a"><div class="ttname"><a href="class_par_opt_interior_point.html#abb28109c38fb3eada3ce444f1bbd8d1a">ParOptInteriorPoint::setBFGSUpdateType</a></div><div class="ttdeci">void setBFGSUpdateType(ParOptBFGSUpdateType bfgs_update)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:1099</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_abe37182b854ece6269fc786e461329b7"><div class="ttname"><a href="class_par_opt_interior_point.html#abe37182b854ece6269fc786e461329b7">ParOptInteriorPoint::addDefaultOptions</a></div><div class="ttdeci">static void addDefaultOptions(ParOptOptions *options)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:473</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_ae4d829a5ece19b7ce649712ac003ae0e"><div class="ttname"><a href="class_par_opt_interior_point.html#ae4d829a5ece19b7ce649712ac003ae0e">ParOptInteriorPoint::~ParOptInteriorPoint</a></div><div class="ttdeci">~ParOptInteriorPoint()</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:346</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_ae69326b953f80f501499c878b77c562b"><div class="ttname"><a href="class_par_opt_interior_point.html#ae69326b953f80f501499c878b77c562b">ParOptInteriorPoint::writeSolutionFile</a></div><div class="ttdeci">int writeSolutionFile(const char *filename)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:813</div></div>
-<div class="ttc" id="aclass_par_opt_interior_point_html_aedc8fd27ea31aec52b0d536b68823397"><div class="ttname"><a href="class_par_opt_interior_point.html#aedc8fd27ea31aec52b0d536b68823397">ParOptInteriorPoint::optimize</a></div><div class="ttdeci">int optimize(const char *checkpoint=NULL)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:4400</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html"><div class="ttname"><a href="class_par_opt_interior_point.html">ParOptInteriorPoint</a></div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.h:128</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html_a03a14f51e90c0ca161d5b0a3bb07ad3a"><div class="ttname"><a href="class_par_opt_interior_point.html#a03a14f51e90c0ca161d5b0a3bb07ad3a">ParOptInteriorPoint::resetProblemInstance</a></div><div class="ttdeci">void resetProblemInstance(ParOptProblem *_prob)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:745</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html_a1fe73211ec57241c89f17003e0253f97"><div class="ttname"><a href="class_par_opt_interior_point.html#a1fe73211ec57241c89f17003e0253f97">ParOptInteriorPoint::setQuasiNewton</a></div><div class="ttdeci">void setQuasiNewton(ParOptCompactQuasiNewton *_qn)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:1193</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html_a24e821c7ad1e95e1e0dce44a7f200b9d"><div class="ttname"><a href="class_par_opt_interior_point.html#a24e821c7ad1e95e1e0dce44a7f200b9d">ParOptInteriorPoint::setPenaltyGamma</a></div><div class="ttdeci">void setPenaltyGamma(double gamma)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:1128</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html_a260b8c3fa111ae1cdcf87a5ae1b0b23f"><div class="ttname"><a href="class_par_opt_interior_point.html#a260b8c3fa111ae1cdcf87a5ae1b0b23f">ParOptInteriorPoint::ParOptInteriorPoint</a></div><div class="ttdeci">ParOptInteriorPoint(ParOptProblem *_prob, ParOptOptions *_options=NULL)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:182</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html_a2c87b5544d722c245ee16c6dfd02d18a"><div class="ttname"><a href="class_par_opt_interior_point.html#a2c87b5544d722c245ee16c6dfd02d18a">ParOptInteriorPoint::resetDesignAndBounds</a></div><div class="ttdeci">void resetDesignAndBounds()</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:1249</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html_a2f31caaede09ae441ea1a5cfa6ac115e"><div class="ttname"><a href="class_par_opt_interior_point.html#a2f31caaede09ae441ea1a5cfa6ac115e">ParOptInteriorPoint::resetQuasiNewtonHessian</a></div><div class="ttdeci">void resetQuasiNewtonHessian()</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:1240</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html_a358e0877902ab5337d580f067a646e66"><div class="ttname"><a href="class_par_opt_interior_point.html#a358e0877902ab5337d580f067a646e66">ParOptInteriorPoint::getComplementarity</a></div><div class="ttdeci">ParOptScalar getComplementarity()</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:1119</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html_a4157ed66c2d34bc409d1d8ac9b44b3b3"><div class="ttname"><a href="class_par_opt_interior_point.html#a4157ed66c2d34bc409d1d8ac9b44b3b3">ParOptInteriorPoint::readSolutionFile</a></div><div class="ttdeci">int readSolutionFile(const char *filename)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:983</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html_a4ba31f240bbd6630e8142eb57e769b9b"><div class="ttname"><a href="class_par_opt_interior_point.html#a4ba31f240bbd6630e8142eb57e769b9b">ParOptInteriorPoint::getOptions</a></div><div class="ttdeci">ParOptOptions * getOptions()</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:734</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html_a4e174a8b9f599b6d1db212d2112d3178"><div class="ttname"><a href="class_par_opt_interior_point.html#a4e174a8b9f599b6d1db212d2112d3178">ParOptInteriorPoint::getOptimizedSlacks</a></div><div class="ttdeci">void getOptimizedSlacks(ParOptScalar **_s, ParOptScalar **_t, ParOptVec **_sw, ParOptVec **_tw)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:841</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html_a5cf602e5359da9fec86d96504dc286e5"><div class="ttname"><a href="class_par_opt_interior_point.html#a5cf602e5359da9fec86d96504dc286e5">ParOptInteriorPoint::getOptimizedPoint</a></div><div class="ttdeci">void getOptimizedPoint(ParOptVec **_x, ParOptScalar **_z, ParOptVec **_zw, ParOptVec **_zl, ParOptVec **_zu)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:793</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html_a5e303b429db8fcf03a4091fd6d857f52"><div class="ttname"><a href="class_par_opt_interior_point.html#a5e303b429db8fcf03a4091fd6d857f52">ParOptInteriorPoint::getBarrierParameter</a></div><div class="ttdeci">double getBarrierParameter()</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:1111</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html_aafdc3012bf0a5bbe5f31ba93044263c1"><div class="ttname"><a href="class_par_opt_interior_point.html#aafdc3012bf0a5bbe5f31ba93044263c1">ParOptInteriorPoint::getProblemSizes</a></div><div class="ttdeci">void getProblemSizes(int *_nvars, int *_ncon, int *_nwcon)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:773</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html_abb28109c38fb3eada3ce444f1bbd8d1a"><div class="ttname"><a href="class_par_opt_interior_point.html#abb28109c38fb3eada3ce444f1bbd8d1a">ParOptInteriorPoint::setBFGSUpdateType</a></div><div class="ttdeci">void setBFGSUpdateType(ParOptBFGSUpdateType bfgs_update)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:1179</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html_abe37182b854ece6269fc786e461329b7"><div class="ttname"><a href="class_par_opt_interior_point.html#abe37182b854ece6269fc786e461329b7">ParOptInteriorPoint::addDefaultOptions</a></div><div class="ttdeci">static void addDefaultOptions(ParOptOptions *options)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:536</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html_ae4d829a5ece19b7ce649712ac003ae0e"><div class="ttname"><a href="class_par_opt_interior_point.html#ae4d829a5ece19b7ce649712ac003ae0e">ParOptInteriorPoint::~ParOptInteriorPoint</a></div><div class="ttdeci">~ParOptInteriorPoint()</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:443</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html_ae69326b953f80f501499c878b77c562b"><div class="ttname"><a href="class_par_opt_interior_point.html#ae69326b953f80f501499c878b77c562b">ParOptInteriorPoint::writeSolutionFile</a></div><div class="ttdeci">int writeSolutionFile(const char *filename)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:883</div></div>
+<div class="ttc" id="aclass_par_opt_interior_point_html_aedc8fd27ea31aec52b0d536b68823397"><div class="ttname"><a href="class_par_opt_interior_point.html#aedc8fd27ea31aec52b0d536b68823397">ParOptInteriorPoint::optimize</a></div><div class="ttdeci">int optimize(const char *checkpoint=NULL)</div><div class="ttdef"><b>Definition:</b> ParOptInteriorPoint.cpp:4399</div></div>
 <div class="ttc" id="aclass_par_opt_options_html"><div class="ttname"><a href="class_par_opt_options.html">ParOptOptions</a></div><div class="ttdef"><b>Definition:</b> ParOptOptions.h:9</div></div>
-<div class="ttc" id="aclass_par_opt_problem_html"><div class="ttname"><a href="class_par_opt_problem.html">ParOptProblem</a></div><div class="ttdef"><b>Definition:</b> ParOptProblem.h:39</div></div>
+<div class="ttc" id="aclass_par_opt_problem_html"><div class="ttname"><a href="class_par_opt_problem.html">ParOptProblem</a></div><div class="ttdef"><b>Definition:</b> ParOptProblem.h:42</div></div>
+<div class="ttc" id="aclass_par_opt_quasi_def_mat_html"><div class="ttname"><a href="class_par_opt_quasi_def_mat.html">ParOptQuasiDefMat</a></div><div class="ttdef"><b>Definition:</b> ParOptSparseMat.h:19</div></div>
 <div class="ttc" id="aclass_par_opt_vec_html"><div class="ttname"><a href="class_par_opt_vec.html">ParOptVec</a></div><div class="ttdef"><b>Definition:</b> ParOptVec.h:53</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->

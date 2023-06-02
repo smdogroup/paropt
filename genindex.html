@@ -10,6 +10,8 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
         <script src="_static/sphinx_highlight.js"></script>
@@ -206,13 +208,11 @@
 </li>
       <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint17getOptimizedPointEPP9ParOptVecPP12ParOptScalarPP9ParOptVecPP9ParOptVecPP9ParOptVec">ParOptInteriorPoint::getOptimizedPoint (C++ function)</a>
 </li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVec">ParOptInteriorPoint::getOptimizedSlacks (C++ function)</a>
+      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint18getOptimizedSlacksEPP12ParOptScalarPP12ParOptScalarPP9ParOptVecPP9ParOptVec">ParOptInteriorPoint::getOptimizedSlacks (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint10getOptionsEv">ParOptInteriorPoint::getOptions (C++ function)</a>
 </li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint15getPenaltyGammaEPPKd">ParOptInteriorPoint::getPenaltyGamma (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint15getProblemSizesEPiPiPiPiPi">ParOptInteriorPoint::getProblemSizes (C++ function)</a>
+      <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint15getProblemSizesEPiPiPi">ParOptInteriorPoint::getProblemSizes (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N19ParOptInteriorPoint8optimizeEPKc">ParOptInteriorPoint::optimize (C++ function)</a>
 </li>
@@ -244,15 +244,17 @@
 </li>
       <li><a href="reference.html#_CPPv4N13ParOptProblem26addSparseJacobianTransposeE12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec">ParOptProblem::addSparseJacobianTranspose (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="reference.html#_CPPv4N13ParOptProblem14checkGradientsEdP9ParOptVeci">ParOptProblem::checkGradients (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="reference.html#_CPPv4N13ParOptProblem34computeQuasiNewtonUpdateCorrectionEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVecP9ParOptVec">ParOptProblem::computeQuasiNewtonUpdateCorrection (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N13ParOptProblem19createConstraintVecEv">ParOptProblem::createConstraintVec (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N13ParOptProblem15createDesignVecEv">ParOptProblem::createDesignVec (C++ function)</a>
+</li>
+      <li><a href="reference.html#_CPPv4N13ParOptProblem17createQuasiDefMatEv">ParOptProblem::createQuasiDefMat (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N13ParOptProblem15evalHessianDiagEP9ParOptVecP12ParOptScalarP9ParOptVecP9ParOptVec">ParOptProblem::evalHessianDiag (C++ function)</a>
 </li>
@@ -266,21 +268,23 @@
 </li>
       <li><a href="reference.html#_CPPv4N13ParOptProblem10getMPICommEv">ParOptProblem::getMPIComm (C++ function)</a>
 </li>
-      <li><a href="reference.html#_CPPv4N13ParOptProblem15getProblemSizesEPiPiPiPiPi">ParOptProblem::getProblemSizes (C++ function)</a>
+      <li><a href="reference.html#_CPPv4N13ParOptProblem18getNumInequalitiesEPiPi">ParOptProblem::getNumInequalities (C++ function)</a>
+</li>
+      <li><a href="reference.html#_CPPv4N13ParOptProblem15getProblemSizesEPiPiPi">ParOptProblem::getProblemSizes (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N13ParOptProblem16getVarsAndBoundsEP9ParOptVecP9ParOptVecP9ParOptVec">ParOptProblem::getVarsAndBounds (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N13ParOptProblem18isSparseInequalityEv">ParOptProblem::isSparseInequality (C++ function)</a>
 </li>
-      <li><a href="reference.html#_CPPv4N13ParOptProblem13ParOptProblemE8MPI_Comm">ParOptProblem::ParOptProblem (C++ function)</a>, <a href="reference.html#_CPPv4N13ParOptProblem13ParOptProblemE8MPI_Commiiiii">[1]</a>
+      <li><a href="reference.html#_CPPv4N13ParOptProblem13ParOptProblemE8MPI_Comm">ParOptProblem::ParOptProblem (C++ function)</a>
 </li>
-      <li><a href="reference.html#_CPPv4N13ParOptProblem15setProblemSizesEiiiii">ParOptProblem::setProblemSizes (C++ function)</a>
+      <li><a href="reference.html#_CPPv4N13ParOptProblem18setNumInequalitiesEii">ParOptProblem::setNumInequalities (C++ function)</a>
+</li>
+      <li><a href="reference.html#_CPPv4N13ParOptProblem15setProblemSizesEiii">ParOptProblem::setProblemSizes (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N13ParOptProblem14useLowerBoundsEv">ParOptProblem::useLowerBounds (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv4N13ParOptProblem14useUpperBoundsEv">ParOptProblem::useUpperBounds (C++ function)</a>
-</li>
-      <li><a href="reference.html#_CPPv4N13ParOptProblem11writeOutputEiP9ParOptVec">ParOptProblem::writeOutput (C++ function)</a>
 </li>
       <li><a href="reference.html#_CPPv417ParOptTrustRegion">ParOptTrustRegion (C++ class)</a>
 </li>

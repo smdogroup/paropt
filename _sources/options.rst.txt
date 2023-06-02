@@ -3,8 +3,8 @@ Options and generic interface for ParOpt optimziers
 
 ParOpt consists of three different optimizers: an interior point method, a trust-region method and the method of moving asymptotes.
 
-These optimizers can be accessed through the common python interface "ParOpt.Optimizers".
-This python object is allocated with a problem class which inherits from "ParOpt.Problem", and a dictionary of options.
+These optimizers can be accessed through the common python interface ``ParOpt.Optimizers``.
+This python object is allocated with a problem class which inherits from ``ParOpt.Problem``, and a dictionary of options.
 
 The optimizer interface is generally executed as follows:
 

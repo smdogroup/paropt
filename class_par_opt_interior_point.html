@@ -62,6 +62,7 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="summary">
+<a href="#nested-classes">Classes</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-static-methods">Static Public Member Functions</a> &#124;
 <a href="class_par_opt_interior_point-members.html">List of all members</a>  </div>
@@ -94,12 +95,12 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a03a14f51e90c0ca161d5b0a3bb07ad3a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aedc8fd27ea31aec52b0d536b68823397"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_interior_point.html#aedc8fd27ea31aec52b0d536b68823397">optimize</a> (const char *checkpoint=NULL)</td></tr>
 <tr class="separator:aedc8fd27ea31aec52b0d536b68823397"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6590bb83011fce885fca5582e25f3708"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_interior_point.html#a6590bb83011fce885fca5582e25f3708">getProblemSizes</a> (int *_nvars, int *_ncon, int *_inequality, int *_nwcon, int *_nwblock)</td></tr>
-<tr class="separator:a6590bb83011fce885fca5582e25f3708"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aafdc3012bf0a5bbe5f31ba93044263c1"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_interior_point.html#aafdc3012bf0a5bbe5f31ba93044263c1">getProblemSizes</a> (int *_nvars, int *_ncon, int *_nwcon)</td></tr>
+<tr class="separator:aafdc3012bf0a5bbe5f31ba93044263c1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5cf602e5359da9fec86d96504dc286e5"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_interior_point.html#a5cf602e5359da9fec86d96504dc286e5">getOptimizedPoint</a> (<a class="el" href="class_par_opt_vec.html">ParOptVec</a> **_x, ParOptScalar **_z, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> **_zw, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> **_zl, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> **_zu)</td></tr>
 <tr class="separator:a5cf602e5359da9fec86d96504dc286e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6d33920dcbe309b2bc13aeb6602f27d0"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_interior_point.html#a6d33920dcbe309b2bc13aeb6602f27d0">getOptimizedSlacks</a> (ParOptScalar **_s, ParOptScalar **_t, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> **_sw)</td></tr>
-<tr class="separator:a6d33920dcbe309b2bc13aeb6602f27d0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4e174a8b9f599b6d1db212d2112d3178"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_interior_point.html#a4e174a8b9f599b6d1db212d2112d3178">getOptimizedSlacks</a> (ParOptScalar **_s, ParOptScalar **_t, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> **_sw, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> **_tw)</td></tr>
+<tr class="separator:a4e174a8b9f599b6d1db212d2112d3178"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9ab844aae59dd2aa9a4d9f91e83be88e"><td class="memItemLeft" align="right" valign="top"><a id="a9ab844aae59dd2aa9a4d9f91e83be88e"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>checkGradients</b> (double dh)</td></tr>
 <tr class="separator:a9ab844aae59dd2aa9a4d9f91e83be88e"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -107,8 +108,6 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>checkGradients</b> (d
 <tr class="separator:a24e821c7ad1e95e1e0dce44a7f200b9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a40b9ae428794e2907a54ec5ba86a4d00"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_interior_point.html#a40b9ae428794e2907a54ec5ba86a4d00">setPenaltyGamma</a> (const double *gamma)</td></tr>
 <tr class="separator:a40b9ae428794e2907a54ec5ba86a4d00"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2e3ce67f64b60e22551339dd2dfabae5"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_interior_point.html#a2e3ce67f64b60e22551339dd2dfabae5">getPenaltyGamma</a> (const double **gamma)</td></tr>
-<tr class="separator:a2e3ce67f64b60e22551339dd2dfabae5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abb28109c38fb3eada3ce444f1bbd8d1a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_interior_point.html#abb28109c38fb3eada3ce444f1bbd8d1a">setBFGSUpdateType</a> (ParOptBFGSUpdateType bfgs_update)</td></tr>
 <tr class="separator:abb28109c38fb3eada3ce444f1bbd8d1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5e303b429db8fcf03a4091fd6d857f52"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_interior_point.html#a5e303b429db8fcf03a4091fd6d857f52">getBarrierParameter</a> ()</td></tr>
@@ -333,8 +332,8 @@ Static Public Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a6d33920dcbe309b2bc13aeb6602f27d0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6d33920dcbe309b2bc13aeb6602f27d0">&#9670;&nbsp;</a></span>getOptimizedSlacks()</h2>
+<a id="a4e174a8b9f599b6d1db212d2112d3178"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4e174a8b9f599b6d1db212d2112d3178">&#9670;&nbsp;</a></span>getOptimizedSlacks()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -355,7 +354,13 @@ Static Public Member Functions</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype"><a class="el" href="class_par_opt_vec.html">ParOptVec</a> **&#160;</td>
-          <td class="paramname"><em>_sw</em>&#160;</td>
+          <td class="paramname"><em>_sw</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="class_par_opt_vec.html">ParOptVec</a> **&#160;</td>
+          <td class="paramname"><em>_tw</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -368,13 +373,14 @@ Static Public Member Functions</h2></td></tr>
 <p>Note that the dense inequality constraints are formualted as</p>
 <p>c(x) = s - t</p>
 <p>where s, t &gt; 0. And the sparse inequality constraints are formulated as:</p>
-<p>cw(x) = sw</p>
-<p>where sw &gt; 0. When equality rather than inequality constraints are present, sw may be NULL.</p>
+<p>cw(x) = sw - tw</p>
+<p>where sw, tw &gt; 0. When equality rather than inequality constraints are present, sw and tw may be NULL.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">_s</td><td>the postive slack for the dense constraints </td></tr>
     <tr><td class="paramname">_t</td><td>the negative slack for the dense constraints </td></tr>
-    <tr><td class="paramname">_sw</td><td>the slack variable vector for the sparse constraints </td></tr>
+    <tr><td class="paramname">_sw</td><td>the positive slack variable vector for the sparse constraints </td></tr>
+    <tr><td class="paramname">_tw</td><td>the negative slack variable vector for the sparse constraints </td></tr>
   </table>
   </dd>
 </dl>
@@ -400,33 +406,8 @@ Static Public Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a2e3ce67f64b60e22551339dd2dfabae5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2e3ce67f64b60e22551339dd2dfabae5">&#9670;&nbsp;</a></span>getPenaltyGamma()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int ParOptInteriorPoint::getPenaltyGamma </td>
-          <td>(</td>
-          <td class="paramtype">const double **&#160;</td>
-          <td class="paramname"><em>_penalty_gamma</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Retrieve the penalty parameter values.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">_penalty_gamma</td><td>is the array of penalty parameter values. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="a6590bb83011fce885fca5582e25f3708"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6590bb83011fce885fca5582e25f3708">&#9670;&nbsp;</a></span>getProblemSizes()</h2>
+<a id="aafdc3012bf0a5bbe5f31ba93044263c1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aafdc3012bf0a5bbe5f31ba93044263c1">&#9670;&nbsp;</a></span>getProblemSizes()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -447,19 +428,7 @@ Static Public Member Functions</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">int *&#160;</td>
-          <td class="paramname"><em>_inequality</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int *&#160;</td>
-          <td class="paramname"><em>_nwcon</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int *&#160;</td>
-          <td class="paramname"><em>_nwblock</em>&#160;</td>
+          <td class="paramname"><em>_nwcon</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -473,9 +442,7 @@ Static Public Member Functions</h2></td></tr>
   <table class="params">
     <tr><td class="paramname">_nvars</td><td>the local number of variables </td></tr>
     <tr><td class="paramname">_ncon</td><td>the number of global constraints </td></tr>
-    <tr><td class="paramname">_inequality</td><td>the number of global inequality constraints </td></tr>
     <tr><td class="paramname">_nwcon</td><td>the number of sparse constraints </td></tr>
-    <tr><td class="paramname">_nwblock</td><td>the size of the sparse constraint block </td></tr>
   </table>
   </dd>
 </dl>

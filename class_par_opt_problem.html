@@ -75,13 +75,15 @@ Inheritance diagram for ParOptProblem:</div>
  <div class="center">
   <img src="class_par_opt_problem.png" usemap="#ParOptProblem_map" alt=""/>
   <map id="ParOptProblem_map" name="ParOptProblem_map">
-<area href="class_par_opt_base.html" alt="ParOptBase" shape="rect" coords="294,0,480,24"/>
-<area href="class_cy_par_opt_problem.html" alt="CyParOptProblem" shape="rect" coords="0,112,186,136"/>
+<area href="class_par_opt_base.html" alt="ParOptBase" shape="rect" coords="392,0,578,24"/>
+<area href="class_cy_par_opt_block_problem.html" alt="CyParOptBlockProblem" shape="rect" coords="0,112,186,136"/>
 <area href="class_par_opt_infeas_subproblem.html" alt="ParOptInfeasSubproblem" shape="rect" coords="196,112,382,136"/>
 <area href="class_par_opt_m_m_a.html" alt="ParOptMMA" shape="rect" coords="392,112,578,136"/>
-<area href="class_par_opt_trust_region_subproblem.html" alt="ParOptTrustRegionSubproblem" shape="rect" coords="588,112,774,136"/>
-<area href="class_par_opt_eigen_subproblem.html" alt="ParOptEigenSubproblem" shape="rect" coords="490,168,676,192"/>
-<area href="class_par_opt_quadratic_subproblem.html" alt="ParOptQuadraticSubproblem" shape="rect" coords="686,168,872,192"/>
+<area href="class_par_opt_sparse_problem.html" alt="ParOptSparseProblem" shape="rect" coords="588,112,774,136"/>
+<area href="class_par_opt_trust_region_subproblem.html" alt="ParOptTrustRegionSubproblem" shape="rect" coords="882,112,1068,136"/>
+<area href="class_cy_par_opt_sparse_problem.html" alt="CyParOptSparseProblem" shape="rect" coords="588,168,774,192"/>
+<area href="class_par_opt_eigen_subproblem.html" alt="ParOptEigenSubproblem" shape="rect" coords="784,168,970,192"/>
+<area href="class_par_opt_quadratic_subproblem.html" alt="ParOptQuadraticSubproblem" shape="rect" coords="980,168,1166,192"/>
   </map>
 </div></div>
 <table class="memberdecls">
@@ -89,48 +91,56 @@ Inheritance diagram for ParOptProblem:</div>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:ac9257c2b7c7e21e44cf1e21c902a5ba3"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#ac9257c2b7c7e21e44cf1e21c902a5ba3">ParOptProblem</a> (MPI_Comm _comm)</td></tr>
 <tr class="separator:ac9257c2b7c7e21e44cf1e21c902a5ba3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aea191f71b8f3dd25efe10f15df9a7265"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#aea191f71b8f3dd25efe10f15df9a7265">ParOptProblem</a> (MPI_Comm _comm, int _nvars, int _ncon, int _ninequality, int _nwcon, int _nwblock)</td></tr>
-<tr class="separator:aea191f71b8f3dd25efe10f15df9a7265"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a27a58689897252ba1aeaf2e5c1b1fd32"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a27a58689897252ba1aeaf2e5c1b1fd32">createDesignVec</a> ()</td></tr>
-<tr class="separator:a27a58689897252ba1aeaf2e5c1b1fd32"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a50d80faca1bfa90ea0b6acb1b2b199ca"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a50d80faca1bfa90ea0b6acb1b2b199ca">createConstraintVec</a> ()</td></tr>
-<tr class="separator:a50d80faca1bfa90ea0b6acb1b2b199ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a89616ec707d2082896086b257f117369"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a89616ec707d2082896086b257f117369">createDesignVec</a> ()</td></tr>
+<tr class="separator:a89616ec707d2082896086b257f117369"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa56a7fbcc81a4ea5e61486652e9226d8"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#aa56a7fbcc81a4ea5e61486652e9226d8">createConstraintVec</a> ()</td></tr>
+<tr class="separator:aa56a7fbcc81a4ea5e61486652e9226d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac558d64306294336196cf771e8928a46"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="class_par_opt_quasi_def_mat.html">ParOptQuasiDefMat</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#ac558d64306294336196cf771e8928a46">createQuasiDefMat</a> ()=0</td></tr>
+<tr class="separator:ac558d64306294336196cf771e8928a46"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a321ae5aebdf240076c749b7f14e1934c"><td class="memItemLeft" align="right" valign="top">MPI_Comm&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a321ae5aebdf240076c749b7f14e1934c">getMPIComm</a> ()</td></tr>
 <tr class="separator:a321ae5aebdf240076c749b7f14e1934c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a05bb78f6045a8366713283e00c8c9e2d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a05bb78f6045a8366713283e00c8c9e2d">setProblemSizes</a> (int _nvars, int _ncon, int _ninequality, int _nwcon, int _nwblock)</td></tr>
-<tr class="separator:a05bb78f6045a8366713283e00c8c9e2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a63f1605b037351d86b55cff36b05fdf8"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a63f1605b037351d86b55cff36b05fdf8">getProblemSizes</a> (int *_nvars, int *_ncon, int *_ninequality, int *_nwcon, int *_nwblock)</td></tr>
-<tr class="separator:a63f1605b037351d86b55cff36b05fdf8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5aab3bfbfce4d47dcb321c4e0354d9ee"><td class="memItemLeft" align="right" valign="top">virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a5aab3bfbfce4d47dcb321c4e0354d9ee">isSparseInequality</a> ()</td></tr>
-<tr class="separator:a5aab3bfbfce4d47dcb321c4e0354d9ee"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afb8b5cb71e738c4777a349d024845498"><td class="memItemLeft" align="right" valign="top">virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#afb8b5cb71e738c4777a349d024845498">useLowerBounds</a> ()</td></tr>
-<tr class="separator:afb8b5cb71e738c4777a349d024845498"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1100418c2bfc8ef00d79540643eff493"><td class="memItemLeft" align="right" valign="top">virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a1100418c2bfc8ef00d79540643eff493">useUpperBounds</a> ()</td></tr>
-<tr class="separator:a1100418c2bfc8ef00d79540643eff493"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a89aeecd6f045f0ed7f5c5c8de20bd80a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a89aeecd6f045f0ed7f5c5c8de20bd80a">setProblemSizes</a> (int _nvars, int _ncon, int _nwcon)</td></tr>
+<tr class="separator:a89aeecd6f045f0ed7f5c5c8de20bd80a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6ec347f64ba41f584755f7981d2b844f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a6ec347f64ba41f584755f7981d2b844f">setNumInequalities</a> (int _ninequality, int _nwinequality)</td></tr>
+<tr class="separator:a6ec347f64ba41f584755f7981d2b844f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a39b755082496af7b33e99c6ee5359505"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a39b755082496af7b33e99c6ee5359505">getProblemSizes</a> (int *_nvars, int *_ncon, int *_nwcon)</td></tr>
+<tr class="separator:a39b755082496af7b33e99c6ee5359505"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a086130f1a022f33b14ec693b41526bf9"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a086130f1a022f33b14ec693b41526bf9">getNumInequalities</a> (int *_ninequality, int *_nwinequality)</td></tr>
+<tr class="separator:a086130f1a022f33b14ec693b41526bf9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a435e4721fc1935e4e5aaadbb03e76fd0"><td class="memItemLeft" align="right" valign="top">virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a435e4721fc1935e4e5aaadbb03e76fd0">isSparseInequality</a> ()</td></tr>
+<tr class="separator:a435e4721fc1935e4e5aaadbb03e76fd0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5ecad7f154f8a1a8a409cf2963fc075f"><td class="memItemLeft" align="right" valign="top">virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a5ecad7f154f8a1a8a409cf2963fc075f">useLowerBounds</a> ()</td></tr>
+<tr class="separator:a5ecad7f154f8a1a8a409cf2963fc075f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a23a209ef30fcf68b5343f8f4d0c1c889"><td class="memItemLeft" align="right" valign="top">virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a23a209ef30fcf68b5343f8f4d0c1c889">useUpperBounds</a> ()</td></tr>
+<tr class="separator:a23a209ef30fcf68b5343f8f4d0c1c889"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7c0b37f9a0f711318f9d5dc3a5bb43ab"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a7c0b37f9a0f711318f9d5dc3a5bb43ab">getVarsAndBounds</a> (<a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *lb, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *ub)=0</td></tr>
 <tr class="separator:a7c0b37f9a0f711318f9d5dc3a5bb43ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a57b75d26141f9470e409186155748c15"><td class="memItemLeft" align="right" valign="top">virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a57b75d26141f9470e409186155748c15">evalObjCon</a> (<a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x, ParOptScalar *fobj, ParOptScalar *cons)=0</td></tr>
 <tr class="separator:a57b75d26141f9470e409186155748c15"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:accb7e8213be4e08ca82cfaacedecc5b6"><td class="memItemLeft" align="right" valign="top">virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#accb7e8213be4e08ca82cfaacedecc5b6">evalObjConGradient</a> (<a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *g, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> **Ac)=0</td></tr>
 <tr class="separator:accb7e8213be4e08ca82cfaacedecc5b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af5e6b93090c533f5840cc2fbc37613b9"><td class="memItemLeft" align="right" valign="top">virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#af5e6b93090c533f5840cc2fbc37613b9">evalHvecProduct</a> (<a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x, ParOptScalar *z, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *zw, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *px, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *hvec)</td></tr>
-<tr class="separator:af5e6b93090c533f5840cc2fbc37613b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1550b868a4acd54c6fc297c49a14f1c4"><td class="memItemLeft" align="right" valign="top">virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a1550b868a4acd54c6fc297c49a14f1c4">evalHessianDiag</a> (<a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x, ParOptScalar *z, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *zw, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *hdiag)</td></tr>
-<tr class="separator:a1550b868a4acd54c6fc297c49a14f1c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae9388cea0441eea16db84b261d2f008b"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#ae9388cea0441eea16db84b261d2f008b">computeQuasiNewtonUpdateCorrection</a> (<a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x, ParOptScalar *z, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *zw, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *s, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *y)</td></tr>
-<tr class="separator:ae9388cea0441eea16db84b261d2f008b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acece78f3d46efd0d288cfd64d01ac820"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#acece78f3d46efd0d288cfd64d01ac820">evalSparseCon</a> (<a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *out)</td></tr>
-<tr class="separator:acece78f3d46efd0d288cfd64d01ac820"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab61b53a690e2a7199b68e461e5936196"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#ab61b53a690e2a7199b68e461e5936196">addSparseJacobian</a> (ParOptScalar alpha, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *px, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *out)</td></tr>
-<tr class="separator:ab61b53a690e2a7199b68e461e5936196"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae462335c5ddc4d86c4dcf0d29cdcd102"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#ae462335c5ddc4d86c4dcf0d29cdcd102">addSparseJacobianTranspose</a> (ParOptScalar alpha, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *pzw, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *out)</td></tr>
-<tr class="separator:ae462335c5ddc4d86c4dcf0d29cdcd102"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a58508c9278111b1a63d41e72ec5f5df3"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a58508c9278111b1a63d41e72ec5f5df3">addSparseInnerProduct</a> (ParOptScalar alpha, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *cvec, ParOptScalar *A)</td></tr>
-<tr class="separator:a58508c9278111b1a63d41e72ec5f5df3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af164bd8e9386d21fffe41936d851c77b"><td class="memItemLeft" align="right" valign="top">virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#af164bd8e9386d21fffe41936d851c77b">evalHvecProduct</a> (<a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x, ParOptScalar *z, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *zw, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *px, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *hvec)</td></tr>
+<tr class="separator:af164bd8e9386d21fffe41936d851c77b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2149f95bb11c140678d3e934a03ebbbf"><td class="memItemLeft" align="right" valign="top">virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a2149f95bb11c140678d3e934a03ebbbf">evalHessianDiag</a> (<a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x, ParOptScalar *z, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *zw, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *hdiag)</td></tr>
+<tr class="separator:a2149f95bb11c140678d3e934a03ebbbf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa59af21904ba56a056f38af640b8f926"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#aa59af21904ba56a056f38af640b8f926">computeQuasiNewtonUpdateCorrection</a> (<a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x, ParOptScalar *z, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *zw, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *s, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *y)</td></tr>
+<tr class="separator:aa59af21904ba56a056f38af640b8f926"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5e83a593c5bae3f3cd653c3620328914"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a5e83a593c5bae3f3cd653c3620328914">evalSparseCon</a> (<a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *out)</td></tr>
+<tr class="separator:a5e83a593c5bae3f3cd653c3620328914"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0ae628ae3f04e9c22ac235ade155ae44"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a0ae628ae3f04e9c22ac235ade155ae44">addSparseJacobian</a> (ParOptScalar alpha, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *px, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *out)</td></tr>
+<tr class="separator:a0ae628ae3f04e9c22ac235ade155ae44"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a84a112aeab7e123d64623f7b91a7afd3"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a84a112aeab7e123d64623f7b91a7afd3">addSparseJacobianTranspose</a> (ParOptScalar alpha, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *pzw, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *out)</td></tr>
+<tr class="separator:a84a112aeab7e123d64623f7b91a7afd3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a653e55bfebb75b7d701024fce986cfab"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#a653e55bfebb75b7d701024fce986cfab">addSparseInnerProduct</a> (ParOptScalar alpha, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *cvec, ParOptScalar *A)</td></tr>
+<tr class="separator:a653e55bfebb75b7d701024fce986cfab"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:adcb51ebc3d4eee2310f7fe9967813ed2"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#adcb51ebc3d4eee2310f7fe9967813ed2">checkGradients</a> (double dh, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x=NULL, int check_hvec_product=0)</td></tr>
 <tr class="separator:adcb51ebc3d4eee2310f7fe9967813ed2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa3d6c9f84c6f97a5d5ae242fa7b0a3d2"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_problem.html#aa3d6c9f84c6f97a5d5ae242fa7b0a3d2">writeOutput</a> (int iter, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x)</td></tr>
-<tr class="separator:aa3d6c9f84c6f97a5d5ae242fa7b0a3d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aab2be8ca59ef2f499fa426cb195cd60b"><td class="memItemLeft" align="right" valign="top"><a id="aab2be8ca59ef2f499fa426cb195cd60b"></a>
+virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>writeOutput</b> (int iter, <a class="el" href="class_par_opt_vec.html">ParOptVec</a> *x)</td></tr>
+<tr class="separator:aab2be8ca59ef2f499fa426cb195cd60b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a09fcba03b12450ecf50c04b28bcda6a0"><td class="memItemLeft" align="right" valign="top"><a id="a09fcba03b12450ecf50c04b28bcda6a0"></a>
+virtual int&#160;</td><td class="memItemRight" valign="bottom"><b>getSparseJacobianBlockSize</b> ()</td></tr>
+<tr class="separator:a09fcba03b12450ecf50c04b28bcda6a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_class_par_opt_base"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_class_par_opt_base')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="class_par_opt_base.html">ParOptBase</a></td></tr>
 <tr class="memitem:a6cac72f2d1f017bc2716bc04d2711e50 inherit pub_methods_class_par_opt_base"><td class="memItemLeft" align="right" valign="top"><a id="a6cac72f2d1f017bc2716bc04d2711e50"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_par_opt_base.html#a6cac72f2d1f017bc2716bc04d2711e50">incref</a> ()</td></tr>
@@ -150,25 +160,22 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nvars</b></td></tr>
 <tr class="memitem:a4d3faacb63ea05c22c0268a988d94b4f"><td class="memItemLeft" align="right" valign="top"><a id="a4d3faacb63ea05c22c0268a988d94b4f"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>ncon</b></td></tr>
 <tr class="separator:a4d3faacb63ea05c22c0268a988d94b4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad4aad021ba075df14f1d62119facb73d"><td class="memItemLeft" align="right" valign="top"><a id="ad4aad021ba075df14f1d62119facb73d"></a>
-int&#160;</td><td class="memItemRight" valign="bottom"><b>ninequality</b></td></tr>
-<tr class="separator:ad4aad021ba075df14f1d62119facb73d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aae18c03cce2d7fbbbfc7b2a169740242"><td class="memItemLeft" align="right" valign="top"><a id="aae18c03cce2d7fbbbfc7b2a169740242"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>nwcon</b></td></tr>
 <tr class="separator:aae18c03cce2d7fbbbfc7b2a169740242"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1d29a9bdc086161954b99f5dceaf0802"><td class="memItemLeft" align="right" valign="top"><a id="a1d29a9bdc086161954b99f5dceaf0802"></a>
-int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
-<tr class="separator:a1d29a9bdc086161954b99f5dceaf0802"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad4aad021ba075df14f1d62119facb73d"><td class="memItemLeft" align="right" valign="top"><a id="ad4aad021ba075df14f1d62119facb73d"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>ninequality</b></td></tr>
+<tr class="separator:ad4aad021ba075df14f1d62119facb73d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1262330850a8e70cff100fc0dc392d4c"><td class="memItemLeft" align="right" valign="top"><a id="a1262330850a8e70cff100fc0dc392d4c"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>nwinequality</b></td></tr>
+<tr class="separator:a1262330850a8e70cff100fc0dc392d4c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="ac9257c2b7c7e21e44cf1e21c902a5ba3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac9257c2b7c7e21e44cf1e21c902a5ba3">&#9670;&nbsp;</a></span>ParOptProblem() <span class="overload">[1/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#ac9257c2b7c7e21e44cf1e21c902a5ba3">&#9670;&nbsp;</a></span>ParOptProblem()</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">ParOptProblem::ParOptProblem </td>
@@ -178,11 +185,6 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 <p>Create an empty <a class="el" href="class_par_opt_problem.html">ParOptProblem</a> class without defining the problem layout.</p>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -194,81 +196,9 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
 
 </div>
 </div>
-<a id="aea191f71b8f3dd25efe10f15df9a7265"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aea191f71b8f3dd25efe10f15df9a7265">&#9670;&nbsp;</a></span>ParOptProblem() <span class="overload">[2/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">ParOptProblem::ParOptProblem </td>
-          <td>(</td>
-          <td class="paramtype">MPI_Comm&#160;</td>
-          <td class="paramname"><em>_comm</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>_nvars</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>_ncon</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>_ninequality</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>_nwcon</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>_nwblock</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Create a <a class="el" href="class_par_opt_problem.html">ParOptProblem</a> class and define the problem layout.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">_comm</td><td>is the MPI communicator </td></tr>
-    <tr><td class="paramname">_nvars</td><td>the number of local design variables </td></tr>
-    <tr><td class="paramname">_ncon</td><td>the global number of dense constraints </td></tr>
-    <tr><td class="paramname">_ninequality</td><td>the number of inequality constraints </td></tr>
-    <tr><td class="paramname">_nwcon</td><td>the local number of sparse separable constraints </td></tr>
-    <tr><td class="paramname">_nwblock</td><td>the block size of the separable constraints </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a id="a58508c9278111b1a63d41e72ec5f5df3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a58508c9278111b1a63d41e72ec5f5df3">&#9670;&nbsp;</a></span>addSparseInnerProduct()</h2>
+<a id="a653e55bfebb75b7d701024fce986cfab"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a653e55bfebb75b7d701024fce986cfab">&#9670;&nbsp;</a></span>addSparseInnerProduct()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -277,7 +207,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">virtual void ParOptProblem::addSparseInnerProduct </td>
+          <td class="memname">void ParOptProblem::addSparseInnerProduct </td>
           <td>(</td>
           <td class="paramtype">ParOptScalar&#160;</td>
           <td class="paramname"><em>alpha</em>, </td>
@@ -308,7 +238,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -323,12 +253,12 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
   </dd>
 </dl>
 
-<p>Reimplemented in <a class="el" href="class_par_opt_infeas_subproblem.html#a4f2818897c5da60fdf88a179fd9eae27">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#a7499e67dbdc4d3f76f05c1197f9c7666">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#ad96badf3bc503a54a4196bb2ed580172">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#abca8030028e81a63f76a48f77d4612fa">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_problem.html#a796be21657fd7e0e289a40ccd3dc9a37">CyParOptProblem</a>.</p>
+<p>Reimplemented in <a class="el" href="class_par_opt_infeas_subproblem.html#a4f2818897c5da60fdf88a179fd9eae27">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#a7499e67dbdc4d3f76f05c1197f9c7666">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#ad96badf3bc503a54a4196bb2ed580172">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#abca8030028e81a63f76a48f77d4612fa">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_block_problem.html#afcd1ca2f9aaa10a0d9d5c2e8abf699f8">CyParOptBlockProblem</a>.</p>
 
 </div>
 </div>
-<a id="ab61b53a690e2a7199b68e461e5936196"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab61b53a690e2a7199b68e461e5936196">&#9670;&nbsp;</a></span>addSparseJacobian()</h2>
+<a id="a0ae628ae3f04e9c22ac235ade155ae44"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0ae628ae3f04e9c22ac235ade155ae44">&#9670;&nbsp;</a></span>addSparseJacobian()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -337,7 +267,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">virtual void ParOptProblem::addSparseJacobian </td>
+          <td class="memname">void ParOptProblem::addSparseJacobian </td>
           <td>(</td>
           <td class="paramtype">ParOptScalar&#160;</td>
           <td class="paramname"><em>alpha</em>, </td>
@@ -368,7 +298,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -384,12 +314,12 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
   </dd>
 </dl>
 
-<p>Reimplemented in <a class="el" href="class_par_opt_infeas_subproblem.html#acea46de0197d4bf8f88bf31cb5402c1c">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#aebaefec1475ea32b62e821ad7e372edf">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#a1e0c0074d3d80e5aa1c5fffa6e67586b">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#aefb30602cb3672264cc8c2d27440b9a9">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_problem.html#a265cfe0486e21354ae9dcb936afed8bb">CyParOptProblem</a>.</p>
+<p>Reimplemented in <a class="el" href="class_par_opt_infeas_subproblem.html#acea46de0197d4bf8f88bf31cb5402c1c">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#aebaefec1475ea32b62e821ad7e372edf">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_sparse_problem.html#a9ada2233935b490c23663d3d841d6098">ParOptSparseProblem</a>, <a class="el" href="class_par_opt_m_m_a.html#a1e0c0074d3d80e5aa1c5fffa6e67586b">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#aefb30602cb3672264cc8c2d27440b9a9">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_block_problem.html#abeb3a04d4f38143951c320ceeb4a7191">CyParOptBlockProblem</a>.</p>
 
 </div>
 </div>
-<a id="ae462335c5ddc4d86c4dcf0d29cdcd102"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae462335c5ddc4d86c4dcf0d29cdcd102">&#9670;&nbsp;</a></span>addSparseJacobianTranspose()</h2>
+<a id="a84a112aeab7e123d64623f7b91a7afd3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a84a112aeab7e123d64623f7b91a7afd3">&#9670;&nbsp;</a></span>addSparseJacobianTranspose()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -398,7 +328,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">virtual void ParOptProblem::addSparseJacobianTranspose </td>
+          <td class="memname">void ParOptProblem::addSparseJacobianTranspose </td>
           <td>(</td>
           <td class="paramtype">ParOptScalar&#160;</td>
           <td class="paramname"><em>alpha</em>, </td>
@@ -429,7 +359,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -445,7 +375,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
   </dd>
 </dl>
 
-<p>Reimplemented in <a class="el" href="class_par_opt_infeas_subproblem.html#a2ebdfbdcefc0ed5010ca102704727903">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#abd8bb5558c74e76df5989591a9d46c61">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#a6b5f2aa9e2ed68b498932456f6165744">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#aaa1ddda4de3e48ab5c672686bdd6f2e7">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_problem.html#aceb8c1285bc6dd778e78b1dcd018ef7e">CyParOptProblem</a>.</p>
+<p>Reimplemented in <a class="el" href="class_par_opt_infeas_subproblem.html#a2ebdfbdcefc0ed5010ca102704727903">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#abd8bb5558c74e76df5989591a9d46c61">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_sparse_problem.html#a667a5bf4156334181302dd55750048b9">ParOptSparseProblem</a>, <a class="el" href="class_par_opt_m_m_a.html#a6b5f2aa9e2ed68b498932456f6165744">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#aaa1ddda4de3e48ab5c672686bdd6f2e7">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_block_problem.html#a5b104a95d12971f7ce228b991c9fc70b">CyParOptBlockProblem</a>.</p>
 
 </div>
 </div>
@@ -491,8 +421,8 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
 
 </div>
 </div>
-<a id="ae9388cea0441eea16db84b261d2f008b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae9388cea0441eea16db84b261d2f008b">&#9670;&nbsp;</a></span>computeQuasiNewtonUpdateCorrection()</h2>
+<a id="aa59af21904ba56a056f38af640b8f926"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa59af21904ba56a056f38af640b8f926">&#9670;&nbsp;</a></span>computeQuasiNewtonUpdateCorrection()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -501,7 +431,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">virtual void ParOptProblem::computeQuasiNewtonUpdateCorrection </td>
+          <td class="memname">void ParOptProblem::computeQuasiNewtonUpdateCorrection </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="class_par_opt_vec.html">ParOptVec</a> *&#160;</td>
           <td class="paramname"><em>x</em>, </td>
@@ -538,7 +468,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -555,12 +485,12 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
   </dd>
 </dl>
 
-<p>Reimplemented in <a class="el" href="class_cy_par_opt_problem.html#a03f4ca470292b86094f154eb3426ebbf">CyParOptProblem</a>.</p>
+<p>Reimplemented in <a class="el" href="class_cy_par_opt_sparse_problem.html#a9311b1369ff3d094aabb49b4288fb61c">CyParOptSparseProblem</a>, and <a class="el" href="class_cy_par_opt_block_problem.html#ad7b864537fdbb59bf2418bdb11cfe6dc">CyParOptBlockProblem</a>.</p>
 
 </div>
 </div>
-<a id="a50d80faca1bfa90ea0b6acb1b2b199ca"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a50d80faca1bfa90ea0b6acb1b2b199ca">&#9670;&nbsp;</a></span>createConstraintVec()</h2>
+<a id="aa56a7fbcc81a4ea5e61486652e9226d8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa56a7fbcc81a4ea5e61486652e9226d8">&#9670;&nbsp;</a></span>createConstraintVec()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -569,7 +499,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">virtual <a class="el" href="class_par_opt_vec.html">ParOptVec</a>* ParOptProblem::createConstraintVec </td>
+          <td class="memname"><a class="el" href="class_par_opt_vec.html">ParOptVec</a> * ParOptProblem::createConstraintVec </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -577,7 +507,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -588,8 +518,8 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
 
 </div>
 </div>
-<a id="a27a58689897252ba1aeaf2e5c1b1fd32"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a27a58689897252ba1aeaf2e5c1b1fd32">&#9670;&nbsp;</a></span>createDesignVec()</h2>
+<a id="a89616ec707d2082896086b257f117369"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a89616ec707d2082896086b257f117369">&#9670;&nbsp;</a></span>createDesignVec()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -598,7 +528,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">virtual <a class="el" href="class_par_opt_vec.html">ParOptVec</a>* ParOptProblem::createDesignVec </td>
+          <td class="memname"><a class="el" href="class_par_opt_vec.html">ParOptVec</a> * ParOptProblem::createDesignVec </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -606,7 +536,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -617,8 +547,8 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
 
 </div>
 </div>
-<a id="a1550b868a4acd54c6fc297c49a14f1c4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1550b868a4acd54c6fc297c49a14f1c4">&#9670;&nbsp;</a></span>evalHessianDiag()</h2>
+<a id="ac558d64306294336196cf771e8928a46"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac558d64306294336196cf771e8928a46">&#9670;&nbsp;</a></span>createQuasiDefMat()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -627,7 +557,36 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">virtual int ParOptProblem::evalHessianDiag </td>
+          <td class="memname">virtual <a class="el" href="class_par_opt_quasi_def_mat.html">ParOptQuasiDefMat</a>* ParOptProblem::createQuasiDefMat </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Create a new quasi-definite matrix object</p>
+<dl class="section return"><dt>Returns</dt><dd>a new quasi-definite matrix object </dd></dl>
+
+<p>Implemented in <a class="el" href="class_par_opt_infeas_subproblem.html#a0d02ad35ccc1546c5176a1fa13a71e24">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#af91e73f0e73fad4921f7191f404ef4d8">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_sparse_problem.html#a49eae09bdeae21db1906113d403a7a87">ParOptSparseProblem</a>, <a class="el" href="class_par_opt_m_m_a.html#aaf6e62b65aadc0ac050770f9df13a32f">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#a494a41eb8084cabb98e1f96e3d4847e6">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_block_problem.html#a83d6bcb3172629eeededc09c7346d2f2">CyParOptBlockProblem</a>.</p>
+
+</div>
+</div>
+<a id="a2149f95bb11c140678d3e934a03ebbbf"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2149f95bb11c140678d3e934a03ebbbf">&#9670;&nbsp;</a></span>evalHessianDiag()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">int ParOptProblem::evalHessianDiag </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="class_par_opt_vec.html">ParOptVec</a> *&#160;</td>
           <td class="paramname"><em>x</em>, </td>
@@ -658,19 +617,19 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 <p>Evaluate the diagonal of the Hessian.</p>
 <p>This is only used by MMA. </p>
 
-<p>Reimplemented in <a class="el" href="class_par_opt_infeas_subproblem.html#a0703e07f3a646588b65dd62e7bf1b958">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#a54a62a322c6a642980d5cf087c23b581">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#aba8c528da928101123ef1b315cbfea28">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#abc06b6fdcf79f15a4fc593eae0f39b71">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_problem.html#a5e8242de95d8fcfc64c6e4c92479dc21">CyParOptProblem</a>.</p>
+<p>Reimplemented in <a class="el" href="class_par_opt_infeas_subproblem.html#a0703e07f3a646588b65dd62e7bf1b958">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#a54a62a322c6a642980d5cf087c23b581">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#aba8c528da928101123ef1b315cbfea28">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#abc06b6fdcf79f15a4fc593eae0f39b71">ParOptEigenSubproblem</a>, <a class="el" href="class_cy_par_opt_sparse_problem.html#abb3b68c236c04be03622f780c51df6fb">CyParOptSparseProblem</a>, and <a class="el" href="class_cy_par_opt_block_problem.html#afc3744ee3cbc682537d18c9a320ddaeb">CyParOptBlockProblem</a>.</p>
 
 </div>
 </div>
-<a id="af5e6b93090c533f5840cc2fbc37613b9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af5e6b93090c533f5840cc2fbc37613b9">&#9670;&nbsp;</a></span>evalHvecProduct()</h2>
+<a id="af164bd8e9386d21fffe41936d851c77b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af164bd8e9386d21fffe41936d851c77b">&#9670;&nbsp;</a></span>evalHvecProduct()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -679,7 +638,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">virtual int ParOptProblem::evalHvecProduct </td>
+          <td class="memname">int ParOptProblem::evalHvecProduct </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="class_par_opt_vec.html">ParOptVec</a> *&#160;</td>
           <td class="paramname"><em>x</em>, </td>
@@ -716,7 +675,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -734,7 +693,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>zero on success, non-zero flag on error </dd></dl>
 
-<p>Reimplemented in <a class="el" href="class_par_opt_infeas_subproblem.html#a4f9de64fbc8a9b5fa4dbd20abec2537e">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#a6b89fd4021e571fce29b9c6d925862e2">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#ac98147eaac2065e2ba874ce4f1b268a0">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#aeda08045fe5e775793fce9010cff4ea8">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_problem.html#abd65b43caa9e2c674aedc5b89f8b6074">CyParOptProblem</a>.</p>
+<p>Reimplemented in <a class="el" href="class_par_opt_infeas_subproblem.html#a4f9de64fbc8a9b5fa4dbd20abec2537e">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#a6b89fd4021e571fce29b9c6d925862e2">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#ac98147eaac2065e2ba874ce4f1b268a0">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#aeda08045fe5e775793fce9010cff4ea8">ParOptEigenSubproblem</a>, <a class="el" href="class_cy_par_opt_sparse_problem.html#abae213aec8531d23da699dc928551abe">CyParOptSparseProblem</a>, and <a class="el" href="class_cy_par_opt_block_problem.html#a85d7c620c9e0e3d2a89089e7f6687f5a">CyParOptBlockProblem</a>.</p>
 
 </div>
 </div>
@@ -789,7 +748,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>zero on success, non-zero fail flag on error </dd></dl>
 
-<p>Implemented in <a class="el" href="class_par_opt_infeas_subproblem.html#afd92eb737ea4b53c79f1c0e35a6b00e3">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#a5bede6f9548621e06aa495eef784b502">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#a6fc901a5a122209b5e745ca8dffc1ec8">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#a6794d4bb551df21df6ddfdbfbec3e88b">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_problem.html#add27bc36df9539eaaf4c651be496e7b8">CyParOptProblem</a>.</p>
+<p>Implemented in <a class="el" href="class_par_opt_infeas_subproblem.html#afd92eb737ea4b53c79f1c0e35a6b00e3">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#a5bede6f9548621e06aa495eef784b502">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_sparse_problem.html#af0b84c5b5efa45491b0f26c1a95255c3">ParOptSparseProblem</a>, <a class="el" href="class_par_opt_m_m_a.html#a6fc901a5a122209b5e745ca8dffc1ec8">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#a6794d4bb551df21df6ddfdbfbec3e88b">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_block_problem.html#ae583ab3a8db468bab487421b5c9d574e">CyParOptBlockProblem</a>.</p>
 
 </div>
 </div>
@@ -844,12 +803,12 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>zero on success, non-zero fail flag on error </dd></dl>
 
-<p>Implemented in <a class="el" href="class_par_opt_infeas_subproblem.html#a4607ab8d73080953aeb987824360614c">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#a4dce65c4524b8a9305fc63766540d9ef">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#aee68afe9aeaa0a85e24ba07c954dee08">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#a32d0b5d1cae6fafee8aa6e6be6fae43c">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_problem.html#a2929b8ac9fc96969a2972ed788ff0acf">CyParOptProblem</a>.</p>
+<p>Implemented in <a class="el" href="class_par_opt_infeas_subproblem.html#a4607ab8d73080953aeb987824360614c">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#a4dce65c4524b8a9305fc63766540d9ef">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_sparse_problem.html#a84aba4254289d87f4d901e1b1833fcc2">ParOptSparseProblem</a>, <a class="el" href="class_par_opt_m_m_a.html#aee68afe9aeaa0a85e24ba07c954dee08">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#a32d0b5d1cae6fafee8aa6e6be6fae43c">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_block_problem.html#a834fd858a596fae53484d74e0511c050">CyParOptBlockProblem</a>.</p>
 
 </div>
 </div>
-<a id="acece78f3d46efd0d288cfd64d01ac820"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acece78f3d46efd0d288cfd64d01ac820">&#9670;&nbsp;</a></span>evalSparseCon()</h2>
+<a id="a5e83a593c5bae3f3cd653c3620328914"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5e83a593c5bae3f3cd653c3620328914">&#9670;&nbsp;</a></span>evalSparseCon()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -858,7 +817,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">virtual void ParOptProblem::evalSparseCon </td>
+          <td class="memname">void ParOptProblem::evalSparseCon </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="class_par_opt_vec.html">ParOptVec</a> *&#160;</td>
           <td class="paramname"><em>x</em>, </td>
@@ -877,7 +836,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -891,7 +850,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
   </dd>
 </dl>
 
-<p>Reimplemented in <a class="el" href="class_par_opt_infeas_subproblem.html#a12ba8d2bd4aca186f80656b59286f07e">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#a96fab913a60d8ccc3168d88ed64b2f0b">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#a4a2b9d5756a30fe8ae8a89eb3c4f2a6b">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#a89cfec3242ad5df6790c6681979153d5">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_problem.html#a6ce329e654fbcd245832a5d0bf993743">CyParOptProblem</a>.</p>
+<p>Reimplemented in <a class="el" href="class_par_opt_infeas_subproblem.html#a12ba8d2bd4aca186f80656b59286f07e">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#a96fab913a60d8ccc3168d88ed64b2f0b">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_sparse_problem.html#a03cf18f43c5634955dbba6b29f428d31">ParOptSparseProblem</a>, <a class="el" href="class_par_opt_m_m_a.html#a4a2b9d5756a30fe8ae8a89eb3c4f2a6b">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#a89cfec3242ad5df6790c6681979153d5">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_block_problem.html#a4a2d72ce32513d080c3c8bcb9f57a4fc">CyParOptBlockProblem</a>.</p>
 
 </div>
 </div>
@@ -900,9 +859,6 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">MPI_Comm ParOptProblem::getMPIComm </td>
@@ -911,25 +867,53 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 <p>Get the communicator for the problem</p>
 <dl class="section return"><dt>Returns</dt><dd>the MPI communicator for the problem </dd></dl>
 
 </div>
 </div>
-<a id="a63f1605b037351d86b55cff36b05fdf8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a63f1605b037351d86b55cff36b05fdf8">&#9670;&nbsp;</a></span>getProblemSizes()</h2>
+<a id="a086130f1a022f33b14ec693b41526bf9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a086130f1a022f33b14ec693b41526bf9">&#9670;&nbsp;</a></span>getNumInequalities()</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void ParOptProblem::getNumInequalities </td>
+          <td>(</td>
+          <td class="paramtype">int *&#160;</td>
+          <td class="paramname"><em>_ninequality</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int *&#160;</td>
+          <td class="paramname"><em>_nwinequality</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Get the number of inequalities</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">_ninequality</td><td>the number of dense inequality constraints </td></tr>
+    <tr><td class="paramname">_nwinequality</td><td>the block size of the separable constraints </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a39b755082496af7b33e99c6ee5359505"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a39b755082496af7b33e99c6ee5359505">&#9670;&nbsp;</a></span>getProblemSizes()</h2>
+
+<div class="memitem">
+<div class="memproto">
       <table class="memname">
         <tr>
           <td class="memname">void ParOptProblem::getProblemSizes </td>
@@ -947,19 +931,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">int *&#160;</td>
-          <td class="paramname"><em>_ninequality</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int *&#160;</td>
-          <td class="paramname"><em>_nwcon</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int *&#160;</td>
-          <td class="paramname"><em>_nwblock</em>&#160;</td>
+          <td class="paramname"><em>_nwcon</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -967,20 +939,13 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
           <td></td><td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 <p>Get the problem size</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">_nvars</td><td>the number of local design variables </td></tr>
     <tr><td class="paramname">_ncon</td><td>the global number of dense constraints </td></tr>
-    <tr><td class="paramname">_ninequality</td><td>the number of dense inequality constraints </td></tr>
     <tr><td class="paramname">_nwcon</td><td>the local number of sparse separable constraints </td></tr>
-    <tr><td class="paramname">_nwblock</td><td>the block size of the separable constraints </td></tr>
   </table>
   </dd>
 </dl>
@@ -1036,12 +1001,12 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
   </dd>
 </dl>
 
-<p>Implemented in <a class="el" href="class_par_opt_infeas_subproblem.html#ac25722e40a641283a74b6fd4f8f96f8b">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#a93033d2661ff992306146a480751995b">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#a327a318ca188d100325938034b924c7b">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#a2177e93b5bf80ca06a0849877271edf6">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_problem.html#a75e18d4a1a194a7b44ab13d9b8aa35ec">CyParOptProblem</a>.</p>
+<p>Implemented in <a class="el" href="class_par_opt_infeas_subproblem.html#ac25722e40a641283a74b6fd4f8f96f8b">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#a93033d2661ff992306146a480751995b">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#a327a318ca188d100325938034b924c7b">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#a2177e93b5bf80ca06a0849877271edf6">ParOptEigenSubproblem</a>, <a class="el" href="class_cy_par_opt_sparse_problem.html#a51af34d8ec43dd94f757e988918333de">CyParOptSparseProblem</a>, and <a class="el" href="class_cy_par_opt_block_problem.html#a257e9370cef6303eedcea225b9f2a738">CyParOptBlockProblem</a>.</p>
 
 </div>
 </div>
-<a id="a5aab3bfbfce4d47dcb321c4e0354d9ee"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5aab3bfbfce4d47dcb321c4e0354d9ee">&#9670;&nbsp;</a></span>isSparseInequality()</h2>
+<a id="a435e4721fc1935e4e5aaadbb03e76fd0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a435e4721fc1935e4e5aaadbb03e76fd0">&#9670;&nbsp;</a></span>isSparseInequality()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1050,7 +1015,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">virtual int ParOptProblem::isSparseInequality </td>
+          <td class="memname">int ParOptProblem::isSparseInequality </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -1058,25 +1023,58 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 <p>Are the dense constraints inequalities? Default is true.</p>
 <dl class="section return"><dt>Returns</dt><dd>flag indicating if the dense constraints are inequalities </dd></dl>
 
-<p>Reimplemented in <a class="el" href="class_par_opt_infeas_subproblem.html#ac1dc088a6c3abf739bb525be1e64f490">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#a96aa7f76940aa369eb82378ca64abfcd">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#ae3ea42354f0323f088e3cf472c07ddae">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#a4f6e41ae7b9ca39e9145132f1cf4f62a">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_problem.html#aa6214fbb7206e8c7d2f97d8d5299be28">CyParOptProblem</a>.</p>
+<p>Reimplemented in <a class="el" href="class_par_opt_infeas_subproblem.html#ac1dc088a6c3abf739bb525be1e64f490">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#a96aa7f76940aa369eb82378ca64abfcd">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#ae3ea42354f0323f088e3cf472c07ddae">ParOptMMA</a>, and <a class="el" href="class_par_opt_eigen_subproblem.html#a4f6e41ae7b9ca39e9145132f1cf4f62a">ParOptEigenSubproblem</a>.</p>
 
 </div>
 </div>
-<a id="a05bb78f6045a8366713283e00c8c9e2d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a05bb78f6045a8366713283e00c8c9e2d">&#9670;&nbsp;</a></span>setProblemSizes()</h2>
+<a id="a6ec347f64ba41f584755f7981d2b844f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6ec347f64ba41f584755f7981d2b844f">&#9670;&nbsp;</a></span>setNumInequalities()</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void ParOptProblem::setNumInequalities </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>_ninequality</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>_nwinequality</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Set the number of sparse or dense inequalities</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">_ninequality</td><td>the number of inequality constraints </td></tr>
+    <tr><td class="paramname">_nwinequality</td><td>the block size of the separable constraints </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a89aeecd6f045f0ed7f5c5c8de20bd80a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a89aeecd6f045f0ed7f5c5c8de20bd80a">&#9670;&nbsp;</a></span>setProblemSizes()</h2>
+
+<div class="memitem">
+<div class="memproto">
       <table class="memname">
         <tr>
           <td class="memname">void ParOptProblem::setProblemSizes </td>
@@ -1094,19 +1092,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>_ninequality</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>_nwcon</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>_nwblock</em>&#160;</td>
+          <td class="paramname"><em>_nwcon</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -1114,28 +1100,21 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
           <td></td><td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 <p>Set the problem size</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">_nvars</td><td>the number of local design variables </td></tr>
     <tr><td class="paramname">_ncon</td><td>the global number of dense constraints </td></tr>
-    <tr><td class="paramname">_ninequality</td><td>the number of inequality constraints </td></tr>
     <tr><td class="paramname">_nwcon</td><td>the local number of sparse separable constraints </td></tr>
-    <tr><td class="paramname">_nwblock</td><td>the block size of the separable constraints </td></tr>
   </table>
   </dd>
 </dl>
 
 </div>
 </div>
-<a id="afb8b5cb71e738c4777a349d024845498"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afb8b5cb71e738c4777a349d024845498">&#9670;&nbsp;</a></span>useLowerBounds()</h2>
+<a id="a5ecad7f154f8a1a8a409cf2963fc075f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5ecad7f154f8a1a8a409cf2963fc075f">&#9670;&nbsp;</a></span>useLowerBounds()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1144,7 +1123,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">virtual int ParOptProblem::useLowerBounds </td>
+          <td class="memname">int ParOptProblem::useLowerBounds </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -1152,19 +1131,19 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 <p>Indicate whether to use the lower variable bounds. Default is true.</p>
 <dl class="section return"><dt>Returns</dt><dd>flag indicating whether to use lower variable bound. </dd></dl>
 
-<p>Reimplemented in <a class="el" href="class_par_opt_infeas_subproblem.html#a1e7cdd82f09e29047defb694bac1ecc0">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#a9a08e4d4ccd574096d338e2a4b2d0df3">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#acd4563f6212c74422eb4c1a4016e53c7">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#aff448723ac9684f1302f5786b99cafe4">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_problem.html#a8d5bfb3556878d321c61003392108b5a">CyParOptProblem</a>.</p>
+<p>Reimplemented in <a class="el" href="class_par_opt_infeas_subproblem.html#a1e7cdd82f09e29047defb694bac1ecc0">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#a9a08e4d4ccd574096d338e2a4b2d0df3">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#acd4563f6212c74422eb4c1a4016e53c7">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#aff448723ac9684f1302f5786b99cafe4">ParOptEigenSubproblem</a>, <a class="el" href="class_cy_par_opt_sparse_problem.html#a09083f8e64d2648d23f8e106c03a7ffc">CyParOptSparseProblem</a>, and <a class="el" href="class_cy_par_opt_block_problem.html#aff6b0e76463818dccd175d484cf57b2e">CyParOptBlockProblem</a>.</p>
 
 </div>
 </div>
-<a id="a1100418c2bfc8ef00d79540643eff493"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1100418c2bfc8ef00d79540643eff493">&#9670;&nbsp;</a></span>useUpperBounds()</h2>
+<a id="a23a209ef30fcf68b5343f8f4d0c1c889"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a23a209ef30fcf68b5343f8f4d0c1c889">&#9670;&nbsp;</a></span>useUpperBounds()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1173,7 +1152,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">virtual int ParOptProblem::useUpperBounds </td>
+          <td class="memname">int ParOptProblem::useUpperBounds </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -1181,53 +1160,14 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>nwblock</b></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 <p>Indicate whether to use the upper variable bounds. Default is true.</p>
 <dl class="section return"><dt>Returns</dt><dd>flag indicating whether to use upper variable bounds. </dd></dl>
 
-<p>Reimplemented in <a class="el" href="class_par_opt_infeas_subproblem.html#a85fa0613d0fe608e69312f2a3b781e14">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#adf2487e0fa1c6a9af621d541b1342142">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#a44c787d1201ca82a9709a741b07caa98">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#a50393565183ac48a3bd9a2d6abf7cd11">ParOptEigenSubproblem</a>, and <a class="el" href="class_cy_par_opt_problem.html#ab86960cf7030f37c05950f6ae96e3f2f">CyParOptProblem</a>.</p>
-
-</div>
-</div>
-<a id="aa3d6c9f84c6f97a5d5ae242fa7b0a3d2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa3d6c9f84c6f97a5d5ae242fa7b0a3d2">&#9670;&nbsp;</a></span>writeOutput()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">virtual void ParOptProblem::writeOutput </td>
-          <td>(</td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>iter</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="class_par_opt_vec.html">ParOptVec</a> *&#160;</td>
-          <td class="paramname"><em>x</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Implement this function if you'd like to print out something with the same frequency as the output files </p>
-
-<p>Reimplemented in <a class="el" href="class_par_opt_quadratic_subproblem.html#ac0bdcdb717fb6d5cc31337a692b6ba4d">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#a4419f3638fbd523e9fce38887192194a">ParOptMMA</a>, and <a class="el" href="class_par_opt_eigen_subproblem.html#a0b38f3583eeae24e7ab1fbff03f4242e">ParOptEigenSubproblem</a>.</p>
+<p>Reimplemented in <a class="el" href="class_par_opt_infeas_subproblem.html#a85fa0613d0fe608e69312f2a3b781e14">ParOptInfeasSubproblem</a>, <a class="el" href="class_par_opt_quadratic_subproblem.html#adf2487e0fa1c6a9af621d541b1342142">ParOptQuadraticSubproblem</a>, <a class="el" href="class_par_opt_m_m_a.html#a44c787d1201ca82a9709a741b07caa98">ParOptMMA</a>, <a class="el" href="class_par_opt_eigen_subproblem.html#a50393565183ac48a3bd9a2d6abf7cd11">ParOptEigenSubproblem</a>, <a class="el" href="class_cy_par_opt_sparse_problem.html#a5b7ffb2770b4cd222636c10b9ab9b099">CyParOptSparseProblem</a>, and <a class="el" href="class_cy_par_opt_block_problem.html#afc5c74d4d4350fd530d8ac26188348f8">CyParOptBlockProblem</a>.</p>
 
 </div>
 </div>

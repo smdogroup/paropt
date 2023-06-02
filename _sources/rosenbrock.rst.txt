@@ -80,7 +80,7 @@ The python implementation of this problem is as follows
   opt = ParOpt.Optimizer(problem, options)
   opt.optimize()
 
-This code produces the following output in the default file "paropt.out":
+This code produces the following output in the default file ``paropt.out``:
 
 ::
 
@@ -128,8 +128,8 @@ This code produces the following output in the default file "paropt.out":
     31   33   32    0 1.0e+00 1.0e+00 1.0e+00  1.30833e-14 2.4e-10 9.5e-16 4.6e-08 1.0e-07 1.5e-07 -3.5e-07 0.0e+00
 
 ParOpt: Successfully converged to requested tolerance
-The output from ParOptInteriorPoint consists of a summary of the non-default parameter values.
-Note that the "ParOptOptimizer" interface is used to run this example.
+The output from ``ParOptInteriorPoint`` consists of a summary of the non-default parameter values.
+Note that the ``ParOptOptimizer`` interface is used to run this example.
 This class provides a common interface for all optimizers in ParOpt and therefore the file lists all options for all the optimizers, including the trust region method and the method of moving asymptotes.
 Following the option settings, the output consists of a summary of the iteration history with the following columns:
 
@@ -163,7 +163,7 @@ The trust region variant of the algorithm, that is used as the default setting, 
 
   options = {'algorithm': tr}
 
-This produces the following result in the output in "paropt.tr":
+This produces the following result in the output in ``paropt.tr``:
 
 ::
 

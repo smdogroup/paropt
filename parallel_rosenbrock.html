@@ -11,6 +11,8 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
         <script src="_static/sphinx_highlight.js"></script>
@@ -139,12 +141,24 @@ These functions consist of the following:</p>
 <span class="w"> </span><span class="k">public</span><span class="o">:</span>
 <span class="w">  </span><span class="n">Rosenbrock</span><span class="p">(</span><span class="n">MPI_Comm</span><span class="w"> </span><span class="n">comm</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">_nvars</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">_nwcon</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">_nwstart</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">_nw</span><span class="p">,</span>
 <span class="w">             </span><span class="kt">int</span><span class="w"> </span><span class="n">_nwskip</span><span class="p">)</span>
-<span class="w">      </span><span class="o">:</span><span class="w"> </span><span class="n">ParOptProblem</span><span class="p">(</span><span class="n">comm</span><span class="p">,</span><span class="w"> </span><span class="n">_nvars</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">_nwcon</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="o">:</span><span class="w"> </span><span class="n">ParOptProblem</span><span class="p">(</span><span class="n">comm</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Set the base class problem sizes</span>
+<span class="w">    </span><span class="n">setProblemSizes</span><span class="p">(</span><span class="n">_nvars</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">_nwcon</span><span class="p">);</span>
+
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">nwinequality</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_nwcon</span><span class="p">;</span>
+<span class="w">    </span><span class="n">setNumInequalities</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">nwinequality</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">nwblock</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 <span class="w">    </span><span class="n">nwcon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_nwcon</span><span class="p">;</span>
 <span class="w">    </span><span class="n">nwstart</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_nwstart</span><span class="p">;</span>
 <span class="w">    </span><span class="n">nw</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_nw</span><span class="p">;</span>
 <span class="w">    </span><span class="n">nwskip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_nwskip</span><span class="p">;</span>
 <span class="w">    </span><span class="n">scale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">//! Create the quasi-def matrix associated with this problem</span>
+<span class="w">  </span><span class="n">ParOptQuasiDefMat</span><span class="w"> </span><span class="o">*</span><span class="n">createQuasiDefMat</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ParOptQuasiDefBlockMat</span><span class="p">(</span><span class="k">this</span><span class="p">,</span><span class="w"> </span><span class="n">nwblock</span><span class="p">);</span>
 <span class="w">  </span><span class="p">}</span>
 
 <span class="w">  </span><span class="c1">//! Get the variables/bounds</span>
@@ -301,6 +315,7 @@ These functions consist of the following:</p>
 <span class="w">  </span><span class="p">}</span>
 
 <span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">nwcon</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">nwblock</span><span class="p">;</span>
 <span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">nwstart</span><span class="p">;</span>
 <span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">nw</span><span class="p">,</span><span class="w"> </span><span class="n">nwskip</span><span class="p">;</span>
 <span class="w">  </span><span class="n">ParOptScalar</span><span class="w"> </span><span class="n">scale</span><span class="p">;</span>
@@ -364,7 +379,7 @@ These functions consist of the following:</p>
 <span class="w">  </span><span class="kt">double</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MPI_Wtime</span><span class="p">();</span>
 <span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">output</span><span class="p">[</span><span class="mi">512</span><span class="p">];</span>
-<span class="w">    </span><span class="n">sprintf</span><span class="p">(</span><span class="n">output</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;%s/rosenbrock_output.bin&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">prefix</span><span class="p">);</span>
+<span class="w">    </span><span class="n">snprintf</span><span class="p">(</span><span class="n">output</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">output</span><span class="p">),</span><span class="w"> </span><span class="s">&quot;%s/rosenbrock_output.bin&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">prefix</span><span class="p">);</span>
 <span class="w">    </span><span class="n">options</span><span class="o">-&gt;</span><span class="n">setOption</span><span class="p">(</span><span class="s">&quot;ip_checkpoint_file&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">output</span><span class="p">);</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="w">  </span><span class="n">opt</span><span class="o">-&gt;</span><span class="n">optimize</span><span class="p">();</span>

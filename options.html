@@ -11,6 +11,8 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
         <script src="_static/sphinx_highlight.js"></script>
@@ -79,8 +81,8 @@
   <section id="options-and-generic-interface-for-paropt-optimziers">
 <h1>Options and generic interface for ParOpt optimziers<a class="headerlink" href="#options-and-generic-interface-for-paropt-optimziers" title="Permalink to this heading"></a></h1>
 <p>ParOpt consists of three different optimizers: an interior point method, a trust-region method and the method of moving asymptotes.</p>
-<p>These optimizers can be accessed through the common python interface &quot;ParOpt.Optimizers&quot;.
-This python object is allocated with a problem class which inherits from &quot;ParOpt.Problem&quot;, and a dictionary of options.</p>
+<p>These optimizers can be accessed through the common python interface <code class="docutils literal notranslate"><span class="pre">ParOpt.Optimizers</span></code>.
+This python object is allocated with a problem class which inherits from <code class="docutils literal notranslate"><span class="pre">ParOpt.Problem</span></code>, and a dictionary of options.</p>
 <p>The optimizer interface is generally executed as follows:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create the optimizer with the specified options. Here we specify a</span>
 <span class="c1"># trust-region optimizer, with an initial trust region size of 0.1 and</span>
@@ -192,6 +194,10 @@ Range of values: lower limit 0  upper limit 1e+20
 
 Checkpoint file for the interior point method
 ip_checkpoint_file                       None           
+
+Number of iterative refinement steps performed in the KKT system solution procedure
+iterative_refinement_steps               1              
+Range of values: lower limit 0  upper limit 10
 
 Maximum bound value at which bound constraints are omitted
 max_bound_value                          1e+20          
@@ -358,6 +364,10 @@ starting_point_strategy                  affine_step
 Range of values:                         least_squares_multipliers
                                          affine_step    
                                          no_start_strategy
+
+Print to screen the output of the step check at this frequency during an optimization
+step_verification_frequency              -1             
+Range of values: lower limit -1000000  upper limit 1000000
 
 Which strategy to use to decide if a trial point can be accepted or not
 tr_accept_step_strategy                  penalty_method 
