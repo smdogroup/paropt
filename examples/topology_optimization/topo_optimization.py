@@ -33,7 +33,7 @@ class TopoAnalysis(ParOpt.Problem):
         plane stress analysis of a square, plane stress structure.
         This is probably only useful for topology optimization.
         """
-        super(TopoAnalysis, self).__init__(MPI.COMM_SELF, nxelems * nyelems, 1)
+        super().__init__(MPI.COMM_SELF, nvars=nxelems * nyelems, ncon=1)
 
         self.nxelems = nxelems
         self.nyelems = nyelems
@@ -270,7 +270,7 @@ class TopoAnalysis(ParOpt.Problem):
         self.K = K.tocsc()
 
         # Solve the sparse linear system for the load vector
-        self.LU = linalg.dsolve.factorized(self.K)
+        self.LU = linalg.factorized(self.K)
 
         # Compute the solution to the linear system K*u = f
         self.u = self.LU(self.f)
@@ -369,7 +369,7 @@ class TopoAnalysis(ParOpt.Problem):
         self.K = K.tocsc()
 
         # Solve the sparse linear system for the load vector
-        self.LU = linalg.dsolve.factorized(self.K)
+        self.LU = linalg.factorized(self.K)
 
         # Compute the solution to the linear system K*u = f
         self.u = self.LU(self.f)

@@ -1,6 +1,4 @@
-#distuils: language = c++
-#distuils: sources = ParOpt.c
-from __future__ import print_function, division
+# distutils: language = c++
 
 # For the use of MPI
 from mpi4py.MPI cimport *
@@ -97,7 +95,7 @@ def unpack_output(filename):
                     line = lines[index]
                     index += 1
                     counter += 1
-                    if len(line.split()) < len(args):
+                    if line[0:7] == "MatInfo" or len(line.split()) < len(args):
                         break
 
                     # Scan through the format list and determine how to
@@ -578,6 +576,54 @@ cdef int _evalobjcongradient(void *_self, int nvars, int ncon,
 
     return fail
 
+cdef int _evalsparseobjcon(void *_self, int nvars, int ncon, int nwcon,
+                           ParOptVec *_x, ParOptScalar *fobj,
+                           ParOptScalar *cons, ParOptVec *_sparse_cons):
+    fail = 0
+
+    try:
+        # Call the objective function
+        x = _init_PVec(_x)
+        sparse_cons = _init_PVec(_sparse_cons)
+        fail, _fobj, _cons = (<object>_self).evalSparseObjCon(x, sparse_cons)
+
+        # Copy over the objective value
+        fobj[0] = _fobj
+
+        # Copy the values from the numpy arrays
+        for i in range(ncon):
+            cons[i] = _cons[i]
+    except:
+        tb = traceback.format_exc()
+        print(tb)
+        exit(0)
+
+    return fail
+
+cdef int _evalsparseobjcongradient(void *_self, int nvars, int ncon, int nwcon,
+                                   ParOptVec *_x, ParOptVec *_g,
+                                   ParOptVec **A, int nnz, ParOptScalar *_data):
+    fail = 0
+    try:
+        # The numpy arrays that will be used for x
+        x = _init_PVec(_x)
+        g = _init_PVec(_g)
+        Ac = []
+        for i in range(ncon):
+            Ac.append(_init_PVec(A[i]))
+
+        data = inplace_array_1d(PAROPT_NPY_SCALAR, nnz, <void*>_data)
+
+        # Call the objective function
+        fail = (<object>_self).evalSparseObjConGradient(x, g, Ac, data)
+    except:
+        tb = traceback.format_exc()
+        print(tb)
+        exit(0)
+
+    return fail
+
+
 cdef int _evalhvecproduct(void *_self, int nvars, int ncon, int nwcon,
                           ParOptVec *_x, ParOptScalar *_z, ParOptVec *_zw,
                           ParOptVec *_px, ParOptVec *_hvec):
@@ -739,48 +785,130 @@ cdef class ProblemBase:
         return
 
 cdef class Problem(ProblemBase):
-    cdef CyParOptProblem *me
-    def __init__(self, MPI.Comm comm, int nvars, int ncon, int nineq=-1,
-                 int nwcon=0, int nwblock=0):
+    def __init__(self, MPI.Comm comm, **kwargs):
+        cdef CyParOptBlockProblem *block
+        cdef CyParOptSparseProblem *sparse
         cdef MPI_Comm c_comm = comm.ob_mpi
-        if nineq < 0:
-            nineq = ncon
-        self.me = new CyParOptProblem(c_comm, nvars, ncon, nineq, nwcon, nwblock)
-        self.me.setSelfPointer(<void*>self)
-        self.me.setGetVarsAndBounds(_getvarsandbounds)
-        self.me.setEvalObjCon(_evalobjcon)
-        self.me.setEvalObjConGradient(_evalobjcongradient)
-        self.me.setEvalHvecProduct(_evalhvecproduct)
-        self.me.setEvalHessianDiag(_evalhessiandiag)
-        self.me.setComputeQuasiNewtonUpdateCorrection(_computequasinewtonupdatecorrection)
-        self.me.setEvalSparseCon(_evalsparsecon)
-        self.me.setAddSparseJacobian(_addsparsejacobian)
-        self.me.setAddSparseJacobianTranspose(_addsparsejacobiantranspose)
-        self.me.setAddSparseInnerProduct(_addsparseinnerproduct)
-        self.ptr = self.me
+        cdef int nvars = 0
+        cdef int ncon = 0
+        cdef int nwcon = 0
+        cdef int nwblock = -1
+        cdef int ninequality = -1
+        cdef int nwinequality = -1
+        cdef int use_lower = 1
+        cdef int use_upper = 1
+        cdef np.ndarray _rowp
+        cdef np.ndarray _cols
+
+        # Sparse data - in a python format that will be converted into an array
+        rowp = None
+        cols = None
+
+        # Get the number of variables and constraints
+        if "nvars" in kwargs:
+            nvars = kwargs["nvars"]
+        if "num_dense_constraints" in kwargs:
+            ncon = kwargs["num_dense_constraints"]
+        elif "ncon" in kwargs:
+            ncon = kwargs["ncon"]
+        if "num_sparse_constraints" in kwargs:
+            nwcon = kwargs["num_sparse_constraints"]
+        elif "nwcon" in kwargs:
+            nwcon = kwargs["nwcon"]
+
+        # Set the number of inequalities (ordered first)
+        if "num_dense_inequalities" in kwargs:
+            ninequality = kwargs["num_dense_inequalities"]
+        elif "ninequality" in kwargs:
+            ninequality = kwargs["ninequality"]
+        else:
+            ninequality = ncon
+
+        if "num_sparse_inequalities" in kwargs:
+            nwinequality = kwargs["num_sparse_inequalities"]
+        elif "nwinequality" in kwargs:
+            nwinequality = kwargs["nwinequality"]
+        else:
+            nwinequality = nwcon
+
+        # Options for the upper/lower bound constraints
+        if "use_lower" in kwargs:
+            if kwargs["use_lower"]:
+                use_lower = 1
+            else:
+                use_lower = 0
+        if "use_upper" in kwargs:
+            if kwargs["use_upper"]:
+                use_upper = 1
+            else:
+                use_upper = 0
+
+        # Set the type of sparse constraint
+        if "nwblock" in kwargs:
+            nwblock = kwargs["nwblock"]
+        if "rowp" in kwargs:
+            rowp = kwargs["rowp"]
+        if "cols" in kwargs:
+            cols = kwargs["cols"]
+
+        if rowp is not None and cols is not None:
+            # Create the sparse problem
+            sparse = new CyParOptSparseProblem(c_comm)
+            sparse.setProblemSizes(nvars, ncon, nwcon)
+            sparse.setNumInequalities(ninequality, nwinequality)
+            sparse.setVarBoundOptions(use_lower, use_upper)
+
+            if len(rowp) != nwcon + 1:
+                raise ValueError("rowp is incorrect length")
+
+            # Set the sparse constraint data
+            _rowp = np.zeros(len(rowp), dtype=np.intc)
+            for i in range(len(rowp)):
+                _rowp[i] = rowp[i]
+            _cols = np.zeros(len(cols), dtype=np.intc)
+            for i in range(len(cols)):
+                _cols[i] = cols[i]
+            sparse.setSparseJacobianData(<int*>_rowp.data, <int*>_cols.data)
+
+            # Set pointers to the rest of the data
+            sparse.setSelfPointer(<void*>self)
+            sparse.setGetVarsAndBounds(_getvarsandbounds)
+            sparse.setEvalObjCon(_evalsparseobjcon)
+            sparse.setEvalObjConGradient(_evalsparseobjcongradient)
+            sparse.setEvalHvecProduct(_evalhvecproduct)
+            sparse.setEvalHessianDiag(_evalhessiandiag)
+            sparse.setComputeQuasiNewtonUpdateCorrection(_computequasinewtonupdatecorrection)
+            self.ptr = sparse
+        else:
+            if nwblock < 0:
+                nwblock = 0
+
+            # Create the block problem
+            block = new CyParOptBlockProblem(c_comm, nwblock)
+            block.setProblemSizes(nvars, ncon, nwcon)
+            block.setNumInequalities(ninequality, nwinequality)
+            block.setVarBoundOptions(use_lower, use_upper)
+
+            # Set the pointers
+            block.setSelfPointer(<void*>self)
+            block.setGetVarsAndBounds(_getvarsandbounds)
+            block.setEvalObjCon(_evalobjcon)
+            block.setEvalObjConGradient(_evalobjcongradient)
+            block.setEvalHvecProduct(_evalhvecproduct)
+            block.setEvalHessianDiag(_evalhessiandiag)
+            block.setComputeQuasiNewtonUpdateCorrection(_computequasinewtonupdatecorrection)
+            block.setEvalSparseCon(_evalsparsecon)
+            block.setAddSparseJacobian(_addsparsejacobian)
+            block.setAddSparseJacobianTranspose(_addsparsejacobiantranspose)
+            block.setAddSparseInnerProduct(_addsparseinnerproduct)
+            self.ptr = block
+
         self.ptr.incref()
         return
 
     def __dealloc__(self):
         if self.ptr:
             self.ptr.decref()
-        return
-
-    def setInequalityOptions(self, sparse_ineq=True,
-                             use_lower=True, use_upper=True):
-        # Assume that everything is false
-        cdef int sparse = 0
-        cdef int lower = 0
-        cdef int upper = 0
-
-        # Swap the integer values if the flags are set
-        if sparse_ineq: sparse = 1
-        if use_lower: lower = 1
-        if use_upper: upper = 1
-
-        # Set the options
-        self.me.setInequalityOptions(sparse, lower, upper)
-
         return
 
 cdef class PVec:
@@ -1131,7 +1259,7 @@ cdef class InteriorPoint:
         cdef ParOptVec *_zu = NULL
 
         # Get the problem size/vector for the values
-        self.ptr.getProblemSizes(NULL, &ncon, NULL, NULL, NULL)
+        self.ptr.getProblemSizes(NULL, &ncon, NULL)
         self.ptr.getOptimizedPoint(&_x, &_z, &_zw, &_zl, &_zu)
 
         # Set the default values
@@ -1168,14 +1296,16 @@ cdef class InteriorPoint:
         cdef ParOptScalar *_s = NULL
         cdef ParOptScalar *_t = NULL
         cdef ParOptVec *_sw = NULL
+        cdef ParOptVec *_tw = NULL
 
         # Get the problem size/vector for the values
-        self.ptr.getProblemSizes(NULL, &ncon, NULL, NULL, NULL)
-        self.ptr.getOptimizedSlacks(&_s, &_t, &_sw)
+        self.ptr.getProblemSizes(NULL, &ncon, NULL)
+        self.ptr.getOptimizedSlacks(&_s, &_t, &_sw, &_tw)
 
         s = None
         t = None
         sw = None
+        tw = None
 
         if _s != NULL:
             s = inplace_array_1d(PAROPT_NPY_SCALAR, ncon, <void*>_s, self)
@@ -1185,8 +1315,10 @@ cdef class InteriorPoint:
         # Convert to a vector
         if _sw != NULL:
             sw = _init_PVec(_sw)
+        if _tw != NULL:
+            tw = _init_PVec(_tw)
 
-        return s, t, sw
+        return s, t, sw, tw
 
     # Check objective and constraint gradients
     def checkGradients(self, double dh):
@@ -1205,15 +1337,6 @@ cdef class InteriorPoint:
 
         self.ptr.setPenaltyGamma(g)
         free(g)
-
-    def getPenaltyGamma(self):
-        cdef const double *penalty_gamma
-        cdef int ncon
-        ncon = self.ptr.getPenaltyGamma(&penalty_gamma)
-        gamma = np.zeros(ncon, dtype=np.double)
-        for i in range(ncon):
-            gamma[i] = penalty_gamma[i]
-        return gamma
 
     def getComplementarity(self):
         return self.ptr.getComplementarity()
@@ -1366,7 +1489,7 @@ cdef class Optimizer:
 
         # Get the problem size/vector for the values
         problem = self.ptr.getProblem()
-        problem.getProblemSizes(NULL, &ncon, NULL, NULL, NULL)
+        problem.getProblemSizes(NULL, &ncon, NULL)
         self.ptr.getOptimizedPoint(&_x, &_z, &_zw, &_zl, &_zu)
 
         # Set the default values

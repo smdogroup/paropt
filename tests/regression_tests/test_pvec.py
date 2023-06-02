@@ -9,7 +9,7 @@ class Prob(ParOpt.Problem):
     """
 
     def __init__(self, comm, nvars, ncon):
-        super().__init__(comm, nvars, ncon)
+        super().__init__(comm, nvars=nvars, ncon=ncon)
 
 
 class PVecTest(unittest.TestCase):

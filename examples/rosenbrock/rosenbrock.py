@@ -1,7 +1,3 @@
-from __future__ import print_function
-
-import os
-
 # Import some utilities
 import numpy as np
 import mpi4py.MPI as MPI
@@ -23,7 +19,7 @@ class Rosenbrock(ParOpt.Problem):
         self.x_hist = []
 
         # Initialize the base class
-        super(Rosenbrock, self).__init__(self.comm, self.nvars, self.ncon)
+        super(Rosenbrock, self).__init__(self.comm, nvars=self.nvars, ncon=self.ncon)
 
         return
 
@@ -42,7 +38,7 @@ class Rosenbrock(ParOpt.Problem):
         # Evaluate the objective and constraints
         fail = 0
         con = np.zeros(1)
-        fobj = 100 * (x[1] - x[0] ** 2) ** 2 + (1 - x[0]) ** 2
+        fobj = 100.0 * (x[1] - x[0] ** 2) ** 2 + (1.0 - x[0]) ** 2
         con[0] = x[0] + x[1] + 5.0
         return fail, fobj, con
 
@@ -51,12 +47,12 @@ class Rosenbrock(ParOpt.Problem):
         fail = 0
 
         # The objective gradient
-        g[0] = 200 * (x[1] - x[0] ** 2) * (-2 * x[0]) - 2 * (1 - x[0])
-        g[1] = 200 * (x[1] - x[0] ** 2)
+        g[0] = -400.0 * (x[1] - x[0] ** 2) * x[0] - 2.0 * (1.0 - x[0])
+        g[1] = 200.0 * (x[1] - x[0] ** 2)
 
         # The constraint gradient
-        A[0][0] = 1.0
-        A[0][1] = 1.0
+        A[0][0] = -1.0
+        A[0][1] = -1.0
         return fail
 
 
@@ -89,7 +85,9 @@ def plot_it_all(problem):
 
     options = {
         "algorithm": "tr",
-        "tr_init_size": 0.05,
+        "qn_type": "bfgs",
+        "qn_update_type": "damped_update",
+        "tr_init_size": 0.5,
         "tr_min_size": 1e-6,
         "tr_max_size": 10.0,
         "tr_eta": 0.1,
@@ -100,6 +98,7 @@ def plot_it_all(problem):
     for k in range(len(colours)):
         # Optimize the problem
         problem.x_hist = []
+        rosen.checkGradients(1e-6)
 
         opt = ParOpt.Optimizer(rosen, options)
         opt.optimize()

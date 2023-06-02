@@ -31,9 +31,13 @@ ParOptQuadraticSubproblem::ParOptQuadraticSubproblem(
   prob = _prob;
   prob->incref();
 
-  // Get the problem sizes
-  prob->getProblemSizes(&n, &m, &ninequality, &nwcon, &nwblock);
-  setProblemSizes(n, m, ninequality, nwcon, nwblock);
+  // Set the problem sizes
+  prob->getProblemSizes(&n, &m, &nwcon);
+  setProblemSizes(n, m, nwcon);
+
+  // Set the number of inequalities
+  prob->getNumInequalities(&ninequality, &nwinequality);
+  setNumInequalities(ninequality, nwinequality);
 
   // Set the quasi-Newton method
   if (_qn) {
@@ -248,6 +252,13 @@ ParOptVec *ParOptQuadraticSubproblem::createConstraintVec() {
 }
 
 /*
+  Create the subproblem quasi-definite matrix
+*/
+ParOptQuasiDefMat *ParOptQuadraticSubproblem::createQuasiDefMat() {
+  return prob->createQuasiDefMat();
+}
+
+/*
   Get the communicator for the problem
 */
 MPI_Comm ParOptQuadraticSubproblem::getMPIComm() { return prob->getMPIComm(); }
@@ -400,6 +411,7 @@ int ParOptQuadraticSubproblem::getLinearModel(ParOptVec **_xk,
 
   return m;
 }
+
 /**
   Evaluate SOC trial point and get data pair (func val, constr val)
 */
@@ -468,9 +480,15 @@ ParOptInfeasSubproblem::ParOptInfeasSubproblem(
   subproblem_objective = _subproblem_objective;
   subproblem_constraint = _subproblem_constraint;
 
-  // Get the problem sizes
-  prob->getProblemSizes(&n, &m, &ninequality, &nwcon, &nwblock);
-  setProblemSizes(n, m, ninequality, nwcon, nwblock);
+  // Set the problem sizes
+  int _nwcon;
+  prob->getProblemSizes(&n, &m, &_nwcon);
+  setProblemSizes(n, m, _nwcon);
+
+  // Set the number of inequalities
+  int nineq, nwineq;
+  prob->getNumInequalities(&nineq, &nwineq);
+  setNumInequalities(nineq, nwineq);
 }
 
 ParOptInfeasSubproblem::~ParOptInfeasSubproblem() { prob->decref(); }
@@ -490,6 +508,13 @@ ParOptVec *ParOptInfeasSubproblem::createConstraintVec() {
 }
 
 /*
+  Create the subproblem quasi-definite matrix
+*/
+ParOptQuasiDefMat *ParOptInfeasSubproblem::createQuasiDefMat() {
+  return prob->createQuasiDefMat();
+}
+
+/*
   Get the communicator for the problem
 */
 MPI_Comm ParOptInfeasSubproblem::getMPIComm() { return prob->getMPIComm(); }
@@ -506,9 +531,9 @@ int ParOptInfeasSubproblem::useLowerBounds() { return 1; }
 int ParOptInfeasSubproblem::useUpperBounds() { return 1; }
 
 // Get the variables and bounds from the problem
-void ParOptInfeasSubproblem::getVarsAndBounds(ParOptVec *step, ParOptVec *l,
-                                              ParOptVec *u) {
-  prob->getVarsAndBounds(step, l, u);
+void ParOptInfeasSubproblem::getVarsAndBounds(ParOptVec *step, ParOptVec *lower,
+                                              ParOptVec *upper) {
+  prob->getVarsAndBounds(step, lower, upper);
 }
 
 /*
@@ -647,7 +672,10 @@ ParOptTrustRegion::ParOptTrustRegion(ParOptTrustRegionSubproblem *_subproblem,
   options->incref();
 
   // Get the subproblem sizes
-  subproblem->getProblemSizes(&n, &m, &nineq, &nwcon, &nwblock);
+  subproblem->getProblemSizes(&n, &m, &nwcon);
+
+  // Get the number of inequalities
+  subproblem->getNumInequalities(&nineq, &nwineq);
 
   // Set the penalty parameters
   const double gamma = options->getFloatOption("penalty_gamma");
@@ -1073,8 +1101,8 @@ void ParOptTrustRegion::initialize() {
 }
 
 /*
- Minimize the infeasibility, this can be used for either
- adaptive penalty gamma update or in the filterSQP method
+  Minimize the infeasibility, this can be used for either adaptive penalty gamma
+  update or in the filterSQP method
 */
 void ParOptTrustRegion::minimizeInfeas(
     ParOptInteriorPoint *optimizer, ParOptInfeasSubproblem *infeas_problem,

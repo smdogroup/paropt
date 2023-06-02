@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import numpy as np
 from mpi4py import MPI
 import matplotlib.pyplot as plt
@@ -13,7 +11,7 @@ from paropt import ParOpt
 class Problem1(ParOpt.Problem):
     def __init__(self):
         self.x_hist = []
-        super(Problem1, self).__init__(MPI.COMM_SELF, 2, 1)
+        super(Problem1, self).__init__(MPI.COMM_SELF, nvars=2, ncon=1)
         return
 
     def getVarsAndBounds(self, x, lb, ub):
@@ -47,7 +45,7 @@ class Problem1(ParOpt.Problem):
 class Problem2(ParOpt.Problem):
     def __init__(self):
         self.x_hist = []
-        super(Problem2, self).__init__(MPI.COMM_SELF, 2, 1)
+        super(Problem2, self).__init__(MPI.COMM_SELF, nvars=2, ncon=1)
         return
 
     def getVarsAndBounds(self, x, lb, ub):
@@ -81,7 +79,7 @@ class Problem2(ParOpt.Problem):
 class Problem3(ParOpt.Problem):
     def __init__(self):
         self.x_hist = []
-        super(Problem3, self).__init__(MPI.COMM_SELF, 2, 1)
+        super(Problem3, self).__init__(MPI.COMM_SELF, nvars=2, ncon=1)
         return
 
     def getVarsAndBounds(self, x, lb, ub):
@@ -115,7 +113,7 @@ class Problem3(ParOpt.Problem):
 class Problem4(ParOpt.Problem):
     def __init__(self):
         self.x_hist = []
-        super(Problem4, self).__init__(MPI.COMM_SELF, 2, 1)
+        super(Problem4, self).__init__(MPI.COMM_SELF, nvars=2, ncon=1)
         return
 
     def getVarsAndBounds(self, x, lb, ub):
@@ -155,7 +153,7 @@ class Problem4(ParOpt.Problem):
 class Problem5(ParOpt.Problem):
     def __init__(self):
         self.x_hist = []
-        super(Problem5, self).__init__(MPI.COMM_SELF, 2, 1)
+        super(Problem5, self).__init__(MPI.COMM_SELF, nvars=2, ncon=1)
         return
 
     def getVarsAndBounds(self, x, lb, ub):
@@ -294,14 +292,14 @@ problems = [Problem1(), Problem2(), Problem3(), Problem4(), Problem5()]
 
 # Parse the arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("--optimizer", type=str, default="ip", help="optimizer type")
+parser.add_argument("--algorithm", type=str, default="ip", help="optimizer type")
 args = parser.parse_args()
 
 # Use a consistent seed for consistent results
 np.random.seed(0)
 
 use_tr = False
-if args.optimizer != "ip":
+if args.algorithm != "ip":
     use_tr = True
 
 for problem in problems:

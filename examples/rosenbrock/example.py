@@ -19,7 +19,7 @@ class Rosenbrock(ParOpt.Problem):
         self.x_hist = []
 
         # Initialize the base class
-        super(Rosenbrock, self).__init__(self.comm, self.nvars, self.ncon)
+        super(Rosenbrock, self).__init__(self.comm, nvars=self.nvars, ncon=self.ncon)
 
         return
 

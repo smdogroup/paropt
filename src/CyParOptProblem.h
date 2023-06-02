@@ -20,19 +20,21 @@
   s.t.   c(x) >= 0
          cw(x) >= 0
 */
-class CyParOptProblem : public ParOptProblem {
+class CyParOptBlockProblem : public ParOptProblem {
  public:
-  CyParOptProblem(MPI_Comm _comm, int _nvars, int _ncon, int _ninequality,
-                  int _nwcon, int _nwblock);
-  ~CyParOptProblem();
+  CyParOptBlockProblem(MPI_Comm _comm, int _nwblock);
+  ~CyParOptBlockProblem();
+
+  // Create the quasi-def matrix associated with the problem
+  // -------------------------------------------------------
+  ParOptQuasiDefMat *createQuasiDefMat();
 
   // Set options associated with the inequality constraints
   // ------------------------------------------------------
-  void setInequalityOptions(int _isSparseInequal, int _useLower, int _useUpper);
+  void setVarBoundOptions(int _useLower, int _useUpper);
 
   // Function to indicate the type of sparse constraints
   // ---------------------------------------------------
-  int isSparseInequality();
   int useLowerBounds();
   int useUpperBounds();
 
@@ -114,6 +116,9 @@ class CyParOptProblem : public ParOptProblem {
   void addSparseInnerProduct(ParOptScalar alpha, ParOptVec *x, ParOptVec *cvec,
                              ParOptScalar *A);
 
+  // Return the block size for testing
+  int getSparseJacobianBlockSize() { return nwblock; }
+
  private:
   // Public member function pointers to the callbacks that are
   // required before class can be used
@@ -146,8 +151,119 @@ class CyParOptProblem : public ParOptProblem {
                                 ParOptScalar alpha, ParOptVec *x, ParOptVec *c,
                                 ParOptScalar *A);
 
+  // Store the block size
+  int nwblock;
+
   // Store information about the type of problem to solve
-  int isSparseInequal;
+  int useLower;
+  int useUpper;
+};
+
+/**
+  This code implements a simplifed interface for the ParOptProblem
+  that can be wrapped using Cython. The class uses function pointers
+  as an intermediate layer between the ParOptProblem class and the
+  python layer. These callback functions can then be wrapped and set
+  from python.
+
+  Note: The class is currently restricted to utilize only the
+  objective and gradient calculations and not the Hessian code. In
+  addition, the sparse constraints are not implemented. This class
+  then solves the (distributed) optimization problem:
+
+  min    f(x)
+  w.r.t. lb <= x <= ub
+  s.t.   c(x) >= 0
+         cw(x) >= 0
+*/
+class CyParOptSparseProblem : public ParOptSparseProblem {
+ public:
+  CyParOptSparseProblem(MPI_Comm _comm);
+  ~CyParOptSparseProblem();
+
+  // Set options associated with the inequality constraints
+  // ------------------------------------------------------
+  void setVarBoundOptions(int _useLower, int _useUpper);
+
+  // Function to indicate the type of sparse constraints
+  // ---------------------------------------------------
+  int useLowerBounds();
+  int useUpperBounds();
+
+  // Set the member callback functions that are required
+  // ---------------------------------------------------
+  void setSelfPointer(void *_self);
+  void setGetVarsAndBounds(void (*func)(void *, int, ParOptVec *, ParOptVec *,
+                                        ParOptVec *));
+  void setEvalObjCon(int (*func)(void *, int, int, int, ParOptVec *,
+                                 ParOptScalar *, ParOptScalar *, ParOptVec *));
+  void setEvalObjConGradient(int (*func)(void *, int, int, int, ParOptVec *,
+                                         ParOptVec *, ParOptVec **, int,
+                                         ParOptScalar *));
+  void setEvalHvecProduct(int (*func)(void *, int, int, int, ParOptVec *,
+                                      ParOptScalar *, ParOptVec *, ParOptVec *,
+                                      ParOptVec *));
+  void setEvalHessianDiag(int (*func)(void *, int, int, int, ParOptVec *,
+                                      ParOptScalar *, ParOptVec *,
+                                      ParOptVec *));
+  void setComputeQuasiNewtonUpdateCorrection(
+      void (*func)(void *, int, int, ParOptVec *, ParOptScalar *, ParOptVec *,
+                   ParOptVec *, ParOptVec *));
+
+  // Get the variables and bounds from the problem
+  // ---------------------------------------------
+  void getVarsAndBounds(ParOptVec *x, ParOptVec *lb, ParOptVec *ub);
+
+  // Evaluate the objective and constraints
+  // --------------------------------------
+  int evalSparseObjCon(ParOptVec *x, ParOptScalar *fobj, ParOptScalar *cons,
+                       ParOptVec *sparse_con);
+
+  // Evaluate the objective and constraint gradients
+  // -----------------------------------------------
+  int evalSparseObjConGradient(ParOptVec *x, ParOptVec *g, ParOptVec **Ac,
+                               ParOptScalar *data);
+
+  // Evaluate the product of the Hessian with a given vector
+  // -------------------------------------------------------
+  int evalHvecProduct(ParOptVec *x, ParOptScalar *z, ParOptVec *zw,
+                      ParOptVec *px, ParOptVec *hvec);
+
+  // Evaluate the diagonal of the Hessian
+  // ------------------------------------
+  int evalHessianDiag(ParOptVec *x, ParOptScalar *z, ParOptVec *zw,
+                      ParOptVec *hdiag);
+
+  // Compute a quasi-Newton update correction/modification
+  // -----------------------------------------------------
+  void computeQuasiNewtonUpdateCorrection(ParOptVec *x, ParOptScalar *z,
+                                          ParOptVec *zw, ParOptVec *s,
+                                          ParOptVec *y);
+
+ private:
+  // Public member function pointers to the callbacks that are
+  // required before class can be used
+  // ---------------------------------------------------------
+  void *self;
+  void (*getvarsandbounds)(void *self, int nvars, ParOptVec *x, ParOptVec *lb,
+                           ParOptVec *ub);
+  int (*evalobjcon)(void *self, int nvars, int ncon, int nwcon, ParOptVec *x,
+                    ParOptScalar *fobj, ParOptScalar *cons,
+                    ParOptVec *sparse_con);
+  int (*evalobjcongradient)(void *self, int nvars, int ncon, int nwcon,
+                            ParOptVec *x, ParOptVec *gobj, ParOptVec **A,
+                            int nnz, ParOptScalar *data);
+  int (*evalhessiandiag)(void *self, int nvars, int ncon, int nwcon,
+                         ParOptVec *x, ParOptScalar *z, ParOptVec *zw,
+                         ParOptVec *hdiag);
+  int (*evalhvecproduct)(void *self, int nvars, int ncon, int nwcon,
+                         ParOptVec *x, ParOptScalar *z, ParOptVec *zw,
+                         ParOptVec *px, ParOptVec *hvec);
+  void (*computequasinewtonupdatecorrection)(void *self, int, int, ParOptVec *x,
+                                             ParOptScalar *z, ParOptVec *zw,
+                                             ParOptVec *s, ParOptVec *y);
+
+  // Store information about the type of problem to solve
   int useLower;
   int useUpper;
 };

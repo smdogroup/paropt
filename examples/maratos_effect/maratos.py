@@ -23,7 +23,9 @@ class Maratos(ParOpt.Problem):
         self.ncon = 1
         self.nineq = 0
         self.design_counter = 0
-        super(Maratos, self).__init__(self.comm, self.nvars, self.ncon, self.nineq)
+        super(Maratos, self).__init__(
+            self.comm, nvars=self.nvars, ncon=self.ncon, ninequalities=self.nineq
+        )
         self.plot_label = plot_label
 
     def fun(self, x):

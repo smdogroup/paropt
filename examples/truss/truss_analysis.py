@@ -35,7 +35,7 @@ class TrussAnalysis(ParOpt.Problem):
         # Initialize the super class
         nvars = len(conn)
         ncon = 1
-        super(TrussAnalysis, self).__init__(MPI.COMM_SELF, nvars, ncon)
+        super(TrussAnalysis, self).__init__(MPI.COMM_SELF, nvars=nvars, ncon=ncon)
 
         # Store pointer to the data
         self.conn = conn

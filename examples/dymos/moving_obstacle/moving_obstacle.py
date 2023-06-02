@@ -1,25 +1,21 @@
 # Import paths
-import sys
-
-# sys.path.insert(0, 'C:\msys64\home\Mark\pyoptsparse')
-# sys.path.insert(0, 'C:\msys64\home\Mark\pyoptsparse-build\lib\python3.8\site-packages')
-import matplotlib, scipy, openmdao.api as om, numpy as np, dymos as dm, matplotlib.pyplot as plt
-from matplotlib import animation, rc
-
-matplotlib.use("TkAgg")
-rc("animation", html="html5")
+import openmdao.api as om
+import numpy as np
+import dymos as dm
+import matplotlib.pyplot as plt
+from paropt.paropt_sparse_driver import ParOptSparseDriver
 
 
 # Define penalty function
 def pen_f(r0, r1, r2):
     p = 10
     return (
-        1
-        / (1 + np.exp(-p * (r0 - 1)))
-        * 1
-        / (1 + np.exp(-p * (r1 - 1)))
-        * 1
-        / (1 + np.exp(-p * (r2 - 1)))
+        1.0
+        / (1.0 + np.exp(-p * (r0 - 1.0)))
+        * 1.0
+        / (1.0 + np.exp(-p * (r1 - 1.0)))
+        * 1.0
+        / (1.0 + np.exp(-p * (r2 - 1.0)))
     )
 
 
@@ -72,12 +68,9 @@ class ODESystem1(om.ExplicitComponent):
         self.add_output(
             "y3", val=np.zeros(nn), desc="obstacle y position", units="m"
         )  # for plotting purposes
-        # self.add_output('vdot', val=np.zeros(nn), desc='acceleration mag.', units='m/s**2')
-        # self.add_output('v_out', val=np.zeros(nn), desc='veclity', units='m/s') #for plotting purposes
 
         # Setup partials
         arange = np.arange(self.options["num_nodes"], dtype=int)
-        # self.declare_partials(of='vdot', wrt='theta', rows=arange, cols=arange)
 
         self.declare_partials("xdot", wrt="x", rows=arange, cols=arange)
         self.declare_partials("xdot", wrt="y", rows=arange, cols=arange)
@@ -123,9 +116,6 @@ class ODESystem1(om.ExplicitComponent):
         outputs["y1"] = y0n
         outputs["y2"] = y1n
         outputs["y3"] = y2n
-        # outputs['p2'] = r1**2
-        # outputs['p3'] = r2**2
-        # outputs['v_out'] = 5*eta
 
     def compute_partials(self, inputs, jacobian):
         theta = inputs["theta"]
@@ -158,7 +148,7 @@ p.model.add_subsystem("traj", subsys=traj)
 
 # Define a Dymos Phase object with GaussLobatto Transcription
 phase = dm.Phase(
-    ode_class=ODESystem1, transcription=dm.GaussLobatto(num_segments=10, order=3)
+    ode_class=ODESystem1, transcription=dm.GaussLobatto(num_segments=25, order=3)
 )
 traj.add_phase(name="phase0", phase=phase)
 
@@ -202,45 +192,10 @@ phase.add_path_constraint(name="p3", lower=1, upper=None, units="m")
 # Minimize final time.
 phase.add_objective("time", loc="final")
 
-# Set the driver.
-# p.driver = om.SimpleGADriver()
-p.driver = om.ScipyOptimizeDriver()
-p.driver = om.pyOptSparseDriver()
-# p.driver.options['optimizer'] = 'SNOPT'
-# p.driver.options['optimizer'] = 'IPOPT'
-
-p.driver.options["optimizer"] = "ParOpt"
-p.driver.opt_settings["algorithm"] = "tr"
-p.driver.opt_settings["tr_linfty_tol"] = 1e-30
-p.driver.opt_settings["tr_l1_tol"] = 1e-30
-p.driver.opt_settings["output_level"] = 0
-p.driver.opt_settings["qn_type"] = "bfgs"
-p.driver.opt_settings["max_major_iters"] = 500
-p.driver.opt_settings["tr_max_iterations"] = 50
-p.driver.opt_settings["qn_update_type"] = "damped_update"
-# p.driver.opt_settings['norm_type'] = 'infinity'
-# p.driver.opt_settings['barrier_strategy'] = 'monotone'
-# p.driver.opt_settings['starting_point_strategy'] = 'affine_step'
-# p.driver.opt_settings['tr_steering_barrier_strategy'] = 'mehrotra_predictor_corrector'
-# p.driver.opt_settings['tr_steering_starting_point_strategy'] = 'affine_step'
-# p.driver.opt_settings['use_line_search'] = True
-p.driver.opt_settings["penalty_gamma"] = 1e2
-p.driver.opt_settings["tr_min_size"] = 1e-2
-p.driver.opt_settings["tr_adaptive_gamma_update"] = False
-p.driver.opt_settings["tr_accept_step_strategy"] = "penalty_method"
-p.driver.opt_settings["tr_use_soc"] = False
-p.driver.opt_settings["tr_soc_use_quad_model"] = True
-
-
-# Allow OpenMDAO to automatically determine our sparsity pattern. Doing so can significant speed up the execution of Dymos.
-p.driver.declare_coloring()
-
 # Setup the problem
 p.setup(check=True)
 
 # Now that the OpenMDAO problem is setup, we can set the values of the states
-# p['traj.phase0.states:y'][:] = 0
-# p['traj.phase0.states:y'][-1] = 10
 p.set_val(
     "traj.phase0.states:x",
     phase.interpolate(ys=[0, 10], nodes="state_input"),
@@ -257,10 +212,33 @@ p.set_val(
     units="deg",
 )
 
+p.driver = ParOptSparseDriver()
+
+options = {
+    "algorithm": "ip",
+    "norm_type": "infinity",
+    "qn_type": "bfgs",
+    "qn_subspace_size": 10,
+    "starting_point_strategy": "least_squares_multipliers",
+    "qn_update_type": "damped_update",
+    "abs_res_tol": 1e-6,
+    "barrier_strategy": "monotone",
+    "armijo_constant": 1e-5,
+    "penalty_gamma": 100.0,
+    "max_major_iters": 500,
+}
+
+for key in options:
+    p.driver.options[key] = options[key]
+
+# Allow OpenMDAO to automatically determine our sparsity pattern.
+# Doing so can significant speed up the execution of Dymos.
+p.driver.declare_coloring()
+
 # Run the driver to solve the problem
 p.run_driver()
 
-# Check the validity of our results by using scipy.integrate.solve_ivp to integrate the solution.
+# Check the validity of our results
 sim_out = traj.simulate()
 
 # Plot the results
@@ -324,13 +302,6 @@ axes[1].set_xlim(0, 10)
 axes[1].set_ylim(0, 10)
 axes[1].legend()
 axes[1].grid()
-
-# axes[1].plot(p.get_val('traj.phase0.timeseries.time'), p.get_val('traj.phase0.timeseries.controls:theta', units = 'deg'), 'ro', label = 'solution')
-# axes[1].plot(sim_out.get_val('traj.phase0.timeseries.time'), sim_out.get_val('traj.phase0.timeseries.controls:theta', units = 'deg'), 'b-', label = 'simulation')
-# axes[1].set_xlabel('time (s)')
-# axes[1].set_ylabel(r'$\theta$ (deg)')
-# axes[1].legend()
-# axes[1].grid()
 
 axes[2].plot(
     p.get_val("traj.phase0.timeseries.time"),
@@ -407,101 +378,4 @@ circle2 = plt.Circle((x2, y2), 1, color="k", fill=False)
 ax.add_artist(circle0)
 ax.add_artist(circle1)
 ax.add_artist(circle2)
-# plt.show()
-
-
-# ANIMATION ##################################################################
-x_v, y_v = p.get_val("traj.phase0.timeseries.states:x"), p.get_val(
-    "traj.phase0.timeseries.states:y"
-)
-t_v = p.get_val("traj.phase0.timeseries.time")
-d1_v = p.get_val("traj.phase0.timeseries.p1")
-d2_v = p.get_val("traj.phase0.timeseries.p2")
-d3_v = p.get_val("traj.phase0.timeseries.p3")
-x1_v, y1_v = p.get_val("traj.phase0.timeseries.x1"), p.get_val(
-    "traj.phase0.timeseries.y1"
-)
-x2_v, y2_v = p.get_val("traj.phase0.timeseries.x2"), p.get_val(
-    "traj.phase0.timeseries.y2"
-)
-x3_v, y3_v = p.get_val("traj.phase0.timeseries.x3"), p.get_val(
-    "traj.phase0.timeseries.y3"
-)
-
-
-# Animation wrapper function
-def run_animation():
-    # Allow pausing on click
-    anim_running = True
-
-    def onClick(event):
-        nonlocal anim_running
-        if anim_running:
-            anim.event_source.stop()
-            anim_running = False
-        else:
-            anim.event_source.start()
-            anim_running = True
-
-    # Animation function (called sequentially)
-    def animate(i):
-        # Update obstacles
-        patch0.center = (x1_v[i], y1_v[i])
-        patch1.center = (x2_v[i], y2_v[i])
-        patch2.center = (x3_v[i], y3_v[i])
-
-        # Update lines
-        traj1.set_data(x_v[: i + 1], y_v[: i + 1])
-        dist1.set_data(t_v[: i + 1], d1_v[: i + 1])
-        dist2.set_data(t_v[: i + 1], d2_v[: i + 1])
-        dist3.set_data(t_v[: i + 1], d3_v[: i + 1])
-
-        return patch0, patch1, patch2, traj1, dist1, dist2, dist3
-
-    # Initialization function: plot the background of each frame
-    def init():
-        # Initialize obstacles
-        axs[0].add_patch(patch0)
-        axs[0].add_patch(patch1)
-        axs[0].add_patch(patch2)
-
-        # Initialize trajectory and distance lines
-        traj1.set_data([], [])
-        dist1.set_data([], [])
-        dist2.set_data([], [])
-        dist3.set_data([], [])
-
-        axs[0].set_xlabel("x position (m)")
-        axs[0].set_ylabel("y position (m)")
-        axs[1].set_xlabel("iteration")
-        axs[1].set_ylabel("objective")
-
-        return patch0, patch1, patch2, traj1, dist1, dist2, dist2
-
-    fig, axs = plt.subplots(1, 2, figsize=(12, 4.5))
-    patch0 = plt.Circle((x0, y0), 1, color="k", fill=False, hatch="///")
-    patch1 = plt.Circle((x1, y1), 1, color="k", fill=False, hatch="///")
-    patch2 = plt.Circle((x2, y2), 1, color="k", fill=False, hatch="///")
-    (traj1,) = axs[0].plot([], [], lw=2, color="k", marker="o", ls="--")
-    (dist1,) = axs[1].plot([], [], lw=2, color="b", marker="", ls="-")
-    (dist2,) = axs[1].plot([], [], lw=2, color="g", marker="", ls="-")
-    (dist3,) = axs[1].plot([], [], lw=2, color="r", marker="", ls="-")
-    fig.canvas.mpl_connect("button_press_event", onClick)
-    anim = animation.FuncAnimation(
-        fig,
-        animate,
-        init_func=init,
-        fargs=(),
-        frames=x_v.shape[0],
-        interval=100,
-        blit=True,
-    )
-    axs[0].set_xlim((0, 10))
-    axs[0].set_ylim((0, 10))
-    axs[1].set_xlim((0, 10))
-    axs[1].set_ylim((0, 10))
-    plt.show()
-    anim.save("movingObstacle.gif", writer="imagemagick", fps=5)
-
-
-# run_animation()
+plt.show()

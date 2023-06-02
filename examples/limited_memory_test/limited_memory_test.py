@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 # Import numpy
 import numpy as np
 import mpi4py.MPI as MPI
@@ -29,7 +27,7 @@ class Quadratic(ParOpt.Problem):
         self.bcon = 0.0
 
         # Initialize the base class
-        super(Quadratic, self).__init__(self.comm, self.nvars, self.ncon)
+        super(Quadratic, self).__init__(self.comm, nvars=self.nvars, ncon=self.ncon)
 
         return
 

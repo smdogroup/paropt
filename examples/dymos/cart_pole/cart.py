@@ -2,10 +2,9 @@ import numpy as np
 import openmdao.api as om
 import dymos as dm
 import matplotlib.pyplot as plt
-import math
 import argparse
-
 import numpy
+from paropt.paropt_sparse_driver import ParOptSparseDriver
 
 numpy.seterr(all="warn")
 
@@ -49,20 +48,20 @@ class CartODE(om.ExplicitComponent):
         self.declare_partials(of="q2dot", wrt="q4", rows=arange, cols=arange, val=1.0)
         self.declare_partials(of="q2dot", wrt="u", rows=arange, cols=arange, val=0.0)
 
-        self.declare_partials(of="q3dot", wrt="q2", rows=arange, cols=arange)
+        self.declare_partials(of="q3dot", wrt="q2", rows=arange, cols=arange, val=0.0)
         self.declare_partials(of="q3dot", wrt="q3", rows=arange, cols=arange, val=0.0)
-        self.declare_partials(of="q3dot", wrt="q4", rows=arange, cols=arange)
-        self.declare_partials(of="q3dot", wrt="u", rows=arange, cols=arange)
+        self.declare_partials(of="q3dot", wrt="q4", rows=arange, cols=arange, val=0.0)
+        self.declare_partials(of="q3dot", wrt="u", rows=arange, cols=arange, val=0.0)
 
-        self.declare_partials(of="q4dot", wrt="q2", rows=arange, cols=arange)
+        self.declare_partials(of="q4dot", wrt="q2", rows=arange, cols=arange, val=0.0)
         self.declare_partials(of="q4dot", wrt="q3", rows=arange, cols=arange, val=0.0)
-        self.declare_partials(of="q4dot", wrt="q4", rows=arange, cols=arange)
-        self.declare_partials(of="q4dot", wrt="u", rows=arange, cols=arange)
+        self.declare_partials(of="q4dot", wrt="q4", rows=arange, cols=arange, val=0.0)
+        self.declare_partials(of="q4dot", wrt="u", rows=arange, cols=arange, val=0.0)
 
         self.declare_partials(of="Jdot", wrt="q2", rows=arange, cols=arange, val=0.0)
         self.declare_partials(of="Jdot", wrt="q3", rows=arange, cols=arange, val=0.0)
         self.declare_partials(of="Jdot", wrt="q4", rows=arange, cols=arange, val=0.0)
-        self.declare_partials(of="Jdot", wrt="u", rows=arange, cols=arange)
+        self.declare_partials(of="Jdot", wrt="u", rows=arange, cols=arange, val=0.0)
 
     def compute(self, inputs, outputs):
         l = self.l
@@ -136,16 +135,18 @@ parser.add_argument("--nn", type=int, default=25, help="number of nodes")
 parser.add_argument(
     "--order", type=int, default=3, help="order of Gauss-Lobatto collocation"
 )
+parser.add_argument("--algorithm", default="ip", help="Algorithm used in ParOpt")
 parser.add_argument(
-    "--optimizer", default="ParOpt", help="Optimizer name from pyOptSparse"
+    "--show_sparsity",
+    default=False,
+    action="store_true",
+    help="Show the sparsity pattern",
 )
-parser.add_argument("--algorithm", default="tr", help="Algorithm used in ParOpt")
 args = parser.parse_args()
 
 nn = args.nn
 order = args.order
-optimizer = args.optimizer
-algorithm = args.algorithm
+show_sparsity = args.show_sparsity
 
 # Define the OpenMDAO problem
 p = om.Problem(model=om.Group())
@@ -155,133 +156,121 @@ traj = dm.Trajectory()
 p.model.add_subsystem("traj", subsys=traj)
 
 # Define a Dymos Phase object with GaussLobatto Transcription
-phase = dm.Phase(
-    ode_class=CartODE, transcription=dm.GaussLobatto(num_segments=nn, order=order)
-)
+transcript = dm.GaussLobatto(num_segments=nn, order=order)
+phase = dm.Phase(ode_class=CartODE, transcription=transcript)
 
 traj.add_phase(name="phase0", phase=phase)
 
 # Set the time options
-phase.set_time_options(
-    units=None, fix_initial=True, fix_duration=True, duration_val=2.0
-)
+phase.set_time_options(fix_initial=True, fix_duration=True, duration_val=2.0)
 
 # Define state variable
-phase.add_state("q1", rate_source="q1dot", lower=-2.0, upper=2.0)
-phase.add_state("q2", rate_source="q2dot", targets="q2", lower=-100.0, upper=100.0)
-phase.add_state("q3", rate_source="q3dot", targets="q3", lower=-100.0, upper=100.0)
-phase.add_state("q4", rate_source="q4dot", targets="q4", lower=-100.0, upper=100.0)
-phase.add_state("J", rate_source="Jdot", lower=-100.0, upper=100.0)
+phase.add_state(
+    "q1", fix_initial=True, fix_final=True, rate_source="q1dot", lower=0.0, upper=2.0
+)
+phase.add_state(
+    "q2",
+    fix_initial=True,
+    fix_final=True,
+    rate_source="q2dot",
+    lower=-100.0,
+    upper=100.0,
+)
+phase.add_state("q3", fix_initial=True, rate_source="q3dot", lower=-100.0, upper=100.0)
+phase.add_state("q4", fix_initial=True, rate_source="q4dot", lower=-100.0, upper=100.0)
+phase.add_state("J", fix_initial=True, rate_source="Jdot", lower=0.0, upper=100.0)
 
 # Define control variable
 phase.add_control(
-    name="u",
-    lower=-20.0,
-    upper=20.0,
-    continuity=True,
-    rate_continuity=True,
-    targets="u",
+    name="u", lower=-20.0, upper=20.0, continuity=True, rate_continuity=True
 )
 
-# Add constraints
-phase.add_boundary_constraint("q1", loc="initial", equals=0.0)
-phase.add_boundary_constraint("q2", loc="initial", equals=0.0)
-phase.add_boundary_constraint("q3", loc="initial", equals=0.0)
-phase.add_boundary_constraint("q4", loc="initial", equals=0.0)
-phase.add_boundary_constraint("J", loc="initial", equals=0.0)
-phase.add_boundary_constraint("q1", loc="final", equals=1.0)
-phase.add_boundary_constraint("q2", loc="final", equals=np.pi)
-phase.add_boundary_constraint("q3", loc="final", equals=0.0)
-phase.add_boundary_constraint("q4", loc="final", equals=0.0)
-
 # Minimize J
-phase.add_objective("J", loc="final")
-
-# Set the driver.
-p.driver = om.pyOptSparseDriver()
-
-if optimizer == "SLSQP":
-    p.driver.options["optimizer"] = "SLSQP"
-
-elif optimizer == "SNOPT":
-    p.driver.options["optimizer"] = "SNOPT"
-
-elif optimizer == "IPOPT":
-    p.driver.options["optimizer"] = "IPOPT"
-
-else:
-    p.driver.options["optimizer"] = "ParOpt"
-
-    if algorithm == "tr":
-        p.driver.opt_settings["algorithm"] = "tr"
-        p.driver.opt_settings["qn_update_type"] = "damped_update"
-        p.driver.opt_settings["abs_res_tol"] = 1e-8
-        p.driver.opt_settings["tr_linfty_tol"] = 1e-30
-        p.driver.opt_settings["tr_l1_tol"] = 1e-30
-        p.driver.opt_settings["output_level"] = 0
-        p.driver.opt_settings["tr_max_size"] = 1e2
-        p.driver.opt_settings["tr_min_size"] = 1e-2
-        p.driver.opt_settings["penalty_gamma"] = 1e2
-        p.driver.opt_settings["tr_adaptive_gamma_update"] = True
-        p.driver.opt_settings["tr_accept_step_strategy"] = "penalty_method"
-        p.driver.opt_settings["tr_use_soc"] = False
-        p.driver.opt_settings["tr_max_iterations"] = 500
-        p.driver.opt_settings["max_major_iters"] = 200
-        p.driver.opt_settings["qn_type"] = "none"
-        p.driver.opt_settings["sequential_linear_method"] = True
-        # p.driver.opt_settings['barrier_strategy'] = 'mehrotra'
-        # p.driver.opt_settings['gradient_verification_frequency'] = 1
-
-    else:
-        p.driver.opt_settings["algorithm"] = "ip"
-        p.driver.opt_settings["qn_subspace_size"] = 10
-        # p.driver.opt_settings['qn_update_type'] = 'damped_update'
-        p.driver.opt_settings["abs_res_tol"] = 1e-6
-        p.driver.opt_settings["barrier_strategy"] = "monotone"
-        p.driver.opt_settings["output_level"] = 0
-        p.driver.opt_settings["armijo_constant"] = 1e-5
-        p.driver.opt_settings["max_major_iters"] = 500
-
-# Allow OpenMDAO to automatically determine our sparsity pattern.
-# Doing so can significant speed up the execution of Dymos.
-# p.driver.declare_coloring()
+phase.add_objective("J", loc="final", ref=10.0)
 
 # Setup the problem
 p.setup(check=True)
 
 # Now that the OpenMDAO problem is setup, we can set the values of the states.
-p.set_val("traj.phase0.states:q1", phase.interpolate(ys=[0, 0], nodes="state_input"))
+p.set_val("traj.phase0.states:q1", phase.interp("q1", ys=[0, 1.0]))
+p.set_val("traj.phase0.states:q2", phase.interp("q2", ys=[0, np.pi]))
+p.set_val("traj.phase0.states:q3", phase.interp("q3", ys=[0, 0]))
+p.set_val("traj.phase0.states:q4", phase.interp("q4", ys=[0, 0]))
+p.set_val(
+    "traj.phase0.controls:u", phase.interp("u", ys=[0, 1.0], nodes="control_input")
+)
+p.set_val("traj.phase0.states:J", phase.interp("J", ys=[0, 1]))
 
-p.set_val("traj.phase0.states:q2", phase.interpolate(ys=[0, 0], nodes="state_input"))
+# Create the driver
+p.driver = ParOptSparseDriver()
 
-p.set_val("traj.phase0.states:q3", phase.interpolate(ys=[0, 0], nodes="state_input"))
+if args.algorithm == "ip":
+    options = {
+        "algorithm": "ip",
+        "norm_type": "infinity",
+        "qn_type": "bfgs",
+        "qn_subspace_size": 10,
+        "starting_point_strategy": "least_squares_multipliers",
+        "qn_update_type": "damped_update",
+        "abs_res_tol": 1e-6,
+        "barrier_strategy": "monotone",
+        "armijo_constant": 1e-5,
+        "penalty_gamma": 100.0,
+        "max_major_iters": 500,
+    }
+elif args.algorithm == "mma":
+    options = {
+        "algorithm": "mma",
+        "qn_type": "none",
+        "max_major_iters": 100,
+        "abs_res_tol": 1e-8,
+        "starting_point_strategy": "affine_step",
+        "barrier_strategy": "mehrotra_predictor_corrector",
+        "use_line_search": False,
+        "mma_use_constraint_linearization": True,
+        "mma_max_iterations": 1000,
+    }
+elif args.algorithm == "tr":
+    options = {
+        "algorithm": "tr",
+        "tr_init_size": 0.05,
+        "tr_min_size": 1e-6,
+        "tr_max_size": 10.0,
+        "tr_eta": 0.25,
+        "tr_infeas_tol": 1e-6,
+        "tr_l1_tol": 1e-3,
+        "tr_linfty_tol": 0.0,
+        "tr_adaptive_gamma_update": True,
+        "tr_max_iterations": 1000,
+        "max_major_iters": 100,
+        "penalty_gamma": 1e3,
+        "qn_subspace_size": 10,
+        "qn_type": "bfgs",
+        "abs_res_tol": 1e-8,
+        "starting_point_strategy": "affine_step",
+        "barrier_strategy": "mehrotra",
+        "use_line_search": False,
+    }
 
-p.set_val("traj.phase0.states:q4", phase.interpolate(ys=[0, 0], nodes="state_input"))
+for key in options:
+    p.driver.options[key] = options[key]
 
-p.set_val("traj.phase0.controls:u", phase.interpolate(ys=[0, 0], nodes="control_input"))
-
-
-# Check gradients
-# fd_checks = p.check_partials(out_stream=None, compact_print=True)
-# for k1, v1 in fd_checks.items():
-#         for k2, v2 in v1.items():
-#             for k3, v3 in v2.items():
-#                 if 'err' in k3:
-#                     for values in v3:
-#                         # print(type(values), values)
-#                         if not math.isnan(values):
-#                             if abs(values) > 1e-20:
-#                                 print(k2, k3, v3)
+# Allow OpenMDAO to automatically determine our sparsity pattern.
+# Doing so can significant speed up the execution of Dymos.
+p.driver.declare_coloring(show_summary=True, show_sparsity=show_sparsity)
 
 # Run the driver to solve the problem
 p.run_driver()
+
+x, z, zw, zl, zu = p.driver.opt.getOptimizedPoint()
+print(np.max(np.abs(zw[:])))
 
 # Check the validity of our results by using scipy.integrate.solve_ivp to
 # integrate the solution.
 sim_out = traj.simulate()
 
 # Plot the results
-fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(12, 6))
+fig, axes = plt.subplots(nrows=4, ncols=1, figsize=(12, 8))
 
 axes[0].plot(
     p.get_val("traj.phase0.timeseries.time"),
@@ -339,5 +328,24 @@ axes[2].set_xlabel("time")
 axes[2].set_ylabel("control")
 axes[2].legend()
 axes[2].grid()
+
+axes[3].plot(
+    p.get_val("traj.phase0.timeseries.time"),
+    p.get_val("traj.phase0.timeseries.states:J"),
+    "ro",
+    label="solution",
+)
+
+axes[3].plot(
+    sim_out.get_val("traj.phase0.timeseries.time"),
+    sim_out.get_val("traj.phase0.timeseries.states:J"),
+    "b-",
+    label="simulation",
+)
+
+axes[3].set_xlabel("time")
+axes[3].set_ylabel("J")
+axes[3].legend()
+axes[3].grid()
 
 plt.show()

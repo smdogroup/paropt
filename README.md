@@ -4,11 +4,11 @@
 [![Anaconda-Server Badge](https://anaconda.org/smdogroup/paropt/badges/platforms.svg)](https://anaconda.org/smdogroup/paropt)
 [![Anaconda-Server Badge](https://anaconda.org/smdogroup/paropt/badges/downloads.svg)](https://anaconda.org/smdogroup/paropt)
 
-# ParOpt: A parallel interior-point optimizer #
-------------------------------------------------
+# ParOpt: A library of parallel optimization algorithms #
+---------------------------------------------------------
 
 ParOpt is a parallel optimization library for use in general large-scale optimization applications, but is often specifically used for topology and multi-material optimization problems.
-The optimizer has the capability to handle large numbers of weighting constraints that arise in the parametrization of multi-material problems. 
+The optimizer has the capability to handle large numbers of weighting constraints that arise in the parametrization of multi-material problems.
 
 The implementation of the optimizer is in C++ and uses MPI. ParOpt is also wrapped with python using Cython.
 

@@ -1,12 +1,6 @@
-# Create the toy example that is used in Svanberg MMA
-from __future__ import print_function
-
 # Import some utilities
 import numpy as np
 import mpi4py.MPI as MPI
-import matplotlib.pyplot as plt
-import argparse
-import os
 
 # Import ParOpt
 from paropt import ParOpt
@@ -23,7 +17,7 @@ class Toy(ParOpt.Problem):
         self.x_hist = []
 
         # Initialize the base class
-        super(Toy, self).__init__(self.comm, self.nvars, self.ncon)
+        super(Toy, self).__init__(self.comm, nvars=self.nvars, ncon=self.ncon)
 
         return
 

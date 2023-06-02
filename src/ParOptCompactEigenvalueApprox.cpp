@@ -299,9 +299,13 @@ ParOptEigenSubproblem::ParOptEigenSubproblem(ParOptProblem *_prob,
   prob = _prob;
   prob->incref();
 
-  // Get and set the problem sizes
-  prob->getProblemSizes(&n, &m, &ninequality, &nwcon, &nwblock);
-  setProblemSizes(n, m, ninequality, nwcon, nwblock);
+  // Set the problem sizes
+  prob->getProblemSizes(&n, &m, &nwcon);
+  setProblemSizes(n, m, nwcon);
+
+  // Set the number of inequalities
+  prob->getNumInequalities(&ninequality, &nwinequality);
+  setNumInequalities(ninequality, nwinequality);
 
   // Set the quasi-Newton method
   approx = _approx;
@@ -553,6 +557,13 @@ ParOptVec *ParOptEigenSubproblem::createDesignVec() {
 */
 ParOptVec *ParOptEigenSubproblem::createConstraintVec() {
   return prob->createConstraintVec();
+}
+
+/*
+  Create an instance of the quasi-definite constraint matrix
+*/
+ParOptQuasiDefMat *ParOptEigenSubproblem::createQuasiDefMat() {
+  return prob->createQuasiDefMat();
 }
 
 /*

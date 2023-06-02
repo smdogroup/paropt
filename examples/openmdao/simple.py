@@ -128,7 +128,7 @@ if driver == "pyoptsparse":
 elif driver == "paropt":
     p.driver = ParOptDriver()
     p.driver.options["algorithm"] = "tr"
-    p.driver.options["tr_max_iterations"] = 10
+    p.driver.options["tr_max_iterations"] = 100
     p.driver.options["tr_max_size"] = 100.0
 elif driver == "scipy":
     p.driver = om.ScipyOptimizeDriver()

@@ -4,37 +4,18 @@ import dymos as dm
 from dymos.examples.plotting import plot_results
 from dymos.examples.brachistochrone import BrachistochroneODE
 import matplotlib.pyplot as plt
-import argparse
-
-# Define options
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--optimizer",
-    default="paropt",
-    choices=["paropt", "scipy"],
-    help="Optimizer name from pyOptSparse",
-)
-args = parser.parse_args()
-optimizer = args.optimizer
+from paropt.paropt_sparse_driver import ParOptSparseDriver
 
 # Initialize the Problem and the optimization driver
 p = om.Problem(model=om.Group())
-if optimizer == "scipy":
-    p.driver = om.ScipyOptimizeDriver()
-elif optimizer == "paropt":
-    p.driver = om.pyOptSparseDriver()
-    p.driver.options["optimizer"] = "ParOpt"
-    p.driver.opt_settings["algorithm"] = "tr"
-p.driver.declare_coloring()
 
 # Create a trajectory and add a phase to it
 traj = p.model.add_subsystem("traj", dm.Trajectory())
 
+transcript = dm.GaussLobatto(num_segments=10)
 phase = traj.add_phase(
     "phase0",
-    dm.Phase(
-        ode_class=BrachistochroneODE, transcription=dm.GaussLobatto(num_segments=10)
-    ),
+    dm.Phase(ode_class=BrachistochroneODE, transcription=transcript),
 )
 
 # Set the variables
@@ -42,8 +23,8 @@ phase.set_time_options(initial_bounds=(0, 0), duration_bounds=(0.5, 10))
 
 phase.add_state(
     "x",
-    rate_source=BrachistochroneODE.states["x"]["rate_source"],
-    units=BrachistochroneODE.states["x"]["units"],
+    rate_source="xdot",
+    units="m",
     fix_initial=True,
     fix_final=True,
     solve_segments=False,
@@ -51,8 +32,8 @@ phase.add_state(
 
 phase.add_state(
     "y",
-    rate_source=BrachistochroneODE.states["y"]["rate_source"],
-    units=BrachistochroneODE.states["y"]["units"],
+    rate_source="ydot",
+    units="m",
     fix_initial=True,
     fix_final=True,
     solve_segments=False,
@@ -60,9 +41,8 @@ phase.add_state(
 
 phase.add_state(
     "v",
-    rate_source=BrachistochroneODE.states["v"]["rate_source"],
-    targets=BrachistochroneODE.states["v"]["targets"],
-    units=BrachistochroneODE.states["v"]["units"],
+    rate_source="vdot",
+    units="m/s",
     fix_initial=True,
     fix_final=False,
     solve_segments=False,
@@ -70,7 +50,6 @@ phase.add_state(
 
 phase.add_control(
     "theta",
-    targets=BrachistochroneODE.parameters["theta"]["targets"],
     continuity=True,
     rate_continuity=True,
     units="deg",
@@ -78,9 +57,8 @@ phase.add_control(
     upper=179.9,
 )
 
-phase.add_input_parameter(
+phase.add_parameter(
     "g",
-    targets=BrachistochroneODE.parameters["g"]["targets"],
     units="m/s**2",
     val=9.80665,
 )
@@ -96,15 +74,37 @@ p.setup()
 p["traj.phase0.t_initial"] = 0.0
 p["traj.phase0.t_duration"] = 2.0
 
-p["traj.phase0.states:x"] = phase.interpolate(ys=[0, 10], nodes="state_input")
-p["traj.phase0.states:y"] = phase.interpolate(ys=[10, 5], nodes="state_input")
-p["traj.phase0.states:v"] = phase.interpolate(ys=[0, 9.9], nodes="state_input")
-p["traj.phase0.controls:theta"] = phase.interpolate(
-    ys=[5, 100.5], nodes="control_input"
-)
+p["traj.phase0.states:x"] = phase.interp(ys=[0, 10], nodes="state_input")
+p["traj.phase0.states:y"] = phase.interp(ys=[10, 5], nodes="state_input")
+p["traj.phase0.states:v"] = phase.interp(ys=[0, 9.9], nodes="state_input")
+p["traj.phase0.controls:theta"] = phase.interp(ys=[5, 100.5], nodes="control_input")
 
-# Solve for the optimal trajectory
-dm.run_problem(p)
+# Create the driver
+p.driver = ParOptSparseDriver()
+
+# Allow OpenMDAO to automatically determine our sparsity pattern.
+# Doing so can significant speed up the execution of Dymos.
+p.driver.declare_coloring(show_summary=True, show_sparsity=True)
+
+options = {
+    "algorithm": "ip",
+    "norm_type": "infinity",
+    "qn_type": "bfgs",
+    "qn_subspace_size": 10,
+    "starting_point_strategy": "least_squares_multipliers",
+    "qn_update_type": "damped_update",
+    "abs_res_tol": 1e-6,
+    "barrier_strategy": "monotone",
+    "armijo_constant": 1e-5,
+    "penalty_gamma": 100.0,
+    "max_major_iters": 500,
+}
+
+for key in options:
+    p.driver.options[key] = options[key]
+
+# Run the driver to solve the problem
+p.run_driver()
 
 # Test the results
 assert_near_equal(

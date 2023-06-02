@@ -83,7 +83,7 @@ class CartPole(ParOpt.Problem):
 
         # Initialize the base class
         nineq = 0
-        super(CartPole, self).__init__(MPI.COMM_WORLD, nvars, ncon, nineq)
+        super().__init__(MPI.COMM_WORLD, nvars=nvars, ncon=ncon, ninequality=nineq)
 
         return
 
@@ -313,7 +313,7 @@ class CartPole(ParOpt.Problem):
 
         import matplotlib.pylab as plt
         from matplotlib.collections import LineCollection
-        import matplotlib.cm as cm
+        import matplotlib as mpl
 
         # Set the control input
         u = x[:]
@@ -327,7 +327,7 @@ class CartPole(ParOpt.Problem):
         plt.axis("off")
 
         values = np.linspace(0, 1.0, q.shape[0])
-        cmap = cm.get_cmap("viridis")
+        cmap = mpl.colormaps.get_cmap("viridis")
 
         x = []
         y = []
@@ -374,23 +374,15 @@ problem.checkGradients(1e-5)
 
 filename = "paropt.out"
 options = {
-    "algorithm": "tr",
-    "output_level": 0,
-    "tr_l1_tol": 1e-30,
-    "tr_linfty_tol": 1e-30,
+    "algorithm": "ip",
+    "output_level": 1,
     "norm_type": "infinity",
-    "max_major_iters": 50,
+    "max_major_iters": 500,
     "barrier_strategy": "mehrotra",
     "starting_point_strategy": "affine_step",
     "qn_type": "bfgs",
     "qn_update_type": "damped_update",
     "output_file": filename,
-    "tr_min_size": 1e-6,
-    "tr_max_size": 1e3,
-    "tr_max_iterations": 500,
-    "tr_adaptive_gamma_update": False,
-    "tr_accept_step_strategy": "penalty_method",
-    "tr_max_iterations": 200,
 }
 
 opt = ParOpt.Optimizer(problem, options)

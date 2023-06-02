@@ -2,7 +2,6 @@
 OpenMDAO Wrapper for ParOpt
 """
 
-from __future__ import print_function
 import numpy as np
 import mpi4py.MPI as MPI
 
@@ -36,7 +35,7 @@ class ParOptDriver(Driver):
         **kwargs : dict of keyword arguments
             Keyword arguments that will be mapped into the Driver options.
         """
-        super(ParOptDriver, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self.result = None
         self._dvlist = None
@@ -101,7 +100,7 @@ class ParOptDriver(Driver):
             Pointer
         """
 
-        super(ParOptDriver, self)._setup_driver(problem)
+        super()._setup_driver(problem)
 
         # Raise error if multiple objectives are provided
         if len(self._objs) > 1:
@@ -131,7 +130,7 @@ class ParOptDriver(Driver):
 
     def run(self):
         """
-        Optimize the problem using selected Scipy optimizer.
+        Optimize the problem using the ParOpt optimizer.
 
         Returns
         -------
@@ -169,12 +168,12 @@ class ParOptProblem(ParOpt.Problem):
         self.nvars = None
         self.ncon = None
         self.nineq = None
-        self.constr_upper_limit = (
-            1e20  # Discard constraints with upper bound larger than this
-        )
-        self.constr_lower_limit = (
-            -1e20
-        )  # Discard constraints with lower bound smaller than this
+
+        # Discard constraints with upper bound larger than this
+        self.constr_upper_limit = 1e20
+
+        # Discard constraints with lower bound smaller than this
+        self.constr_lower_limit = -1e20
 
         # Get the design variable, objective and constraint objects from OpenMDAO
         self.om_dvs = self.problem.model.get_design_vars()
@@ -205,7 +204,10 @@ class ParOptProblem(ParOpt.Problem):
 
         # Initialize the base class
         super(ParOptProblem, self).__init__(
-            self.comm, self.nvars, self.ncon, self.nineq
+            self.comm,
+            nvars=self.nvars,
+            num_dense_constraints=self.ncon,
+            num_dense_inequalities=self.nineq,
         )
 
         return

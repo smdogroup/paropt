@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import numpy as np
 import mpi4py.MPI as MPI
 from paropt import ParOpt
@@ -23,7 +21,7 @@ class Quadratic(ParOpt.Problem):
         self.bcon = bcon
 
         # Initialize the base class
-        super(Quadratic, self).__init__(self.comm, self.nvars, self.ncon)
+        super(Quadratic, self).__init__(self.comm, nvars=self.nvars, ncon=self.ncon)
 
         return
 
@@ -134,7 +132,7 @@ def solve_problem(eigs, filename=None, use_stdout=False, use_tr=False):
 
 # Parse the arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("--optimizer", type=str, default="ip")
+parser.add_argument("--algorithm", type=str, default="ip")
 parser.add_argument("--n", type=int, default=100, help="Dimension of the problem")
 parser.add_argument("--eig_min", type=float, default=1.0, help="Minimum eigenvalue")
 parser.add_argument("--eig_max", type=float, default=1e5, help="Minimum eigenvalue")
@@ -143,7 +141,7 @@ parser.set_defaults(use_stdout=False)
 args = parser.parse_args()
 
 use_tr = False
-if args.optimizer != "ip":
+if args.algorithm != "ip":
     use_tr = True
 
 # Set the eigenvalues for the matrix

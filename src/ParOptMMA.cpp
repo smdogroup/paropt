@@ -57,10 +57,15 @@ ParOptMMA::ParOptMMA(ParOptProblem *_prob, ParOptOptions *_options)
   const char *mma_output_file = options->getStringOption("mma_output_file");
   setOutputFile(mma_output_file);
 
-  // Get the problem sizes
-  int nineq, _nwcon, _nwblock;
-  prob->getProblemSizes(&n, &m, &nineq, &_nwcon, &_nwblock);
-  setProblemSizes(n, m, nineq, _nwcon, _nwblock);
+  // Set the problem sizes
+  int _nwcon;
+  prob->getProblemSizes(&n, &m, &_nwcon);
+  setProblemSizes(n, m, _nwcon);
+
+  // Set the number of inequalities
+  int nineq, nwineq;
+  prob->getNumInequalities(&nineq, &nwineq);
+  setNumInequalities(nineq, nwineq);
 
   // Set the iteration counter
   mma_iter = 0;
@@ -324,7 +329,7 @@ void ParOptMMA::optimize(ParOptInteriorPoint *optimizer) {
   const double l1_tol = options->getFloatOption("mma_l1_tol");
   const double linfty_tol = options->getFloatOption("mma_linfty_tol");
 
-  // Set what type of sub-problem wer'e going to use. Check if the flag
+  // Set what type of sub-problem we're going to use. Check if the flag
   // has been set to use a linearization of the constraints. If so, then
   // we're not using the "use_true_mma" option.
   int use_linearized =
@@ -336,6 +341,7 @@ void ParOptMMA::optimize(ParOptInteriorPoint *optimizer) {
   // Set the interior point optimizer data to be compatible
   ParOptOptions *options = optimizer->getOptions();
   options->setOption("use_diag_hessian", 1);
+  options->setOption("use_line_search", 0);
 
   initializeSubProblem(xvec);
   optimizer->resetDesignAndBounds();
@@ -762,6 +768,13 @@ ParOptVec *ParOptMMA::createDesignVec() { return prob->createDesignVec(); }
 */
 ParOptVec *ParOptMMA::createConstraintVec() {
   return prob->createConstraintVec();
+}
+
+/*
+  Create the subproblem quasi-definite matrix
+*/
+ParOptQuasiDefMat *ParOptMMA::createQuasiDefMat() {
+  return prob->createQuasiDefMat();
 }
 
 /*
