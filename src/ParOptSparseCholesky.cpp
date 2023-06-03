@@ -2,9 +2,15 @@
 
 #include "ParOptAMD.h"
 #include "ParOptBlasLapack.h"
+#include "ParOptSparseUtils.h"
+
+// Include METIS
+extern "C" {
+#include "metis.h"
+}
 
 ParOptSparseCholesky::ParOptSparseCholesky(int _size, const int *Acolp,
-                                           const int *Arows, int use_amd_order,
+                                           const int *Arows, int use_nd_order,
                                            const int *_perm) {
   // Set the size of the sparse matrix
   size = _size;
@@ -13,7 +19,7 @@ ParOptSparseCholesky::ParOptSparseCholesky(int _size, const int *Acolp,
   iperm = NULL;
   temp = NULL;
 
-  if (use_amd_order) {
+  if (use_nd_order) {
     int *copy_Acolp = new int[size + 1];
     for (int i = 0; i < size + 1; i++) {
       copy_Acolp[i] = Acolp[i];
@@ -24,20 +30,24 @@ ParOptSparseCholesky::ParOptSparseCholesky(int _size, const int *Acolp,
       copy_Arows[i] = Arows[i];
     }
 
-    // Set up the matrix for reordering
-    ParOptSortAndRemoveDuplicates(size, copy_Acolp, copy_Arows);
+    // Set up the matrix for reordering - remove the diagonal entry
+    int remove_diagonal = 1;
+    ParOptSortAndRemoveDuplicates(size, copy_Acolp, copy_Arows,
+                                  remove_diagonal);
 
-    // Compute the permutation using approximate AMD implemented here...
+    // // Compute the permutation using approximate AMD implemented here...
     perm = new int[size];
-    int use_exact_degree = 0;
-    ParOptAMD(size, copy_Acolp, copy_Arows, perm, use_exact_degree);
-    delete[] copy_Acolp;
-    delete[] copy_Arows;
-
     iperm = new int[size];
-    for (int i = 0; i < size; i++) {
-      iperm[perm[i]] = i;
-    }
+
+    // Set the default options in METIS
+    int options[METIS_NOPTIONS];
+    METIS_SetDefaultOptions(options);
+
+    // Use 0-based numbering
+    options[METIS_OPTION_NUMBERING] = 0;
+
+    int n = size;
+    METIS_NodeND(&n, copy_Acolp, copy_Arows, NULL, options, perm, iperm);
   } else {
     // Store the re-ordering
     if (_perm) {

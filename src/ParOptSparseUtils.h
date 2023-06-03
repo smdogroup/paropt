@@ -41,4 +41,11 @@ void ParOptMatMatTransNumeric(int nrows, int ncols, const ParOptScalar *cvals,
                               const int *Bcolp, int *Brows, ParOptScalar *Bvals,
                               int *flag, ParOptScalar *tmp);
 
+// Remove duplicates from a list
+int ParOptRemoveDuplicates(int *array, int len, int exclude = -1);
+
+// Sort and make the data structure unique - remove diagonal
+void ParOptSortAndRemoveDuplicates(int nvars, int *rowp, int *cols,
+                                   int remove_diagonal = 0);
+
 #endif  // PAR_OPT_SPARSE_UTILS_H

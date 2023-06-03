@@ -27,3 +27,7 @@ SO_LINK_FLAGS=-fPIC -shared
 # LAPACK_LIBS = -framework accelerate
 # SO_EXT=so
 # SO_LINK_FLAGS=-fPIC -dynamiclib -undefined dynamic_lookup
+
+# Flags for the METIS library
+METIS_INCLUDE = -I${METIS_DIR}/include/
+METIS_LIB = ${METIS_DIR}/lib/libmetis.a

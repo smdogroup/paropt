@@ -7,49 +7,7 @@
 #include <algorithm>
 #include <cstring>
 
-/*
-  Sort an array of length len, then remove duplicate entries and
-  entries with values -1.
-*/
-static int ParOptRemoveDuplicates(int *array, int len) {
-  std::sort(array, array + len);
-
-  // Remove any negative numbers
-  int i = 0;  // location to take entries from
-  int j = 0;  // location to place entries
-
-  while (i < len && array[i] < 0) i++;
-
-  for (; i < len; i++, j++) {
-    while ((i < len - 1) && (array[i] == array[i + 1])) i++;
-
-    if (i != j) {
-      array[j] = array[i];
-    }
-  }
-
-  return j;  // The new length of the array
-}
-
-/*
-  Sort the CSR data and remove duplicates
-*/
-void ParOptSortAndRemoveDuplicates(int nvars, int *rowp, int *cols) {
-  int begin = rowp[0];
-  for (int i = 0; i < nvars; i++) {
-    int len = rowp[i + 1] - begin;
-    int new_len = ParOptRemoveDuplicates(&cols[begin], len);
-
-    if (begin != rowp[i]) {
-      for (int k = 0; k < new_len; k++) {
-        cols[rowp[i] + k] = cols[begin + k];
-      }
-    }
-
-    begin = rowp[i + 1];
-    rowp[i + 1] = rowp[i] + new_len;
-  }
-}
+#include "ParOptSparseUtils.h"
 
 /*
   Check the formatting of the AMD data structure to ensure that things
@@ -520,8 +478,8 @@ void ParOptAMD(int nvars, int *rowp, int *cols, int *perm,
         // This row should be entirely variables by definition
         if (state[cols[j]] <= 0) {
           fprintf(stderr,
-                  "Error, the pivot row %d should contain only \
-variables, not element %d\n",
+                  "Error, the pivot row %d should contain only variables, not "
+                  "element %d\n",
                   piv, cols[j]);
         }
 
