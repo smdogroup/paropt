@@ -112,7 +112,14 @@ $(function() {
 <div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;                              <span class="keyword">const</span> <span class="keywordtype">int</span> *Bcolp, <span class="keywordtype">int</span> *Brows, ParOptScalar *Bvals,</div>
 <div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;                              <span class="keywordtype">int</span> *flag, ParOptScalar *tmp);</div>
 <div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160; </div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;<span class="preprocessor">#endif  </span><span class="comment">// PAR_OPT_SPARSE_UTILS_H</span></div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;<span class="comment">// Remove duplicates from a list</span></div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="keywordtype">int</span> ParOptRemoveDuplicates(<span class="keywordtype">int</span> *array, <span class="keywordtype">int</span> len, <span class="keywordtype">int</span> exclude = -1);</div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160; </div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;<span class="comment">// Sort and make the data structure unique - remove diagonal</span></div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;<span class="keywordtype">void</span> ParOptSortAndRemoveDuplicates(<span class="keywordtype">int</span> nvars, <span class="keywordtype">int</span> *rowp, <span class="keywordtype">int</span> *cols,</div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;                                   <span class="keywordtype">int</span> remove_diagonal = 0);</div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160; </div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;<span class="preprocessor">#endif  </span><span class="comment">// PAR_OPT_SPARSE_UTILS_H</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
