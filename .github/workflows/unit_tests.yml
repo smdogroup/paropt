@@ -83,9 +83,10 @@ jobs:
           conda install gxx_linux-64=9.3.0 -q -y;
           conda install -c anaconda openblas -q -y;
           conda install -c conda-forge lapack -q -y;
+          conda install -c conda-forge metis -q -y;
           cd $PAROPT_DIR;
           cp Makefile.in.info Makefile.in;
-          make ${{ matrix.OPTIONAL }} PAROPT_DIR=$PAROPT_DIR;
+          make ${{ matrix.OPTIONAL }} PAROPT_DIR=$PAROPT_DIR METIS_INCLUDE=-I${CONDA_PREFIX}/include/ METIS_LIB="-L${CONDA_PREFIX}/lib/ -lmetis";
           cd $PAROPT_DIR;
           make ${{ matrix.INTERFACE }};
       - name: Build docs

@@ -95,7 +95,7 @@ void build_matrix(int nx, int *_size, int **_colp, int **_rows,
 }
 
 int main(int argc, char *argv[]) {
-  int nx = 128;
+  int nx = 512;
 
   int size;
   int *colp;
@@ -113,17 +113,28 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  int use_amd_order = 1;
+  printf("size = %d\n", size);
+  double t0 = MPI_Wtime();
+  int use_nd_order = 1;
   ParOptSparseCholesky *chol =
-      new ParOptSparseCholesky(size, colp, rows, use_amd_order);
+      new ParOptSparseCholesky(size, colp, rows, use_nd_order);
+  double t1 = MPI_Wtime();
   chol->setValues(size, colp, rows, kvals);
 
   delete[] colp;
   delete[] rows;
   delete[] kvals;
 
+  double t2 = MPI_Wtime();
   chol->factor();
+  double t3 = MPI_Wtime();
   chol->solve(b);
+  double t4 = MPI_Wtime();
+
+  printf("Setup/order time: %12.5e\n", t1 - t0);
+  printf("Set values  time: %12.5e\n", t2 - t1);
+  printf("Factor time:      %12.5e\n", t3 - t2);
+  printf("Solve time:       %12.5e\n", t4 - t3);
 
   ParOptScalar err = 0.0;
   for (int i = 0; i < size; i++) {

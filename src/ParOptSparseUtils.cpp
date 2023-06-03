@@ -1,5 +1,7 @@
 #include "ParOptSparseUtils.h"
 
+#include <algorithm>
+
 // Compute y = alpha A * x + beta * y
 void ParOptCSRMatVec(double alpha, int nrows, const int *rowp, const int *cols,
                      const ParOptScalar *Avals, const ParOptScalar *x,
@@ -267,5 +269,67 @@ void ParOptMatMatTransNumeric(int nrows, int ncols, const ParOptScalar *cvals,
     for (int k = 0; k < nz; k++) {
       Bvals[Bcolp[j] + k] = tmp[Brows[Bcolp[j] + k]];
     }
+  }
+}
+
+/*
+  Sort an array of length len, then remove duplicate entries and
+  entries with values -1.
+*/
+int ParOptRemoveDuplicates(int *array, int len, int exclude) {
+  std::sort(array, array + len);
+
+  // Remove any negative numbers
+  int i = 0;  // location to take entries from
+  int j = 0;  // location to place entries
+
+  while (i < len && array[i] < 0) i++;
+
+  if (exclude >= 0) {
+    for (; i < len; i++, j++) {
+      while ((i < len - 1) && (array[i] == array[i + 1])) i++;
+
+      if (array[i] == exclude) {
+        j--;
+      } else if (i != j) {
+        array[j] = array[i];
+      }
+    }
+  } else {
+    for (; i < len; i++, j++) {
+      while ((i < len - 1) && (array[i] == array[i + 1])) i++;
+
+      if (i != j) {
+        array[j] = array[i];
+      }
+    }
+  }
+
+  return j;  // The new length of the array
+}
+
+/*
+  Sort the CSR data and remove duplicates
+*/
+void ParOptSortAndRemoveDuplicates(int nvars, int *rowp, int *cols,
+                                   int remove_diagonal) {
+  int begin = rowp[0];
+  for (int i = 0; i < nvars; i++) {
+    int len = rowp[i + 1] - begin;
+    int new_len = -1;
+    if (remove_diagonal) {
+      new_len = ParOptRemoveDuplicates(&cols[begin], len, i);
+    } else {
+      new_len = ParOptRemoveDuplicates(&cols[begin], len);
+    }
+
+    if (begin != rowp[i]) {
+      for (int k = 0; k < new_len; k++) {
+        cols[rowp[i] + k] = cols[begin + k];
+      }
+    }
+
+    begin = rowp[i + 1];
+    rowp[i + 1] = rowp[i] + new_len;
   }
 }

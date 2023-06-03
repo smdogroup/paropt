@@ -23,7 +23,7 @@
 class ParOptSparseCholesky {
  public:
   ParOptSparseCholesky(int _size, const int *Acolp, const int *Arows,
-                       int use_amd_order = 0, const int *_perm = NULL);
+                       int use_nd_order = 0, const int *_perm = NULL);
   ~ParOptSparseCholesky();
 
   // Set values into the Cholesky matrix
