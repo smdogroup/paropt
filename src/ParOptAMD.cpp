@@ -10,6 +10,121 @@
 #include "ParOptSparseUtils.h"
 
 /*
+  Data structure for storing updating the minimum or approximate minimum degree
+*/
+class ParOptMinDegreeList {
+ public:
+  ParOptMinDegreeList(int size, const int rowp[]) : size(size) {
+    degree = new int[size];
+    first = new int[size];
+    next = new int[size];
+    prev = new int[size];
+
+    // Set the initial degree for each node
+    min_degree = 0;
+    for (int i = 0; i < size; i++) {
+      degree[i] = rowp[i + 1] - rowp[i];
+      if (degree[i] < min_degree) {
+        min_degree = degree[i];
+      }
+      first[i] = -1;
+      next[i] = -1;
+      prev[i] = -1;
+    }
+
+    // Set the intial data structure
+    for (int i = 0; i < size; i++) {
+      int d = degree[i];
+
+      // Initial list is empty
+      if (first[d] == -1) {
+        first[d] = i;
+      } else {
+        // Update the list
+        prev[first[d]] = i;
+        next[i] = first[d];
+        first[d] = i;
+      }
+    }
+  }
+  ~ParOptMinDegreeList() {
+    delete[] degree;
+    delete[] first;
+    delete[] next;
+    delete[] prev;
+  }
+
+  int get_degree(int i) { return degree[i]; }
+
+  // Remove the variable from the list structure
+  void remove(int i) {
+    int d = degree[i];
+
+    // If this was the first variable of the given degree, increment to the next
+    // element
+    if (i == first[d]) {
+      first[d] = next[i];
+    }
+    if (next[i] != -1) {
+      prev[next[i]] = prev[i];
+    }
+    if (prev[i] != -1) {
+      next[prev[i]] = next[i];
+    }
+    prev[i] = -1;
+    next[i] = -1;
+  }
+
+  // Update the degree of the specified element to the new one
+  void update_degree(int i, int d) {
+    if (d < min_degree) {
+      min_degree = d;
+    }
+
+    // Remove i from the old list
+    remove(i);
+
+    if (first[d] == -1) {
+      first[d] = i;
+    } else {
+      // Update the list
+      prev[first[d]] = i;
+      next[i] = first[d];
+      first[d] = i;
+    }
+    degree[i] = d;
+  }
+
+  // Retrieve the variable with the minimum degree
+  int get_min_degree_var() {
+    for (int d = min_degree; d < size; d++) {
+      if (first[d] != -1) {
+        return first[d];
+      }
+    }
+
+    return -1;
+  }
+
+  int size;
+
+  // Keep track of the minimum degree via updates
+  int min_degree;
+
+  // The degree associated with each
+  int *degree;
+
+  // For each degree, which is the first variable
+  int *first;
+
+  // For each variable what is the next variable with the same degree
+  int *next;
+
+  // For each variable what is the previous variable with the same degree
+  int *prev;
+};
+
+/*
   Check the formatting of the AMD data structure to ensure that things
   are still ordered correctly.
 
@@ -303,20 +418,14 @@ void ParOptAMD(int nvars, int *rowp, int *cols, int *perm,
     return;
   }
 
+  ParOptMinDegreeList deglist(nvars, rowp);
+
   // Perform the elimination
   int nsvars = 0;  // Keep track of the number of supervariables
   for (int i = 0; i < nvars; nsvars++) {
-    // Select the pivots
-    int piv = -1;
-    int min_degree = nvars + 1;
-
-    // Find the minimum degree variable
-    for (int j = 0; j < nvars; j++) {
-      if (state[j] == 1 && degree[j] < min_degree) {
-        piv = j;
-        min_degree = degree[j];
-      }
-    }
+    // Select the pivot
+    int piv = deglist.get_min_degree_var();
+    deglist.remove(piv);
 
     perm[nsvars] = piv;
     state[piv] = 0;  // Eliminated variable
@@ -514,7 +623,8 @@ void ParOptAMD(int nvars, int *rowp, int *cols, int *perm,
         for (int k = 0; k < lenlp; k++) {
           deg += slen[Lp[k]];
         }
-        degree[var] = deg;
+        deglist.update_degree(var, deg);
+        // degree[var] = deg;
       }
     } else {  // Approximate degree
       // The worst cases are:
@@ -522,11 +632,6 @@ void ParOptAMD(int nvars, int *rowp, int *cols, int *perm,
       // All nodes in k, result in new fill in: d^{i+1} = d^{i} + lenlp
       // The approximate degree is:
       //          |A_{i} \ i| + |L_p \ i| + sum_{e} | L_{e} \ L_p|
-
-      // Determine the degrees of the un-eliminated elements
-      for (int j = 0; j < nvars; j++) {
-        elem_degree[j] = -1;
-      }
 
       // For each supervariable in Lp
       for (int j = 0; j < lenlp; j++) {
@@ -601,8 +706,22 @@ void ParOptAMD(int nvars, int *rowp, int *cols, int *perm,
 
         // Now, compute the degree estimate
         deg_estimate = (deg_estimate < nvars - i ? deg_estimate : nvars - i);
-        degree[lj] = (deg_estimate < degree[lj] + deg_Lp ? deg_estimate
-                                                         : degree[lj] + deg_Lp);
+
+        // Update the degree
+        int d = deglist.get_degree(lj);
+        d = (deg_estimate < d + deg_Lp ? deg_estimate : d + deg_Lp);
+        deglist.update_degree(lj, d);
+
+        for (int j = 0; j < lenlp; j++) {
+          int lj = Lp[j];
+          int end = rowp[lj] + elen[lj];
+          // For all elements pointed to by row Lp[j] = lj
+          for (int k = rowp[lj]; k < end; k++) {
+            // Find all the elements
+            int e = cols[k];
+            elem_degree[e] = -1;
+          }
+        }
       }
     }
 
@@ -625,12 +744,16 @@ void ParOptAMD(int nvars, int *rowp, int *cols, int *perm,
         if (ParOptCompareVariable(lj, lk, elen, alen, rowp, cols)) {
           // Merge lk into lj
           slen[lj] += slen[lk];
-          degree[lj] -= slen[lk];
+          // degree[lj] -= slen[lk];
+          int d = deglist.get_degree(lj);
+          d -= slen[lk];
+          deglist.update_degree(lj, d);
           slen[lk] = -(lj + 1);
           state[lk] = -1;
 
           // Remove lj from the quotient graph
           ParOptRemoveVariable(lk, elen, alen, rowp, cols, nvars);
+          deglist.remove(lk);
         }
       }
     }

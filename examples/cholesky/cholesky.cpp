@@ -115,9 +115,16 @@ int main(int argc, char *argv[]) {
 
   printf("size = %d\n", size);
   double t0 = MPI_Wtime();
-  int use_nd_order = 1;
+  ParOptOrderingType order = PAROPT_ND_ORDER;
+  for (int k = 0; k < argc; k++) {
+    if (strcmp(argv[k], "ND") == 0) {
+      order = PAROPT_ND_ORDER;
+    } else if (strcmp(argv[k], "AMD") == 0) {
+      order = PAROPT_AMD_ORDER;
+    }
+  }
   ParOptSparseCholesky *chol =
-      new ParOptSparseCholesky(size, colp, rows, use_nd_order);
+      new ParOptSparseCholesky(size, colp, rows, order);
   double t1 = MPI_Wtime();
   chol->setValues(size, colp, rows, kvals);
 
