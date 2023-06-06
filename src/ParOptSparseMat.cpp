@@ -337,8 +337,9 @@ int ParOptQuasiDefSparseMat::factor(ParOptVec *x, ParOptVec *Dinv0,
     delete[] flag;
 
     // Allocate the sparse Cholesky factorization
-    int use_nd_order = 1;  // Use the nested-dissection ordering
-    chol = new ParOptSparseCholesky(nwcon, Kcolp, Krows, use_nd_order);
+    ParOptOrderingType order =
+        PAROPT_ND_ORDER;  // Use the nested-dissection ordering
+    chol = new ParOptSparseCholesky(nwcon, Kcolp, Krows, order);
   } else {
     int *flag = new int[nwcon];
     ParOptMatMatTransNumeric(nwcon, nvars, cvals, rowp, cols, data, dvals, colp,

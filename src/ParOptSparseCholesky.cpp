@@ -10,7 +10,8 @@ extern "C" {
 }
 
 ParOptSparseCholesky::ParOptSparseCholesky(int _size, const int *Acolp,
-                                           const int *Arows, int use_nd_order,
+                                           const int *Arows,
+                                           ParOptOrderingType order,
                                            const int *_perm) {
   // Set the size of the sparse matrix
   size = _size;
@@ -19,7 +20,34 @@ ParOptSparseCholesky::ParOptSparseCholesky(int _size, const int *Acolp,
   iperm = NULL;
   temp = NULL;
 
-  if (use_nd_order) {
+  if (order == PAROPT_AMD_ORDER) {
+    int *copy_Acolp = new int[size + 1];
+    for (int i = 0; i < size + 1; i++) {
+      copy_Acolp[i] = Acolp[i];
+    }
+    int nnz = Acolp[size];
+    int *copy_Arows = new int[nnz];
+    for (int i = 0; i < nnz; i++) {
+      copy_Arows[i] = Arows[i];
+    }
+
+    // Set up the matrix for reordering - remove the diagonal entry
+    ParOptSortAndRemoveDuplicates(size, copy_Acolp, copy_Arows);
+
+    perm = new int[size];
+    iperm = new int[size];
+
+    // Compute the permutation using approximate AMD implemented here...
+    int use_exact_degree = 0;
+    ParOptAMD(size, copy_Acolp, copy_Arows, perm, use_exact_degree);
+
+    for (int i = 0; i < size; i++) {
+      iperm[perm[i]] = i;
+    }
+
+    delete[] copy_Acolp;
+    delete[] copy_Arows;
+  } else if (order == PAROPT_ND_ORDER) {
     int *copy_Acolp = new int[size + 1];
     for (int i = 0; i < size + 1; i++) {
       copy_Acolp[i] = Acolp[i];
@@ -35,7 +63,7 @@ ParOptSparseCholesky::ParOptSparseCholesky(int _size, const int *Acolp,
     ParOptSortAndRemoveDuplicates(size, copy_Acolp, copy_Arows,
                                   remove_diagonal);
 
-    // // Compute the permutation using approximate AMD implemented here...
+    // Compute the permutation using approximate AMD implemented here...
     perm = new int[size];
     iperm = new int[size];
 
@@ -48,7 +76,10 @@ ParOptSparseCholesky::ParOptSparseCholesky(int _size, const int *Acolp,
 
     int n = size;
     METIS_NodeND(&n, copy_Acolp, copy_Arows, NULL, options, perm, iperm);
-  } else {
+
+    delete[] copy_Acolp;
+    delete[] copy_Arows;
+  } else {  // order == PAROPT_NATURAL_ORDER
     // Store the re-ordering
     if (_perm) {
       perm = new int[size];

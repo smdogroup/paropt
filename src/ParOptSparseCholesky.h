@@ -4,6 +4,12 @@
 #include "ParOptComplexStep.h"
 #include "ParOptVec.h"
 
+enum ParOptOrderingType {
+  PAROPT_NATURAL_ORDER,
+  PAROPT_AMD_ORDER,
+  PAROPT_ND_ORDER,
+};
+
 /*
   Class for the sparse Cholesky factorization.
 
@@ -23,7 +29,9 @@
 class ParOptSparseCholesky {
  public:
   ParOptSparseCholesky(int _size, const int *Acolp, const int *Arows,
-                       int use_nd_order = 0, const int *_perm = NULL);
+
+                       ParOptOrderingType order = PAROPT_ND_ORDER,
+                       const int *_perm = NULL);
   ~ParOptSparseCholesky();
 
   // Set values into the Cholesky matrix
