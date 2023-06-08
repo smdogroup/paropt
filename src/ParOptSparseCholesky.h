@@ -29,7 +29,6 @@ enum ParOptOrderingType {
 class ParOptSparseCholesky {
  public:
   ParOptSparseCholesky(int _size, const int *Acolp, const int *Arows,
-
                        ParOptOrderingType order = PAROPT_ND_ORDER,
                        const int *_perm = NULL);
   ~ParOptSparseCholesky();
