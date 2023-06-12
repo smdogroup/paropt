@@ -403,7 +403,7 @@ void ParOptSparseCholesky::updateDiag(const int lsize, const int nlrows,
     int j = lrows[jj] - lfirst_var;
     for (int ii = 0; ii < jj + 1; ii++) {
       int i = lrows[ii] - lfirst_var;
-      diag[get_diag_index(j, i)] -= work[jj + nlrows * ii];
+      diag[i + j * (j + 1) / 2] -= work[jj + nlrows * ii];
     }
   }
 }
