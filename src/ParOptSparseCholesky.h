@@ -61,8 +61,8 @@ class ParOptSparseCholesky {
 
   // Perform the update to the diagonal matrix
   void updateDiag(const int lsize, const int nlrows, const int lfirst_var,
-                  const int *lrows, const ParOptScalar *L, const int diag_size,
-                  ParOptScalar *diag);
+                  const int *lrows, ParOptScalar *L, const int diag_size,
+                  ParOptScalar *diag, ParOptScalar *work);
 
   // Apply the update to the work column - uses BLAS level 3
   void updateWorkColumn(int lsize, int nl1rows, ParOptScalar *L1, int nl2rows,
