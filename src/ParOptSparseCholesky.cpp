@@ -150,6 +150,10 @@ ParOptSparseCholesky::ParOptSparseCholesky(int _size, const int *Acolp,
     if (col_size > work_size) {
       work_size = col_size;
     }
+    int diag_size = snode_size[i] * snode_size[i];
+    if (diag_size > work_size) {
+      work_size = diag_size;
+    }
   }
 }
 
@@ -386,22 +390,20 @@ void ParOptSparseCholesky::buildNonzeroPattern(const int Acolp[],
 */
 void ParOptSparseCholesky::updateDiag(const int lsize, const int nlrows,
                                       const int lfirst_var, const int *lrows,
-                                      const ParOptScalar *L,
-                                      const int diag_size, ParOptScalar *diag) {
+                                      ParOptScalar *L, const int diag_size,
+                                      ParOptScalar *diag, ParOptScalar *work) {
+  // Compute L * L^{T}
+  int n = nlrows;
+  int k = lsize;
+  ParOptScalar alpha = 1.0, beta = 0.0;
+  BLASsyrk("L", "T", &n, &k, &alpha, L, &k, &beta, work, &n);
+
+  // Add D <- D - L * L^{T}
   for (int jj = 0; jj < nlrows; jj++) {
     int j = lrows[jj] - lfirst_var;
-    const ParOptScalar *Lj = &L[jj * lsize];
-
     for (int ii = 0; ii < jj + 1; ii++) {
       int i = lrows[ii] - lfirst_var;
-      const ParOptScalar *Li = &L[ii * lsize];
-
-      ParOptScalar value = 0.0;
-      for (int k = 0; k < lsize; k++) {
-        value += Li[k] * Lj[k];
-      }
-
-      diag[get_diag_index(j, i)] -= value;
+      diag[get_diag_index(j, i)] -= work[jj + nlrows * ii];
     }
   }
 }
@@ -602,11 +604,12 @@ int ParOptSparseCholesky::factor() {
       // The number of rows in L21
       int nkrows = ip_next - ip_start;
       const int *krows = &rows[ip_start];
-      const ParOptScalar *kvals = get_factor_pointer(k, ksize, ip_start);
+      ParOptScalar *kvals = get_factor_pointer(k, ksize, ip_start);
 
       // Perform the update to the diagonal by computing
       // diag <- diag - L21 * L21^{T}
-      updateDiag(ksize, nkrows, jfirst_var, krows, kvals, diag_size, diag);
+      updateDiag(ksize, nkrows, jfirst_var, krows, kvals, diag_size, diag,
+                 work_temp);
 
       // Perform the update for the column by computing
       // work_temp = L31 * L21^{T}

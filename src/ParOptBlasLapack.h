@@ -12,6 +12,7 @@
 #define BLAStpsv ztpsv_
 #define BLASgbmv zgbmv_
 #define BLASgemm zgemm_
+#define BLASsyrk zsyrk_
 #define LAPACKdgetrf zgetrf_
 #define LAPACKdgetrs zgetrs_
 #define LAPACKdpptrf zpptrf_
@@ -24,6 +25,7 @@
 #define BLAStpsv dtpsv_
 #define BLASgbmv dgbmv_
 #define BLASgemm dgemm_
+#define BLASsyrk dsyrk_
 #define LAPACKdgetrf dgetrf_
 #define LAPACKdgetrs dgetrs_
 #define LAPACKdpptrf dpptrf_
@@ -37,6 +39,11 @@ extern double BLASdnrm2(int *n, ParOptScalar *x, int *incx);
 extern void BLASdaxpy(int *n, ParOptScalar *a, ParOptScalar *x, int *incx,
                       ParOptScalar *y, int *incy);
 extern void BLASdscal(int *n, ParOptScalar *a, ParOptScalar *x, int *incx);
+
+// Compute C := alpha*A*A**T + beta*C or C := alpha*A**T*A + beta*C
+extern void BLASsyrk(const char *uplo, const char *trans, int *n, int *k,
+                     ParOptScalar *alpha, ParOptScalar *a, int *lda,
+                     ParOptScalar *beta, ParOptScalar *c, int *ldc);
 
 // Solve A*x = b or A^T*x = b where A is in packed format
 extern void BLAStpsv(const char *uplo, const char *transa, const char *diag,
