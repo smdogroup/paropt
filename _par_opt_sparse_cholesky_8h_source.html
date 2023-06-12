@@ -132,8 +132,8 @@ $(function() {
 <div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160; </div>
 <div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;  <span class="comment">// Perform the update to the diagonal matrix</span></div>
 <div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;  <span class="keywordtype">void</span> updateDiag(<span class="keyword">const</span> <span class="keywordtype">int</span> lsize, <span class="keyword">const</span> <span class="keywordtype">int</span> nlrows, <span class="keyword">const</span> <span class="keywordtype">int</span> lfirst_var,</div>
-<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;                  <span class="keyword">const</span> <span class="keywordtype">int</span> *lrows, <span class="keyword">const</span> ParOptScalar *L, <span class="keyword">const</span> <span class="keywordtype">int</span> diag_size,</div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;                  ParOptScalar *diag);</div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;                  <span class="keyword">const</span> <span class="keywordtype">int</span> *lrows, ParOptScalar *L, <span class="keyword">const</span> <span class="keywordtype">int</span> diag_size,</div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;                  ParOptScalar *diag, ParOptScalar *work);</div>
 <div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160; </div>
 <div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;  <span class="comment">// Apply the update to the work column - uses BLAS level 3</span></div>
 <div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;  <span class="keywordtype">void</span> updateWorkColumn(<span class="keywordtype">int</span> lsize, <span class="keywordtype">int</span> nl1rows, ParOptScalar *L1, <span class="keywordtype">int</span> nl2rows,</div>
@@ -233,8 +233,8 @@ $(function() {
 <div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160; </div>
 <div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;<span class="preprocessor">#endif  </span><span class="comment">//  PAR_OPT_SPARSE_CHOLESKY_H</span></div>
 <div class="ttc" id="aclass_par_opt_sparse_cholesky_html"><div class="ttname"><a href="class_par_opt_sparse_cholesky.html">ParOptSparseCholesky</a></div><div class="ttdef"><b>Definition:</b> ParOptSparseCholesky.h:29</div></div>
-<div class="ttc" id="aclass_par_opt_sparse_cholesky_html_a03cec15d678979ee8f776d979967bc9d"><div class="ttname"><a href="class_par_opt_sparse_cholesky.html#a03cec15d678979ee8f776d979967bc9d">ParOptSparseCholesky::setValues</a></div><div class="ttdeci">void setValues(int n, const int Acolp[], const int Arows[], const ParOptScalar Avals[])</div><div class="ttdef"><b>Definition:</b> ParOptSparseCholesky.cpp:201</div></div>
-<div class="ttc" id="aclass_par_opt_sparse_cholesky_html_a11a908fa0593b520568f772cbbd2755d"><div class="ttname"><a href="class_par_opt_sparse_cholesky.html#a11a908fa0593b520568f772cbbd2755d">ParOptSparseCholesky::getInfo</a></div><div class="ttdeci">void getInfo(int *_size, int *_num_snodes, int *_nnzL)</div><div class="ttdef"><b>Definition:</b> ParOptSparseCholesky.cpp:178</div></div>
+<div class="ttc" id="aclass_par_opt_sparse_cholesky_html_a03cec15d678979ee8f776d979967bc9d"><div class="ttname"><a href="class_par_opt_sparse_cholesky.html#a03cec15d678979ee8f776d979967bc9d">ParOptSparseCholesky::setValues</a></div><div class="ttdeci">void setValues(int n, const int Acolp[], const int Arows[], const ParOptScalar Avals[])</div><div class="ttdef"><b>Definition:</b> ParOptSparseCholesky.cpp:205</div></div>
+<div class="ttc" id="aclass_par_opt_sparse_cholesky_html_a11a908fa0593b520568f772cbbd2755d"><div class="ttname"><a href="class_par_opt_sparse_cholesky.html#a11a908fa0593b520568f772cbbd2755d">ParOptSparseCholesky::getInfo</a></div><div class="ttdeci">void getInfo(int *_size, int *_num_snodes, int *_nnzL)</div><div class="ttdef"><b>Definition:</b> ParOptSparseCholesky.cpp:182</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
