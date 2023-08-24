@@ -11,11 +11,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="_static/jquery.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=a888008e"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -144,19 +144,19 @@ that are used in any of the ParOpt optimizers.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="paropt.ParOpt.unpack_checkpoint">
-<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_checkpoint</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_checkpoint" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_checkpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_checkpoint" title="Permalink to this definition"></a></dt>
 <dd><p>Convert the checkpoint file to usable python objects</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="paropt.ParOpt.unpack_mma_output">
-<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_mma_output</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_mma_output" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_mma_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_mma_output" title="Permalink to this definition"></a></dt>
 <dd><p>Unpack the parameters from a file output from MMA</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="paropt.ParOpt.unpack_output">
-<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_output</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_output" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_output" title="Permalink to this definition"></a></dt>
 <dd><p>Unpack the parameters from the paropt output file and return them
 in a list of numpy arrays. This also returns a small string
 description from the file itself. This code relies ont he
@@ -165,7 +165,7 @@ fixed-width nature of the file, which is guaranteed.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="paropt.ParOpt.unpack_tr_2nd_output">
-<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_tr_2nd_output</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_tr_2nd_output" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_tr_2nd_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_tr_2nd_output" title="Permalink to this definition"></a></dt>
 <dd><p>Unpack actual/predicted reduction of function and
 constraint, note that this will only work when
 output_level &gt; 0, which need to be checked by user</p>
@@ -173,7 +173,7 @@ output_level &gt; 0, which need to be checked by user</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="paropt.ParOpt.unpack_tr_output">
-<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_tr_output</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_tr_output" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">unpack_tr_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.unpack_tr_output" title="Permalink to this definition"></a></dt>
 <dd><p>Unpack the parameters from the paropt output file and return them
 in a list of numpy arrays. This also returns a small string
 description from the file itself. This code relies ont he
@@ -196,13 +196,13 @@ fixed-width nature of the file, which is guaranteed.</p>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">paropt.ParOpt.</span></span><span class="sig-name descname"><span class="pre">PVec</span></span><a class="headerlink" href="#paropt.ParOpt.PVec" title="Permalink to this definition"></a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="paropt.ParOpt.PVec.copyValues">
-<span class="sig-name descname"><span class="pre">copyValues</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.copyValues" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">copyValues</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vec</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.copyValues" title="Permalink to this definition"></a></dt>
 <dd><p>Copy values from the provided PVec</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="paropt.ParOpt.PVec.dot">
-<span class="sig-name descname"><span class="pre">dot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.dot" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">dot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vec</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#paropt.ParOpt.PVec.dot" title="Permalink to this definition"></a></dt>
 <dd><p>Compute the dot product with the provided PVec</p>
 </dd></dl>
 

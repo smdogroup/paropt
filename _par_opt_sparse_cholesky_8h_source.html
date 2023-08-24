@@ -224,14 +224,15 @@ $(function() {
 <div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160;  <span class="comment">// colp[i + 1] - colp[i])</span></div>
 <div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;  <span class="keywordtype">int</span> *data_ptr;</div>
 <div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160; </div>
-<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;  <span class="comment">// Work_size = max_{i} (snode_size[i] * (colp[i+1] - colp[i]))</span></div>
-<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;  <span class="keywordtype">int</span> work_size;</div>
-<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160; </div>
-<div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;  <span class="comment">// The numerical data for all entries size = data_ptr[num_snodes]</span></div>
-<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;  ParOptScalar *data;</div>
-<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;};</div>
-<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160; </div>
-<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;<span class="preprocessor">#endif  </span><span class="comment">//  PAR_OPT_SPARSE_CHOLESKY_H</span></div>
+<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;  <span class="comment">// Work_size = max(max_{i} (snode_size[i] * (colp[i+1] - colp[i]))</span></div>
+<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;  <span class="comment">//                 max_{i} snode_size[i]**2)</span></div>
+<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160;  <span class="keywordtype">int</span> work_size;</div>
+<div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160; </div>
+<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;  <span class="comment">// The numerical data for all entries size = data_ptr[num_snodes]</span></div>
+<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;  ParOptScalar *data;</div>
+<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;};</div>
+<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160; </div>
+<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;<span class="preprocessor">#endif  </span><span class="comment">//  PAR_OPT_SPARSE_CHOLESKY_H</span></div>
 <div class="ttc" id="aclass_par_opt_sparse_cholesky_html"><div class="ttname"><a href="class_par_opt_sparse_cholesky.html">ParOptSparseCholesky</a></div><div class="ttdef"><b>Definition:</b> ParOptSparseCholesky.h:29</div></div>
 <div class="ttc" id="aclass_par_opt_sparse_cholesky_html_a03cec15d678979ee8f776d979967bc9d"><div class="ttname"><a href="class_par_opt_sparse_cholesky.html#a03cec15d678979ee8f776d979967bc9d">ParOptSparseCholesky::setValues</a></div><div class="ttdeci">void setValues(int n, const int Acolp[], const int Arows[], const ParOptScalar Avals[])</div><div class="ttdef"><b>Definition:</b> ParOptSparseCholesky.cpp:205</div></div>
 <div class="ttc" id="aclass_par_opt_sparse_cholesky_html_a11a908fa0593b520568f772cbbd2755d"><div class="ttname"><a href="class_par_opt_sparse_cholesky.html#a11a908fa0593b520568f772cbbd2755d">ParOptSparseCholesky::getInfo</a></div><div class="ttdeci">void getInfo(int *_size, int *_num_snodes, int *_nnzL)</div><div class="ttdef"><b>Definition:</b> ParOptSparseCholesky.cpp:182</div></div>
