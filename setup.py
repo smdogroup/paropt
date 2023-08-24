@@ -119,5 +119,10 @@ setup(
     author_email="graeme.kennedy@ae.gatech.edu",
     install_requires=["numpy", "mpi4py>=3.1.1"],
     extras_require=optional_dependencies,
-    ext_modules=cythonize(exts, language="c++", include_path=inc_dirs),
+    ext_modules=cythonize(
+        exts,
+        language="c++",
+        include_path=inc_dirs,
+        compiler_directives={"language_level": "3"},
+    ),
 )

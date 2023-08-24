@@ -15,7 +15,7 @@ default:
 	   echo; (cd $$subdir && ${MAKE}) || exit 1; \
 	done
 	${CXX} ${SO_LINK_FLAGS} ${PAROPT_OBJS} ${PAROPT_EXTERN_LIBS} -o ${PAROPT_DIR}/lib/libparopt.${SO_EXT}
-	@echo "ctypedef double ParOptScalar" > paropt/ParOptTypedefs.pxi;
+	@echo "ctypedef double ParOptScalar" > paropt/cpp_headers/ParOptTypedefs.pxi;
 	@echo "PAROPT_NPY_SCALAR = np.NPY_DOUBLE" > paropt/ParOptDefs.pxi;
 	@echo "dtype = np.double" >> paropt/ParOptDefs.pxi;
 
@@ -24,7 +24,7 @@ debug:
 	   echo; (cd $$subdir && ${MAKE} debug) || exit 1; \
 	done
 	${CXX} ${SO_LINK_FLAGS} ${PAROPT_OBJS} ${PAROPT_EXTERN_LIBS} -o ${PAROPT_DIR}/lib/libparopt.${SO_EXT}
-	@echo "ctypedef double ParOptScalar" > paropt/ParOptTypedefs.pxi;
+	@echo "ctypedef double ParOptScalar" > paropt/cpp_headers/ParOptTypedefs.pxi;
 	@echo "PAROPT_NPY_SCALAR = np.NPY_DOUBLE" > paropt/ParOptDefs.pxi;
 	@echo "dtype = np.double" >> paropt/ParOptDefs.pxi;
 
@@ -33,7 +33,7 @@ complex:
 	   echo; (cd $$subdir && ${MAKE} complex) || exit 1; \
 	done
 	${CXX} ${SO_LINK_FLAGS} ${PAROPT_OBJS} ${PAROPT_EXTERN_LIBS} -o ${PAROPT_DIR}/lib/libparopt.${SO_EXT}
-	@echo "ctypedef complex ParOptScalar" > paropt/ParOptTypedefs.pxi;
+	@echo "ctypedef complex ParOptScalar" > paropt/cpp_headers/ParOptTypedefs.pxi;
 	@echo "PAROPT_NPY_SCALAR = np.NPY_CDOUBLE" > paropt/ParOptDefs.pxi;
 	@echo "dtype = complex" >> paropt/ParOptDefs.pxi;
 
@@ -42,7 +42,7 @@ complex_debug:
 	   echo; (cd $$subdir && ${MAKE} complex_debug) || exit 1; \
 	done
 	${CXX} ${SO_LINK_FLAGS} ${PAROPT_OBJS} ${PAROPT_EXTERN_LIBS} -o ${PAROPT_DIR}/lib/libparopt.${SO_EXT}
-	@echo "ctypedef complex ParOptScalar" > paropt/ParOptTypedefs.pxi;
+	@echo "ctypedef complex ParOptScalar" > paropt/cpp_headers/ParOptTypedefs.pxi;
 	@echo "PAROPT_NPY_SCALAR = np.NPY_CDOUBLE" > paropt/ParOptDefs.pxi;
 	@echo "dtype = complex" >> paropt/ParOptDefs.pxi;
 
