@@ -99,6 +99,7 @@ optional_dependencies = {
         "sphinx-rtd-theme",
         "sphinxcontrib-programoutput",
         "sphinxcontrib-bibtex",
+        "nbsphinx",
     ],
 }
 
