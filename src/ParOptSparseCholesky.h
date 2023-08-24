@@ -153,7 +153,8 @@ class ParOptSparseCholesky {
   // colp[i + 1] - colp[i])
   int *data_ptr;
 
-  // Work_size = max_{i} (snode_size[i] * (colp[i+1] - colp[i]))
+  // Work_size = max(max_{i} (snode_size[i] * (colp[i+1] - colp[i]))
+  //                 max_{i} snode_size[i]**2)
   int work_size;
 
   // The numerical data for all entries size = data_ptr[num_snodes]

@@ -260,7 +260,7 @@ for key in options:
 p.driver.declare_coloring(show_summary=True, show_sparsity=show_sparsity)
 
 # Run the driver to solve the problem
-p.run_driver()
+dm.run_problem(p, make_plots=True, simulate=True)
 
 x, z, zw, zl, zu = p.driver.opt.getOptimizedPoint()
 print(np.max(np.abs(zw[:])))

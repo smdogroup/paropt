@@ -95,7 +95,7 @@ void build_matrix(int nx, int *_size, int **_colp, int **_rows,
 }
 
 int main(int argc, char *argv[]) {
-  int nx = 512;
+  int nx = 1024;
 
   int size;
   int *colp;
