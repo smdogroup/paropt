@@ -183,7 +183,7 @@ Introduction and examples
     parallel_rosenbrock
     openmdao_example
     parallel_openmdao_example
-    jupyter/sparse.ipynb
+    notebooks/sparse.ipynb
     reference
 
 Indices and tables
