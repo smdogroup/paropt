@@ -31,7 +31,7 @@ cdef extern from "ParOptCompactEigenvalueApprox.h":
     cppclass ParOptEigenQuasiNewton(ParOptCompactQuasiNewton):
         ParOptEigenQuasiNewton(ParOptCompactQuasiNewton*, ParOptCompactEigenApprox*, int)
 
-    ctypedef void (*updateeigenmodel)(void*, ParOptVec*, ParOptCompactEigenApprox*)
+    ctypedef void (*updateeigenmodel)(void*, ParOptVec*, ParOptCompactEigenApprox*) except *
 
     cppclass ParOptEigenSubproblem(ParOptTrustRegionSubproblem):
         ParOptEigenSubproblem(ParOptProblem*, ParOptEigenQuasiNewton*)

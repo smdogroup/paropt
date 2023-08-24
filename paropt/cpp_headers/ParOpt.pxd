@@ -64,46 +64,46 @@ cdef extern from "ParOptQuasiNewton.h":
 
 cdef extern from "CyParOptProblem.h":
     ctypedef void (*getvarsandbounds)(void *_self, int nvars, ParOptVec *x,
-                                      ParOptVec *lb, ParOptVec *ub)
+                                      ParOptVec *lb, ParOptVec *ub) except *
     ctypedef int (*evalobjcon)(void *_self, int nvars, int ncon,
                                ParOptVec *x, ParOptScalar *fobj,
-                               ParOptScalar *cons)
+                               ParOptScalar *cons) except *
     ctypedef int (*evalobjcongradient)(void *_self, int nvars, int ncon,
                                        ParOptVec *x, ParOptVec *gobj,
-                                       ParOptVec **A)
+                                       ParOptVec **A) except *
     ctypedef int (*evalsparseobjcon)(void *_self, int nvars, int ncon, int nwcon,
                                      ParOptVec *x, ParOptScalar *fobj,
-                                     ParOptScalar *cons, ParOptVec *sparse_con)
+                                     ParOptScalar *cons, ParOptVec *sparse_con) except *
     ctypedef int (*evalsparseobjcongradient)(void *_self, int nvars, int ncon, int nwcon,
                                              ParOptVec *x, ParOptVec *gobj,
-                                             ParOptVec **A, int nnz, ParOptScalar *data)
+                                             ParOptVec **A, int nnz, ParOptScalar *data) except *
     ctypedef int (*evalhvecproduct)(void *_self, int nvars, int ncon, int nwcon,
                                     ParOptVec *x, ParOptScalar *z,
                                     ParOptVec *zw, ParOptVec *px,
-                                    ParOptVec *hvec)
+                                    ParOptVec *hvec) except *
     ctypedef int (*evalhessiandiag)(void *_self, int nvars, int ncon, int nwcon,
                                     ParOptVec *x, ParOptScalar *z,
-                                    ParOptVec *zw, ParOptVec *hdiag)
+                                    ParOptVec *zw, ParOptVec *hdiag) except *
     ctypedef void (*computequasinewtonupdatecorrection)(void *_self, int nvars, int ncon,
                                                         ParOptVec *x, ParOptScalar *z,
                                                         ParOptVec *zw,
-                                                        ParOptVec *s, ParOptVec *y)
+                                                        ParOptVec *s, ParOptVec *y) except *
     ctypedef void (*evalsparsecon)(void *_self, int nvars, int nwcon,
-                                   ParOptVec *x, ParOptVec *out)
+                                   ParOptVec *x, ParOptVec *out) except *
     ctypedef void (*addsparsejacobian)(void *_self, int nvars, int nwcon,
                                        ParOptScalar alpha,
                                        ParOptVec *x, ParOptVec *px,
-                                       ParOptVec *out)
+                                       ParOptVec *out) except *
     ctypedef void (*addsparsejacobiantranspose)(void *_self,
                                                 int nvars, int nwcon,
                                                 ParOptScalar alpha,
                                                 ParOptVec *x, ParOptVec *px,
-                                                ParOptVec *out)
+                                                ParOptVec *out) except *
     ctypedef void (*addsparseinnerproduct)(void *_self, int nvars,
                                            int nwcon, int nwblock,
                                            ParOptScalar alpha,
                                            ParOptVec *x, ParOptVec *c,
-                                           ParOptScalar *out)
+                                           ParOptScalar *out) except *
 
     cdef cppclass CyParOptBlockProblem(ParOptProblem):
         CyParOptBlockProblem(MPI_Comm, int)

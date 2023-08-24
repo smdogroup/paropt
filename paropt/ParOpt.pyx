@@ -10,9 +10,6 @@ from cpython.version cimport PY_MAJOR_VERSION
 # Import the string library
 from libcpp.string cimport string
 
-# Import the declarations required from the pxd file
-from ParOpt cimport *
-
 # Import tracebacks for callbacks
 import traceback
 from sys import exit
@@ -27,6 +24,9 @@ np.import_array()
 # Import C methods for python
 from cpython cimport PyObject, Py_INCREF
 from libc.stdlib cimport malloc, free
+
+# Include the ParOpt headers
+from paropt.ParOpt cimport *
 
 # Include the definitions
 include "ParOptDefs.pxi"
@@ -372,7 +372,7 @@ cdef inplace_array_1d(int nptype, int dim1, void *data_ptr,
 
     if base is not None:
         Py_INCREF(base)
-        ndarray.base = <PyObject*>base
+        np.PyArray_SetBaseObject(ndarray, base)
 
     return ndarray
 
