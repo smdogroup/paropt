@@ -100,7 +100,6 @@ optional_dependencies = {
         "sphinxcontrib-programoutput",
         "sphinxcontrib-bibtex",
         "nbsphinx",
-        "pandoc",
     ],
 }
 

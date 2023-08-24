@@ -92,6 +92,7 @@ jobs:
       - name: Build docs
         run: |
           sudo apt-get install -y --no-install-recommends doxygen graphviz
+          conda install pandoc
           cd $PAROPT_DIR/docs;
           doxygen
           make html BUILDDIR=.;
