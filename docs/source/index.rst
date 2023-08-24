@@ -153,7 +153,7 @@ Installation
 ------------
 
 The installation process for ParOpt consists of first compiling the C++ source and then installing the python interface.
-The C++ source requires a BLAS/LAPACK installation and a MPI compiler for C++.
+The C++ source requires a BLAS/LAPACK installation, an MPI compiler for C++ and [Metis](https://github.com/KarypisLab/METIS).
 Using the Python interface additional requires numpy, mpi4py and Cython.
 
 Currently ParOpt does not use an build system so all options are set in the file ``Makefile.in``.
@@ -165,6 +165,7 @@ Key parameters that should be set within the ``Makefile.in`` file are:
 1) ``PAROPT_DIR`` the root ParOpt directory
 2) ``CXX`` the MPI-enabled C++ compiler
 3) ``LAPACK_LIBS`` the link command for the BLAS/LAPACK libraries
+4) ``METIS_INCLUDE`` and ``METIS_LIB`` point to the Metis include directory and the static library for Metis.
 
 By default, the shared and static library are complied to the directory ``PAROPT_DIR/lib``.
 
@@ -182,6 +183,7 @@ Introduction and examples
     parallel_rosenbrock
     openmdao_example
     parallel_openmdao_example
+    jupyter/sparse.ipynb
     reference
 
 Indices and tables
