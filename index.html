@@ -212,7 +212,7 @@ Ting Wei Chin, Mark K. Leader, Graeme J. Kennedy, A scalable framework for large
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h2>
 <p>The installation process for ParOpt consists of first compiling the C++ source and then installing the python interface.
-The C++ source requires a BLAS/LAPACK installation and a MPI compiler for C++.
+The C++ source requires a BLAS/LAPACK installation, an MPI compiler for C++ and [Metis](<a class="reference external" href="https://github.com/KarypisLab/METIS">https://github.com/KarypisLab/METIS</a>).
 Using the Python interface additional requires numpy, mpi4py and Cython.</p>
 <p>Currently ParOpt does not use an build system so all options are set in the file <code class="docutils literal notranslate"><span class="pre">Makefile.in</span></code>.
 Default settings for these options are contained within the file <code class="docutils literal notranslate"><span class="pre">Makefile.in.info`</span></code>.
@@ -222,6 +222,7 @@ The first step in compling ParOpt is to first copy the file <code class="docutil
 <li><p><code class="docutils literal notranslate"><span class="pre">PAROPT_DIR</span></code> the root ParOpt directory</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">CXX</span></code> the MPI-enabled C++ compiler</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">LAPACK_LIBS</span></code> the link command for the BLAS/LAPACK libraries</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">METIS_INCLUDE</span></code> and <code class="docutils literal notranslate"><span class="pre">METIS_LIB</span></code> point to the Metis include directory and the static library for Metis.</p></li>
 </ol>
 <p>By default, the shared and static library are complied to the directory <code class="docutils literal notranslate"><span class="pre">PAROPT_DIR/lib</span></code>.</p>
 <p>Installation of the python interface is performed using <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">.\[all\]</span></code>.</p>
