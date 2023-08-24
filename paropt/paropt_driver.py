@@ -37,6 +37,9 @@ class ParOptDriver(Driver):
         """
         super().__init__(**kwargs)
 
+        # What we support
+        self.supports["optimization"] = True
+
         self.result = None
         self._dvlist = None
         self.fail = False
