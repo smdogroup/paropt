@@ -1,6 +1,7 @@
 #include "ParOptSparseMat.h"
 
 #include <algorithm>
+#include <cstring>
 
 #include "ParOptComplexStep.h"
 #include "ParOptSparseCholesky.h"
