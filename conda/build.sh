@@ -22,6 +22,7 @@ fi
 cp Makefile.in.info Makefile.in;
 make ${OPTIONAL} PAROPT_DIR=${PAROPT_DIR} \
      LAPACK_LIBS="${LAPACK_LIBS}" \
+     METIS_INCLUDE=-I${PREFIX}/include/ METIS_LIB="-L${PREFIX}/lib/ -lmetis" \
      SO_LINK_FLAGS="${LIB_SLF}" SO_EXT=${SO_EXT};
 mv ${PAROPT_DIR}/lib/libparopt.${SO_EXT} ${PREFIX}/lib;
 
