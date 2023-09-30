@@ -7,7 +7,6 @@
 class ParOptQuasiDefMat;
 class ParOptQuasiDefSparseMat;
 
-#include "ParOptBlasLapack.h"
 #include "ParOptProblem.h"
 #include "ParOptSparseCholesky.h"
 #include "ParOptSparseUtils.h"
