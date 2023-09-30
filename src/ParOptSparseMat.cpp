@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstring>
 
+#include "ParOptBlasLapack.h"
 #include "ParOptComplexStep.h"
 #include "ParOptSparseCholesky.h"
 #include "ParOptSparseUtils.h"
