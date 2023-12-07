@@ -6,13 +6,13 @@ import time
 # External modules
 import numpy as np
 
-from paropt import ParOpt as ParOpt
+from paropt import ParOpt
 from mpi4py import MPI
 
 # Local modules
 from pyoptsparse.pyOpt_error import Error
 from pyoptsparse.pyOpt_optimizer import Optimizer
-from pyoptsparse.pyOpt_utils import INFINITY, IROW, ICOL
+from pyoptsparse.pyOpt_utils import extractRows, INFINITY, IROW, ICOL
 
 
 class ParOptSparseProblem(ParOpt.Problem):
@@ -244,12 +244,14 @@ class ParOptSparse(Optimizer):
         if self.optProb.comm.rank == 0:
             optTime = MPI.Wtime()
 
-            # Get the constraint Jacobian data
+            # Build the sparsity pattern for the Jacobian
             gcon = {}
             for iCon in self.optProb.constraints:
                 gcon[iCon] = self.optProb.constraints[iCon].jac
             jac = self.optProb.processConstraintJacobian(gcon)
+            jac = extractRows(jac, indices)
 
+            # Extract the non-zero CSR pattern
             rowp = jac["csr"][IROW]
             cols = jac["csr"][ICOL]
 
@@ -288,6 +290,8 @@ class ParOptSparse(Optimizer):
             # are switch since ParOpt uses a formulation with c(x) >= 0, while pyOpt
             # uses g(x) = -c(x) <= 0. Therefore the multipliers are reversed.
             sol_inform = {}
+            sol_inform["value"] = ""
+            sol_inform["text"] = ""
 
             # If number of constraints is zero, ParOpt returns z as None.
             # Thus if there is no constraints, should pass an empty list
