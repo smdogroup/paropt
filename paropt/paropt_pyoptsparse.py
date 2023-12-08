@@ -87,6 +87,65 @@ class ParOptSparseProblem(ParOpt.Problem):
         return fail
 
 
+class ParOptDenseProblem(ParOpt.Problem):
+    def __init__(self, comm, ptr, nvars, ncon, num_dense_inequalities, xs, blx, bux):
+        super().__init__(
+            comm,
+            nvars=nvars,
+            ncon=ncon,
+            num_dense_inequalities=num_dense_inequalities,
+        )
+        self.ptr = ptr
+        self.nvars = nvars
+        self.ncon = ncon
+        self.num_dense_inequalities = num_dense_inequalities
+        self.xs = xs
+        self.blx = blx
+        self.bux = bux
+        self.fobj = 0.0
+        return
+
+    def getVarsAndBounds(self, x, lb, ub):
+        """Get the variable values and bounds"""
+        # Find the average distance between lower and upper bound
+        bound_sum = 0.0
+        for i in range(len(x)):
+            if self.blx[i] <= -INFINITY or self.bux[i] >= INFINITY:
+                bound_sum += 1.0
+            else:
+                bound_sum += self.bux[i] - self.blx[i]
+        bound_sum = bound_sum / len(x)
+
+        for i in range(len(x)):
+            x[i] = self.xs[i]
+            lb[i] = self.blx[i]
+            ub[i] = self.bux[i]
+            if self.xs[i] <= self.blx[i]:
+                x[i] = self.blx[i] + 0.5 * np.min(
+                    (bound_sum, self.bux[i] - self.blx[i])
+                )
+            elif self.xs[i] >= self.bux[i]:
+                x[i] = self.bux[i] - 0.5 * np.min(
+                    (bound_sum, self.bux[i] - self.blx[i])
+                )
+
+        return
+
+    def evalObjCon(self, x):
+        """Evaluate the objective and constraint values"""
+        fobj, fcon, fail = self.ptr._masterFunc(x[:], ["fobj", "fcon"])
+        self.fobj = fobj
+        return fail, fobj, -fcon
+
+    def evalObjConGradient(self, x, g, A):
+        """Evaluate the objective and constraint gradients"""
+        gobj, gcon, fail = self.ptr._masterFunc(x[:], ["gobj", "gcon"])
+        g[:] = gobj[:]
+        for i in range(self.ncon):
+            A[i][:] = -gcon[i][:]
+        return fail
+
+
 class ParOptSparse(Optimizer):
     """
     ParOpt optimizer class
@@ -96,9 +155,10 @@ class ParOptSparse(Optimizer):
     capability to handle this type of design problem.
     """
 
-    def __init__(self, raiseError=True, options={}):
+    def __init__(self, raiseError=True, options={}, sparse=True):
         name = "ParOpt"
         category = "Local Optimizer"
+        self.sparse = sparse
 
         # Create and fill-in the dictionary of default option values
         self.defOpts = {}
@@ -133,8 +193,11 @@ class ParOptSparse(Optimizer):
             options=options,
         )
 
-        # ParOpt requires a dense Jacobian format
-        self.jacType = "csr"
+        # ParOpt can use a CSR or dense Jacobian format
+        if self.sparse:
+            self.jacType = "csr"
+        else:
+            self.jacType = "dense2d"
 
         return
 
@@ -244,30 +307,45 @@ class ParOptSparse(Optimizer):
         if self.optProb.comm.rank == 0:
             optTime = MPI.Wtime()
 
-            # Build the sparsity pattern for the Jacobian
-            gcon = {}
-            for iCon in self.optProb.constraints:
-                gcon[iCon] = self.optProb.constraints[iCon].jac
-            jac = self.optProb.processConstraintJacobian(gcon)
-            jac = extractRows(jac, indices)
+            if self.sparse:
+                # Build the sparsity pattern for the Jacobian
+                gcon = {}
+                for iCon in self.optProb.constraints:
+                    gcon[iCon] = self.optProb.constraints[iCon].jac
+                jac = self.optProb.processConstraintJacobian(gcon)
+                jac = extractRows(jac, indices)
 
-            # Extract the non-zero CSR pattern
-            rowp = jac["csr"][IROW]
-            cols = jac["csr"][ICOL]
+                # Extract the non-zero CSR pattern
+                rowp = jac["csr"][IROW]
+                cols = jac["csr"][ICOL]
 
-            # Optimize the problem
-            problem = ParOptSparseProblem(
-                MPI.COMM_SELF,
-                self,
-                nvars,
-                ncon,
-                ninequalities,
-                rowp,
-                cols,
-                xs,
-                blx,
-                bux,
-            )
+                # Optimize the problem
+                problem = ParOptSparseProblem(
+                    MPI.COMM_SELF,
+                    self,
+                    nvars,
+                    ncon,
+                    ninequalities,
+                    rowp,
+                    cols,
+                    xs,
+                    blx,
+                    bux,
+                )
+            else:
+                problem = ParOptDenseProblem(
+                    MPI.COMM_SELF,
+                    self,
+                    nvars,
+                    ncon,
+                    ninequalities,
+                    xs,
+                    blx,
+                    bux,
+                )
+
+                problem.checkGradients(1e-6)
+
             optimizer = ParOpt.Optimizer(problem, self.set_options)
             optimizer.optimize()
             x, z, zw, zl, zu = optimizer.getOptimizedPoint()
@@ -296,14 +374,24 @@ class ParOptSparse(Optimizer):
             # If number of constraints is zero, ParOpt returns z as None.
             # Thus if there is no constraints, should pass an empty list
             # to multipliers instead of z.
-            if z is not None:
-                sol = self._createSolution(
-                    optTime, sol_inform, fobj, x[:], multipliers=-zw[:]
-                )
+            if self.sparse:
+                if zw is not None:
+                    sol = self._createSolution(
+                        optTime, sol_inform, fobj, x[:], multipliers=-zw[:]
+                    )
+                else:
+                    sol = self._createSolution(
+                        optTime, sol_inform, fobj, x[:], multipliers=[]
+                    )
             else:
-                sol = self._createSolution(
-                    optTime, sol_inform, fobj, x[:], multipliers=[]
-                )
+                if z is not None:
+                    sol = self._createSolution(
+                        optTime, sol_inform, fobj, x[:], multipliers=-z[:]
+                    )
+                else:
+                    sol = self._createSolution(
+                        optTime, sol_inform, fobj, x[:], multipliers=[]
+                    )
 
             # Indicate solution finished
             self.optProb.comm.bcast(-1, root=0)
