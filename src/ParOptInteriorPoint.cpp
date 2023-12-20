@@ -124,6 +124,26 @@ void ParOptInteriorPoint::ParOptVars::initialize(ParOptProblem *prob) {
   memset(zt, 0, ncon * sizeof(ParOptScalar));
 }
 
+void ParOptInteriorPoint::ParOptVars::set(ParOptScalar value) {
+  x->set(value);
+  zl->set(value);
+  zu->set(value);
+  zw->set(value);
+  sw->set(value);
+  tw->set(value);
+  zsw->set(value);
+  ztw->set(value);
+
+  // Set the variables to unity
+  for (int i = 0; i < ncon; i++) {
+    z[i] = value;
+    s[i] = value;
+    t[i] = value;
+    zt[i] = value;
+    zs[i] = value;
+  }
+}
+
 void ParOptInteriorPoint::ParOptVars::add(ParOptVars &update) {
   // Add the final contributions
   x->axpy(1.0, update.x);
@@ -411,30 +431,11 @@ ParOptInteriorPoint::ParOptInteriorPoint(ParOptProblem *_prob,
     setOutputFile(filename);
   }
 
+  // Initialize all the variables to 1.0
+  variables.set(1.0);
+
   // Initialize the design variables and bounds
   initAndCheckDesignAndBounds();
-
-  // Set initial values of the multipliers
-  variables.zl->set(1.0);
-  variables.zu->set(1.0);
-
-  // Set the multipliers and slack variables associated with the
-  // sparse constraints all to 1.0
-  variables.zw->set(1.0);
-  variables.sw->set(1.0);
-  variables.tw->set(1.0);
-  variables.zsw->set(1.0);
-  variables.ztw->set(1.0);
-
-  // Set the Largrange multipliers and slack variables associated
-  // with the dense constraints to 1.0
-  for (int i = 0; i < ncon; i++) {
-    variables.z[i] = 1.0;
-    variables.s[i] = 1.0;
-    variables.t[i] = 1.0;
-    variables.zt[i] = 1.0;
-    variables.zs[i] = 1.0;
-  }
 }
 
 /**
@@ -4561,9 +4562,9 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
   }
 
   if (starting_point_strategy == PAROPT_AFFINE_STEP) {
-    initAffineStepMultipliers(variables, residual, update);
+    initAffineStepMultipliers(barrier_param, variables, residual, update);
   } else if (starting_point_strategy == PAROPT_LEAST_SQUARES_MULTIPLIERS) {
-    initLeastSquaresMultipliers(variables, residual, update.x);
+    initLeastSquaresMultipliers(barrier_param, variables, residual, update.x);
   }
 
   // Some quasi-Newton methods can be updated with only the design variable
@@ -4605,6 +4606,9 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
   memset(info, '\0', sizeof(info));
 
   for (int k = 0; k < max_major_iters; k++, niter++) {
+    // Reset the slack variables
+    slackReset(barrier_param, variables);
+
     // Keep track if the quasi-Newton Hessian was reset
     int qn_hessian_reset = 0;
     if (qn && !sequential_linear_method) {
@@ -5333,6 +5337,51 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
 }
 
 /*
+  Compute the component-wise slack reset of the slack variables
+*/
+void ParOptInteriorPoint::slackResetComponent(
+    int n, double mu, const ParOptScalar *ci, const ParOptScalar *gs,
+    const ParOptScalar *gt, ParOptScalar *si, ParOptScalar *ti) {
+  for (int i = 0; i < n; i++) {
+    ParOptScalar gav = 0.5 * (gs[i] + gt[i]);
+    if (ParOptRealPart(gav) == 0.0) {
+      si[i] = 0.5 * ci[i];
+      ti[i] = -0.5 * ci[i];
+    } else {
+      ParOptScalar d = std::sqrt(ci[i] * ci[i] + mu * mu / (gav * gav));
+      si[i] = 0.5 * (ci[i] + mu / gav + d);
+      ti[i] = 0.5 * (-ci[i] + mu / gav + d);
+    }
+  }
+}
+
+/*
+  Perform a slack variable reset based on the current variable values
+*/
+void ParOptInteriorPoint::slackReset(double mu, ParOptVars &vars) {
+  // Perform the slack reset for the dense constraints
+  slackResetComponent(ncon, mu, c, penalty_gamma_s, penalty_gamma_t, vars.s,
+                      vars.t);
+
+  // Perform the slack reset for the remaining variables
+  ParOptScalar *cw_array;
+  ParOptScalar *gs_array, *gt_array;
+  ParOptScalar *sw_array, *tw_array;
+
+  if (nwcon > 0) {
+    prob->evalSparseCon(vars.x, wtemp);
+    wtemp->getArray(&cw_array);
+    penalty_gamma_sw->getArray(&gs_array);
+    penalty_gamma_tw->getArray(&gt_array);
+    vars.sw->getArray(&sw_array);
+    vars.tw->getArray(&tw_array);
+
+    slackResetComponent(nwcon, mu, cw_array, gs_array, gt_array, sw_array,
+                        tw_array);
+  }
+}
+
+/*
   Compute an initial multiplier estimate using a least-squares method
 
   The least squares multipliers can be found by solving the following system
@@ -5363,12 +5412,14 @@ int ParOptInteriorPoint::optimize(const char *checkpoint) {
 
   for zw.
 */
-void ParOptInteriorPoint::initLeastSquaresMultipliers(ParOptVars &vars,
+void ParOptInteriorPoint::initLeastSquaresMultipliers(double mu,
+                                                      ParOptVars &vars,
                                                       ParOptVars &res,
                                                       ParOptVec *yx) {
   const double max_bound_value = options->getFloatOption("max_bound_value");
-  const double init_barrier_param =
-      options->getFloatOption("init_barrier_param");
+
+  // Perform the slack variable reset to set s, t and sw, tw
+  slackReset(mu, vars);
 
   // Set the largrange multipliers with bounds outside the
   // limits to zero
@@ -5380,25 +5431,21 @@ void ParOptInteriorPoint::initLeastSquaresMultipliers(ParOptVars &vars,
 
   // Set the Largrange multipliers associated with the
   // the lower/upper bounds to the initial barrier parameter
-  vars.zl->set(init_barrier_param);
-  vars.zu->set(init_barrier_param);
+  vars.zl->set(mu);
+  vars.zu->set(mu);
 
   // Set the Lagrange multipliers and slack variables
   // associated with the sparse constraints initial barrier parameter
-  vars.zw->set(init_barrier_param);
-  vars.sw->set(init_barrier_param);
-  vars.tw->set(init_barrier_param);
-  vars.zsw->set(init_barrier_param);
-  vars.ztw->set(init_barrier_param);
+  vars.zw->set(mu);
+  vars.zsw->set(mu);
+  vars.ztw->set(mu);
 
   // Set the Largrange multipliers and slack variables associated
   // with the dense constraints to the initial barrier parameter
   for (int i = 0; i < ncon; i++) {
-    vars.z[i] = init_barrier_param;
-    vars.s[i] = init_barrier_param;
-    vars.t[i] = init_barrier_param;
-    vars.zs[i] = init_barrier_param;
-    vars.zt[i] = init_barrier_param;
+    vars.z[i] = mu;
+    vars.zs[i] = mu;
+    vars.zt[i] = mu;
   }
 
   // Zero the multipliers for bounds that are out-of-range
@@ -5533,7 +5580,7 @@ void ParOptInteriorPoint::initLeastSquaresMultipliers(ParOptVars &vars,
   }
 }
 
-void ParOptInteriorPoint::initAffineStepMultipliers(ParOptVars &vars,
+void ParOptInteriorPoint::initAffineStepMultipliers(double mu, ParOptVars &vars,
                                                     ParOptVars &res,
                                                     ParOptVars &step) {
   // Set the minimum allowable multiplier
@@ -5547,7 +5594,7 @@ void ParOptInteriorPoint::initAffineStepMultipliers(ParOptVars &vars,
 
   // Perform a preliminary estimate of the multipliers using the least-squares
   // method
-  initLeastSquaresMultipliers(vars, res, step.x);
+  initLeastSquaresMultipliers(mu, vars, res, step.x);
 
   // Set the largrange multipliers with bounds outside the
   // limits to zero

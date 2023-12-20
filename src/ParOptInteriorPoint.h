@@ -241,10 +241,16 @@ class ParOptInteriorPoint : public ParOptBase {
   // Check and initialize the design variables and their bounds
   void initAndCheckDesignAndBounds();
 
+  // Slack variable reset - from Curtis 2012
+  void slackResetComponent(int n, double mu, const ParOptScalar *ci,
+                           const ParOptScalar *gs, const ParOptScalar *gt,
+                           ParOptScalar *si, ParOptScalar *ti);
+  void slackReset(double mu, ParOptVars &vars);
+
   // Initialize the multipliers
-  void initLeastSquaresMultipliers(ParOptVars &vars, ParOptVars &res,
+  void initLeastSquaresMultipliers(double mu, ParOptVars &vars, ParOptVars &res,
                                    ParOptVec *yx);
-  void initAffineStepMultipliers(ParOptVars &vars, ParOptVars &res,
+  void initAffineStepMultipliers(double mu, ParOptVars &vars, ParOptVars &res,
                                  ParOptVars &step);
 
   // Compute the negative of the KKT residuals - return
@@ -375,6 +381,7 @@ class ParOptInteriorPoint : public ParOptBase {
     ParOptVars();
     ~ParOptVars();
     void initialize(ParOptProblem *prob);
+    void set(ParOptScalar value);
     void add(ParOptVars &update);
     void subtract(ParOptVars &update);
 
