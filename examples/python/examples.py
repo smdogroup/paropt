@@ -228,11 +228,12 @@ def plot_it_all(problem, use_tr=False):
 
         options = {
             "algorithm": "ip",
+            "output_file": filename,
             "abs_res_tol": 1e-8,
             "starting_point_strategy": "affine_step",
             "barrier_strategy": "monotone",
             "start_affine_multiplier_min": 0.01,
-            "penalty_gamma": 1.0,
+            "penalty_gamma": 100.0,
             "qn_subspace_size": 10,
             "qn_type": "bfgs",
         }
