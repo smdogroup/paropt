@@ -141,6 +141,7 @@ class ParOptDenseProblem(ParOpt.Problem):
         """Evaluate the objective and constraint gradients"""
         gobj, gcon, fail = self.ptr._masterFunc(x[:], ["gobj", "gcon"])
         g[:] = gobj[:]
+        gcon = np.atleast_2d(gcon)
         for i in range(self.ncon):
             A[i][:] = -gcon[i][:]
         return fail
