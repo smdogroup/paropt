@@ -106,16 +106,12 @@ optional_dependencies = {
 
 # Add an optional dependency that concatenates all others
 optional_dependencies["all"] = sorted(
-    [
-        dependency
-        for dependencies in optional_dependencies.values()
-        for dependency in dependencies
-    ]
+    [dependency for dependencies in optional_dependencies.values() for dependency in dependencies]
 )
 
 setup(
     name="paropt",
-    version="2.1.3",
+    version="2.1.4",
     description="Parallel interior-point optimizer",
     author="Graeme J. Kennedy",
     author_email="graeme.kennedy@ae.gatech.edu",
