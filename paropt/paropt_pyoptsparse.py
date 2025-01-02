@@ -170,7 +170,7 @@ class ParOptSparse(Optimizer):
 
         # Change the default algorithm to interior point if sparse since trust-region doesn't support sparse constraints
         if self.sparse:
-            paropt_default_options["algorithm"].default = "mma"
+            paropt_default_options["algorithm"].default = "ip"
 
         for option_name in paropt_default_options:
             # Get the type and default value of the named argument
@@ -298,7 +298,10 @@ class ParOptSparse(Optimizer):
         oneSided = True
 
         if self.unconstrained:
-            ncon = 0
+            # Data for the single dummy constraint
+            ncon = 1
+            indices = [0]
+            ninequalities = 1
         else:
             # Count the number of inequalities
             indices, _, _, _ = self.optProb.getOrdering(["ni", "li"], oneSided=oneSided)
