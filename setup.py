@@ -106,7 +106,11 @@ optional_dependencies = {
 
 # Add an optional dependency that concatenates all others
 optional_dependencies["all"] = sorted(
-    [dependency for dependencies in optional_dependencies.values() for dependency in dependencies]
+    [
+        dependency
+        for dependencies in optional_dependencies.values()
+        for dependency in dependencies
+    ]
 )
 
 setup(
