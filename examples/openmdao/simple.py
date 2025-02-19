@@ -2,7 +2,6 @@
 This script is used to debug PyOptDriver()
 """
 
-
 import numpy as np
 import openmdao.api as om
 import dymos as dm
