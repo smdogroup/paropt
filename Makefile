@@ -50,7 +50,7 @@ interface:
 	${PIP} install -e .\[all\]; \
 
 complex_interface:
-	CFLAGS=-DPAROPT_USE_COMPLEX ${PIP} install -e .\[all\]; \
+	CXXFLAGS=-DPAROPT_USE_COMPLEX ${PIP} install -e .\[all\]; \
 
 clean:
 	${RM} lib/libparopt.a lib/*.so
