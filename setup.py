@@ -119,7 +119,7 @@ setup(
     description="Parallel interior-point optimizer",
     author="Graeme J. Kennedy",
     author_email="graeme.kennedy@ae.gatech.edu",
-    install_requires=["numpy", "mpi4py>=3.1.1,<4"],
+    install_requires=["numpy", "mpi4py>=3.1.1"],
     extras_require=optional_dependencies,
     ext_modules=cythonize(
         exts,
