@@ -1,7 +1,7 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html5" lang="python">
+<html class="writer-html5" lang="python" data-content_root="./">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -14,9 +14,9 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=a888008e"></script>
-      <script src="_static/doctools.js?v=888ff710"></script>
-      <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+      <script src="_static/documentation_options.js?v=d048f138"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
       <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
       <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -80,7 +80,7 @@
            <div itemprop="articleBody">
              
   <section id="paropt-overview">
-<h1>ParOpt Overview<a class="headerlink" href="#paropt-overview" title="Permalink to this heading"></a></h1>
+<h1>ParOpt Overview<a class="headerlink" href="#paropt-overview" title="Link to this heading"></a></h1>
 <p>ParOpt is a parallel optimization library for large-scale optimization using distributed design variables.
 ParOpt is implemented in C++ with a Python wrapper generated using Cython.
 ParOpt contains both an interior-point optimization algorithm with a line search globalization strategy and an <span class="math notranslate nohighlight">\(l_{\infty}\)</span> trust region algorithm with an <span class="math notranslate nohighlight">\(l_{1}\)</span> penalty function.</p>
@@ -97,7 +97,7 @@ The constraints <span class="math notranslate nohighlight">\(c(x)\)</span>, whic
 The constraints <span class="math notranslate nohighlight">\(c_{w}(x)\)</span> are sparse and separable, with the Jacobian <span class="math notranslate nohighlight">\(A_{w}(x) = \nabla c_{w}(x)\)</span>.
 The separable constraints satisfy the property that the matrix <span class="math notranslate nohighlight">\(A_{w} C A_{w}^{T}\)</span> is block diagonal when <span class="math notranslate nohighlight">\(C\)</span> is a diagonal matrix.</p>
 <section id="quick-example">
-<h2>Quick example<a class="headerlink" href="#quick-example" title="Permalink to this heading"></a></h2>
+<h2>Quick example<a class="headerlink" href="#quick-example" title="Link to this heading"></a></h2>
 <p>The following code is an example of ParOpt applied to the optimization problem:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{align}
@@ -147,7 +147,7 @@ The separable constraints satisfy the property that the matrix <span class="math
 </div>
 </section>
 <section id="recommended-settings">
-<h2>Recommended settings<a class="headerlink" href="#recommended-settings" title="Permalink to this heading"></a></h2>
+<h2>Recommended settings<a class="headerlink" href="#recommended-settings" title="Link to this heading"></a></h2>
 <p>Often the default options work well. A complete description of the options is described <a class="reference internal" href="options.html#options-label"><span class="std std-ref">here</span></a>.</p>
 <p>For the trust region algorithm, we recommend starting with the following set of parameters.
 These control the trust region algorithm and the interior point solution algorithm that solves the trust region subproblems.
@@ -200,7 +200,7 @@ These suggested settings are selected to solve each subproblem to a tight tolera
 </div>
 </section>
 <section id="please-cite-us">
-<h2>Please cite us<a class="headerlink" href="#please-cite-us" title="Permalink to this heading"></a></h2>
+<h2>Please cite us<a class="headerlink" href="#please-cite-us" title="Link to this heading"></a></h2>
 <p>The key contributions and development of ParOpt are described in the following paper:
 Ting Wei Chin, Mark K. Leader, Graeme J. Kennedy, A scalable framework for large-scale 3D multimaterial topology optimization with octree-based mesh adaptation, Advances in Engineering Software, Volume 135, 2019.</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>@article{Chin:2019,
@@ -214,7 +214,7 @@ Ting Wei Chin, Mark K. Leader, Graeme J. Kennedy, A scalable framework for large
 </div>
 </section>
 <section id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h2>
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
 <p>The installation process for ParOpt consists of first compiling the C++ source and then installing the python interface.
 The C++ source requires a BLAS/LAPACK installation, an MPI compiler for C++ and [Metis](<a class="reference external" href="https://github.com/KarypisLab/METIS">https://github.com/KarypisLab/METIS</a>).
 Using the Python interface additional requires numpy, mpi4py and Cython.</p>
@@ -233,7 +233,7 @@ The first step in compling ParOpt is to first copy the file <code class="docutil
 </section>
 </section>
 <section id="introduction-and-examples">
-<h1>Introduction and examples<a class="headerlink" href="#introduction-and-examples" title="Permalink to this heading"></a></h1>
+<h1>Introduction and examples<a class="headerlink" href="#introduction-and-examples" title="Link to this heading"></a></h1>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="options.html">Options and generic interface for ParOpt optimziers</a><ul>
@@ -277,13 +277,16 @@ The first step in compling ParOpt is to first copy the file <code class="docutil
 <li class="toctree-l2"><a class="reference internal" href="reference.html#paropt.ParOpt.PVec"><code class="docutils literal notranslate"><span class="pre">PVec</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="reference.html#paropt.ParOpt.InteriorPoint"><code class="docutils literal notranslate"><span class="pre">InteriorPoint</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="reference.html#paropt.ParOpt.TrustRegion"><code class="docutils literal notranslate"><span class="pre">TrustRegion</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#_CPPv413ParOptProblem"><code class="docutils literal notranslate"><span class="pre">ParOptProblem</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#_CPPv419ParOptInteriorPoint"><code class="docutils literal notranslate"><span class="pre">ParOptInteriorPoint</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#_CPPv417ParOptTrustRegion"><code class="docutils literal notranslate"><span class="pre">ParOptTrustRegion</span></code></a></li>
 </ul>
 </li>
 </ul>
 </div>
 </section>
 <section id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading"></a></h1>
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h1>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
 <li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>

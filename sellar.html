@@ -1,7 +1,7 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html5" lang="python">
+<html class="writer-html5" lang="python" data-content_root="./">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -14,9 +14,9 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=a888008e"></script>
-      <script src="_static/doctools.js?v=888ff710"></script>
-      <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+      <script src="_static/documentation_options.js?v=d048f138"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
       <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
       <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -85,7 +85,7 @@
            <div itemprop="articleBody">
              
   <section id="sellar-problem">
-<h1>Sellar problem<a class="headerlink" href="#sellar-problem" title="Permalink to this heading"></a></h1>
+<h1>Sellar problem<a class="headerlink" href="#sellar-problem" title="Link to this heading"></a></h1>
 <p>To illustrate the application of ParOpt, consider the following optimization problem with the Sellar objective function:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{align}
@@ -97,7 +97,7 @@
     \text{subject to} \qquad &amp; x_{1} + x_{2} - 1 \ge 0 \\
 \end{align}\end{split}\]</div>
 <section id="c-implementation">
-<h2>C++ implementation<a class="headerlink" href="#c-implementation" title="Permalink to this heading"></a></h2>
+<h2>C++ implementation<a class="headerlink" href="#c-implementation" title="Link to this heading"></a></h2>
 <p>The first step to use the ParOpt optimization library is to create a problem class which inherits from ParOptProblem.
 This class is used by ParOpt's interior-point or trust-region algorithms to get the function and gradient values from the problem.</p>
 <p>Key functions required for the implementation of a ParOptProblem class are described below.</p>
@@ -245,7 +245,7 @@ When the object is no longer needed, call decref() to decrease the reference cou
 Direct calls to delete the object should not be used.</p>
 </section>
 <section id="python-implementation">
-<h2>Python implementation<a class="headerlink" href="#python-implementation" title="Permalink to this heading"></a></h2>
+<h2>Python implementation<a class="headerlink" href="#python-implementation" title="Link to this heading"></a></h2>
 <p>The python implementation of this problem is also straightforward.
 In an analogous manner, the python implemenation uses a class inherited from ParOpt.Problem, a python wrapper for the CyParOptProblem class.
 This inherited class must implement a getVarsAndBounds, evalObjCon and evalObjConGradient member functions.

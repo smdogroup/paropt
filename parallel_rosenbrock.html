@@ -1,7 +1,7 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html5" lang="python">
+<html class="writer-html5" lang="python" data-content_root="./">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -14,9 +14,9 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=a888008e"></script>
-      <script src="_static/doctools.js?v=888ff710"></script>
-      <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+      <script src="_static/documentation_options.js?v=d048f138"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
       <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
       <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -84,7 +84,7 @@
            <div itemprop="articleBody">
              
   <section id="parallel-rosenbrock">
-<h1>Parallel Rosenbrock<a class="headerlink" href="#parallel-rosenbrock" title="Permalink to this heading"></a></h1>
+<h1>Parallel Rosenbrock<a class="headerlink" href="#parallel-rosenbrock" title="Link to this heading"></a></h1>
 <p>This problem deals with a generalized Rosenbrock function in parallel. In this case the objective function is</p>
 <div class="math notranslate nohighlight">
 \[f(x) = \sum_{i=1}^{n-1} (1 - x_{i})^{2} + 100(x_{i+1} - x_{i}^2)^2\]</div>
@@ -95,7 +95,7 @@
 <div class="math notranslate nohighlight">
 \[c_{2}(x) = \sum_{i=1}^{n} x_{i} + 10 \ge 0\]</div>
 <section id="c-implementation">
-<h2>C++ implementation<a class="headerlink" href="#c-implementation" title="Permalink to this heading"></a></h2>
+<h2>C++ implementation<a class="headerlink" href="#c-implementation" title="Link to this heading"></a></h2>
 <p>This example is a further demonstration of the ParOptProblem interface class making use of a distributed design vector, separable sparse constraints, and Hessian-vector products.</p>
 <p>The Hessian-vector products can be used to accelerate the convergence of the optimizer.
 They are generally used once the optimization problem has converged to a point that is closer to the optimum.
