@@ -141,6 +141,7 @@ class ParOptDenseProblem(ParOpt.Problem):
         """Evaluate the objective and constraint gradients"""
         gobj, gcon, fail = self.ptr._masterFunc(x[:], ["gobj", "gcon"])
         g[:] = gobj[:]
+        gcon = np.atleast_2d(gcon)
         for i in range(self.ncon):
             A[i][:] = -gcon[i][:]
         return fail
@@ -167,6 +168,11 @@ class ParOptSparse(Optimizer):
         # Manually override the options with missing default values
         paropt_default_options["ip_checkpoint_file"].default = "default.out"
         paropt_default_options["problem_name"].default = "problem"
+
+        # Change the default algorithm to interior point if sparse since trust-region doesn't support sparse constraints
+        if self.sparse:
+            paropt_default_options["algorithm"].default = "ip"
+
         for option_name in paropt_default_options:
             # Get the type and default value of the named argument
             _type = None
@@ -259,6 +265,12 @@ class ParOptSparse(Optimizer):
             Flag sepcifying if sensitivities are to be stored in hist.
             This is necessay for hot-starting only.
         """
+        # Raise an error if the user is trying to solve a sparse problem with the trust region algorithm
+        if self.sparse and self.set_options["algorithm"].lower() == "tr":
+            raise ValueError(
+                "Trust region algorithm does not support sparse constraints, please use the interior point or MMA algorithms instead."
+            )
+
         self.startTime = time.time()
         self.callCounter = 0
         self.storeSens = storeSens
@@ -287,7 +299,10 @@ class ParOptSparse(Optimizer):
         oneSided = True
 
         if self.unconstrained:
-            ncon = 0
+            # Data for the single dummy constraint
+            ncon = 1
+            indices = [0]
+            ninequalities = 1
         else:
             # Count the number of inequalities
             indices, _, _, _ = self.optProb.getOrdering(["ni", "li"], oneSided=oneSided)
