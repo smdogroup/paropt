@@ -406,6 +406,7 @@ void ParOptAMD(int nvars, int *rowp, int *cols, int *perm,
   for (int i = 0; i < nvars; i++) {
     perm[i] = i;
     degree[i] = rowp[i + 1] - rowp[i];
+    elem_degree[i] = -1;
     alen[i] = rowp[i + 1] - rowp[i];
     elen[i] = 0;
     state[i] = 1;  // Set everything to variables
@@ -711,16 +712,17 @@ void ParOptAMD(int nvars, int *rowp, int *cols, int *perm,
         int d = deglist.get_degree(lj);
         d = (deg_estimate < d + deg_Lp ? deg_estimate : d + deg_Lp);
         deglist.update_degree(lj, d);
+      }
 
-        for (int j = 0; j < lenlp; j++) {
-          int lj = Lp[j];
-          int end = rowp[lj] + elen[lj];
-          // For all elements pointed to by row Lp[j] = lj
-          for (int k = rowp[lj]; k < end; k++) {
-            // Find all the elements
-            int e = cols[k];
-            elem_degree[e] = -1;
-          }
+      // Reset the element degrees now back to -1
+      for (int j = 0; j < lenlp; j++) {
+        int lj = Lp[j];
+        int end = rowp[lj] + elen[lj];
+        // For all elements pointed to by row Lp[j] = lj
+        for (int k = rowp[lj]; k < end; k++) {
+          // Find all the elements
+          int e = cols[k];
+          elem_degree[e] = -1;
         }
       }
     }

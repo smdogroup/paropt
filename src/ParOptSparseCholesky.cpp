@@ -530,7 +530,7 @@ void ParOptSparseCholesky::solveDiagTranspose(int diag_size, ParOptScalar *L,
 
   The A32 block gives A32 = L31 * L21^{T} + L32 * L22^{T}
 
-  L32 = (A32 - L32 * L21^{T}) * L22^{-T}
+  L32 = (A32 - L31 * L21^{T}) * L22^{-T}
 
   This leads to the following steps in the algorithm:
 
