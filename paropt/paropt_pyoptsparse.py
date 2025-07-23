@@ -10,7 +10,6 @@ from paropt import ParOpt
 from mpi4py import MPI
 
 # Local modules
-from pyoptsparse.pyOpt_error import Error
 from pyoptsparse.pyOpt_optimizer import Optimizer
 from pyoptsparse.pyOpt_utils import extractRows, INFINITY, IROW, ICOL
 
@@ -359,6 +358,7 @@ class ParOptSparse(Optimizer):
                     bux,
                 )
 
+            if self.set_options["gradient_verification_frequency"] > 0:
                 problem.checkGradients(1e-6)
 
             optimizer = ParOpt.Optimizer(problem, self.set_options)
