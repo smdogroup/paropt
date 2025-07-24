@@ -57,13 +57,12 @@ enum ParOptStartingPointStrategy {
   respectively. The perturbed KKT conditions for this problem are:
 
   g(x) - A(x)^{T}*z - Aw^{T}*zw - zl + zu = 0
-  gamma_s + z - zs = 0
-  gamma_t - z - zt = 0
+  S*(gamma_s + z) - mu * e = 0
+  T*(gamma_t - z) - mu * e = 0
+  Sw*(gamma_sw + zw) - mu * e = 0
+  Tw*(gamma_tw - zw) - mu * e = 0
   c(x) - s + t = 0
-  cw(x) - sw = 0
-  S*z - mu*e = 0
-  T*zt - mu*e = 0
-  Sw*zw - mu*e = 0
+  cw(x) - sw + tw = 0
   (X - Xl)*zl - mu*e = 0
   (Xu - X)*zu - mu*e = 0
 
@@ -241,10 +240,16 @@ class ParOptInteriorPoint : public ParOptBase {
   // Check and initialize the design variables and their bounds
   void initAndCheckDesignAndBounds();
 
+  // Slack variable reset - from Curtis 2012
+  void slackResetComponent(int n, double mu, const ParOptScalar *ci,
+                           const ParOptScalar *gs, const ParOptScalar *gt,
+                           ParOptScalar *si, ParOptScalar *ti);
+  void slackReset(double mu, ParOptVars &vars);
+
   // Initialize the multipliers
-  void initLeastSquaresMultipliers(ParOptVars &vars, ParOptVars &res,
+  void initLeastSquaresMultipliers(double mu, ParOptVars &vars, ParOptVars &res,
                                    ParOptVec *yx);
-  void initAffineStepMultipliers(ParOptVars &vars, ParOptVars &res,
+  void initAffineStepMultipliers(double mu, ParOptVars &vars, ParOptVars &res,
                                  ParOptVars &step);
 
   // Compute the negative of the KKT residuals - return
@@ -375,17 +380,18 @@ class ParOptInteriorPoint : public ParOptBase {
     ParOptVars();
     ~ParOptVars();
     void initialize(ParOptProblem *prob);
+    void set(ParOptScalar value);
     void add(ParOptVars &update);
     void subtract(ParOptVars &update);
 
     // The variables in the optimization problem
     int ncon;
-    ParOptVec *x;               // The design point
-    ParOptVec *zl, *zu;         // Multipliers for the upper/lower bounds
-    ParOptScalar *z, *zs, *zt;  // Multipliers for the dense constraints
-    ParOptVec *zw, *zsw, *ztw;  // Multipliers for the sparse constraints
-    ParOptScalar *s, *t;        // Slack variables
-    ParOptVec *sw, *tw;         // Slack variables for the sparse constraints
+    ParOptVec *x;         // The design point
+    ParOptVec *zl, *zu;   // Multipliers for the upper/lower bounds
+    ParOptScalar *z;      // Multipliers for the dense constraints
+    ParOptVec *zw;        // Multipliers for the sparse constraints
+    ParOptScalar *s, *t;  // Slack variables
+    ParOptVec *sw, *tw;   // Slack variables for the sparse constraints
   };
 
   // The parallel optimizer problem and constraints
