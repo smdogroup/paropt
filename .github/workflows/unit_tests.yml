@@ -68,12 +68,12 @@ jobs:
           echo "=============================================================";
 
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it.
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Setup miniconda
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
-          python-version: 3.9
+          python-version: 3.11
 
       - name: Install ParOpt
         run: |
@@ -84,11 +84,17 @@ jobs:
           conda install -c anaconda openblas -q -y;
           conda install -c conda-forge lapack -q -y;
           conda install -c conda-forge metis -q -y;
+          conda install -c conda-forge pyoptsparse -q -y;
           cd $PAROPT_DIR;
           cp Makefile.in.info Makefile.in;
           make ${{ matrix.OPTIONAL }} PAROPT_DIR=$PAROPT_DIR METIS_INCLUDE=-I${CONDA_PREFIX}/include/ METIS_LIB="-L${CONDA_PREFIX}/lib/ -lmetis";
           cd $PAROPT_DIR;
           make ${{ matrix.INTERFACE }};
+      - name: Run unit tests
+        if: ${{ matrix.NAME != 'Complex' }}
+        run: |
+          pip install -e .[testing];
+          testflo -v .;
       - name: Build docs
         run: |
           sudo apt-get install -y --no-install-recommends doxygen graphviz
