@@ -21,6 +21,7 @@ try:
 except ImportError:
     raise unittest.SkipTest("pyoptsparse is not installed, skipping tests")
 
+
 def rosenbrock(x):
     return np.sum(100 * (x[1:] - x[:-1] ** 2) ** 2 + (1 - x[:-1]) ** 2)
 
@@ -62,7 +63,11 @@ class TestParOpt(OptTest):
         self.cons = {"normCon"} if self.constrained else set()
         self.objs = {"obj"}
         self.DVs = {"x"}
-        self.xStar = {"x": np.ones(self.N) * 1 / np.sqrt(2.0) if self.constrained else np.ones(self.N)}
+        self.xStar = {
+            "x": np.ones(self.N) * 1 / np.sqrt(2.0)
+            if self.constrained
+            else np.ones(self.N)
+        }
         self.fStar = rosenbrock(self.xStar["x"])
         self.optName = "ParOpt"
 
@@ -125,7 +130,10 @@ class TestParOpt(OptTest):
                 rowInds += [i, i]
                 colInds += [i, i + 1]
                 values += [1.0, -1.0]
-            jac = {"coo": [np.array(rowInds), np.array(colInds), np.array(values)], "shape": [self.N - 1, self.N]}
+            jac = {
+                "coo": [np.array(rowInds), np.array(colInds), np.array(values)],
+                "shape": [self.N - 1, self.N],
+            }
             optProb.addConGroup(
                 "lincon",
                 self.N - 1,
