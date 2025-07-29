@@ -64,9 +64,11 @@ class TestParOpt(OptTest):
         self.objs = {"obj"}
         self.DVs = {"x"}
         self.xStar = {
-            "x": np.ones(self.N) * 1 / np.sqrt(2.0)
-            if self.constrained
-            else np.ones(self.N)
+            "x": (
+                np.ones(self.N) * 1 / np.sqrt(2.0)
+                if self.constrained
+                else np.ones(self.N)
+            )
         }
         self.fStar = rosenbrock(self.xStar["x"])
         self.optName = "ParOpt"
