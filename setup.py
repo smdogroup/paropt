@@ -92,7 +92,7 @@ for e in exts:
     }
 
 optional_dependencies = {
-    "testing": ["testflo>=1.4.7"],
+    "testing": ["testflo>=1.4.7", "parameterized"],
     "docs": [
         "sphinx",
         "breathe",

@@ -92,7 +92,7 @@ jobs:
       - name: Run unit tests
         if: ${{ matrix.NAME != 'Complex' }}
         run: |
-          conda install -c conda-forge "pyoptsparse>=2.14.0" parameterized -q -y;
+          conda install -c conda-forge "pyoptsparse>=2.14.0" -q -y;
           pip install -e .[testing];
           testflo -v .;
       - name: Build docs
