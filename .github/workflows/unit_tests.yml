@@ -79,7 +79,7 @@ jobs:
         run: |
           export PAROPT_DIR=${GITHUB_WORKSPACE};
           echo "PAROPT_DIR=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
-          conda install -c anaconda openmpi -q -y;
+          conda install -c anaconda openmpi openmpi-mpicxx -q -y;
           conda install gxx_linux-64=9.3.0 -q -y;
           conda install -c anaconda openblas -q -y;
           conda install -c conda-forge lapack -q -y;
