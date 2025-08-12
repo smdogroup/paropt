@@ -79,11 +79,13 @@ jobs:
         run: |
           export PAROPT_DIR=${GITHUB_WORKSPACE};
           echo "PAROPT_DIR=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
-          conda install -c anaconda openmpi openmpi-mpicxx -q -y;
-          conda install gxx_linux-64=9.3.0 -q -y;
-          conda install -c anaconda openblas -q -y;
+          if [[ ${{ matrix.OS }} == 'ubuntu-latest' ]]; then
+            conda install -c conda-forge sysroot_linux-64=2.17 -q -y;
+            conda install -c conda-forge openblas -q -y;
+          fi
+          conda install -c conda-forge openmpi openmpi-mpicxx -q -y;
           conda install -c conda-forge lapack -q -y;
-          conda install -c conda-forge metis -q -y;
+          conda install -c conda-forge metis=5.1.0 -q -y;
           cd $PAROPT_DIR;
           cp Makefile.in.info Makefile.in;
           make ${{ matrix.OPTIONAL }} PAROPT_DIR=$PAROPT_DIR METIS_INCLUDE=-I${CONDA_PREFIX}/include/ METIS_LIB="-L${CONDA_PREFIX}/lib/ -lmetis";
