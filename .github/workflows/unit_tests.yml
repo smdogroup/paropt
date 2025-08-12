@@ -84,7 +84,6 @@ jobs:
           conda install -c anaconda openblas -q -y;
           conda install -c conda-forge lapack -q -y;
           conda install -c conda-forge metis -q -y;
-          conda install -c conda-forge "pyoptsparse>=2.14.0" parameterized -q -y;
           cd $PAROPT_DIR;
           cp Makefile.in.info Makefile.in;
           make ${{ matrix.OPTIONAL }} PAROPT_DIR=$PAROPT_DIR METIS_INCLUDE=-I${CONDA_PREFIX}/include/ METIS_LIB="-L${CONDA_PREFIX}/lib/ -lmetis";
@@ -93,6 +92,7 @@ jobs:
       - name: Run unit tests
         if: ${{ matrix.NAME != 'Complex' }}
         run: |
+          conda install -c conda-forge "pyoptsparse>=2.14.0" parameterized -q -y;
           pip install -e .[testing];
           testflo -v .;
       - name: Build docs
